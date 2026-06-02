@@ -1067,3 +1067,36 @@ body {
 .mor-piece.p1 { background: radial-gradient(circle at 35% 30%, #ff8c9c, #d33049); }
 .mor-piece.p2 { background: radial-gradient(circle at 35% 30%, #8be6f0, #1aa7bd); }
 .mor-spot.win { background: var(--good); }
+
+/* ---------- Bắn Tăng (Artillery) ---------- */
+.art-canvas {
+  width: min(720px, 96vw);
+  height: auto;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  background: #1a1e3a;
+  display: block;
+  margin: 0 auto;
+}
+.art-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 16px;
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  box-shadow: var(--shadow);
+}
+.art-field { display: flex; align-items: center; gap: 8px; }
+.art-field label { color: var(--muted); font-size: 0.9rem; min-width: 32px; }
+.art-field input[type="range"] { width: 140px; cursor: pointer; accent-color: var(--accent); }
+.art-val {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--accent);
+}
+.art-controls input:disabled { opacity: 0.4; cursor: not-allowed; }
