@@ -1100,3 +1100,5 @@ body {
   color: var(--accent);
 }
 .art-controls input:disabled { opacity: 0.4; cursor: not-allowed; }
+.art-move button { min-width: 38px; padding: 6px 10px; }
+.art-move button:disabled { opacity: 0.4; cursor: not-allowed; }

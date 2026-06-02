@@ -76,6 +76,8 @@
     const WIND_LEVEL = o.wind != null ? o.wind : 1; // 0 = lặng, 1 = vừa, 2 = mạnh
     const BLAST = o.blast || 60;     // bán kính nổ
     const MAX_DMG = o.dmg || 55;     // sát thương tối đa khi trúng tâm
+    const MOVE_BUDGET = o.move != null ? o.move : 80; // số px được di chuyển mỗi lượt
+    const MOVE_STEP = 5;             // mỗi lần bấm/nhấn dịch 5px
 
     // ----- chọn map (tất định theo seed) -----
     let mapKey = o.map || "hills";
@@ -112,6 +114,7 @@
     let proj = null;
     let explosion = null;
     let raf = null;
+    let fuel = MOVE_BUDGET; // nhiên liệu di chuyển còn lại trong lượt
 
     // ----- canvas -----
     const canvas = document.createElement("canvas");
@@ -124,6 +127,10 @@
     const panel = document.createElement("div");
     panel.className = "art-controls";
     panel.innerHTML =
+      `<div class="art-field art-move"><label>Di chuyển</label>` +
+      `<button class="btn small" id="artLeft">◄</button>` +
+      `<button class="btn small" id="artRight">►</button>` +
+      `<span class="art-val" id="artFuelVal"></span></div>` +
       `<div class="art-field"><label>Góc</label>` +
       `<input type="range" id="artAngle" min="5" max="85" value="50">` +
       `<span class="art-val" id="artAngleVal">50°</span></div>` +
@@ -138,6 +145,9 @@
     const angleVal = panel.querySelector("#artAngleVal");
     const powerVal = panel.querySelector("#artPowerVal");
     const fireBtn = panel.querySelector("#artFire");
+    const leftBtn = panel.querySelector("#artLeft");
+    const rightBtn = panel.querySelector("#artRight");
+    const fuelVal = panel.querySelector("#artFuelVal");
 
     angleInput.addEventListener("input", () => {
       players[turn].angle = +angleInput.value;
@@ -151,6 +161,32 @@
     });
     fireBtn.addEventListener("click", fire);
 
+    // di chuyển xe trong lượt (tốn nhiên liệu, không cho ra mép)
+    function moveTank(delta) {
+      if (busy || over || !myTurn() || fuel <= 0) return;
+      const pl = players[turn];
+      const minX = 24, maxX = W - 24;
+      const want = Math.max(-fuel, Math.min(fuel, delta));
+      let nx = pl.x + want;
+      nx = Math.max(minX, Math.min(maxX, nx));
+      const used = Math.abs(nx - pl.x);
+      if (used <= 0) return;
+      pl.x = nx;
+      fuel -= used;
+      ctx.sound("select");
+      syncControls();
+      draw();
+    }
+    leftBtn.addEventListener("click", () => moveTank(-MOVE_STEP));
+    rightBtn.addEventListener("click", () => moveTank(MOVE_STEP));
+
+    // hỗ trợ phím mũi tên trái/phải để di chuyển cho mượt
+    function onKey(e) {
+      if (e.key === "ArrowLeft") { moveTank(-MOVE_STEP); e.preventDefault(); }
+      else if (e.key === "ArrowRight") { moveTank(MOVE_STEP); e.preventDefault(); }
+    }
+    window.addEventListener("keydown", onKey);
+
     function myTurn() { return !ctx.isOnline || turn === ctx.mySeat; }
 
     function syncControls() {
@@ -163,6 +199,9 @@
       angleInput.disabled = lock;
       powerInput.disabled = lock;
       fireBtn.disabled = lock;
+      leftBtn.disabled = lock || fuel <= 0;
+      rightBtn.disabled = lock || fuel <= 0;
+      fuelVal.textContent = MOVE_BUDGET > 0 ? `⛽ ${Math.round(fuel)}` : "";
     }
 
     function barrelTip(pl) {
@@ -173,7 +212,8 @@
 
     function fire() {
       if (busy || over || !myTurn()) return;
-      applyMove({ angle: players[turn].angle, power: players[turn].power }, false);
+      const pl = players[turn];
+      applyMove({ angle: pl.angle, power: pl.power, x: pl.x }, false);
     }
 
     function applyMove(move, fromRemote) {
@@ -181,8 +221,10 @@
       const pl = players[turn];
       pl.angle = Math.max(5, Math.min(85, move.angle));
       pl.power = Math.max(20, Math.min(100, move.power));
+      // đồng bộ vị trí xe (đối thủ đã di chuyển trong lượt của họ)
+      if (typeof move.x === "number") pl.x = Math.max(24, Math.min(W - 24, move.x));
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ angle: pl.angle, power: pl.power });
+      if (!fromRemote && ctx.isOnline) ctx.sendMove({ angle: pl.angle, power: pl.power, x: pl.x });
 
       const tip = barrelTip(pl);
       const rad = pl.angle * Math.PI / 180;
@@ -258,6 +300,7 @@
       // sang lượt đối thủ
       turn = 1 - turn;
       wind = nextWind();
+      fuel = MOVE_BUDGET; // nạp lại nhiên liệu di chuyển cho lượt mới
       busy = false;
       ctx.setTurn(turn);
       updateStatus();
@@ -267,7 +310,8 @@
     function updateStatus() {
       const dirTxt = wind === 0 ? "lặng gió"
         : (wind > 0 ? "→ " : "← ") + Math.abs(wind).toFixed(1);
-      ctx.setStatus(`Lượt Người chơi ${turn + 1}. Gió: ${dirTxt}. Chỉnh góc/lực rồi bắn.`);
+      const moveTxt = MOVE_BUDGET > 0 ? " Di chuyển (◄ ►) rồi" : "";
+      ctx.setStatus(`Lượt Người chơi ${turn + 1}. Gió: ${dirTxt}.${moveTxt} chỉnh góc/lực rồi bắn.`);
     }
 
     function draw() {
@@ -360,7 +404,11 @@
 
     // cleanup khi rời game
     const observer = new MutationObserver(() => {
-      if (!document.body.contains(canvas)) { cancelAnimationFrame(raf); observer.disconnect(); }
+      if (!document.body.contains(canvas)) {
+        cancelAnimationFrame(raf);
+        window.removeEventListener("keydown", onKey);
+        observer.disconnect();
+      }
     });
     observer.observe(ctx.boardEl.parentNode || document.body, { childList: true, subtree: true });
 
@@ -406,14 +454,24 @@
           { value: 150, label: "150 (lâu)" },
         ],
       },
+      {
+        id: "move", label: "Di chuyển mỗi lượt", default: 80,
+        choices: [
+          { value: 0, label: "Cố định (không di chuyển)" },
+          { value: 80, label: "Ít (80px)" },
+          { value: 150, label: "Vừa (150px)" },
+          { value: 250, label: "Nhiều (250px)" },
+        ],
+      },
     ],
     howTo: [
       "Hai xe tăng ở hai đầu địa hình. Người chơi 1 (đỏ) bên trái, Người chơi 2 (xanh) bên phải. Chơi theo lượt.",
-      "Đến lượt mình, kéo thanh 'Góc' và 'Lực' để ngắm, rồi bấm 💥 Bắn.",
+      "Đến lượt mình, bạn có thể DI CHUYỂN xe bằng nút ◄ ► (hoặc phím mũi tên trái/phải) — mỗi lượt có một lượng nhiên liệu ⛽ giới hạn.",
+      "Sau khi đã chọn vị trí, kéo thanh 'Góc' và 'Lực' để ngắm, rồi bấm 💥 Bắn.",
       "Đạn bay theo trọng lực VÀ sức gió (xem chỉ báo gió phía trên) — gió đổi mỗi lượt nên phải tính toán lại.",
       "Bắn trúng gần xe đối thủ sẽ gây sát thương; càng trúng gần tâm càng đau. Trúng trực tiếp thì cực mạnh.",
-      "Có 5 kiểu địa hình (đồi, núi, thung lũng, đồi giữa, đồng bằng) — chọn ở màn chế độ, hoặc để 🎲 ngẫu nhiên mỗi ván.",
-      "Xe nào hết máu trước sẽ thua. Chơi online: lựa chọn của chủ phòng (map, gió, máu) áp dụng cho cả hai.",
+      "Có 5 kiểu địa hình — chọn ở màn chế độ, hoặc để 🎲 ngẫu nhiên mỗi ván.",
+      "Xe nào hết máu trước sẽ thua. Chơi online: lựa chọn của chủ phòng (map, gió, máu, di chuyển) áp dụng cho cả hai.",
     ],
     create,
   });
