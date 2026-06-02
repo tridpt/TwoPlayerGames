@@ -1,0 +1,319 @@
+/* Quoridor (Đặt Tường) — chơi chung máy & ONLINE (theo lượt, không RNG)
+   Bàn 9×9. Mỗi lượt: di chuyển quân HOẶC đặt một bức tường chặn đường.
+   P1 (dưới) cần lên hàng trên cùng; P2 (trên) cần xuống hàng dưới cùng.
+   Tường không được bịt kín hoàn toàn đường về đích của bất kỳ ai.
+   Nước đi: { t:"move", r, c } hoặc { t:"wall", o:"h"|"v", r, c }. */
+(function () {
+  const N = 9;
+  const WALL_SLOTS = N - 1; // 0..N-2
+
+  function create(ctx) {
+    const o = ctx.options || {};
+    const WALLS_EACH = o.walls || 10;
+
+    // ----- trạng thái -----
+    const pawns = [
+      { r: N - 1, c: 4, goalRow: 0 },     // P1 đi lên
+      { r: 0, c: 4, goalRow: N - 1 },     // P2 đi xuống
+    ];
+    const wallsLeft = [WALLS_EACH, WALLS_EACH];
+    const hWalls = new Set(); // "r,c": tường ngang tại giao điểm (r,c), phủ cột c & c+1
+    const vWalls = new Set(); // "r,c": tường dọc tại giao điểm (r,c), phủ hàng r & r+1
+    let turn = 0;
+    let over = false;
+    let mode = "move"; // move | wall
+
+    // ----- giao diện -----
+    const wrap = document.createElement("div");
+    wrap.className = "qd-wrap";
+
+    const bar = document.createElement("div");
+    bar.className = "qd-bar";
+    bar.innerHTML =
+      `<button class="btn small qd-mode active" id="qdMove">🏃 Di chuyển</button>` +
+      `<button class="btn small qd-mode" id="qdWall">🧱 Đặt tường</button>` +
+      `<span class="qd-walls" id="qdWalls"></span>`;
+    wrap.appendChild(bar);
+
+    const boardEl = document.createElement("div");
+    boardEl.className = "qd-board";
+    const SZ = 2 * N - 1;
+    // mẫu xen kẽ: ô (--qd-unit) rồi khe tường (--qd-wall), lặp lại
+    const tracks = [];
+    for (let i = 0; i < SZ; i++) tracks.push(i % 2 === 0 ? "var(--qd-unit)" : "var(--qd-wall)");
+    boardEl.style.gridTemplateColumns = tracks.join(" ");
+    boardEl.style.gridTemplateRows = tracks.join(" ");
+    wrap.appendChild(boardEl);
+    ctx.boardEl.appendChild(wrap);
+
+    const moveBtn = bar.querySelector("#qdMove");
+    const wallBtn = bar.querySelector("#qdWall");
+    const wallsLabel = bar.querySelector("#qdWalls");
+
+    moveBtn.addEventListener("click", () => setMode("move"));
+    wallBtn.addEventListener("click", () => setMode("wall"));
+    function setMode(m) {
+      mode = m;
+      moveBtn.classList.toggle("active", m === "move");
+      wallBtn.classList.toggle("active", m === "wall");
+      render();
+    }
+
+    // dựng lưới (2N-1)×(2N-1): ô, khe tường, giao điểm
+    const cellEls = {};   // "r,c" -> el
+    const hSlotEls = {};  // "gr,gc" -> el (khe ngang)
+    const vSlotEls = {};
+    for (let gr = 0; gr < SZ; gr++) {
+      for (let gc = 0; gc < SZ; gc++) {
+        const el = document.createElement("div");
+        const evenR = gr % 2 === 0, evenC = gc % 2 === 0;
+        if (evenR && evenC) {
+          el.className = "qd-cell";
+          const r = gr / 2, c = gc / 2;
+          cellEls[r + "," + c] = el;
+          el.addEventListener("click", () => onCellClick(r, c));
+        } else if (!evenR && evenC) {
+          el.className = "qd-hslot";
+          const r = (gr - 1) / 2, c = gc / 2; // giữa hàng r và r+1, cột c
+          hSlotEls[r + "," + c] = el;
+          el.addEventListener("click", () => onWallSlot("h", r, c));
+        } else if (evenR && !evenC) {
+          el.className = "qd-vslot";
+          const r = gr / 2, c = (gc - 1) / 2; // giữa cột c và c+1, hàng r
+          vSlotEls[r + "," + c] = el;
+          el.addEventListener("click", () => onWallSlot("v", r, c));
+        } else {
+          el.className = "qd-inter";
+        }
+        boardEl.appendChild(el);
+      }
+    }
+
+    function canPlay() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
+
+    // ---------- luật di chuyển ----------
+    function blockedBetween(r1, c1, r2, c2) {
+      // hai ô kề nhau; trả về true nếu có tường chặn
+      if (r2 === r1 - 1) { // đi lên
+        return hWalls.has((r1 - 1) + "," + c1) || hWalls.has((r1 - 1) + "," + (c1 - 1));
+      }
+      if (r2 === r1 + 1) { // đi xuống
+        return hWalls.has(r1 + "," + c1) || hWalls.has(r1 + "," + (c1 - 1));
+      }
+      if (c2 === c1 - 1) { // sang trái
+        return vWalls.has(r1 + "," + (c1 - 1)) || vWalls.has((r1 - 1) + "," + (c1 - 1));
+      }
+      if (c2 === c1 + 1) { // sang phải
+        return vWalls.has(r1 + "," + c1) || vWalls.has((r1 - 1) + "," + c1);
+      }
+      return true;
+    }
+
+    function onBoard(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
+
+    // các nước đi hợp lệ của quân đang ở (pr,pc), đối thủ ở (or,oc)
+    function legalPawnMoves(me, opp) {
+      const res = [];
+      const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      for (const [dr, dc] of dirs) {
+        const nr = me.r + dr, nc = me.c + dc;
+        if (!onBoard(nr, nc) || blockedBetween(me.r, me.c, nr, nc)) continue;
+        if (opp.r === nr && opp.c === nc) {
+          // có quân đối thủ -> thử nhảy qua
+          const jr = nr + dr, jc = nc + dc;
+          if (onBoard(jr, jc) && !blockedBetween(nr, nc, jr, jc)) {
+            res.push([jr, jc]); // nhảy thẳng
+          } else {
+            // nhảy chéo (rẽ hai bên của đối thủ)
+            const side = dr === 0 ? [[-1, 0], [1, 0]] : [[0, -1], [0, 1]];
+            for (const [sr, sc] of side) {
+              const dr2 = nr + sr, dc2 = nc + sc;
+              if (onBoard(dr2, dc2) && !blockedBetween(nr, nc, dr2, dc2)) res.push([dr2, dc2]);
+            }
+          }
+        } else {
+          res.push([nr, nc]);
+        }
+      }
+      return res;
+    }
+
+    // ---------- BFS kiểm tra còn đường về đích ----------
+    function hasPath(pawn) {
+      const seen = new Set([pawn.r + "," + pawn.c]);
+      const queue = [[pawn.r, pawn.c]];
+      while (queue.length) {
+        const [r, c] = queue.shift();
+        if (r === pawn.goalRow) return true;
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+          const nr = r + dr, nc = c + dc;
+          if (!onBoard(nr, nc) || blockedBetween(r, c, nr, nc)) continue;
+          const key = nr + "," + nc;
+          if (!seen.has(key)) { seen.add(key); queue.push([nr, nc]); }
+        }
+      }
+      return false;
+    }
+
+    // ---------- đặt tường ----------
+    function wallConflict(orient, r, c) {
+      if (r < 0 || r > WALL_SLOTS - 1 || c < 0 || c > WALL_SLOTS - 1) return true;
+      if (orient === "h") {
+        if (hWalls.has(r + "," + c)) return true;
+        if (hWalls.has(r + "," + (c - 1))) return true; // chồng lên đoạn bên trái
+        if (hWalls.has(r + "," + (c + 1))) return true; // chồng đoạn bên phải
+        if (vWalls.has(r + "," + c)) return true;        // cắt nhau tại giao điểm
+      } else {
+        if (vWalls.has(r + "," + c)) return true;
+        if (vWalls.has((r - 1) + "," + c)) return true;
+        if (vWalls.has((r + 1) + "," + c)) return true;
+        if (hWalls.has(r + "," + c)) return true;
+      }
+      return false;
+    }
+
+    // đặt thử tường rồi kiểm tra cả hai quân còn đường — trả về true nếu hợp lệ
+    function wallLegal(orient, r, c) {
+      if (wallConflict(orient, r, c)) return false;
+      const set = orient === "h" ? hWalls : vWalls;
+      set.add(r + "," + c);
+      const ok = hasPath(pawns[0]) && hasPath(pawns[1]);
+      set.delete(r + "," + c);
+      return ok;
+    }
+
+    // ---------- xử lý click ----------
+    function onCellClick(r, c) {
+      if (!canPlay() || mode !== "move") return;
+      const moves = legalPawnMoves(pawns[turn], pawns[1 - turn]);
+      if (moves.some(([mr, mc]) => mr === r && mc === c)) {
+        applyMove({ t: "move", r, c }, false);
+      }
+    }
+
+    function onWallSlot(orient, r, c) {
+      if (!canPlay() || mode !== "wall" || wallsLeft[turn] <= 0) return;
+      // khe nằm ở mép phải/dưới cùng thì dịch về giao điểm hợp lệ
+      let ir = r, ic = c;
+      if (orient === "h") { if (ic > WALL_SLOTS - 1) ic = WALL_SLOTS - 1; }
+      else { if (ir > WALL_SLOTS - 1) ir = WALL_SLOTS - 1; }
+      if (!wallLegal(orient, ir, ic)) {
+        ctx.setStatus("⛔ Không đặt được tường ở đây (chồng tường hoặc bịt kín đường về đích).");
+        return;
+      }
+      applyMove({ t: "wall", o: orient, r: ir, c: ic }, false);
+    }
+
+    function applyMove(move, fromRemote) {
+      if (over) return;
+
+      if (move.t === "move") {
+        const moves = legalPawnMoves(pawns[turn], pawns[1 - turn]);
+        if (!moves.some(([mr, mc]) => mr === move.r && mc === move.c)) return;
+        pawns[turn].r = move.r; pawns[turn].c = move.c;
+        ctx.sound("place");
+        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (pawns[turn].r === pawns[turn].goalRow) return endGame(turn);
+      } else {
+        if (!wallLegal(move.o, move.r, move.c) || wallsLeft[turn] <= 0) return;
+        (move.o === "h" ? hWalls : vWalls).add(move.r + "," + move.c);
+        wallsLeft[turn]--;
+        ctx.sound("capture");
+        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      }
+
+      turn = 1 - turn;
+      ctx.setTurn(turn);
+      updateStatus();
+      render();
+    }
+
+    function endGame(winner) {
+      over = true;
+      ctx.setTurn(-1);
+      ctx.incScore(winner);
+      ctx.setStatus(`🎉 Người chơi ${winner + 1} đã về đích — chiến thắng!`);
+      render();
+    }
+
+    function updateStatus() {
+      wallsLabel.textContent = `🧱 P1: ${wallsLeft[0]} · P2: ${wallsLeft[1]}`;
+      const mineNote = ctx.isOnline ? (turn === ctx.mySeat ? " (lượt bạn)" : " (đối thủ)") : "";
+      ctx.setStatus(`Lượt Người chơi ${turn + 1}${mineNote}. Di chuyển quân hoặc đặt tường.`);
+    }
+
+    function render() {
+      // ô + gợi ý nước đi
+      const myMoves = (canPlay() && mode === "move")
+        ? legalPawnMoves(pawns[turn], pawns[1 - turn]) : [];
+      const moveSet = new Set(myMoves.map(([r, c]) => r + "," + c));
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const el = cellEls[r + "," + c];
+          el.className = "qd-cell";
+          el.innerHTML = "";
+          if (pawns[0].r === r && pawns[0].c === c) addPawn(el, 0);
+          else if (pawns[1].r === r && pawns[1].c === c) addPawn(el, 1);
+          else if (moveSet.has(r + "," + c)) el.classList.add("qd-hint");
+        }
+      }
+      // tường
+      for (const key in hSlotEls) hSlotEls[key].className = "qd-hslot";
+      for (const key in vSlotEls) vSlotEls[key].className = "qd-vslot";
+      hWalls.forEach((k) => {
+        const [r, c] = k.split(",").map(Number);
+        if (hSlotEls[r + "," + c]) hSlotEls[r + "," + c].classList.add("on");
+        if (hSlotEls[r + "," + (c + 1)]) hSlotEls[r + "," + (c + 1)].classList.add("on");
+      });
+      vWalls.forEach((k) => {
+        const [r, c] = k.split(",").map(Number);
+        if (vSlotEls[r + "," + c]) vSlotEls[r + "," + c].classList.add("on");
+        if (vSlotEls[(r + 1) + "," + c]) vSlotEls[(r + 1) + "," + c].classList.add("on");
+      });
+      // bật chế độ đặt tường gợi ý khe bấm được
+      boardEl.classList.toggle("qd-wallmode", mode === "wall" && canPlay() && wallsLeft[turn] > 0);
+    }
+
+    function addPawn(el, p) {
+      const pawn = document.createElement("div");
+      pawn.className = "qd-pawn " + (p === 0 ? "p1" : "p2");
+      el.appendChild(pawn);
+    }
+
+    if (ctx.isOnline) {
+      ctx.setNames(`Người chơi 1${ctx.mySeat === 0 ? " (bạn)" : ""}`,
+                   `Người chơi 2${ctx.mySeat === 1 ? " (bạn)" : ""}`);
+    }
+    ctx.setTurn(0);
+    updateStatus();
+    render();
+    return { applyMove };
+  }
+
+  window.GameRegistry.register({
+    id: "quoridor",
+    name: "Quoridor (Đặt Tường)",
+    emoji: "🧱",
+    description: "Đua quân sang bờ đối diện, đặt tường chặn đường đối thủ. Cờ chiến thuật chiều sâu lớn.",
+    onlineReady: true,
+    options: [
+      {
+        id: "walls", label: "Số tường mỗi người", default: 10,
+        choices: [
+          { value: 6, label: "6 (nhanh)" },
+          { value: 10, label: "10 (chuẩn)" },
+          { value: 14, label: "14 (nhiều)" },
+        ],
+      },
+    ],
+    howTo: [
+      "Bàn 9×9. Người chơi 1 (đỏ) ở hàng dưới cần lên tới hàng TRÊN cùng; Người chơi 2 (xanh) ở hàng trên cần xuống hàng DƯỚI cùng.",
+      "Mỗi lượt chọn một trong hai: DI CHUYỂN quân (sang ô kề) HOẶC ĐẶT TƯỜNG.",
+      "Chế độ 🏃 Di chuyển: bấm vào ô sáng để đi. Nếu hai quân đứng kề nhau, bạn được nhảy qua đối thủ.",
+      "Chế độ 🧱 Đặt tường: bấm vào khe giữa các ô để đặt một bức tường dài 2 ô, chặn đường đi. Mỗi người có số tường giới hạn.",
+      "Luật quan trọng: KHÔNG được đặt tường bịt kín hoàn toàn đường về đích của bất kỳ ai — luôn phải chừa ít nhất một lối.",
+      "Ai đưa quân của mình về tới hàng đích trước sẽ thắng.",
+    ],
+    create,
+  });
+})();
