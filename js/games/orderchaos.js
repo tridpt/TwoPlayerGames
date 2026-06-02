@@ -69,6 +69,7 @@
       const el = cellEls[r][c];
       el.textContent = sym;
       el.classList.add(sym === "X" ? "x" : "o");
+      ctx.sound("place");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ r, c, sym });
 

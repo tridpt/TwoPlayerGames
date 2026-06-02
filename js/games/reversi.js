@@ -67,6 +67,7 @@
       if (!flips.length) return;
       board[r][c] = turn;
       flips.forEach(([fr, fc]) => { board[fr][fc] = turn; });
+      ctx.sound(flips.length >= 3 ? "capture" : "place");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ r, c });
 

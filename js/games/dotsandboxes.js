@@ -65,6 +65,7 @@
 
       if (m.type === "h") { hEdges[m.r][m.c] = true; hEls[m.r][m.c].classList.add("on", turn === 0 ? "p1" : "p2"); }
       else { vEdges[m.r][m.c] = true; vEls[m.r][m.c].classList.add("on", turn === 0 ? "p1" : "p2"); }
+      ctx.sound("place");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove(m);
 

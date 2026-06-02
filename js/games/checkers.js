@@ -133,6 +133,7 @@
       }
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      ctx.sound(isCapture ? "capture" : "place");
 
       // ăn liên hoàn: cùng quân còn ăn tiếp (không áp dụng nếu vừa phong vua theo luật phổ biến)
       if (isCapture && !promoted && pieceMoves(tr, tc, true).length) {

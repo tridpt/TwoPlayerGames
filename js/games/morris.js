@@ -96,6 +96,7 @@
       selected = null;
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      ctx.sound(move.type === "move" ? "select" : "place");
 
       if (hasLine(turn)) {
         over = true;

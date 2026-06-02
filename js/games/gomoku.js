@@ -39,6 +39,7 @@
       const stone = document.createElement("div");
       stone.className = "gmk-stone " + (p === 0 ? "p1" : "p2");
       cellEls[r][c].appendChild(stone);
+      ctx.sound("place");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ r, c });
 

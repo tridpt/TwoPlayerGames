@@ -68,6 +68,7 @@
       board[r][c] = turn;
       pendingCell = [r, c];
       render();
+      ctx.sound("place");
       setRotEnabled(true);
       ctx.setStatus("Đã đặt bi. Giờ chọn một ô vuông con để XOAY (↺ hoặc ↻).");
     }
@@ -87,6 +88,7 @@
       }
       rotateQuad(move.quad, move.dir);
       pendingCell = null;
+      ctx.sound("rotate");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
 

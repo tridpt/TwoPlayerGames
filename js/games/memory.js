@@ -57,6 +57,7 @@
       if (!fromRemote && ctx.isOnline) ctx.sendMove(i);
 
       showFace(i, true);
+      ctx.sound("select");
 
       if (firstIdx === null) {
         firstIdx = i;
@@ -72,12 +73,14 @@
         matchedCount++;
         firstIdx = null;
         ctx.incScore(turn);
+        ctx.sound("capture");
         if (matchedCount === EMOJIS.length) return finish();
         ctx.setStatus(`✅ Người chơi ${turn + 1} tìm được một cặp — được đi tiếp!`);
       } else {
         lock = true;
         const a = firstIdx, b = i;
         firstIdx = null;
+        ctx.sound("error");
         setTimeout(() => {
           showFace(a, false);
           showFace(b, false);

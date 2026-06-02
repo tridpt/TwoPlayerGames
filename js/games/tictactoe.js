@@ -40,6 +40,7 @@
       board[i] = p;
       cells[i].textContent = symbol(p);
       cells[i].classList.add(p === 0 ? "x" : "o");
+      ctx.sound("place");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove(i);
 

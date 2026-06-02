@@ -80,6 +80,7 @@
       if (row < 0 || row >= rows.length || count <= 0 || count > rows[row]) return;
 
       rows[row] -= count;
+      ctx.sound("capture");
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ row, count });
 
       selRow = null;

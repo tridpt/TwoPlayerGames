@@ -138,6 +138,7 @@
         // đối thủ bắn vào bàn của tôi
         const { r, c } = move;
         const result = receiveShot(r, c);
+        ctx.sound(result.hit ? "shot" : "miss");
         ctx.sendMove({ kind: "result", r, c, ...result });
         // sau phát bắn, đến lượt tôi
         if (!result.gameOver) {
@@ -160,8 +161,8 @@
         turn = 1 - ctx.mySeat;
         ctx.setTurn(turn);
         render();
-        if (hit) ctx.setStatus(sunk ? "💥 Trúng và đánh chìm! Đến lượt đối thủ." : "💥 Bắn trúng! Đến lượt đối thủ.");
-        else ctx.setStatus("🌊 Trượt. Đến lượt đối thủ.");
+        if (hit) { ctx.sound("shot"); ctx.setStatus(sunk ? "💥 Trúng và đánh chìm! Đến lượt đối thủ." : "💥 Bắn trúng! Đến lượt đối thủ."); }
+        else { ctx.sound("miss"); ctx.setStatus("🌊 Trượt. Đến lượt đối thủ."); }
         return;
       }
     }

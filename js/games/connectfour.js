@@ -48,6 +48,7 @@
       const p = turn;
       board[r][c] = p;
       cellEls[r][c].classList.add(p === 0 ? "p1" : "p2");
+      ctx.sound("place");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove(c);
 

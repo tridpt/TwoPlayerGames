@@ -77,6 +77,7 @@
       if (over || !ownsPit(turn, i) || pits[i] === 0) return;
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove(i);
+      ctx.sound("place");
 
       let stones = pits[i];
       pits[i] = 0;

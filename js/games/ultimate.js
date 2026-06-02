@@ -60,6 +60,7 @@
       const el = cellEls[b][i];
       el.textContent = symbol(p);
       el.classList.add(p === 0 ? "x" : "o");
+      ctx.sound("place");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ b, i });
 

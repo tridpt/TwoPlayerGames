@@ -67,6 +67,7 @@
         const hit = (ball.y + BALL / 2 - (p1y + PADDLE_H / 2)) / (PADDLE_H / 2);
         ball.vy += hit * 2;
         ball.x = PADDLE_W;
+        ctx.sound("place");
       }
       // va vợt phải (P2)
       if (ball.x + BALL >= W - PADDLE_W && ball.y + BALL >= p2y && ball.y <= p2y + PADDLE_H && ball.vx > 0) {
@@ -74,11 +75,12 @@
         const hit = (ball.y + BALL / 2 - (p2y + PADDLE_H / 2)) / (PADDLE_H / 2);
         ball.vy += hit * 2;
         ball.x = W - PADDLE_W - BALL;
+        ctx.sound("place");
       }
 
       // ghi điểm
-      if (ball.x < -BALL) { score[1]++; afterScore(-1); }
-      else if (ball.x > W) { score[0]++; afterScore(1); }
+      if (ball.x < -BALL) { score[1]++; ctx.sound("miss"); afterScore(-1); }
+      else if (ball.x > W) { score[0]++; ctx.sound("miss"); afterScore(1); }
     }
 
     function afterScore(dir) {

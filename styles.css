@@ -28,7 +28,25 @@ body {
 .app-header {
   text-align: center;
   padding: 28px 16px 12px;
+  position: relative;
 }
+
+.sound-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--panel-2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-size: 1.2rem;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.sound-toggle:hover { background: var(--accent); }
+.sound-toggle:active { transform: scale(0.94); }
+.sound-toggle.muted { opacity: 0.6; }
 
 .logo {
   margin: 0;
@@ -510,6 +528,20 @@ body {
   background: var(--panel-2);
   font-weight: 600;
   font-size: 0.95rem;
+}
+.chat-panel.has-unread .chat-header {
+  background: var(--accent);
+  color: #1a1a1a;
+  animation: chatPulse 1s ease-in-out infinite;
+}
+.chat-panel.has-unread .chat-header::after {
+  content: "● tin mới";
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+@keyframes chatPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.25); }
 }
 .chat-toggle {
   background: none;

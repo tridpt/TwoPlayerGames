@@ -36,6 +36,7 @@
     backBtn: $("backBtn"),
     restartBtn: $("restartBtn"),
     homeBtn: $("homeBtn"),
+    soundToggle: $("soundToggle"),
     helpBtn: $("helpBtn"),
     helpOverlay: $("helpOverlay"),
     helpTitle: $("helpTitle"),
@@ -64,7 +65,15 @@
       isOnline: !!online,
       mySeat: online ? online.seat : -1,
       rng: window.makeRng(seed || 1),
-      setStatus(text) { el.status.textContent = text || ""; },
+      setStatus(text) {
+        el.status.textContent = text || "";
+        // Tự động phát âm thanh kết thúc ván dựa trên nội dung trạng thái
+        if (window.Sound && text) {
+          if (text.includes("💀")) Sound.play("lose");
+          else if (text.includes("🎉")) Sound.play("win");
+          else if (text.includes("🤝")) Sound.play("draw");
+        }
+      },
       setTurn(idx) {
         if (idx === -1) { el.turnBanner.textContent = "Kết thúc"; el.turnBanner.style.color = "var(--text)"; return; }
         const name = idx === 0 ? el.p1Name.textContent : el.p2Name.textContent;
@@ -77,6 +86,7 @@
       incScore(idx) { scores[idx]++; renderScores(); },
       getScore(idx) { return scores[idx]; },
       sendMove(move) { if (online) Net.send("move", { move }); },
+      sound(name) { window.Sound && Sound.play(name); },
     };
   }
 
@@ -204,7 +214,14 @@
     if (online) el.status.textContent = "🔌 Mất kết nối tới server.";
   });
 
-  Net.on("chat", (m) => addChatMessage(m.text, "them"));
+  Net.on("chat", (m) => {
+    addChatMessage(m.text, "them");
+    window.Sound && Sound.play("notify");
+    // nếu chat đang thu gọn, hiện dấu báo có tin mới
+    if (el.chatPanel.classList.contains("collapsed")) {
+      el.chatPanel.classList.add("has-unread");
+    }
+  });
 
   // ====================== Chat (chỉ online) ======================
   const QUICK_MSGS = ["Chào! 👋", "Nước hay! 👍", "Gắt thế 😅", "Ván nữa nhé!", "GG 🎉"];
@@ -255,6 +272,10 @@
   el.chatToggle.addEventListener("click", () => {
     el.chatPanel.classList.toggle("collapsed");
     el.chatToggle.textContent = el.chatPanel.classList.contains("collapsed") ? "▸" : "▾";
+    // mở lại thì xóa dấu báo tin mới
+    if (!el.chatPanel.classList.contains("collapsed")) {
+      el.chatPanel.classList.remove("has-unread");
+    }
   });
 
   // ====================== Vòng chơi ======================
@@ -317,6 +338,17 @@
   el.modeBackBtn.addEventListener("click", () => show("menu"));
   el.lobbyBackBtn.addEventListener("click", () => show("modeView"));
   el.restartBtn.addEventListener("click", restartGame);
+
+  // ---- Nút bật/tắt âm thanh ----
+  function updateSoundIcon() {
+    el.soundToggle.textContent = Sound.isEnabled() ? "🔊" : "🔇";
+    el.soundToggle.classList.toggle("muted", !Sound.isEnabled());
+  }
+  el.soundToggle.addEventListener("click", () => {
+    Sound.setEnabled(!Sound.isEnabled());
+    updateSoundIcon();
+  });
+  updateSoundIcon();
 
   // ---- Modal hướng dẫn ----
   function openHelp() {
