@@ -167,8 +167,9 @@
     game.options.forEach((opt) => {
       const sel = document.getElementById("opt_" + opt.id);
       let val = sel ? sel.value : opt.default;
-      // ép kiểu số nếu default là số
+      // ép kiểu theo kiểu của default
       if (typeof opt.default === "number") val = Number(val);
+      else if (typeof opt.default === "boolean") val = (val === true || val === "true");
       result[opt.id] = val;
     });
     return result;
