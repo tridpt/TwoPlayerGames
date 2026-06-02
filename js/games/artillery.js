@@ -8,6 +8,68 @@
   const WIND_FACTOR = 0.018;  // ảnh hưởng của gió lên vận tốc ngang
   const STEP = 1;             // số bước mô phỏng mỗi khung (giữ tất định)
 
+  // ----- các kiểu địa hình (map) tất định theo seed -----
+  // Mỗi hàm trả về mảng độ cao ground[x]; nhận rng để giữ tất định.
+  const MAPS = {
+    hills(rng) { // đồi thoải gợn sóng (mặc định cũ)
+      const baseY = H * 0.62;
+      const a1 = 28 + rng() * 34, a2 = 14 + rng() * 22, a3 = 6 + rng() * 14;
+      const p1 = rng() * 6.283, p2 = rng() * 6.283, p3 = rng() * 6.283;
+      return fill((x) => {
+        const t = (x / W) * Math.PI * 2;
+        return baseY - a1 * Math.sin(t + p1) - a2 * Math.sin(t * 2.3 + p2) - a3 * Math.sin(t * 4.7 + p3);
+      });
+    },
+    mountains(rng) { // núi cao lởm chởm
+      const baseY = H * 0.68;
+      const a1 = 50 + rng() * 30, a2 = 30 + rng() * 30, a3 = 18 + rng() * 20, a4 = 10 + rng() * 12;
+      const p1 = rng() * 6.283, p2 = rng() * 6.283, p3 = rng() * 6.283, p4 = rng() * 6.283;
+      return fill((x) => {
+        const t = (x / W) * Math.PI * 2;
+        return baseY - a1 * Math.sin(t * 1.3 + p1) - a2 * Math.sin(t * 2.9 + p2)
+          - a3 * Math.sin(t * 5.1 + p3) - a4 * Math.sin(t * 8.3 + p4);
+      });
+    },
+    valley(rng) { // thung lũng: cao hai bên, trũng giữa
+      const edge = H * 0.42, mid = H * 0.78;
+      const jitter = 8 + rng() * 10, jp = rng() * 6.283;
+      return fill((x) => {
+        const u = x / W;            // 0..1
+        const bowl = Math.cos((u - 0.5) * Math.PI); // 1 ở giữa, 0 ở mép
+        return edge + (mid - edge) * bowl - jitter * Math.sin(u * Math.PI * 6 + jp);
+      });
+    },
+    hill(rng) { // đồi giữa: thấp hai bên, cao giữa (buộc bắn vòng cung)
+      const edge = H * 0.74, peak = H * 0.36;
+      const jitter = 6 + rng() * 8, jp = rng() * 6.283;
+      return fill((x) => {
+        const u = x / W;
+        const bump = Math.exp(-Math.pow((u - 0.5) / 0.22, 2)); // gò chuông ở giữa
+        return edge - (edge - peak) * bump - jitter * Math.sin(u * Math.PI * 5 + jp);
+      });
+    },
+    plain(rng) { // đồng bằng gần phẳng, hơi gợn
+      const baseY = H * 0.66;
+      const a1 = 8 + rng() * 8, a2 = 4 + rng() * 6;
+      const p1 = rng() * 6.283, p2 = rng() * 6.283;
+      return fill((x) => {
+        const t = (x / W) * Math.PI * 2;
+        return baseY - a1 * Math.sin(t * 1.5 + p1) - a2 * Math.sin(t * 3.7 + p2);
+      });
+    },
+  };
+  const MAP_KEYS = ["hills", "mountains", "valley", "hill", "plain"];
+
+  function fill(fn) {
+    const arr = new Array(W + 1);
+    for (let x = 0; x <= W; x++) {
+      let h = fn(x);
+      h = Math.max(H * 0.30, Math.min(H - 30, h));
+      arr[x] = h;
+    }
+    return arr;
+  }
+
   function create(ctx) {
     const o = ctx.options || {};
     const MAX_HP = o.hp || 100;
@@ -15,21 +77,21 @@
     const BLAST = o.blast || 60;     // bán kính nổ
     const MAX_DMG = o.dmg || 55;     // sát thương tối đa khi trúng tâm
 
-    // ----- địa hình tất định (mảng độ cao theo x) -----
-    const baseY = H * 0.62;
-    const a1 = 28 + ctx.rng() * 34, a2 = 14 + ctx.rng() * 22, a3 = 6 + ctx.rng() * 14;
-    const p1 = ctx.rng() * 6.283, p2 = ctx.rng() * 6.283, p3 = ctx.rng() * 6.283;
-    const ground = new Array(W + 1);
-    for (let x = 0; x <= W; x++) {
-      const t = (x / W) * Math.PI * 2;
-      let h = baseY
-        - a1 * Math.sin(t * 1.0 + p1)
-        - a2 * Math.sin(t * 2.3 + p2)
-        - a3 * Math.sin(t * 4.7 + p3);
-      h = Math.max(H * 0.35, Math.min(H - 30, h));
-      ground[x] = h;
+    // ----- chọn map (tất định theo seed) -----
+    let mapKey = o.map || "hills";
+    if (mapKey === "random") {
+      mapKey = MAP_KEYS[Math.floor(ctx.rng() * MAP_KEYS.length)];
     }
+    if (!MAPS[mapKey]) mapKey = "hills";
+    const ground = MAPS[mapKey](ctx.rng);
     const terrainY = (x) => ground[Math.max(0, Math.min(W, Math.round(x)))];
+    const STYLE = {
+      hills:     { fill: "#3b7d4f", line: "#6ee7b7", sky0: "#1a1e3a", sky1: "#2a3060", name: "Đồi thoải" },
+      mountains: { fill: "#6b5b4f", line: "#c9a98a", sky0: "#221a2e", sky1: "#3a2c40", name: "Núi lởm chởm" },
+      valley:    { fill: "#3f6f7d", line: "#8be6f0", sky0: "#152030", sky1: "#1f3a4a", name: "Thung lũng" },
+      hill:      { fill: "#7d6b3b", line: "#ffd166", sky0: "#2e2a1a", sky1: "#403a20", name: "Đồi giữa" },
+      plain:     { fill: "#5a7d3b", line: "#b7e76e", sky0: "#1e2a18", sky1: "#2c4020", name: "Đồng bằng" },
+    }[mapKey];
 
     // ----- gió tất định cho từng lượt -----
     function nextWind() {
@@ -211,8 +273,8 @@
     function draw() {
       // trời
       const sky = g.createLinearGradient(0, 0, 0, H);
-      sky.addColorStop(0, "#1a1e3a");
-      sky.addColorStop(1, "#2a3060");
+      sky.addColorStop(0, STYLE.sky0);
+      sky.addColorStop(1, STYLE.sky1);
       g.fillStyle = sky;
       g.fillRect(0, 0, W, H);
 
@@ -222,9 +284,9 @@
       for (let x = 0; x <= W; x++) g.lineTo(x, ground[x]);
       g.lineTo(W, H);
       g.closePath();
-      g.fillStyle = "#3b7d4f";
+      g.fillStyle = STYLE.fill;
       g.fill();
-      g.strokeStyle = "#6ee7b7";
+      g.strokeStyle = STYLE.line;
       g.lineWidth = 2;
       g.beginPath();
       for (let x = 0; x <= W; x++) (x === 0 ? g.moveTo(x, ground[x]) : g.lineTo(x, ground[x]));
@@ -274,13 +336,16 @@
         g.fill();
       }
 
-      // chỉ báo gió góc trên
+      // chỉ báo gió + tên map góc trên
       g.fillStyle = "rgba(255,255,255,0.7)";
       g.font = "13px Segoe UI, sans-serif";
       g.textAlign = "center";
       const wtxt = wind === 0 ? "Gió: lặng"
         : "Gió " + (wind > 0 ? "→" : "←") + " " + Math.abs(wind).toFixed(1);
       g.fillText(wtxt, W / 2, 22);
+      g.textAlign = "left";
+      g.fillStyle = "rgba(255,255,255,0.5)";
+      g.fillText("🗺️ " + STYLE.name, 12, 22);
     }
 
     function loop() {
@@ -315,6 +380,17 @@
     onlineReady: true,
     options: [
       {
+        id: "map", label: "Địa hình", default: "hills",
+        choices: [
+          { value: "hills", label: "Đồi thoải" },
+          { value: "mountains", label: "Núi lởm chởm" },
+          { value: "valley", label: "Thung lũng" },
+          { value: "hill", label: "Đồi giữa" },
+          { value: "plain", label: "Đồng bằng" },
+          { value: "random", label: "🎲 Ngẫu nhiên" },
+        ],
+      },
+      {
         id: "wind", label: "Sức gió", default: 1,
         choices: [
           { value: 0, label: "Lặng gió (dễ)" },
@@ -336,7 +412,8 @@
       "Đến lượt mình, kéo thanh 'Góc' và 'Lực' để ngắm, rồi bấm 💥 Bắn.",
       "Đạn bay theo trọng lực VÀ sức gió (xem chỉ báo gió phía trên) — gió đổi mỗi lượt nên phải tính toán lại.",
       "Bắn trúng gần xe đối thủ sẽ gây sát thương; càng trúng gần tâm càng đau. Trúng trực tiếp thì cực mạnh.",
-      "Xe nào hết máu trước sẽ thua. Chơi online: lựa chọn của chủ phòng (gió, máu) áp dụng cho cả hai.",
+      "Có 5 kiểu địa hình (đồi, núi, thung lũng, đồi giữa, đồng bằng) — chọn ở màn chế độ, hoặc để 🎲 ngẫu nhiên mỗi ván.",
+      "Xe nào hết máu trước sẽ thua. Chơi online: lựa chọn của chủ phòng (map, gió, máu) áp dụng cho cả hai.",
     ],
     create,
   });
