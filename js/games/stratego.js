@@ -45,6 +45,7 @@
     let turn = 0;
     let selected = null;
     let over = false;
+    let lastMove = null; // { from, to } nước đi gần nhất để đánh dấu
 
     const wrap = document.createElement("div");
     wrap.className = "st-wrap";
@@ -127,6 +128,7 @@
         // di chuyển vào ô trống
         board[to] = att; board[from] = null;
         ctx.sound("select");
+        lastMove = { from, to, landed: to }; // quân dừng ở 'to'
       } else {
         // giao tranh: lộ cả hai
         att.revealed = true; def.revealed = true;
@@ -134,12 +136,13 @@
         ctx.sound("capture");
         if (result === "flag") {
           board[to] = att; board[from] = null;
+          lastMove = { from, to, landed: to };
           render();
           return endGame(att.owner, "🏳️ Cờ đã bị bắt!");
         }
-        if (result === "win") { board[to] = att; board[from] = null; }
-        else if (result === "lose") { board[from] = null; }
-        else { board[from] = null; board[to] = null; } // both
+        if (result === "win") { board[to] = att; board[from] = null; lastMove = { from, to, landed: to }; }
+        else if (result === "lose") { board[from] = null; lastMove = { from, to, landed: -1 }; }
+        else { board[from] = null; board[to] = null; lastMove = { from, to, landed: -1 }; } // both
       }
 
       selected = null;
@@ -194,10 +197,22 @@
               lv.textContent = p.rank;
               cell.appendChild(lv);
             }
+            // quân đã bị lộ trong giao tranh -> đánh dấu con mắt
+            if (p.revealed && !over) {
+              const eye = document.createElement("span");
+              eye.className = "st-revealed";
+              eye.textContent = "👁️";
+              cell.appendChild(eye);
+            }
           } else {
             cell.classList.add("st-hidden");
             cell.textContent = "▩";
           }
+        }
+        // đánh dấu nước đi gần nhất
+        if (lastMove) {
+          if (i === lastMove.from) cell.classList.add("st-lastfrom");
+          if (i === lastMove.landed) cell.classList.add("st-lastto");
         }
         if (selected === i) cell.classList.add("st-sel");
         if (targets.has(i)) cell.classList.add("st-target");
@@ -230,6 +245,7 @@
       "Giao tranh: cả hai lộ mặt, quân CẤP CAO HƠN thắng (cấp ghi trên quân). Bằng cấp thì cả hai cùng chết.",
       "Quân đặc biệt: 🏳️ Cờ và 💣 Bom KHÔNG di chuyển được. 🛠️ Công binh (cấp 3) gỡ được bom. 🕵️ Điệp viên (cấp 1) nếu chủ động đâm 👑 Tướng (cấp 10) thì thắng.",
       "BẮT ĐƯỢC CỜ 🏳️ của đối thủ là thắng ngay. Hoặc khiến đối thủ không còn quân nào di chuyển được.",
+      "Quân vừa di chuyển được tô sáng vàng (ô đi và ô đến). Quân đã lộ mặt trong giao tranh có dấu 👁️ để bạn nhớ.",
       "Mẹo: giấu Cờ sau Bom, dùng quân nhỏ thăm dò để lộ quân lớn của địch.",
     ],
     create,

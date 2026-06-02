@@ -1231,6 +1231,21 @@ body {
   position: absolute; bottom: 1px; right: 3px;
   font-size: 0.65rem; font-weight: 800; color: #1a1a1a;
 }
+/* đánh dấu nước đi gần nhất */
+.st-cell.st-lastfrom { box-shadow: inset 0 0 0 3px rgba(255,209,102,0.5); }
+.st-cell.st-lastto { box-shadow: inset 0 0 0 3px var(--accent); }
+.st-cell.st-lastto::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: 5px;
+  background: rgba(255,209,102,0.18);
+  pointer-events: none;
+}
+/* huy hiệu quân đã bị lộ */
+.st-revealed {
+  position: absolute; top: 0px; left: 2px;
+  font-size: 0.6rem;
+}
 
 /* ---------- Quoridor (Đặt Tường) ---------- */
 .qd-wrap {
