@@ -1,0 +1,265 @@
+/* Đoán Chữ (Hangman) — chơi chung máy & ONLINE
+   Một người đặt từ/cụm bí mật, người kia đoán từng chữ cái.
+   Đoán sai quá số lần cho phép thì người đoán THUA; đoán ra hết thì THẮNG.
+   Online: người ra đề giữ đáp án, KHÔNG gửi đi; chỉ gửi:
+     { kind:"setword", mask } (độ dài/khoảng trắng) ,
+     { kind:"guess", ch } , { kind:"result", ch, hits:[vị trí], win, lose }. */
+(function () {
+  const MAX_WRONG = 6;
+  const PARTS = ["đầu", "thân", "tay trái", "tay phải", "chân trái", "chân phải"];
+
+  function stripCombining(s) {
+    // bỏ dấu để ghép chữ cái cơ bản (đoán theo chữ không dấu cho dễ)
+    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+  }
+
+  function create(ctx) {
+    let phase = "set";  // set | play | over
+    let secret = "";    // đáp án (đã chuẩn hóa hiển thị)
+    let secretKey = ""; // dạng không dấu, chữ thường để so khớp
+    let setterSeat = 0; // ai ra đề
+    let guesserSeat = 1;
+    let wrong = 0;
+    const guessed = new Set();
+    let revealed = [];  // mảng boolean theo từng ký tự
+
+    const root = document.createElement("div");
+    root.className = "hm-root";
+    ctx.boardEl.appendChild(root);
+
+    // ---- giai đoạn đặt từ ----
+    function showSetUI(seat) {
+      setterSeat = seat; guesserSeat = 1 - seat;
+      root.innerHTML =
+        `<div class="hm-setbox">` +
+        `<h3>Người chơi ${seat + 1}: nhập từ/cụm từ bí mật để đố</h3>` +
+        `<input class="hm-setinput" id="hmSet" placeholder="ví dụ: con mèo" autocomplete="off">` +
+        `<button class="btn primary" id="hmSetBtn">✓ Khóa đáp án</button>` +
+        `<p class="hm-err" id="hmSetErr"></p>` +
+        `<p class="hm-note">Đối thủ sẽ đoán từng chữ cái. Dấu cách được hiện sẵn.</p>` +
+        `</div>`;
+      const inp = root.querySelector("#hmSet");
+      const btn = root.querySelector("#hmSetBtn");
+      const err = root.querySelector("#hmSetErr");
+      btn.addEventListener("click", () => {
+        const val = inp.value.trim();
+        if (val.replace(/\s/g, "").length < 2) { err.textContent = "Cần ít nhất 2 chữ cái."; return; }
+        if (!/[a-zA-ZÀ-ỹ]/.test(val)) { err.textContent = "Phải có chữ cái."; return; }
+        lockSecret(val);
+      });
+    }
+
+    function lockSecret(val) {
+      secret = val;
+      secretKey = stripCombining(val).toLowerCase();
+      revealed = [...secret].map((ch) => !/[a-zA-ZÀ-ỹ]/.test(ch)); // ký tự không phải chữ thì hiện luôn
+      if (ctx.isOnline) {
+        // gửi "mặt nạ" (độ dài & vị trí dấu cách) — KHÔNG gửi nội dung
+        const mask = [...secret].map((ch) => (/\s/.test(ch) ? " " : (/[a-zA-ZÀ-ỹ]/.test(ch) ? "_" : ch)));
+        ctx.sendMove({ kind: "setword", mask });
+        phase = "play";
+        showPlayUI(false); // mình là người ra đề -> chờ đối thủ đoán
+      } else {
+        phase = "play";
+        showPlayUI(true);
+      }
+    }
+
+    // ---- giao diện chơi ----
+    function showPlayUI(localGuesses, maskFromRemote) {
+      root.innerHTML =
+        `<div class="hm-gallows" id="hmGallows"></div>` +
+        `<div class="hm-word" id="hmWord"></div>` +
+        `<div class="hm-status" id="hmWrong"></div>` +
+        `<div class="hm-keys" id="hmKeys"></div>`;
+      buildKeyboard();
+      if (maskFromRemote) {
+        revealed = maskFromRemote.map((c) => c !== "_");
+        secretMaskLen = maskFromRemote;
+      }
+      renderWord();
+      renderWrong();
+      updateStatus();
+    }
+
+    let secretMaskLen = null; // dùng cho phía người đoán (online) khi chưa biết đáp án
+
+    const ALPHA = "abcdefghijklmnopqrstuvwxyz".split("");
+    let keyEls = {};
+    function buildKeyboard() {
+      const keys = root.querySelector("#hmKeys");
+      keyEls = {};
+      ALPHA.forEach((ch) => {
+        const b = document.createElement("button");
+        b.className = "hm-key";
+        b.textContent = ch.toUpperCase();
+        b.addEventListener("click", () => onGuess(ch));
+        keys.appendChild(b);
+        keyEls[ch] = b;
+      });
+    }
+
+    function iAmGuesser() {
+      if (!ctx.isOnline) return true; // chung máy: người đoán thao tác trực tiếp
+      return ctx.mySeat === guesserSeat;
+    }
+
+    function onGuess(ch) {
+      if (phase !== "play" || guessed.has(ch)) return;
+      if (!iAmGuesser()) return;
+      if (ctx.isOnline) {
+        ctx.sendMove({ kind: "guess", ch });
+        guessed.add(ch);
+        if (keyEls[ch]) keyEls[ch].disabled = true;
+        ctx.setStatus("Đã đoán, chờ kết quả...");
+      } else {
+        resolveGuess(ch);
+      }
+    }
+
+    // chung máy: tự đối chiếu
+    function resolveGuess(ch) {
+      guessed.add(ch);
+      const hits = [];
+      [...secretKey].forEach((c, i) => { if (c === ch) hits.push(i); });
+      applyGuessResult(ch, hits);
+    }
+
+    function applyGuessResult(ch, hits) {
+      if (keyEls[ch]) { keyEls[ch].disabled = true; keyEls[ch].classList.add(hits.length ? "hit" : "miss"); }
+      if (hits.length) {
+        hits.forEach((i) => { revealed[i] = true; });
+        ctx.sound("capture");
+      } else {
+        wrong++;
+        ctx.sound("error");
+      }
+      renderWord();
+      renderWrong();
+      // thắng/thua
+      if (revealed.every(Boolean)) return endGame(guesserSeat, "đoán ra đáp án");
+      if (wrong >= MAX_WRONG) return endGame(setterSeat, "người đoán đã hết lượt sai");
+      updateStatus();
+    }
+
+    function renderWord() {
+      const wordEl = root.querySelector("#hmWord");
+      if (!wordEl) return;
+      let chars;
+      if (!ctx.isOnline || ctx.mySeat === setterSeat) {
+        // biết đáp án: hiện chữ đã lộ
+        chars = [...secret].map((ch, i) => {
+          if (/\s/.test(ch)) return "&nbsp;&nbsp;";
+          return revealed[i] ? ch : "_";
+        });
+      } else {
+        // người đoán online: dùng mask, lộ dần theo revealed
+        chars = secretMaskLen.map((m, i) => {
+          if (m === " ") return "&nbsp;&nbsp;";
+          return revealed[i] && revealedChar[i] ? revealedChar[i] : (revealed[i] ? "•" : "_");
+        });
+      }
+      wordEl.innerHTML = chars.map((c) => `<span class="hm-ch">${c}</span>`).join("");
+    }
+    const revealedChar = {}; // online guesser: lưu chữ đã lộ để hiện
+
+    function renderWrong() {
+      const el = root.querySelector("#hmWrong");
+      if (el) el.innerHTML = `❌ Sai: <b>${wrong}/${MAX_WRONG}</b> ` +
+        (wrong > 0 ? `(${PARTS.slice(0, wrong).join(", ")})` : "");
+      drawGallows();
+    }
+
+    function drawGallows() {
+      const el = root.querySelector("#hmGallows");
+      if (!el) return;
+      const figure = ["😀", "😟", "😨", "😰", "😵", "🥵", "💀"][Math.min(wrong, 6)];
+      el.textContent = figure;
+      el.classList.toggle("dead", wrong >= MAX_WRONG);
+    }
+
+    function endGame(winner, reason) {
+      phase = "over";
+      ctx.setTurn(-1);
+      Object.values(keyEls).forEach((b) => (b.disabled = true));
+      // lộ đáp án
+      revealed = revealed.map(() => true);
+      if (!ctx.isOnline || ctx.mySeat === setterSeat) renderWord();
+      ctx.incScore(winner);
+      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng — ${reason}! Đáp án: "${secret || "(ẩn)"}"`);
+    }
+
+    function updateStatus() {
+      if (phase !== "play") return;
+      if (ctx.isOnline) {
+        ctx.setStatus(iAmGuesser() ? "Lượt bạn đoán — chọn một chữ cái." : "Đối thủ đang đoán...");
+      } else {
+        ctx.setStatus(`Người chơi ${guesserSeat + 1} đoán chữ cái. Sai tối đa ${MAX_WRONG} lần.`);
+      }
+    }
+
+    // ---- online messages ----
+    function applyMove(move, fromRemote) {
+      if (!fromRemote) return;
+      if (move.kind === "setword") {
+        // tôi là người đoán: nhận mặt nạ, vào màn chơi
+        secretMaskLen = move.mask;
+        revealed = move.mask.map((c) => c !== "_");
+        phase = "play";
+        guesserSeat = ctx.mySeat; setterSeat = 1 - ctx.mySeat;
+        showPlayUI(true, move.mask);
+        ctx.setTurn(guesserSeat);
+        return;
+      }
+      if (move.kind === "guess") {
+        // tôi là người ra đề: chấm chữ đối thủ đoán
+        const ch = move.ch;
+        guessed.add(ch);
+        const hits = [];
+        [...secretKey].forEach((c, i) => { if (c === ch) hits.push(i); });
+        // gửi kết quả kèm chữ thật ở các vị trí trúng (để người đoán hiện chữ)
+        ctx.sendMove({ kind: "result", ch, hits, secretChars: hits.map((i) => secret[i]) });
+        applyGuessResult(ch, hits);
+        return;
+      }
+      if (move.kind === "result") {
+        // tôi là người đoán: nhận kết quả
+        if (move.hits && move.secretChars) {
+          move.hits.forEach((idx, k) => { revealedChar[idx] = move.secretChars[k]; });
+        }
+        applyGuessResult(move.ch, move.hits || []);
+        return;
+      }
+    }
+
+    // ---- khởi tạo ----
+    if (ctx.isOnline) {
+      // người ghế 0 ra đề trước
+      if (ctx.mySeat === 0) { showSetUI(0); ctx.setStatus("Bạn ra đề — nhập từ bí mật."); }
+      else {
+        root.innerHTML = `<div class="hm-setbox"><h3>⏳ Đang chờ đối thủ ra đề...</h3></div>`;
+        ctx.setStatus("Chờ đối thủ nhập từ bí mật...");
+      }
+    } else {
+      showSetUI(0);
+      ctx.setStatus("Người chơi 1 ra đề — nhập từ bí mật để đố người chơi 2.");
+    }
+    return { applyMove };
+  }
+
+  window.GameRegistry.register({
+    id: "hangman",
+    name: "Đoán Chữ (Hangman)",
+    emoji: "🪢",
+    description: "Một người ra từ bí mật, người kia đoán từng chữ cái. Sai quá 6 lần là thua.",
+    onlineReady: true,
+    howTo: [
+      "Một người ra đề: nhập một từ hoặc cụm từ bí mật (đối thủ chỉ thấy số ô trống và dấu cách).",
+      "Người kia đoán từng CHỮ CÁI bằng bàn phím trên màn hình.",
+      "Đoán đúng: tất cả vị trí của chữ đó được lộ ra. Đoán sai: hình người treo cổ thêm một bộ phận.",
+      "Đoán sai quá 6 lần thì người đoán THUA. Đoán ra hết các chữ trước đó thì người đoán THẮNG.",
+      "Lưu ý: đoán theo chữ cái KHÔNG DẤU (ví dụ 'mèo' đoán bằng m, e, o). Dấu cách được hiện sẵn.",
+    ],
+    create,
+  });
+})();
