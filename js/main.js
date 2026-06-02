@@ -36,6 +36,12 @@
     backBtn: $("backBtn"),
     restartBtn: $("restartBtn"),
     homeBtn: $("homeBtn"),
+    helpBtn: $("helpBtn"),
+    helpOverlay: $("helpOverlay"),
+    helpTitle: $("helpTitle"),
+    helpBody: $("helpBody"),
+    helpClose: $("helpClose"),
+    helpOk: $("helpOk"),
     chatPanel: $("chatPanel"),
     chatToggle: $("chatToggle"),
     chatBody: $("chatBody"),
@@ -308,6 +314,28 @@
   el.modeBackBtn.addEventListener("click", () => show("menu"));
   el.lobbyBackBtn.addEventListener("click", () => show("modeView"));
   el.restartBtn.addEventListener("click", restartGame);
+
+  // ---- Modal hướng dẫn ----
+  function openHelp() {
+    if (!selectedGame) return;
+    el.helpTitle.textContent = selectedGame.emoji + " " + selectedGame.name;
+    const steps = selectedGame.howTo || ["Chưa có hướng dẫn cho trò này."];
+    el.helpBody.innerHTML = "<ol class='help-list'>" +
+      steps.map((s) => `<li>${s}</li>`).join("") +
+      "</ol>";
+    el.helpOverlay.classList.remove("hidden");
+  }
+  function closeHelp() { el.helpOverlay.classList.add("hidden"); }
+
+  el.helpBtn.addEventListener("click", openHelp);
+  el.helpClose.addEventListener("click", closeHelp);
+  el.helpOk.addEventListener("click", closeHelp);
+  el.helpOverlay.addEventListener("click", (e) => {
+    if (e.target === el.helpOverlay) closeHelp();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !el.helpOverlay.classList.contains("hidden")) closeHelp();
+  });
 
   renderMenu();
 })();

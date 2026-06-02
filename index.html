@@ -68,7 +68,10 @@
       <div class="game-bar">
         <button class="btn back-btn" id="backBtn">← Thoát</button>
         <h2 class="game-title" id="gameTitle"></h2>
-        <button class="btn" id="restartBtn">↻ Chơi lại</button>
+        <div class="game-bar-right">
+          <button class="btn icon-btn" id="helpBtn" title="Hướng dẫn chơi">❓</button>
+          <button class="btn" id="restartBtn">↻ Chơi lại</button>
+        </div>
       </div>
 
       <div class="scoreboard" id="scoreboard">
@@ -112,6 +115,20 @@
     <span id="footerText">Made with ❤️ — chơi chung máy hoặc online</span>
   </footer>
 
+  <!-- Modal hướng dẫn chơi -->
+  <div class="modal-overlay hidden" id="helpOverlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="modal-header">
+        <h3 id="helpTitle">Hướng dẫn</h3>
+        <button class="modal-close" id="helpClose" title="Đóng">✕</button>
+      </div>
+      <div class="modal-body" id="helpBody"></div>
+      <div class="modal-footer">
+        <button class="btn primary" id="helpOk">Đã hiểu, chơi thôi!</button>
+      </div>
+    </div>
+  </div>
+
   <!-- registry PHẢI nạp trước các file game -->
   <script src="js/registry.js"></script>
   <script src="js/net.js"></script>
@@ -122,6 +139,8 @@
   <script src="js/games/gomoku.js"></script>
   <script src="js/games/dotsandboxes.js"></script>
   <script src="js/games/ultimate.js"></script>
+  <script src="js/games/nim.js"></script>
+  <script src="js/games/hex.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

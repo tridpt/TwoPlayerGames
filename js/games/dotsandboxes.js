@@ -140,6 +140,13 @@
     emoji: "🔲",
     description: "Nối các cạnh giữa chấm. Hoàn thành một ô vuông thì chiếm ô đó và được đi tiếp.",
     onlineReady: true,
+    howTo: [
+      "Bàn gồm lưới các chấm. Đến lượt mình, bấm vào một cạnh trống (đoạn giữa 2 chấm cạnh nhau) để vẽ nó.",
+      "Khi cạnh bạn vừa vẽ giúp khép kín một ô vuông, bạn chiếm ô đó (ghi số của mình) và được đi thêm một lượt nữa.",
+      "Nếu cạnh vừa vẽ không khép ô nào thì chuyển lượt cho đối thủ.",
+      "Mẹo: cố ép đối thủ phải vẽ cạnh thứ 3 của một ô, để bạn vẽ cạnh thứ 4 và chiếm ô.",
+      "Khi tất cả ô đã có chủ, ai chiếm nhiều ô hơn sẽ thắng.",
+    ],
     create,
   });
 })();

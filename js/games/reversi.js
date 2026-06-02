@@ -141,6 +141,13 @@
     emoji: "⚫",
     description: "Kẹp quân đối thủ để lật thành quân mình. Ai nhiều quân hơn khi hết bàn sẽ thắng.",
     onlineReady: true,
+    howTo: [
+      "Người chơi 1 dùng quân Đen, Người chơi 2 dùng quân Trắng. Đen đi trước.",
+      "Các ô có thể đánh được sẽ hiện chấm mờ gợi ý.",
+      "Đặt quân sao cho kẹp được một hàng quân đối thủ giữa quân vừa đặt và một quân khác của mình — toàn bộ hàng bị kẹp sẽ lật thành quân của bạn.",
+      "Bạn chỉ được đánh vào ô tạo ra ít nhất một lần lật. Nếu không có nước đi hợp lệ thì mất lượt.",
+      "Khi bàn đầy (hoặc cả hai đều không đi được), ai có nhiều quân hơn sẽ thắng.",
+    ],
     create,
   });
 })();

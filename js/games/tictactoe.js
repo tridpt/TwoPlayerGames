@@ -77,6 +77,12 @@
     emoji: "❌",
     description: "Xếp 3 ký hiệu thẳng hàng (ngang, dọc, chéo) để chiến thắng.",
     onlineReady: true,
+    howTo: [
+      "Hai người lần lượt đánh dấu X và O vào các ô trống. X luôn đi trước.",
+      "Mục tiêu: xếp được 3 ký hiệu của mình thành một hàng — ngang, dọc hoặc chéo.",
+      "Ai xếp đủ 3 ô thẳng hàng trước sẽ thắng ván đó.",
+      "Nếu lấp kín cả 9 ô mà chưa ai thắng thì ván đó hòa.",
+    ],
     create,
   });
 })();

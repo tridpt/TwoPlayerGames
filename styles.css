@@ -288,7 +288,8 @@ body {
   font-size: 1.5rem;
 }
 
-.back-btn { position: absolute; left: 0; top: 0; }
+.mode-view .back-btn,
+.lobby-view .back-btn { position: absolute; left: 0; top: 0; }
 
 .mode-cards, .lobby-cards {
   display: grid;
@@ -586,3 +587,135 @@ body {
   transition: background 0.15s;
 }
 .chat-quick-btn:hover { background: var(--accent); color: #1a1a1a; }
+
+/* ---------- Nút hướng dẫn & bố cục game-bar ---------- */
+.game-bar-right { display: flex; align-items: center; gap: 8px; }
+.icon-btn { padding: 10px 12px; font-size: 1rem; line-height: 1; }
+
+/* ---------- Modal hướng dẫn ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 24, 0.7);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+.modal {
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: min(520px, 100%);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: pop 0.25s ease;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.modal-header h3 { margin: 0; font-size: 1.2rem; }
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.modal-close:hover { background: var(--panel-2); color: var(--text); }
+.modal-body { padding: 8px 20px; overflow-y: auto; }
+.modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.help-list {
+  margin: 12px 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.help-list li { line-height: 1.55; color: var(--text); }
+.help-list li::marker { color: var(--accent); font-weight: 700; }
+
+/* ---------- Nim (Bốc Sỏi) ---------- */
+.nim-board {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--panel);
+  padding: 24px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  min-width: min(420px, 90vw);
+}
+.nim-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.nim-label {
+  width: 64px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.nim-stone {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #c9d1ff, #6c76b5);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.15s, opacity 0.15s;
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.3);
+}
+.nim-stone:hover { transform: translateY(-3px); }
+.nim-stone.taking {
+  background: radial-gradient(circle at 35% 30%, #ffe49a, #f0a830);
+  box-shadow: 0 0 0 3px var(--accent), inset 0 -3px 6px rgba(0, 0, 0, 0.3);
+}
+.nim-actions { margin-top: 18px; display: flex; justify-content: center; }
+
+/* ---------- Hex ---------- */
+.hex-wrap {
+  overflow-x: auto;
+  padding: 12px;
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-width: 100%;
+}
+.hex-grid {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 26px; /* điều khiển kích thước ô qua em */
+}
+.hex-row { display: flex; gap: 3px; }
+.hex-cell {
+  width: 1.7em;
+  height: 1.7em;
+  background: #2a3060;
+  cursor: pointer;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  transition: background 0.12s;
+  flex-shrink: 0;
+}
+.hex-cell:hover { background: #3a4180; }
+.hex-cell.p1 { background: var(--p1); }
+.hex-cell.p2 { background: var(--p2); }
+.hex-cell.win { background: var(--good); }

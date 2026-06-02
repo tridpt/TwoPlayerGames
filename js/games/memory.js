@@ -108,6 +108,13 @@
     emoji: "🧠",
     description: "Lật tìm các cặp hình giống nhau. Ai tìm được nhiều cặp hơn sẽ thắng.",
     onlineReady: true,
+    howTo: [
+      "Bàn có 16 thẻ úp xuống, gồm 8 cặp hình giống nhau.",
+      "Đến lượt mình, lật 2 thẻ bất kỳ để xem hình.",
+      "Nếu 2 thẻ giống nhau: bạn ghi được 1 điểm và được đi tiếp.",
+      "Nếu 2 thẻ khác nhau: chúng úp lại và chuyển lượt cho đối thủ.",
+      "Khi tìm hết các cặp, ai có nhiều cặp hơn sẽ thắng.",
+    ],
     create,
   });
 })();

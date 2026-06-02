@@ -88,6 +88,12 @@
     emoji: "⚪",
     description: "Cờ caro cỡ lớn: nối được 5 quân liên tiếp (ngang, dọc, chéo) là thắng.",
     onlineReady: true,
+    howTo: [
+      "Bàn cờ 15×15. Người chơi 1 dùng quân Đen, Người chơi 2 dùng quân Trắng. Đen đi trước.",
+      "Đến lượt mình, bấm vào một ô trống bất kỳ để đặt quân.",
+      "Mục tiêu: nối được 5 quân cùng màu liên tiếp thành một hàng — ngang, dọc hoặc chéo.",
+      "Ai nối đủ 5 quân trước sẽ thắng ngay lập tức.",
+    ],
     create,
   });
 })();

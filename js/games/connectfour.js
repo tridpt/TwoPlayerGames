@@ -96,6 +96,12 @@
     emoji: "🔴",
     description: "Thả quân xuống cột, ai nối được 4 quân thẳng hàng trước sẽ thắng.",
     onlineReady: true,
+    howTo: [
+      "Bấm vào một cột để thả quân của mình xuống — quân sẽ rơi xuống ô trống thấp nhất của cột đó.",
+      "Hai người luân phiên thả quân (Người chơi 1 màu đỏ, Người chơi 2 màu xanh).",
+      "Mục tiêu: nối được 4 quân cùng màu thành một hàng — ngang, dọc hoặc chéo.",
+      "Ai nối đủ 4 quân trước sẽ thắng. Lấp đầy bàn mà chưa ai thắng thì hòa.",
+    ],
     create,
   });
 })();

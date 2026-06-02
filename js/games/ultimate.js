@@ -134,6 +134,14 @@
     emoji: "🎯",
     description: "9 bàn caro lồng nhau. Ô bạn đánh ép đối thủ phải đánh ở bàn tương ứng. Cực kỳ đấu trí!",
     onlineReady: true,
+    howTo: [
+      "Có 9 bàn caro nhỏ (3×3) xếp thành một lưới lớn 3×3. X đi trước.",
+      "Vị trí ô bạn đánh trong bàn nhỏ sẽ quyết định bàn nhỏ mà đối thủ buộc phải đánh tiếp. Ví dụ: bạn đánh ô góc trên-trái → đối thủ phải đánh ở bàn nhỏ góc trên-trái.",
+      "Bàn nhỏ mà bạn được phép đánh sẽ được tô sáng viền vàng.",
+      "Thắng một bàn nhỏ (xếp 3 ô thẳng hàng trong bàn đó) thì bàn nhỏ đó tính là của bạn.",
+      "Nếu bị đẩy tới một bàn đã có người thắng hoặc đã đầy, bạn được chọn đánh ở bàn bất kỳ.",
+      "Thắng chung cuộc: chiếm được 3 bàn nhỏ thẳng hàng trên lưới lớn.",
+    ],
     create,
   });
 })();
