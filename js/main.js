@@ -35,6 +35,8 @@
     p2Name: $("p2Name"),
     p1Score: $("p1Score"),
     p2Score: $("p2Score"),
+    scoreP1: $("scoreP1"),
+    scoreP2: $("scoreP2"),
     backBtn: $("backBtn"),
     restartBtn: $("restartBtn"),
     homeBtn: $("homeBtn"),
@@ -79,12 +81,21 @@
         }
       },
       setTurn(idx) {
-        if (idx === -1) { el.turnBanner.textContent = "Kết thúc"; el.turnBanner.style.color = "var(--text)"; return; }
+        if (idx === -1) {
+          el.turnBanner.textContent = "Kết thúc";
+          el.turnBanner.style.color = "var(--text)";
+          el.scoreP1.classList.remove("active");
+          el.scoreP2.classList.remove("active");
+          return;
+        }
         const name = idx === 0 ? el.p1Name.textContent : el.p2Name.textContent;
         let label = "Lượt: " + name;
         if (online) label += idx === online.seat ? " (bạn)" : " (đối thủ)";
         el.turnBanner.textContent = label;
         el.turnBanner.style.color = idx === 0 ? "var(--p1)" : "var(--p2)";
+        // sáng đèn thẻ điểm của người đang tới lượt
+        el.scoreP1.classList.toggle("active", idx === 0);
+        el.scoreP2.classList.toggle("active", idx === 1);
       },
       setNames(n1, n2) { el.p1Name.textContent = n1; el.p2Name.textContent = n2; },
       incScore(idx) { scores[idx]++; renderScores(); },
@@ -339,6 +350,8 @@
   function startGame(seed) {
     el.boardWrap.innerHTML = "";
     el.status.textContent = "";
+    el.scoreP1.classList.remove("active");
+    el.scoreP2.classList.remove("active");
     scores = [0, 0];
     renderScores();
     el.gameTitle.textContent = selectedGame.emoji + " " + selectedGame.name;

@@ -143,6 +143,24 @@ body {
 .score-p1 .score-val { color: var(--p1); }
 .score-p2 .score-val { color: var(--p2); }
 
+/* sáng đèn thẻ điểm của người đang tới lượt */
+.score {
+  border-radius: 12px;
+  padding: 8px 12px;
+  border: 2px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.score.active { background: var(--bg-soft); }
+.score-p1.active {
+  border-color: var(--p1);
+  box-shadow: 0 0 14px rgba(255, 93, 115, 0.55);
+}
+.score-p2.active {
+  border-color: var(--p2);
+  box-shadow: 0 0 14px rgba(77, 208, 225, 0.55);
+}
+.score.active .score-name { color: var(--text); }
+
 .turn-banner {
   background: var(--bg-soft);
   border-radius: 10px;
