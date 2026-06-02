@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game 2 Người - Bộ trò chơi đối kháng</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="logo" id="homeBtn">🎮 Game 2 Người</h1>
+    <p class="tagline">Chơi chung một máy hoặc online qua mạng</p>
+  </header>
+
+  <main id="app">
+    <!-- Màn hình chọn game -->
+    <section id="menu" class="menu">
+      <div class="game-grid" id="gameGrid"><!-- thẻ game render bằng JS --></div>
+    </section>
+
+    <!-- Chọn chế độ chơi -->
+    <section id="modeView" class="mode-view hidden">
+      <button class="btn back-btn" id="modeBackBtn">← Về menu</button>
+      <h2 class="mode-title" id="modeTitle"></h2>
+      <div class="mode-cards">
+        <div class="mode-card" id="modeLocal">
+          <div class="emoji">🛋️</div>
+          <h3>Chơi chung máy</h3>
+          <p>Hai người luân phiên trên cùng một thiết bị.</p>
+        </div>
+        <div class="mode-card" id="modeOnline">
+          <div class="emoji">🌐</div>
+          <h3>Chơi online</h3>
+          <p>Hai người ở hai máy khác nhau, kết nối qua mã phòng.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sảnh chờ online -->
+    <section id="lobbyView" class="lobby-view hidden">
+      <button class="btn back-btn" id="lobbyBackBtn">← Quay lại</button>
+      <h2 class="mode-title" id="lobbyTitle"></h2>
+      <div class="lobby-cards">
+        <div class="lobby-panel">
+          <h3>Tạo phòng mới</h3>
+          <p>Tạo phòng và gửi mã cho bạn bè để cùng chơi.</p>
+          <button class="btn primary" id="createRoomBtn">Tạo phòng</button>
+          <div class="room-code hidden" id="roomCodeBox">
+            <span class="room-code-label">Mã phòng của bạn</span>
+            <span class="room-code-val" id="roomCodeVal">----</span>
+            <button class="btn small" id="copyCodeBtn">📋 Sao chép</button>
+            <p class="waiting" id="waitingMsg">Đang chờ người chơi thứ hai...</p>
+          </div>
+        </div>
+        <div class="lobby-panel">
+          <h3>Vào phòng có sẵn</h3>
+          <p>Nhập mã phòng (4 chữ số) mà bạn của bạn gửi cho.</p>
+          <input class="code-input" id="joinCodeInput" maxlength="4" inputmode="numeric"
+                 placeholder="0000" />
+          <button class="btn primary" id="joinRoomBtn">Vào phòng</button>
+          <p class="lobby-error" id="lobbyError"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Khu vực chơi game -->
+    <section id="gameView" class="game-view hidden">
+      <div class="game-bar">
+        <button class="btn back-btn" id="backBtn">← Thoát</button>
+        <h2 class="game-title" id="gameTitle"></h2>
+        <button class="btn" id="restartBtn">↻ Chơi lại</button>
+      </div>
+
+      <div class="scoreboard" id="scoreboard">
+        <div class="score score-p1">
+          <span class="score-name" id="p1Name">Người chơi 1</span>
+          <span class="score-val" id="p1Score">0</span>
+        </div>
+        <div class="turn-banner" id="turnBanner">Lượt: Người chơi 1</div>
+        <div class="score score-p2">
+          <span class="score-name" id="p2Name">Người chơi 2</span>
+          <span class="score-val" id="p2Score">0</span>
+        </div>
+      </div>
+
+      <div class="online-badge hidden" id="onlineBadge"></div>
+
+      <div class="board-wrap" id="boardWrap"><!-- bàn chơi render bằng JS --></div>
+
+      <p class="status" id="status"></p>
+
+      <!-- Khung chat (chỉ hiện khi chơi online) -->
+      <div class="chat-panel hidden" id="chatPanel">
+        <div class="chat-header">
+          <span>💬 Trò chuyện</span>
+          <button class="chat-toggle" id="chatToggle" title="Thu gọn/Mở rộng">▾</button>
+        </div>
+        <div class="chat-body" id="chatBody">
+          <div class="chat-messages" id="chatMessages"></div>
+          <form class="chat-input-row" id="chatForm">
+            <input class="chat-input" id="chatInput" maxlength="200"
+                   placeholder="Nhập tin nhắn..." autocomplete="off" />
+            <button class="btn small primary" type="submit">Gửi</button>
+          </form>
+          <div class="chat-quick" id="chatQuick"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span id="footerText">Made with ❤️ — chơi chung máy hoặc online</span>
+  </footer>
+
+  <!-- registry PHẢI nạp trước các file game -->
+  <script src="js/registry.js"></script>
+  <script src="js/net.js"></script>
+  <script src="js/games/tictactoe.js"></script>
+  <script src="js/games/connectfour.js"></script>
+  <script src="js/games/reversi.js"></script>
+  <script src="js/games/memory.js"></script>
+  <script src="js/games/gomoku.js"></script>
+  <script src="js/games/dotsandboxes.js"></script>
+  <script src="js/games/ultimate.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
