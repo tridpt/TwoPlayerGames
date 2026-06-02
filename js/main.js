@@ -54,6 +54,13 @@
     chatForm: $("chatForm"),
     chatInput: $("chatInput"),
     chatQuick: $("chatQuick"),
+    winOverlay: $("winOverlay"),
+    winConfetti: $("winConfetti"),
+    winEmoji: $("winEmoji"),
+    winTitle: $("winTitle"),
+    winSub: $("winSub"),
+    winAgain: $("winAgain"),
+    winMenu: $("winMenu"),
   };
 
   // ---- Trạng thái phiên ----
@@ -73,11 +80,17 @@
       options: currentOptions,
       setStatus(text) {
         el.status.textContent = text || "";
-        // Tự động phát âm thanh kết thúc ván dựa trên nội dung trạng thái
+        // Tự động phát âm thanh + màn chúc mừng khi kết thúc ván
         if (window.Sound && text) {
           if (text.includes("💀")) Sound.play("lose");
           else if (text.includes("🎉")) Sound.play("win");
           else if (text.includes("🤝")) Sound.play("draw");
+        }
+        if (text && (text.includes("🎉") || text.includes("🤝") || text.includes("💀"))) {
+          if (el.winOverlay.classList.contains("hidden")) {
+            const kind = text.includes("🎉") ? "win" : text.includes("💀") ? "lose" : "draw";
+            showWinScreen(kind, text);
+          }
         }
       },
       setTurn(idx) {
@@ -352,6 +365,7 @@
     el.status.textContent = "";
     el.scoreP1.classList.remove("active");
     el.scoreP2.classList.remove("active");
+    if (el.winOverlay) { el.winOverlay.classList.add("hidden"); stopConfetti(); }
     scores = [0, 0];
     renderScores();
     el.gameTitle.textContent = selectedGame.emoji + " " + selectedGame.name;
@@ -441,6 +455,80 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !el.helpOverlay.classList.contains("hidden")) closeHelp();
   });
+
+  // ====================== Màn hình chúc mừng ======================
+  let confettiRaf = null;
+  function showWinScreen(kind, rawText) {
+    // bỏ emoji đầu để lấy nội dung gọn
+    const msg = rawText.replace(/^[🎉🤝💀]\s*/u, "").trim();
+    if (kind === "draw") {
+      el.winEmoji.textContent = "🤝";
+      el.winTitle.textContent = "Hòa!";
+    } else if (kind === "lose") {
+      el.winEmoji.textContent = "💀";
+      el.winTitle.textContent = "Thua mất rồi!";
+    } else {
+      el.winEmoji.textContent = "🏆";
+      el.winTitle.textContent = "Chiến thắng!";
+    }
+    el.winSub.textContent = msg;
+    el.winOverlay.classList.remove("hidden");
+    if (kind !== "lose") startConfetti();
+  }
+
+  function hideWinScreen() {
+    el.winOverlay.classList.add("hidden");
+    stopConfetti();
+  }
+
+  function startConfetti() {
+    const cv = el.winConfetti;
+    const g = cv.getContext("2d");
+    cv.width = window.innerWidth;
+    cv.height = window.innerHeight;
+    const colors = ["#ff5d73", "#4dd0e1", "#ffd166", "#6ee7b7", "#c9a98a", "#e9ecff"];
+    const pieces = [];
+    for (let i = 0; i < 140; i++) {
+      pieces.push({
+        x: Math.random() * cv.width,
+        y: Math.random() * -cv.height,
+        w: 6 + Math.random() * 7,
+        h: 8 + Math.random() * 8,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vy: 2 + Math.random() * 3.5,
+        vx: -1.5 + Math.random() * 3,
+        rot: Math.random() * Math.PI,
+        vr: -0.15 + Math.random() * 0.3,
+      });
+    }
+    let frames = 0;
+    function tick() {
+      g.clearRect(0, 0, cv.width, cv.height);
+      pieces.forEach((p) => {
+        p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+        if (p.y > cv.height + 20) { p.y = -20; p.x = Math.random() * cv.width; }
+        g.save();
+        g.translate(p.x, p.y);
+        g.rotate(p.rot);
+        g.fillStyle = p.color;
+        g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        g.restore();
+      });
+      frames++;
+      // sau ~4.5s ngừng sinh, để pháo giấy rơi hết thì tự dừng nhẹ
+      confettiRaf = requestAnimationFrame(tick);
+    }
+    stopConfetti();
+    tick();
+  }
+  function stopConfetti() {
+    if (confettiRaf) { cancelAnimationFrame(confettiRaf); confettiRaf = null; }
+    const g = el.winConfetti.getContext("2d");
+    g && g.clearRect(0, 0, el.winConfetti.width, el.winConfetti.height);
+  }
+
+  el.winAgain.addEventListener("click", () => { hideWinScreen(); restartGame(); });
+  el.winMenu.addEventListener("click", () => { hideWinScreen(); goHome(); });
 
   renderMenu();
 })();

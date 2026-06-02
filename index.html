@@ -120,6 +120,20 @@
     <span id="footerText">Made with ❤️ — chơi chung máy hoặc online</span>
   </footer>
 
+  <!-- Màn hình chúc mừng chiến thắng -->
+  <div class="win-overlay hidden" id="winOverlay">
+    <canvas class="win-confetti" id="winConfetti"></canvas>
+    <div class="win-card" id="winCard">
+      <div class="win-emoji" id="winEmoji">🎉</div>
+      <h2 class="win-title" id="winTitle">Chiến thắng!</h2>
+      <p class="win-sub" id="winSub"></p>
+      <div class="win-actions">
+        <button class="btn primary" id="winAgain">↻ Chơi lại</button>
+        <button class="btn" id="winMenu">← Về menu</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal hướng dẫn chơi -->
   <div class="modal-overlay hidden" id="helpOverlay">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
