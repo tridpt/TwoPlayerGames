@@ -719,3 +719,96 @@ body {
 .hex-cell.p1 { background: var(--p1); }
 .hex-cell.p2 { background: var(--p2); }
 .hex-cell.win { background: var(--good); }
+
+/* ---------- Mancala ---------- */
+.mnc-board {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  background: #6b4423;
+  padding: 16px;
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+.mnc-store {
+  width: 56px;
+  background: #4a2e16;
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffe;
+  font-size: 1.5rem;
+  font-weight: 700;
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+.mnc-mid { display: flex; flex-direction: column; gap: 12px; justify-content: center; }
+.mnc-row { display: flex; gap: 12px; }
+.mnc-pit {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #8a5a2b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: default;
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+.mnc-pit.playable { cursor: pointer; box-shadow: inset 0 4px 8px rgba(0,0,0,0.4), 0 0 0 3px var(--accent); }
+.mnc-pit.playable:hover { transform: scale(1.08); }
+.mnc-pit.empty { opacity: 0.75; }
+
+/* ---------- Order & Chaos ---------- */
+.oc-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.oc-picker.disabled { opacity: 0.5; pointer-events: none; }
+.oc-picker-label { color: var(--muted); font-size: 0.9rem; }
+.oc-sym-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 1.4rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.oc-sym-btn.active { border-color: var(--accent); background: var(--accent); color: #1a1a1a; }
+
+.oc-board {
+  display: grid;
+  gap: 6px;
+  background: var(--panel-2);
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  width: min(420px, 92vw);
+}
+.oc-cell {
+  background: var(--panel);
+  border-radius: 8px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.oc-cell:hover { background: var(--panel-2); }
+.oc-cell.x { color: var(--p1); }
+.oc-cell.o { color: var(--p2); }
+.oc-cell.win { background: var(--good); color: #0f1226; }
