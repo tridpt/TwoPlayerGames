@@ -1250,6 +1250,8 @@ body {
 .qd-hslot.on, .qd-vslot.on { background: #ffd166; box-shadow: 0 0 6px rgba(255,209,102,0.6); }
 .qd-board.qd-wallmode .qd-hslot:hover,
 .qd-board.qd-wallmode .qd-vslot:hover { background: rgba(255,209,102,0.5); cursor: pointer; }
+.qd-hslot.preview-ok, .qd-vslot.preview-ok { background: var(--good); }
+.qd-hslot.preview-bad, .qd-vslot.preview-bad { background: var(--p1); }
 
 .qd-pawn {
   width: 70%; height: 70%; border-radius: 50%;

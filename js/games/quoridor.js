@@ -77,17 +77,32 @@
           const r = (gr - 1) / 2, c = gc / 2; // giữa hàng r và r+1, cột c
           hSlotEls[r + "," + c] = el;
           el.addEventListener("click", () => onWallSlot("h", r, c));
+          el.addEventListener("mouseenter", () => setPreview("h", r, c));
+          el.addEventListener("mouseleave", clearPreview);
         } else if (evenR && !evenC) {
           el.className = "qd-vslot";
           const r = gr / 2, c = (gc - 1) / 2; // giữa cột c và c+1, hàng r
           vSlotEls[r + "," + c] = el;
           el.addEventListener("click", () => onWallSlot("v", r, c));
+          el.addEventListener("mouseenter", () => setPreview("v", r, c));
+          el.addEventListener("mouseleave", clearPreview);
         } else {
           el.className = "qd-inter";
         }
         boardEl.appendChild(el);
       }
     }
+
+    let preview = null; // { o, r, c, ok } xem trước tường khi rê chuột
+    function setPreview(orient, r, c) {
+      if (!canPlay() || mode !== "wall" || wallsLeft[turn] <= 0) { preview = null; return; }
+      let ir = r, ic = c;
+      if (orient === "h") { if (ic > WALL_SLOTS - 1) ic = WALL_SLOTS - 1; }
+      else { if (ir > WALL_SLOTS - 1) ir = WALL_SLOTS - 1; }
+      preview = { o: orient, r: ir, c: ic, ok: wallLegal(orient, ir, ic) };
+      render();
+    }
+    function clearPreview() { if (preview) { preview = null; render(); } }
 
     function canPlay() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
 
@@ -270,6 +285,17 @@
         if (vSlotEls[r + "," + c]) vSlotEls[r + "," + c].classList.add("on");
         if (vSlotEls[(r + 1) + "," + c]) vSlotEls[(r + 1) + "," + c].classList.add("on");
       });
+      // xem trước tường khi rê chuột
+      if (preview) {
+        const cls = preview.ok ? "preview-ok" : "preview-bad";
+        if (preview.o === "h") {
+          [hSlotEls[preview.r + "," + preview.c], hSlotEls[preview.r + "," + (preview.c + 1)]]
+            .forEach((e) => e && e.classList.add(cls));
+        } else {
+          [vSlotEls[preview.r + "," + preview.c], vSlotEls[(preview.r + 1) + "," + preview.c]]
+            .forEach((e) => e && e.classList.add(cls));
+        }
+      }
       // bật chế độ đặt tường gợi ý khe bấm được
       boardEl.classList.toggle("qd-wallmode", mode === "wall" && canPlay() && wallsLeft[turn] > 0);
     }
@@ -310,7 +336,7 @@
       "Bàn 9×9. Người chơi 1 (đỏ) ở hàng dưới cần lên tới hàng TRÊN cùng; Người chơi 2 (xanh) ở hàng trên cần xuống hàng DƯỚI cùng.",
       "Mỗi lượt chọn một trong hai: DI CHUYỂN quân (sang ô kề) HOẶC ĐẶT TƯỜNG.",
       "Chế độ 🏃 Di chuyển: bấm vào ô sáng để đi. Nếu hai quân đứng kề nhau, bạn được nhảy qua đối thủ.",
-      "Chế độ 🧱 Đặt tường: bấm vào khe giữa các ô để đặt một bức tường dài 2 ô, chặn đường đi. Mỗi người có số tường giới hạn.",
+      "Chế độ 🧱 Đặt tường: bấm vào khe giữa các ô để đặt một bức tường. Mỗi bức tường dài 2 ô (chặn 2 lối đi liền nhau) và chỉ tốn 1 tường trong kho. Rê chuột vào khe để xem trước tường sẽ phủ chỗ nào (xanh = đặt được, đỏ = không).",
       "Luật quan trọng: KHÔNG được đặt tường bịt kín hoàn toàn đường về đích của bất kỳ ai — luôn phải chừa ít nhất một lối.",
       "Ai đưa quân của mình về tới hàng đích trước sẽ thắng.",
     ],
