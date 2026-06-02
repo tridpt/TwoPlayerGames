@@ -107,10 +107,13 @@
     el.modeTitle.textContent = game.emoji + " " + game.name;
     // game không hỗ trợ online thì ẩn lựa chọn online
     el.modeOnline.classList.toggle("disabled", game.onlineReady === false);
+    // game chỉ chơi online (giấu thông tin) thì ẩn lựa chọn chung máy
+    el.modeLocal.classList.toggle("disabled", game.localReady === false);
     show("modeView");
   }
 
   el.modeLocal.addEventListener("click", () => {
+    if (selectedGame.localReady === false) return;
     online = null;
     startGame();
   });
