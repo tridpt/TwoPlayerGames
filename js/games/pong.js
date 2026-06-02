@@ -1,13 +1,16 @@
 /* Pong 2 người — chơi chung máy (thời gian thực, dùng bàn phím)
-   Người chơi 1: phím W (lên) / S (xuống). Người chơi 2: mũi tên ↑ / ↓.
-   Ai đạt 5 điểm trước sẽ thắng. */
+   Người chơi 1: phím W (lên) / S (xuống). Người chơi 2: mũi tên ↑ / ↓. */
 (function () {
   const W = 700, H = 420;
-  const PADDLE_H = 80, PADDLE_W = 12, BALL = 12;
-  const PADDLE_SPEED = 6;
-  const WIN_SCORE = 5;
+  const PADDLE_W = 12, BALL = 12;
 
   function create(ctx) {
+    const o = ctx.options || {};
+    const BALL_SPEED = o.speed || 5;
+    const WIN_SCORE = o.winScore || 5;
+    const PADDLE_H = o.paddle || 80;
+    const PADDLE_SPEED = 6;
+
     const canvas = document.createElement("canvas");
     canvas.width = W; canvas.height = H;
     canvas.className = "pong-canvas";
@@ -27,7 +30,7 @@
     function resetBall(dir) {
       ball.x = W / 2; ball.y = H / 2;
       const angle = (Math.random() * 0.5 - 0.25) * Math.PI; // -45..45 độ
-      const speed = 5;
+      const speed = BALL_SPEED;
       ball.vx = dir * speed * Math.cos(angle);
       ball.vy = speed * Math.sin(angle);
     }
@@ -162,6 +165,33 @@
     emoji: "🏓",
     description: "Game phản xạ thời gian thực: điều khiển vợt đỡ bóng. Ai đạt 5 điểm trước sẽ thắng.",
     onlineReady: false,
+    options: [
+      {
+        id: "speed", label: "Tốc độ bóng", default: 5,
+        choices: [
+          { value: 3.5, label: "Chậm (dễ)" },
+          { value: 5, label: "Vừa" },
+          { value: 7, label: "Nhanh (khó)" },
+          { value: 9, label: "Cực nhanh" },
+        ],
+      },
+      {
+        id: "paddle", label: "Độ dài vợt", default: 80,
+        choices: [
+          { value: 110, label: "Dài (dễ)" },
+          { value: 80, label: "Vừa" },
+          { value: 55, label: "Ngắn (khó)" },
+        ],
+      },
+      {
+        id: "winScore", label: "Điểm để thắng", default: 5,
+        choices: [
+          { value: 3, label: "3 điểm (nhanh)" },
+          { value: 5, label: "5 điểm" },
+          { value: 10, label: "10 điểm" },
+        ],
+      },
+    ],
     howTo: [
       "Game chơi chung trên một bàn phím (không hỗ trợ online).",
       "Người chơi 1 điều khiển vợt bên trái: phím W (lên) và S (xuống).",

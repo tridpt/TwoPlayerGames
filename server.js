@@ -88,10 +88,11 @@ wss.on("connection", (ws) => {
       case "create": {
         const code = makeCode();
         const seed = Math.floor(Math.random() * 1e9);
-        rooms.set(code, { players: [ws, null], gameId: msg.gameId, seed });
+        const options = msg.options || {};
+        rooms.set(code, { players: [ws, null], gameId: msg.gameId, seed, options });
         ws.roomCode = code;
         ws.seat = 0;
-        send(ws, "created", { code, seat: 0, gameId: msg.gameId, seed });
+        send(ws, "created", { code, seat: 0, gameId: msg.gameId, seed, options });
         break;
       }
 
@@ -102,10 +103,10 @@ wss.on("connection", (ws) => {
         room.players[1] = ws;
         ws.roomCode = msg.code;
         ws.seat = 1;
-        send(ws, "joined", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed });
-        // báo cho cả hai bắt đầu
-        send(room.players[0], "start", { seat: 0, gameId: room.gameId, seed: room.seed });
-        send(room.players[1], "start", { seat: 1, gameId: room.gameId, seed: room.seed });
+        send(ws, "joined", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, options: room.options });
+        // báo cho cả hai bắt đầu (kèm options của chủ phòng)
+        send(room.players[0], "start", { seat: 0, gameId: room.gameId, seed: room.seed, options: room.options });
+        send(room.players[1], "start", { seat: 1, gameId: room.gameId, seed: room.seed, options: room.options });
         break;
       }
 
@@ -120,10 +121,10 @@ wss.on("connection", (ws) => {
       case "restart": {
         const room = rooms.get(ws.roomCode);
         if (!room) return;
-        // người chủ phòng phát seed mới để đồng bộ
+        // người chủ phòng phát seed mới để đồng bộ (giữ nguyên options)
         const seed = Math.floor(Math.random() * 1e9);
         room.seed = seed;
-        room.players.forEach((p, i) => send(p, "restart", { seed, seat: i }));
+        room.players.forEach((p, i) => send(p, "restart", { seed, seat: i, options: room.options }));
         break;
       }
 

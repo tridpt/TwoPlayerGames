@@ -1,9 +1,9 @@
-/* Connect Four - Xếp 4 (7 cột x 6 hàng) — hỗ trợ chơi chung máy & online */
+/* Connect Four - Xếp 4 — hỗ trợ chơi chung máy & online */
 (function () {
-  const COLS = 7;
-  const ROWS = 6;
-
   function create(ctx) {
+    const COLS = (ctx.options && ctx.options.cols) || 7;
+    const ROWS = (ctx.options && ctx.options.rows) || 6;
+    const NEED = (ctx.options && ctx.options.need) || 4;
     let board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     let turn = 0;
     let over = false;
@@ -79,7 +79,7 @@
         while (inBounds(nr, nc) && board[nr][nc] === p) { cells.push([nr, nc]); nr += dr; nc += dc; }
         nr = r - dr; nc = c - dc;
         while (inBounds(nr, nc) && board[nr][nc] === p) { cells.unshift([nr, nc]); nr -= dr; nc -= dc; }
-        if (cells.length >= 4) return cells;
+        if (cells.length >= NEED) return cells;
       }
       return null;
     }
@@ -97,6 +97,32 @@
     emoji: "🔴",
     description: "Thả quân xuống cột, ai nối được 4 quân thẳng hàng trước sẽ thắng.",
     onlineReady: true,
+    options: [
+      {
+        id: "cols", label: "Số cột", default: 7,
+        choices: [
+          { value: 5, label: "5 cột" },
+          { value: 7, label: "7 cột (chuẩn)" },
+          { value: 9, label: "9 cột" },
+        ],
+      },
+      {
+        id: "rows", label: "Số hàng", default: 6,
+        choices: [
+          { value: 5, label: "5 hàng" },
+          { value: 6, label: "6 hàng (chuẩn)" },
+          { value: 8, label: "8 hàng" },
+        ],
+      },
+      {
+        id: "need", label: "Số quân để thắng", default: 4,
+        choices: [
+          { value: 3, label: "3 quân (dễ)" },
+          { value: 4, label: "4 quân (chuẩn)" },
+          { value: 5, label: "5 quân (khó)" },
+        ],
+      },
+    ],
     howTo: [
       "Bấm vào một cột để thả quân của mình xuống — quân sẽ rơi xuống ô trống thấp nhất của cột đó.",
       "Hai người luân phiên thả quân (Người chơi 1 màu đỏ, Người chơi 2 màu xanh).",

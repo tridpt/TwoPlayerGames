@@ -1,10 +1,17 @@
 /* Nim - Bốc Sỏi — chơi chung máy & online
-   3 hàng sỏi. Đến lượt, bốc bao nhiêu viên tùy ý nhưng chỉ từ MỘT hàng.
+   Nhiều hàng sỏi. Đến lượt, bốc bao nhiêu viên tùy ý nhưng chỉ từ MỘT hàng.
    Ai bốc viên cuối cùng sẽ THẮNG. */
 (function () {
-  const INIT = [3, 5, 7];
+  const PRESETS = {
+    classic: [3, 5, 7],
+    small: [1, 3, 5],
+    big: [3, 5, 7, 9],
+    huge: [1, 3, 5, 7, 9],
+  };
 
   function create(ctx) {
+    const preset = (ctx.options && ctx.options.preset) || "classic";
+    const INIT = PRESETS[preset] || PRESETS.classic;
     let rows = INIT.slice();
     let turn = 0;
     let selRow = null;       // hàng đang chọn
@@ -112,6 +119,17 @@
     emoji: "🪨",
     description: "Cờ trí tuệ kinh điển: bốc sỏi từ các hàng, ai bốc viên cuối cùng sẽ thắng.",
     onlineReady: true,
+    options: [
+      {
+        id: "preset", label: "Cấu hình hàng sỏi", default: "classic",
+        choices: [
+          { value: "small", label: "1·3·5 (nhỏ)" },
+          { value: "classic", label: "3·5·7 (chuẩn)" },
+          { value: "big", label: "3·5·7·9 (4 hàng)" },
+          { value: "huge", label: "1·3·5·7·9 (5 hàng)" },
+        ],
+      },
+    ],
     howTo: [
       "Có 3 hàng sỏi (3, 5 và 7 viên).",
       "Đến lượt mình, bạn phải bốc ít nhất 1 viên, và chỉ được bốc từ MỘT hàng duy nhất (bốc bao nhiêu tùy ý).",

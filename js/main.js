@@ -12,6 +12,8 @@
     modeLocal: $("modeLocal"),
     modeOnline: $("modeOnline"),
     modeBackBtn: $("modeBackBtn"),
+    optionsPanel: $("optionsPanel"),
+    optionsList: $("optionsList"),
     lobbyView: $("lobbyView"),
     lobbyTitle: $("lobbyTitle"),
     lobbyBackBtn: $("lobbyBackBtn"),
@@ -57,6 +59,7 @@
   let instance = null;
   let scores = [0, 0];
   let online = null; // null = chơi chung máy; {seat, seed} = online
+  let currentOptions = {}; // giá trị tùy chỉnh ván chơi đang dùng
 
   // ====================== Context cho game ======================
   function makeContext(seed) {
@@ -65,6 +68,7 @@
       isOnline: !!online,
       mySeat: online ? online.seat : -1,
       rng: window.makeRng(seed || 1),
+      options: currentOptions,
       setStatus(text) {
         el.status.textContent = text || "";
         // Tự động phát âm thanh kết thúc ván dựa trên nội dung trạng thái
@@ -119,12 +123,61 @@
     el.modeOnline.classList.toggle("disabled", game.onlineReady === false);
     // game chỉ chơi online (giấu thông tin) thì ẩn lựa chọn chung máy
     el.modeLocal.classList.toggle("disabled", game.localReady === false);
+    buildOptionsUI(game);
     show("modeView");
+  }
+
+  // Dựng panel tùy chỉnh dựa trên schema options của game
+  function buildOptionsUI(game) {
+    el.optionsList.innerHTML = "";
+    const opts = game.options;
+    if (!opts || !opts.length) {
+      el.optionsPanel.classList.add("hidden");
+      return;
+    }
+    el.optionsPanel.classList.remove("hidden");
+    opts.forEach((opt) => {
+      const row = document.createElement("div");
+      row.className = "option-row";
+      const label = document.createElement("label");
+      label.className = "option-label";
+      label.textContent = opt.label;
+      label.htmlFor = "opt_" + opt.id;
+      const select = document.createElement("select");
+      select.className = "option-select";
+      select.id = "opt_" + opt.id;
+      select.dataset.optId = opt.id;
+      opt.choices.forEach((ch) => {
+        const o = document.createElement("option");
+        o.value = String(ch.value);
+        o.textContent = ch.label;
+        if (ch.value === opt.default) o.selected = true;
+        select.appendChild(o);
+      });
+      row.appendChild(label);
+      row.appendChild(select);
+      el.optionsList.appendChild(row);
+    });
+  }
+
+  // Đọc giá trị người dùng đã chọn từ panel
+  function readOptions(game) {
+    const result = {};
+    if (!game.options) return result;
+    game.options.forEach((opt) => {
+      const sel = document.getElementById("opt_" + opt.id);
+      let val = sel ? sel.value : opt.default;
+      // ép kiểu số nếu default là số
+      if (typeof opt.default === "number") val = Number(val);
+      result[opt.id] = val;
+    });
+    return result;
   }
 
   el.modeLocal.addEventListener("click", () => {
     if (selectedGame.localReady === false) return;
     online = null;
+    currentOptions = readOptions(selectedGame);
     startGame();
   });
 
@@ -155,7 +208,8 @@
   el.createRoomBtn.addEventListener("click", async () => {
     el.lobbyError.textContent = "";
     if (!(await ensureConnected())) return;
-    Net.send("create", { gameId: selectedGame.id });
+    currentOptions = readOptions(selectedGame);
+    Net.send("create", { gameId: selectedGame.id, options: currentOptions });
   });
 
   el.joinRoomBtn.addEventListener("click", async () => {
@@ -191,6 +245,7 @@
 
   Net.on("start", (m) => {
     online = { seat: m.seat, seed: m.seed };
+    if (m.options) currentOptions = m.options; // dùng tùy chỉnh của chủ phòng
     startGame(m.seed);
   });
 
@@ -200,6 +255,7 @@
 
   Net.on("restart", (m) => {
     online = { seat: m.seat, seed: m.seed };
+    if (m.options) currentOptions = m.options;
     startGame(m.seed);
   });
 

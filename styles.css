@@ -316,6 +316,40 @@ body {
   margin-top: 40px;
 }
 
+/* ---------- Panel tùy chỉnh ván chơi ---------- */
+.options-panel {
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  margin-top: 24px;
+  box-shadow: var(--shadow);
+}
+.options-title { margin: 0 0 14px; font-size: 1.05rem; }
+.options-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px 20px;
+}
+.option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.option-label { color: var(--muted); font-size: 0.9rem; }
+.option-select {
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 110px;
+}
+.option-select:focus { outline: 2px solid var(--accent); }
+
 .mode-card {
   background: linear-gradient(160deg, var(--panel-2), var(--panel));
   border: 1px solid rgba(255, 255, 255, 0.06);

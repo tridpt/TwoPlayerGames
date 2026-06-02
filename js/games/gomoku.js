@@ -1,9 +1,8 @@
-/* Gomoku - Cờ Caro 15x15 (nối 5 quân) — chơi chung máy & online */
+/* Gomoku - Cờ Caro (nối N quân) — chơi chung máy & online */
 (function () {
-  const N = 15;
-  const NEED = 5;
-
   function create(ctx) {
+    const N = (ctx.options && ctx.options.size) || 15;
+    const NEED = (ctx.options && ctx.options.need) || 5;
     let board = Array.from({ length: N }, () => Array(N).fill(null));
     let turn = 0;
     let over = false;
@@ -79,7 +78,7 @@
 
     ctx.setNames("Người chơi 1 (Đen)", "Người chơi 2 (Trắng)");
     ctx.setTurn(0);
-    ctx.setStatus("Đen đi trước. Nối 5 quân liên tiếp để thắng.");
+    ctx.setStatus(`Đen đi trước. Nối ${NEED} quân liên tiếp để thắng.`);
     return { applyMove };
   }
 
@@ -89,11 +88,31 @@
     emoji: "⚪",
     description: "Cờ caro cỡ lớn: nối được 5 quân liên tiếp (ngang, dọc, chéo) là thắng.",
     onlineReady: true,
+    options: [
+      {
+        id: "size", label: "Kích thước bàn", default: 15,
+        choices: [
+          { value: 9, label: "9×9 (nhanh)" },
+          { value: 13, label: "13×13" },
+          { value: 15, label: "15×15 (chuẩn)" },
+          { value: 19, label: "19×19 (lớn)" },
+        ],
+      },
+      {
+        id: "need", label: "Số quân để thắng", default: 5,
+        choices: [
+          { value: 4, label: "4 quân (dễ)" },
+          { value: 5, label: "5 quân (chuẩn)" },
+          { value: 6, label: "6 quân (khó)" },
+        ],
+      },
+    ],
     howTo: [
-      "Bàn cờ 15×15. Người chơi 1 dùng quân Đen, Người chơi 2 dùng quân Trắng. Đen đi trước.",
+      "Bàn cờ tùy chỉnh (mặc định 15×15). Người chơi 1 dùng quân Đen, Người chơi 2 dùng quân Trắng. Đen đi trước.",
       "Đến lượt mình, bấm vào một ô trống bất kỳ để đặt quân.",
-      "Mục tiêu: nối được 5 quân cùng màu liên tiếp thành một hàng — ngang, dọc hoặc chéo.",
-      "Ai nối đủ 5 quân trước sẽ thắng ngay lập tức.",
+      "Mục tiêu: nối được số quân cùng màu liên tiếp (theo tùy chỉnh) thành một hàng — ngang, dọc hoặc chéo.",
+      "Ai nối đủ số quân yêu cầu trước sẽ thắng ngay lập tức.",
+      "Có thể chỉnh kích thước bàn và số quân cần nối ở màn chọn chế độ để ván dễ hơn hoặc khó hơn.",
     ],
     create,
   });

@@ -1,7 +1,9 @@
 /* Lật Hình Tìm Cặp (Memory) — hỗ trợ chơi chung máy & online
    Online dùng RNG có hạt giống (ctx.rng) để hai máy xáo bài giống nhau. */
 (function () {
-  const EMOJIS = ["🍎", "🚀", "🐱", "🌸", "⚽", "🎸", "🍕", "🎲"]; // 8 cặp = 16 thẻ
+  const POOL = ["🍎", "🚀", "🐱", "🌸", "⚽", "🎸", "🍕", "🎲",
+                "🐶", "🌟", "🍔", "🎯", "🦊", "🍩", "🎈", "🐧",
+                "🍉", "🚗"]; // tối đa 18 cặp
 
   function shuffle(arr, rng) {
     for (let i = arr.length - 1; i > 0; i--) {
@@ -12,6 +14,9 @@
   }
 
   function create(ctx) {
+    const PAIRS = (ctx.options && ctx.options.pairs) || 8;
+    const cols = (ctx.options && ctx.options.cols) || 4;
+    const EMOJIS = POOL.slice(0, PAIRS);
     const deck = shuffle([...EMOJIS, ...EMOJIS], ctx.rng);
     let turn = 0;
     let firstIdx = null;
@@ -21,7 +26,7 @@
 
     const boardEl = document.createElement("div");
     boardEl.className = "mem-board";
-    boardEl.style.gridTemplateColumns = "repeat(4, auto)";
+    boardEl.style.gridTemplateColumns = `repeat(${cols}, auto)`;
     ctx.boardEl.appendChild(boardEl);
 
     const cards = deck.map((emoji, i) => {
@@ -111,6 +116,24 @@
     emoji: "🧠",
     description: "Lật tìm các cặp hình giống nhau. Ai tìm được nhiều cặp hơn sẽ thắng.",
     onlineReady: true,
+    options: [
+      {
+        id: "pairs", label: "Số cặp", default: 8,
+        choices: [
+          { value: 6, label: "6 cặp (dễ)" },
+          { value: 8, label: "8 cặp (vừa)" },
+          { value: 12, label: "12 cặp (khó)" },
+          { value: 18, label: "18 cặp (siêu khó)" },
+        ],
+      },
+      {
+        id: "cols", label: "Số cột", default: 4,
+        choices: [
+          { value: 4, label: "4 cột" },
+          { value: 6, label: "6 cột" },
+        ],
+      },
+    ],
     howTo: [
       "Bàn có 16 thẻ úp xuống, gồm 8 cặp hình giống nhau.",
       "Đến lượt mình, lật 2 thẻ bất kỳ để xem hình.",
