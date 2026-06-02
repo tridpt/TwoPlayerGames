@@ -91,10 +91,20 @@
 
     function resolveRoll(die) {
       if (die === 1) {
+        const opp = 1 - turn;
+        const moved = temp;
+        if (moved > 0) {
+          totals[opp] += moved;
+          tEls[opp].textContent = totals[opp];
+        }
         temp = 0;
         tempEl.textContent = 0;
         ctx.sound("error");
-        nextTurn(`💥 Người chơi ${turn + 1} ra 1 — mất điểm tạm!`);
+        // điểm chuyển sang có thể giúp đối thủ thắng luôn
+        if (totals[opp] >= TARGET) return finish(opp);
+        nextTurn(moved > 0
+          ? `💥 Người chơi ${turn + 1} ra 1 — chuyển ${moved} điểm tạm cho đối thủ!`
+          : `💥 Người chơi ${turn + 1} ra 1!`);
       } else {
         temp += die;
         tempEl.textContent = temp;
@@ -122,7 +132,7 @@
     }
 
     ctx.setTurn(0);
-    ctx.setStatus(`Gieo xúc xắc để cộng điểm. Đạt ${TARGET} điểm trước sẽ thắng. Ra 1 là mất điểm tạm!`);
+    ctx.setStatus(`Gieo xúc xắc để cộng điểm. Đạt ${TARGET} điểm trước sẽ thắng. Ra 1 là CHUYỂN điểm tạm cho đối thủ!`);
     updateButtons();
     return { applyMove };
   }
@@ -131,24 +141,25 @@
     id: "pig",
     name: "Pig (Heo Cờ Xúc Xắc)",
     emoji: "🎲",
-    description: "Gieo xúc xắc cộng dồn điểm, nhưng ra 1 là mất sạch. Biết dừng đúng lúc để thắng.",
+    description: "Gieo xúc xắc cộng dồn điểm, nhưng ra 1 là CHUYỂN hết điểm tạm cho đối thủ. Biết dừng đúng lúc để thắng.",
     onlineReady: true,
     options: [
       {
-        id: "target", label: "Điểm để thắng", default: 100,
+        id: "target", label: "Điểm để thắng", default: 150,
         choices: [
-          { value: 50, label: "50 (nhanh)" },
-          { value: 100, label: "100 (chuẩn)" },
-          { value: 150, label: "150 (lâu)" },
+          { value: 100, label: "100 (nhanh)" },
+          { value: 150, label: "150 (chuẩn)" },
+          { value: 200, label: "200 (lâu)" },
+          { value: 300, label: "300 (marathon)" },
         ],
       },
     ],
     howTo: [
       "Đến lượt mình, bấm 🎲 Gieo để tung xúc xắc. Mỗi lần gieo cộng số nút vào 'điểm tạm' của lượt.",
       "Bạn có thể gieo nhiều lần liên tiếp để cộng dồn — nhưng càng tham càng rủi ro.",
-      "Nếu gieo ra số 1: bạn MẤT TOÀN BỘ điểm tạm của lượt và chuyển lượt cho đối thủ.",
-      "Bấm ✋ Giữ điểm để cộng điểm tạm vào điểm tổng và kết thúc lượt an toàn.",
-      "Ai đạt mốc điểm (mặc định 100) trước sẽ thắng. Chìa khóa là biết dừng đúng lúc!",
+      "Nếu gieo ra số 1: toàn bộ điểm tạm của lượt bị CHUYỂN SANG cho đối thủ, rồi tới lượt họ. (Luật mới — gắt hơn!)",
+      "Bấm ✋ Giữ điểm để cộng điểm tạm vào điểm tổng của mình và kết thúc lượt an toàn.",
+      "Ai đạt mốc điểm (mặc định 150) trước sẽ thắng. Cẩn thận: điểm tạm bị 'cướp' có thể giúp đối thủ thắng luôn!",
     ],
     create,
   });
