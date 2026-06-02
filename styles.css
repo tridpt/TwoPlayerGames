@@ -906,3 +906,98 @@ body {
 .bs-cell.hit.sunk { background: #b91c3c; box-shadow: inset 0 0 0 2px #fff3; }
 .bs-cell.miss { background: #0c1a3a; box-shadow: inset 0 0 0 3px rgba(255,255,255,0.15); }
 .bs-cell.pending { background: var(--accent); }
+
+/* ---------- Pentago ---------- */
+.ptg-root { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.ptg-board {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 10px;
+  background: #1a1e3a;
+  padding: 10px;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.ptg-quad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: #2a3060;
+  padding: 8px;
+  border-radius: 10px;
+}
+.ptg-cell {
+  width: 46px;
+  height: 46px;
+  background: #161a36;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+}
+.ptg-cell:hover { background: #20254a; }
+.ptg-cell.just { box-shadow: 0 0 0 3px var(--accent); }
+.ptg-marble {
+  width: 78%;
+  height: 78%;
+  border-radius: 50%;
+}
+.ptg-marble.p1 { background: radial-gradient(circle at 35% 30%, #ff8c9c, #d33049); }
+.ptg-marble.p2 { background: radial-gradient(circle at 35% 30%, #8be6f0, #1aa7bd); }
+.ptg-cell.win { background: var(--good); }
+
+.ptg-rotbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+.ptg-rotbar.ptg-armed { opacity: 1; }
+.ptg-rotgroup { display: flex; align-items: center; gap: 4px; }
+.ptg-rotgroup span { font-size: 0.8rem; color: var(--muted); margin-right: 2px; }
+
+/* ---------- Cờ Ba Quân (Morris) ---------- */
+.mor-wrap { display: flex; justify-content: center; padding: 20px; }
+.mor-board {
+  position: relative;
+  width: min(360px, 84vw);
+  height: min(360px, 84vw);
+  background: var(--panel);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 30px;
+  box-sizing: content-box;
+}
+.mor-lines { position: absolute; inset: 30px; width: calc(100% - 60px); height: calc(100% - 60px); pointer-events: none; }
+.mor-spot {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+/* các điểm nằm trong vùng 30px padding -> dùng inset bằng calc qua left/top % của khung trong */
+.mor-board { }
+.mor-spot { margin-left: 0; }
+.mor-spot.sel { box-shadow: 0 0 0 3px var(--accent); }
+.mor-spot.hint { background: rgba(110, 231, 183, 0.4); }
+.mor-piece {
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.35);
+}
+.mor-piece.p1 { background: radial-gradient(circle at 35% 30%, #ff8c9c, #d33049); }
+.mor-piece.p2 { background: radial-gradient(circle at 35% 30%, #8be6f0, #1aa7bd); }
+.mor-spot.win { background: var(--good); }
