@@ -1263,3 +1263,81 @@ body {
 @media (max-width: 560px) {
   .qd-wrap { --qd-unit: 30px; --qd-wall: 8px; }
 }
+
+/* ---------- Pig (xúc xắc) ---------- */
+.pig-root { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 10px; }
+.pig-scores { display: flex; gap: 40px; }
+.pig-p { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pig-p span { font-size: 0.85rem; color: var(--muted); }
+.pig-p b { font-size: 2rem; }
+.pig-p.p1 b { color: var(--p1); }
+.pig-p.p2 b { color: var(--p2); }
+.pig-die {
+  font-size: 5rem; line-height: 1;
+  width: 120px; height: 120px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--panel); border-radius: 20px; box-shadow: var(--shadow);
+}
+.pig-temp { font-size: 1.1rem; color: var(--muted); }
+.pig-temp b { color: var(--accent); font-size: 1.4rem; }
+.pig-actions { display: flex; gap: 12px; }
+
+/* ---------- Yahtzee ---------- */
+.yz-root { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.yz-dice { display: flex; gap: 10px; }
+.yz-die {
+  width: 60px; height: 60px;
+  font-size: 2.8rem; line-height: 60px; text-align: center;
+  background: var(--panel); border-radius: 12px; box-shadow: var(--shadow);
+  cursor: default; user-select: none;
+  border: 3px solid transparent;
+}
+.yz-die.rollable { cursor: pointer; }
+.yz-die.held { border-color: var(--accent); background: var(--panel-2); }
+.yz-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.yz-hint { font-size: 0.85rem; color: var(--muted); max-width: 280px; }
+.yz-table {
+  width: min(440px, 96vw);
+  background: var(--panel); border-radius: var(--radius);
+  padding: 8px; box-shadow: var(--shadow);
+}
+.yz-row { display: grid; grid-template-columns: 1fr 60px 60px; align-items: center; padding: 4px 8px; border-radius: 6px; }
+.yz-row:nth-child(odd) { background: rgba(255,255,255,0.03); }
+.yz-cat { font-size: 0.85rem; }
+.yz-v { text-align: center; font-weight: 700; height: 26px; line-height: 26px; border-radius: 5px; }
+.yz-v.filled { color: var(--text); }
+.yz-v.preview { color: var(--muted); opacity: 0.6; }
+.yz-v.pickable { cursor: pointer; background: rgba(255,209,102,0.15); }
+.yz-v.pickable:hover { background: var(--accent); color: #1a1a1a; opacity: 1; }
+.yz-total { border-top: 2px solid rgba(255,255,255,0.1); margin-top: 4px; font-size: 1.05rem; }
+.yz-total .yz-cat { font-weight: 800; }
+.yz-total .p1 { color: var(--p1); }
+.yz-total .p2 { color: var(--p2); }
+
+/* ---------- Domino ---------- */
+.dom-root { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.dom-info { font-size: 0.85rem; color: var(--muted); text-align: center; }
+.dom-line-wrap { width: 100%; overflow-x: auto; }
+.dom-line {
+  display: flex; gap: 4px; padding: 14px; min-height: 70px;
+  background: #14532d; border-radius: 12px; box-shadow: var(--shadow);
+  justify-content: center; align-items: center; min-width: min-content;
+}
+.dom-hand-label { font-size: 0.85rem; color: var(--muted); align-self: flex-start; }
+.dom-hand { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.dom-tile {
+  display: flex; flex-direction: column;
+  width: 34px; min-height: 60px;
+  background: #f5f5f5; color: #1a1a1a;
+  border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  font-weight: 800; font-size: 1.1rem;
+  align-items: center; justify-content: space-around;
+  padding: 4px 0; user-select: none;
+}
+.dom-tile span { display: block; }
+.dom-tile span:first-child { border-bottom: 2px solid #1a1a1a; width: 70%; text-align: center; padding-bottom: 2px; }
+.dom-tile.placed { flex-direction: row; width: auto; min-height: 36px; gap: 6px; padding: 4px 8px; }
+.dom-tile.placed span:first-child { border-bottom: none; border-right: 2px solid #1a1a1a; width: auto; padding: 0 6px 0 0; }
+.dom-tile.playable { cursor: pointer; outline: 3px solid var(--good); }
+.dom-tile.playable:hover { transform: translateY(-4px); transition: transform 0.1s; }
+.dom-actions { display: flex; gap: 10px; }

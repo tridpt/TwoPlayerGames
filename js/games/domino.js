@@ -1,0 +1,225 @@
+/* Domino (Cờ Đô-mi-nô) — chơi chung máy & ONLINE
+   Bộ đôi-sáu 28 quân. Mỗi người 7 quân, còn lại là "nọc" (boneyard).
+   Nối quân sao cho số chấm ở đầu khớp. Hết quân trước (hoặc bí mà ít điểm hơn) thì thắng.
+   Bộ quân chia tất định theo seed chung. Quân của mình ẩn với đối thủ.
+   Nước đi: { kind:"play", tile:[a,b], end:"L"|"R" } | { kind:"draw" } | { kind:"pass" }. */
+(function () {
+  function create(ctx) {
+    // ----- tạo & xáo bộ quân tất định theo seed -----
+    const all = [];
+    for (let a = 0; a <= 6; a++) for (let b = a; b <= 6; b++) all.push([a, b]);
+    for (let i = all.length - 1; i > 0; i--) {
+      const j = Math.floor(ctx.rng() * (i + 1));
+      [all[i], all[j]] = [all[j], all[i]];
+    }
+    const hands = [all.slice(0, 7), all.slice(7, 14)];
+    const boneyard = all.slice(14); // 14 quân còn lại
+    const line = [];   // chuỗi quân đã đánh, mỗi phần tử [a,b] đã xoay đúng hướng
+    let leftEnd = null, rightEnd = null;
+    let turn = 0;
+    let over = false;
+    let passes = 0;
+
+    const root = document.createElement("div");
+    root.className = "dom-root";
+    root.innerHTML =
+      `<div class="dom-info" id="domInfo"></div>` +
+      `<div class="dom-line-wrap"><div class="dom-line" id="domLine"></div></div>` +
+      `<div class="dom-hand-label">Quân của bạn:</div>` +
+      `<div class="dom-hand" id="domHand"></div>` +
+      `<div class="dom-actions">` +
+      `<button class="btn" id="domDraw">🎴 Bốc nọc</button>` +
+      `<button class="btn" id="domPass">⏭️ Bỏ lượt</button>` +
+      `</div>`;
+    ctx.boardEl.appendChild(root);
+
+    const infoEl = root.querySelector("#domInfo");
+    const lineEl = root.querySelector("#domLine");
+    const handEl = root.querySelector("#domHand");
+    const drawBtn = root.querySelector("#domDraw");
+    const passBtn = root.querySelector("#domPass");
+
+    // người chơi cục bộ là ai (chung máy: theo lượt; online: ghế của mình)
+    function localSeat() { return ctx.isOnline ? ctx.mySeat : turn; }
+    function myTurn() { return !ctx.isOnline || turn === ctx.mySeat; }
+
+    function tileLabel(t) { return `${pips(t[0])}|${pips(t[1])}`; }
+    function pips(n) { return ["0","1","2","3","4","5","6"][n]; }
+
+    function canPlayTile(t) {
+      if (line.length === 0) return true;
+      return t[0] === leftEnd || t[1] === leftEnd || t[0] === rightEnd || t[1] === rightEnd;
+    }
+    function handCanPlay(seat) { return hands[seat].some(canPlayTile); }
+
+    drawBtn.addEventListener("click", () => {
+      if (!myTurn() || over) return;
+      if (boneyard.length === 0) return;
+      if (handCanPlay(turn)) { ctx.setStatus("Bạn còn quân đánh được — không cần bốc."); return; }
+      applyMove({ kind: "draw" }, false);
+    });
+    passBtn.addEventListener("click", () => {
+      if (!myTurn() || over) return;
+      if (handCanPlay(turn)) { ctx.setStatus("Bạn còn quân đánh được — không được bỏ lượt."); return; }
+      if (boneyard.length > 0) { ctx.setStatus("Còn nọc — phải bốc trước khi bỏ lượt."); return; }
+      applyMove({ kind: "pass" }, false);
+    });
+
+    function onTileClick(t) {
+      if (!myTurn() || over || !canPlayTile(t)) return;
+      // chọn đầu nối: nếu khớp cả 2 đầu, ưu tiên hỏi; ở đây tự chọn đầu khớp
+      let end = null;
+      if (line.length === 0) end = "R";
+      else if (t[0] === leftEnd || t[1] === leftEnd) end = "L";
+      else end = "R";
+      applyMove({ kind: "play", tile: t.slice(), end }, false);
+    }
+
+    function removeFromHand(seat, t) {
+      const i = hands[seat].findIndex((x) => x[0] === t[0] && x[1] === t[1]);
+      if (i >= 0) hands[seat].splice(i, 1);
+    }
+
+    function applyMove(move, fromRemote) {
+      if (over) return;
+
+      if (move.kind === "play") {
+        const t = move.tile;
+        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        placeTile(t, move.end);
+        removeFromHand(turn, t);
+        passes = 0;
+        ctx.sound("place");
+        if (hands[turn].length === 0) return finish(turn, "hết quân");
+        nextTurn();
+        return;
+      }
+
+      if (move.kind === "draw") {
+        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (boneyard.length) {
+          const t = boneyard.shift();
+          hands[turn].push(t);
+          ctx.sound("select");
+        }
+        // bốc xong vẫn lượt của mình; render lại
+        render();
+        ctx.setStatus(`Người chơi ${turn + 1} bốc một quân từ nọc.`);
+        return;
+      }
+
+      if (move.kind === "pass") {
+        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        passes++;
+        ctx.sound("error");
+        if (passes >= 2) return finishBlocked();
+        nextTurn(`⏭️ Người chơi ${turn + 1} bỏ lượt.`);
+      }
+    }
+
+    function placeTile(t, end) {
+      if (line.length === 0) {
+        line.push(t.slice());
+        leftEnd = t[0]; rightEnd = t[1];
+        return;
+      }
+      if (end === "L") {
+        // nối vào đầu trái: cạnh khớp phải nằm sát leftEnd
+        let tile = t.slice();
+        if (tile[1] !== leftEnd) tile = [tile[1], tile[0]]; // xoay để [x, leftEnd]
+        line.unshift(tile);
+        leftEnd = tile[0];
+      } else {
+        let tile = t.slice();
+        if (tile[0] !== rightEnd) tile = [tile[1], tile[0]]; // xoay để [rightEnd, x]
+        line.push(tile);
+        rightEnd = tile[1];
+      }
+    }
+
+    function nextTurn(msg) {
+      turn = 1 - turn;
+      ctx.setTurn(turn);
+      render();
+      if (msg) ctx.setStatus(`${msg} Lượt Người chơi ${turn + 1}.`);
+      else ctx.setStatus(`Lượt Người chơi ${turn + 1} — nối quân khớp số chấm ở hai đầu.`);
+    }
+
+    function pipsSum(seat) { return hands[seat].reduce((s, t) => s + t[0] + t[1], 0); }
+
+    function finish(winner, reason) {
+      over = true;
+      ctx.setTurn(-1);
+      ctx.incScore(winner);
+      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng (${reason})!`);
+      render();
+    }
+
+    function finishBlocked() {
+      over = true;
+      ctx.setTurn(-1);
+      const a = pipsSum(0), b = pipsSum(1);
+      if (a < b) { ctx.incScore(0); ctx.setStatus(`🔒 Bí cờ! Người chơi 1 ít điểm hơn (${a} so ${b}) — thắng!`); }
+      else if (b < a) { ctx.incScore(1); ctx.setStatus(`🔒 Bí cờ! Người chơi 2 ít điểm hơn (${b} so ${a}) — thắng!`); }
+      else ctx.setStatus(`🔒 Bí cờ — hòa (${a} điểm)!`);
+      render();
+    }
+
+    function render() {
+      // thông tin
+      infoEl.textContent = `Nọc: ${boneyard.length} quân • P1: ${hands[0].length} quân • P2: ${hands[1].length} quân`
+        + (line.length ? ` • Hai đầu: ${pips(leftEnd)} … ${pips(rightEnd)}` : "");
+
+      // chuỗi quân đã đánh
+      lineEl.innerHTML = "";
+      line.forEach((t) => {
+        const d = document.createElement("div");
+        d.className = "dom-tile placed";
+        d.innerHTML = `<span>${pips(t[0])}</span><span>${pips(t[1])}</span>`;
+        lineEl.appendChild(d);
+      });
+      lineEl.scrollLeft = lineEl.scrollWidth;
+
+      // quân trên tay của người chơi cục bộ
+      handEl.innerHTML = "";
+      const seat = localSeat();
+      hands[seat].forEach((t) => {
+        const d = document.createElement("div");
+        d.className = "dom-tile";
+        const playable = myTurn() && !over && canPlayTile(t);
+        if (playable) d.classList.add("playable");
+        d.innerHTML = `<span>${pips(t[0])}</span><span>${pips(t[1])}</span>`;
+        d.addEventListener("click", () => onTileClick(t));
+        handEl.appendChild(d);
+      });
+
+      // nút bốc/bỏ lượt
+      const mine = myTurn() && !over;
+      const stuck = mine && !handCanPlay(turn);
+      drawBtn.disabled = !(stuck && boneyard.length > 0);
+      passBtn.disabled = !(stuck && boneyard.length === 0);
+    }
+
+    ctx.setTurn(0);
+    render();
+    ctx.setStatus("Nối quân khớp số chấm ở hai đầu chuỗi. Hết quân trước (hoặc bí mà ít điểm hơn) sẽ thắng!");
+    return { applyMove };
+  }
+
+  window.GameRegistry.register({
+    id: "domino",
+    name: "Domino (Đô-mi-nô)",
+    emoji: "🀫",
+    description: "Nối các quân domino khớp số chấm ở hai đầu. Hết quân trước sẽ thắng.",
+    onlineReady: true,
+    howTo: [
+      "Bộ đôi-sáu gồm 28 quân, mỗi quân có 2 đầu mang số chấm (0–6). Mỗi người được chia 7 quân, phần còn lại là 'nọc'.",
+      "Đến lượt, chọn một quân trên tay có số chấm KHỚP với một trong hai đầu của chuỗi để nối vào (quân sáng là quân đánh được).",
+      "Ván đầu tiên: ai cũng có thể đặt quân bất kỳ để mở màn.",
+      "Nếu không có quân nào đánh được: bấm 🎴 Bốc nọc để rút thêm. Hết nọc mà vẫn không đánh được thì ⏭️ Bỏ lượt.",
+      "Thắng khi bạn đánh hết quân trên tay. Nếu cả hai cùng bí (bỏ lượt liên tiếp), ai còn ÍT tổng điểm chấm hơn sẽ thắng.",
+      "Quân của bạn chỉ mình bạn thấy — đối thủ không biết bạn đang giữ gì.",
+    ],
+    create,
+  });
+})();
