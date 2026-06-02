@@ -1467,3 +1467,44 @@ body {
 }
 .win-sub { margin: 0 0 22px; color: var(--text); font-size: 1.15rem; }
 .win-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ---------- Trộm Kho Báu ---------- */
+.tr-root { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.tr-info { color: var(--muted); font-size: 0.9rem; text-align: center; min-height: 1.2em; }
+.tr-controls { display: flex; gap: 10px; }
+.tr-controls.tr-hidden { display: none; }
+.tr-boards { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+.tr-board-wrap {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: var(--shadow);
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+.tr-board-wrap.tr-active { border-color: var(--accent); }
+.tr-board-title { text-align: center; margin-bottom: 8px; font-size: 0.85rem; color: var(--muted); }
+.tr-grid {
+  display: grid;
+  gap: 3px;
+  width: min(300px, 80vw);
+  aspect-ratio: 1 / 1;
+}
+.tr-cell {
+  background: #2a3a6b;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+}
+.tr-active .tr-cell:hover { background: #3a4a8b; }
+.tr-cell.treasure { background: #4a3a16; }
+.tr-cell.dug { cursor: default; }
+.tr-cell.dug.hit, .tr-cell.hit { background: var(--good); color: #0f1226; }
+.tr-cell.hot { background: #d33049; color: #fff; }
+.tr-cell.warm { background: #e8804a; color: #fff; }
+.tr-cell.mild { background: #c9a13b; color: #1a1a1a; }
+.tr-cell.cold { background: #2f6f8f; color: #cfe; }
+.tr-cell.dug:not(.hot):not(.warm):not(.mild):not(.cold):not(.hit) { background: #1a2447; color: var(--muted); }
