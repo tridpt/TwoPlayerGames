@@ -812,3 +812,56 @@ body {
 .oc-cell.x { color: var(--p1); }
 .oc-cell.o { color: var(--p2); }
 .oc-cell.win { background: var(--good); color: #0f1226; }
+
+/* ---------- Cờ Đam (Checkers) ---------- */
+.chk-board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  width: min(480px, 92vw);
+  aspect-ratio: 1 / 1;
+  border: 4px solid #5a3a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.chk-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chk-cell.light { background: #e8d0a8; }
+.chk-cell.dark { background: #9a6b3b; cursor: pointer; }
+.chk-cell.sel { box-shadow: inset 0 0 0 4px var(--accent); }
+.chk-cell.hint::after {
+  content: "";
+  position: absolute;
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  background: rgba(110, 231, 183, 0.7);
+}
+.chk-piece {
+  width: 72%;
+  height: 72%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+.chk-piece.p1 { background: radial-gradient(circle at 35% 30%, #ff7d8f, #d33049); }
+.chk-piece.p2 { background: radial-gradient(circle at 35% 30%, #555, #111); }
+.chk-piece.king { box-shadow: inset 0 0 0 3px var(--accent), inset 0 -4px 8px rgba(0,0,0,0.4); }
+
+/* ---------- Pong ---------- */
+.pong-canvas {
+  width: min(700px, 96vw);
+  height: auto;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  background: #0f1226;
+  touch-action: none;
+}
