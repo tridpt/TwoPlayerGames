@@ -78,6 +78,8 @@
     const MAX_DMG = o.dmg || 55;     // sát thương tối đa khi trúng tâm
     const MOVE_BUDGET = o.move != null ? o.move : 80; // số px được di chuyển mỗi lượt
     const MOVE_STEP = 5;             // mỗi lần bấm/nhấn dịch 5px
+    const NUM_ITEMS = o.items != null ? o.items : 4; // số vật phẩm trên bản đồ
+    const PICK_R = 22;               // bán kính nhặt vật phẩm
 
     // ----- chọn map (tất định theo seed) -----
     let mapKey = o.map || "hills";
@@ -103,10 +105,30 @@
     }
     let wind = nextWind();
 
+    // ----- vật phẩm (power-up) sinh tất định theo seed -----
+    // type: heal (hồi máu), bigshot (đạn nổ to), shield (giáp đỡ đòn kế),
+    //       fuel (thêm nhiên liệu di chuyển)
+    const ITEM_DEFS = {
+      heal:    { icon: "❤️", color: "#6ee7b7", label: "Hồi máu +35" },
+      bigshot: { icon: "💥", color: "#ffd166", label: "Đạn nổ lớn" },
+      shield:  { icon: "🛡️", color: "#8be6f0", label: "Khiên đỡ đòn" },
+      fuel:    { icon: "⛽", color: "#c9a98a", label: "Nạp nhiên liệu" },
+    };
+    const ITEM_KEYS = ["heal", "bigshot", "shield", "fuel"];
+    const items = []; // { id, x, y, type, taken }
+    for (let i = 0; i < NUM_ITEMS; i++) {
+      // đặt ở khoảng giữa bản đồ (tránh ngay trên đầu 2 xe)
+      const ix = Math.round(W * (0.25 + ctx.rng() * 0.5));
+      const type = ITEM_KEYS[Math.floor(ctx.rng() * ITEM_KEYS.length)];
+      items.push({ id: i, x: ix, y: 0, type, taken: false });
+    }
+    // đặt vật phẩm "nổi" hơi cao trên mặt đất để xe chạy qua là nhặt
+    items.forEach((it) => { it.y = terrainY(it.x) - 14; });
+
     // ----- xe tăng -----
     const players = [
-      { x: W * 0.12, hp: MAX_HP, color: "#ff5d73", dir: 1, angle: 50, power: 60 },
-      { x: W * 0.88, hp: MAX_HP, color: "#4dd0e1", dir: -1, angle: 50, power: 60 },
+      { x: W * 0.12, hp: MAX_HP, color: "#ff5d73", dir: 1, angle: 50, power: 60, shield: false, bigshot: false },
+      { x: W * 0.88, hp: MAX_HP, color: "#4dd0e1", dir: -1, angle: 50, power: 60, shield: false, bigshot: false },
     ];
     let turn = 0;
     let busy = false;   // đang bay đạn
@@ -115,6 +137,7 @@
     let explosion = null;
     let raf = null;
     let fuel = MOVE_BUDGET; // nhiên liệu di chuyển còn lại trong lượt
+    let pickedThisTurn = []; // id vật phẩm đã nhặt trong lượt hiện tại
 
     // ----- canvas -----
     const canvas = document.createElement("canvas");
@@ -161,6 +184,44 @@
     });
     fireBtn.addEventListener("click", fire);
 
+    // nhặt vật phẩm mà xe (ở vị trí px) chạm tới; trả về danh sách id vừa nhặt
+    function collectItems(pl) {
+      const picked = [];
+      const py = terrainY(pl.x) - 10;
+      items.forEach((it) => {
+        if (it.taken) return;
+        if (Math.hypot(it.x - pl.x, it.y - py) < PICK_R) {
+          it.taken = true;
+          picked.push(it.id);
+          applyItemEffect(pl, it.type);
+        }
+      });
+      if (picked.length) pickedThisTurn.push(...picked);
+      return picked;
+    }
+
+    // áp dụng vật phẩm theo danh sách id (dùng khi nhận nước đi từ xa)
+    function applyItemsById(pl, ids) {
+      ids.forEach((id) => {
+        const it = items[id];
+        if (it && !it.taken) { it.taken = true; applyItemEffect(pl, it.type, true); }
+      });
+    }
+
+    function applyItemEffect(pl, type, silent) {
+      switch (type) {
+        case "heal": pl.hp = Math.min(MAX_HP, pl.hp + 35); break;
+        case "bigshot": pl.bigshot = true; break;
+        case "shield": pl.shield = true; break;
+        case "fuel": fuel += 120; break;
+      }
+      if (!silent) {
+        ctx.sound("select");
+        flashItem = { type, t: 60 };
+      }
+    }
+    let flashItem = null;
+
     // di chuyển xe trong lượt (tốn nhiên liệu, không cho ra mép)
     function moveTank(delta) {
       if (busy || over || !myTurn() || fuel <= 0) return;
@@ -173,6 +234,7 @@
       if (used <= 0) return;
       pl.x = nx;
       fuel -= used;
+      collectItems(pl); // nhặt vật phẩm khi chạy qua
       ctx.sound("select");
       syncControls();
       draw();
@@ -223,8 +285,17 @@
       pl.power = Math.max(20, Math.min(100, move.power));
       // đồng bộ vị trí xe (đối thủ đã di chuyển trong lượt của họ)
       if (typeof move.x === "number") pl.x = Math.max(24, Math.min(W - 24, move.x));
+      // tái hiện chính xác các vật phẩm đối thủ đã nhặt (theo id)
+      if (fromRemote && Array.isArray(move.items)) applyItemsById(pl, move.items);
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ angle: pl.angle, power: pl.power, x: pl.x });
+      if (!fromRemote && ctx.isOnline) {
+        ctx.sendMove({ angle: pl.angle, power: pl.power, x: pl.x, items: pickedThisTurn.slice() });
+      }
+
+      // đạn nổ lớn nếu xe đang có power-up bigshot (dùng 1 lần)
+      const blastNow = pl.bigshot ? BLAST * 1.7 : BLAST;
+      const dmgNow = pl.bigshot ? MAX_DMG * 1.5 : MAX_DMG;
+      pl.bigshot = false;
 
       const tip = barrelTip(pl);
       const rad = pl.angle * Math.PI / 180;
@@ -233,6 +304,7 @@
         x: tip.x, y: tip.y,
         vx: pl.dir * v * Math.cos(rad),
         vy: -v * Math.sin(rad),
+        blast: blastNow, dmg: dmgNow,
       };
       busy = true;
       ctx.sound("shot");
@@ -265,16 +337,19 @@
     }
 
     function resolve(impact) {
+      const blast = (proj && proj.blast) || BLAST;
+      const maxDmg = (proj && proj.dmg) || MAX_DMG;
       proj = null;
       if (impact) {
-        explosion = { x: impact.x, y: impact.y, r: 4, max: BLAST };
+        explosion = { x: impact.x, y: impact.y, r: 4, max: blast };
         ctx.sound("capture");
         // sát thương theo khoảng cách tới từng xe
         players.forEach((pl) => {
           const py = terrainY(pl.x) - 10;
           const d = Math.hypot(impact.x - pl.x, impact.y - py);
-          if (d < BLAST) {
-            const dmg = Math.round(MAX_DMG * (1 - d / BLAST));
+          if (d < blast) {
+            let dmg = Math.round(maxDmg * (1 - d / blast));
+            if (pl.shield && dmg > 0) { dmg = Math.round(dmg * 0.4); pl.shield = false; } // khiên giảm 60%
             pl.hp = Math.max(0, pl.hp - dmg);
           }
         });
@@ -301,6 +376,7 @@
       turn = 1 - turn;
       wind = nextWind();
       fuel = MOVE_BUDGET; // nạp lại nhiên liệu di chuyển cho lượt mới
+      pickedThisTurn = []; // reset danh sách vật phẩm nhặt cho lượt mới
       busy = false;
       ctx.setTurn(turn);
       updateStatus();
@@ -336,6 +412,24 @@
       for (let x = 0; x <= W; x++) (x === 0 ? g.moveTo(x, ground[x]) : g.lineTo(x, ground[x]));
       g.stroke();
 
+      // vật phẩm chưa nhặt
+      items.forEach((it) => {
+        if (it.taken) return;
+        const def = ITEM_DEFS[it.type];
+        // bệ tròn
+        g.fillStyle = def.color;
+        g.globalAlpha = 0.25;
+        g.beginPath();
+        g.arc(it.x, it.y, 14, 0, Math.PI * 2);
+        g.fill();
+        g.globalAlpha = 1;
+        g.font = "18px serif";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillText(def.icon, it.x, it.y);
+        g.textBaseline = "alphabetic";
+      });
+
       // xe tăng + thanh máu + nòng
       players.forEach((pl, i) => {
         const y = terrainY(pl.x);
@@ -363,6 +457,14 @@
         g.font = "11px Segoe UI, sans-serif";
         g.textAlign = "center";
         g.fillText(`P${i + 1}: ${pl.hp}`, pl.x, by - 4);
+        // huy hiệu power-up đang giữ
+        const badges = [];
+        if (pl.shield) badges.push("🛡️");
+        if (pl.bigshot) badges.push("💥");
+        if (badges.length) {
+          g.font = "14px serif";
+          g.fillText(badges.join(" "), pl.x, by - 16);
+        }
       });
 
       // đạn
@@ -390,6 +492,17 @@
       g.textAlign = "left";
       g.fillStyle = "rgba(255,255,255,0.5)";
       g.fillText("🗺️ " + STYLE.name, 12, 22);
+
+      // thông báo vừa nhặt vật phẩm
+      if (flashItem && flashItem.t > 0) {
+        const def = ITEM_DEFS[flashItem.type];
+        g.globalAlpha = Math.min(1, flashItem.t / 30);
+        g.fillStyle = def.color;
+        g.font = "bold 20px Segoe UI, sans-serif";
+        g.textAlign = "center";
+        g.fillText(`${def.icon} ${def.label}!`, W / 2, H * 0.4);
+        g.globalAlpha = 1;
+      }
     }
 
     function loop() {
@@ -398,6 +511,7 @@
         explosion.r += 3;
         if (explosion.r >= explosion.max) explosion = null;
       }
+      if (flashItem && flashItem.t > 0) flashItem.t--;
       draw();
       raf = requestAnimationFrame(loop);
     }
@@ -463,15 +577,24 @@
           { value: 250, label: "Nhiều (250px)" },
         ],
       },
+      {
+        id: "items", label: "Vật phẩm", default: 4,
+        choices: [
+          { value: 0, label: "Tắt (không có)" },
+          { value: 4, label: "Ít (4)" },
+          { value: 7, label: "Nhiều (7)" },
+        ],
+      },
     ],
     howTo: [
       "Hai xe tăng ở hai đầu địa hình. Người chơi 1 (đỏ) bên trái, Người chơi 2 (xanh) bên phải. Chơi theo lượt.",
       "Đến lượt mình, bạn có thể DI CHUYỂN xe bằng nút ◄ ► (hoặc phím mũi tên trái/phải) — mỗi lượt có một lượng nhiên liệu ⛽ giới hạn.",
+      "Trên bản đồ có VẬT PHẨM — chạy xe qua để nhặt: ❤️ hồi máu, 💥 đạn nổ lớn (phát kế gây sát thương mạnh hơn), 🛡️ khiên (đỡ 60% sát thương đòn kế), ⛽ nạp thêm nhiên liệu di chuyển.",
       "Sau khi đã chọn vị trí, kéo thanh 'Góc' và 'Lực' để ngắm, rồi bấm 💥 Bắn.",
       "Đạn bay theo trọng lực VÀ sức gió (xem chỉ báo gió phía trên) — gió đổi mỗi lượt nên phải tính toán lại.",
       "Bắn trúng gần xe đối thủ sẽ gây sát thương; càng trúng gần tâm càng đau. Trúng trực tiếp thì cực mạnh.",
       "Có 5 kiểu địa hình — chọn ở màn chế độ, hoặc để 🎲 ngẫu nhiên mỗi ván.",
-      "Xe nào hết máu trước sẽ thua. Chơi online: lựa chọn của chủ phòng (map, gió, máu, di chuyển) áp dụng cho cả hai.",
+      "Xe nào hết máu trước sẽ thua. Chơi online: mọi lựa chọn và vật phẩm đều đồng bộ từ chủ phòng.",
     ],
     create,
   });
