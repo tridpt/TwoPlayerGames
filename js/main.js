@@ -70,6 +70,39 @@
   let online = null; // null = chơi chung máy; {seat, seed} = online
   let currentOptions = {}; // giá trị tùy chỉnh ván chơi đang dùng
 
+  const GAME_GROUPS = [
+    {
+      title: "Cờ & chiến thuật bàn",
+      hint: "Caro, cờ lật, kết nối, đặt tường và các game bàn cờ kinh điển.",
+      games: ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
+    },
+    {
+      title: "Chiến thuật trên bản đồ",
+      hint: "Đi quân trên lưới, chiếm vùng, dùng tài nguyên và kỹ năng theo lượt.",
+      games: ["tankarena", "dicebattle", "territorywar", "crystalconquest"],
+    },
+    {
+      title: "Đối kháng hành động & vật lý",
+      hint: "Canh lực, bắn, kéo thả, va chạm và phản xạ.",
+      games: ["pong", "poolbattle", "slingshotbattle", "artillery"],
+    },
+    {
+      title: "Ván dài & xây dựng",
+      hint: "Có tiến triển lâu hơn: thủ nhà, gửi quái, đi dungeon và lên cấp.",
+      games: ["basedefenseduel", "dungeonrival"],
+    },
+    {
+      title: "Ẩn thông tin & suy luận",
+      hint: "Giấu vị trí, đoán tọa độ, tìm mìn, giải từ và đọc dấu hiệu.",
+      games: ["battleship", "seabattleplus", "minesweeper", "treasure", "bullscows", "hangman", "noitu"],
+    },
+    {
+      title: "Xúc xắc, bài & may rủi",
+      hint: "Roll, ghi điểm, domino và lật cặp nhanh gọn.",
+      games: ["memory", "pig", "yahtzee", "domino"],
+    },
+  ];
+
   // ====================== Context cho game ======================
   function makeContext(seed) {
     return {
@@ -126,17 +159,58 @@
   // ====================== Menu chọn game ======================
   function renderMenu() {
     el.gameGrid.innerHTML = "";
-    GameRegistry.games.forEach((g) => {
-      const card = document.createElement("div");
-      card.className = "game-card";
-      card.innerHTML =
-        `<div class="emoji">${g.emoji}</div>` +
-        `<h3>${g.name}</h3>` +
-        `<p>${g.description}</p>` +
-        (g.onlineReady === false ? `<span class="tag-local">chỉ chung máy</span>` : "");
-      card.addEventListener("click", () => openMode(g));
-      el.gameGrid.appendChild(card);
+    const byId = new Map(GameRegistry.games.map((g) => [g.id, g]));
+    const rendered = new Set();
+
+    GAME_GROUPS.forEach((group) => {
+      const games = group.games.map((id) => byId.get(id)).filter(Boolean);
+      if (!games.length) return;
+      games.forEach((g) => rendered.add(g.id));
+      el.gameGrid.appendChild(createGameSection(group, games));
     });
+
+    const otherGames = GameRegistry.games.filter((g) => !rendered.has(g.id));
+    if (otherGames.length) {
+      el.gameGrid.appendChild(createGameSection({
+        title: "Khác",
+        hint: "Các game mới chưa gắn nhóm.",
+      }, otherGames));
+    }
+  }
+
+  function createGameSection(group, games) {
+    const section = document.createElement("section");
+    section.className = "game-section";
+    section.innerHTML = `
+      <div class="game-section-head">
+        <div>
+          <h2>${group.title}</h2>
+          <p>${group.hint}</p>
+        </div>
+        <span class="game-section-count">${games.length} game</span>
+      </div>
+    `;
+
+    const grid = document.createElement("div");
+    grid.className = "game-section-grid";
+    games.forEach((game) => grid.appendChild(createGameCard(game)));
+    section.appendChild(grid);
+    return section;
+  }
+
+  function createGameCard(g) {
+    const card = document.createElement("div");
+    card.className = "game-card";
+    const tags = [];
+    if (g.onlineReady === false) tags.push("chỉ chung máy");
+    if (g.localReady === false) tags.push("chỉ online");
+    card.innerHTML =
+      `<div class="emoji">${g.emoji}</div>` +
+      `<h3>${g.name}</h3>` +
+      `<p>${g.description}</p>` +
+      tags.map((tag) => `<span class="tag-local">${tag}</span>`).join("");
+    card.addEventListener("click", () => openMode(g));
+    return card;
   }
 
   // ====================== Chọn chế độ ======================
