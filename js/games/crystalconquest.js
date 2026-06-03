@@ -1,0 +1,563 @@
+/* Crystal Conquest - pháp sư chiếm tinh thể, tạo mana và cast kỹ năng. */
+(function () {
+  const DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  const MAX_HP = 18;
+  const MAX_MANA = 18;
+  const SPELL = {
+    lightning: { cost: 4, range: 4, dmg: 4 },
+    shield: { cost: 3, value: 4 },
+    teleport: { cost: 5 },
+    freeze: { cost: 4, range: 4 },
+  };
+
+  function create(ctx) {
+    const o = ctx.options || {};
+    const N = o.size || 9;
+    const GOAL = o.goal || 4;
+    const YIELD = o.yield || 2;
+    const ROCKS = o.rocks === "many" ? Math.round(N * 0.95)
+      : o.rocks === "few" ? Math.round(N * 0.35)
+      : Math.round(N * 0.62);
+
+    const grid = makeMap();
+    const wizards = [
+      { r: N - 1, c: 0, hp: MAX_HP, mana: 5, shield: 0, frozen: false },
+      { r: 0, c: N - 1, hp: MAX_HP, mana: 5, shield: 0, frozen: false },
+    ];
+    let turn = 0;
+    let mode = "move";
+    let over = false;
+    let last = "Chiếm tinh thể để tạo mana, rồi dùng phép kết liễu pháp sư đối thủ.";
+
+    const root = document.createElement("div");
+    root.className = "cc-root";
+
+    const hud = document.createElement("div");
+    hud.className = "cc-hud";
+    root.appendChild(hud);
+
+    const actions = document.createElement("div");
+    actions.className = "cc-actions";
+    const moveBtn = actionButton("Di chuyển", "move", "MOVE", "tối đa 2 ô", false);
+    const lightningBtn = actionButton("Sét", "lightning", "BOLT", "4 mana", false);
+    const shieldBtn = actionButton("Khiên", "shield", "WARD", "3 mana", true);
+    const teleportBtn = actionButton("Dịch chuyển", "teleport", "BLINK", "5 mana", false);
+    const freezeBtn = actionButton("Đóng băng", "freeze", "FROST", "4 mana", false);
+    const channelBtn = actionButton("Tụ mana", "channel", "FOCUS", "+3 mana", true);
+    [moveBtn, lightningBtn, shieldBtn, teleportBtn, freezeBtn, channelBtn].forEach((b) => actions.appendChild(b));
+    root.appendChild(actions);
+
+    const legend = document.createElement("div");
+    legend.className = "cc-legend";
+    legend.innerHTML = `
+      <span><i class="cc-leg mage p1"></i> Pháp sư đỏ</span>
+      <span><i class="cc-leg mage p2"></i> Pháp sư xanh</span>
+      <span><i class="cc-leg crystal"></i> Tinh thể</span>
+      <span><i class="cc-leg rock"></i> Đá ma thuật</span>
+      <span><i class="cc-leg move"></i> Có thể đi</span>
+      <span><i class="cc-leg target"></i> Mục tiêu phép</span>
+    `;
+    root.appendChild(legend);
+
+    const board = document.createElement("div");
+    board.className = "cc-board";
+    board.style.setProperty("--cc-n", N);
+    root.appendChild(board);
+    ctx.boardEl.appendChild(root);
+
+    const cells = Array.from({ length: N }, () => Array(N));
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "cc-cell";
+        cell.dataset.r = String(r);
+        cell.dataset.c = String(c);
+        cell.dataset.coord = coord(r, c);
+        cell.addEventListener("click", () => onCell(r, c));
+        board.appendChild(cell);
+        cells[r][c] = cell;
+      }
+    }
+
+    function actionButton(label, id, icon, sub, instant) {
+      const btn = document.createElement("button");
+      btn.className = "btn small cc-action";
+      btn.innerHTML = `<span>${icon}</span><b>${label}</b><small>${sub}</small>`;
+      btn.addEventListener("click", () => {
+        if (instant) applyMove({ t: id }, false);
+        else {
+          mode = id;
+          render();
+          updateStatus();
+        }
+      });
+      return btn;
+    }
+
+    function makeMap() {
+      const map = Array.from({ length: N }, () => Array.from({ length: N }, () => ({ type: "empty", owner: -1 })));
+      const mid = Math.floor(N / 2);
+      const crystalSpots = [
+        [mid, mid],
+        [2, mid],
+        [N - 3, mid],
+        [mid, 2],
+        [mid, N - 3],
+      ];
+      crystalSpots.forEach(([r, c]) => {
+        if (inside(r, c)) map[r][c] = { type: "crystal", owner: -1 };
+      });
+
+      function safe(r, c) {
+        if (!inside(r, c)) return true;
+        if ((r === N - 1 && c === 0) || (r === 0 && c === N - 1)) return true;
+        if (Math.abs(r - (N - 1)) + Math.abs(c) <= 2) return true;
+        if (Math.abs(r) + Math.abs(c - (N - 1)) <= 2) return true;
+        return map[r][c].type === "crystal";
+      }
+
+      let placed = 0;
+      let guard = 0;
+      while (placed < ROCKS && guard++ < 1000) {
+        const r = 1 + Math.floor(ctx.rng() * (N - 2));
+        const c = 1 + Math.floor(ctx.rng() * (N - 2));
+        const mr = N - 1 - r;
+        const mc = N - 1 - c;
+        if (safe(r, c) || safe(mr, mc)) continue;
+        if (map[r][c].type !== "empty" || map[mr][mc].type !== "empty") continue;
+        map[r][c].type = "rock";
+        map[mr][mc].type = "rock";
+        placed += r === mr && c === mc ? 1 : 2;
+      }
+      return map;
+    }
+
+    function onCell(r, c) {
+      if (!canAct()) return;
+      const enemy = wizardAt(r, c);
+      if (mode === "move" && legalMove(r, c)) {
+        applyMove({ t: "move", r, c }, false);
+      } else if (mode === "teleport" && legalTeleport(r, c)) {
+        applyMove({ t: "teleport", r, c }, false);
+      } else if (mode === "lightning" && enemy === 1 - turn && legalSpellTarget(r, c, SPELL.lightning.range)) {
+        applyMove({ t: "lightning", r, c }, false);
+      } else if (mode === "freeze" && enemy === 1 - turn && legalSpellTarget(r, c, SPELL.freeze.range)) {
+        applyMove({ t: "freeze", r, c }, false);
+      }
+    }
+
+    function canAct(fromRemote) {
+      return !over && (fromRemote || !ctx.isOnline || turn === ctx.mySeat);
+    }
+
+    function applyMove(move, fromRemote) {
+      if (!canAct(fromRemote)) return;
+      let ok = false;
+      if (move.t === "move") ok = doMove(move);
+      else if (move.t === "teleport") ok = doTeleport(move);
+      else if (move.t === "lightning") ok = doLightning(move);
+      else if (move.t === "shield") ok = doShield();
+      else if (move.t === "freeze") ok = doFreeze(move);
+      else if (move.t === "channel") ok = doChannel();
+      if (!ok) return;
+      if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      render();
+      updateStatus();
+    }
+
+    function doMove(move) {
+      const wiz = wizards[turn];
+      if (wiz.frozen || !legalMove(move.r, move.c)) return false;
+      const from = coord(wiz.r, wiz.c);
+      wiz.r = move.r;
+      wiz.c = move.c;
+      const captured = captureCrystal(turn, wiz.r, wiz.c);
+      last = captured
+        ? `Pháp sư ${turn + 1} đi từ ${from} tới ${coord(wiz.r, wiz.c)} và chiếm tinh thể.`
+        : `Pháp sư ${turn + 1} di chuyển từ ${from} tới ${coord(wiz.r, wiz.c)}.`;
+      ctx.sound(captured ? "capture" : "select");
+      if (!checkEnd()) endTurn();
+      return true;
+    }
+
+    function doTeleport(move) {
+      const wiz = wizards[turn];
+      if (wiz.frozen || wiz.mana < SPELL.teleport.cost || !legalTeleport(move.r, move.c)) return false;
+      const from = coord(wiz.r, wiz.c);
+      wiz.mana -= SPELL.teleport.cost;
+      wiz.r = move.r;
+      wiz.c = move.c;
+      const captured = captureCrystal(turn, wiz.r, wiz.c);
+      last = captured
+        ? `Pháp sư ${turn + 1} dịch chuyển từ ${from} tới ${coord(wiz.r, wiz.c)} và đoạt tinh thể.`
+        : `Pháp sư ${turn + 1} dịch chuyển từ ${from} tới ${coord(wiz.r, wiz.c)}.`;
+      ctx.sound("capture");
+      if (!checkEnd()) endTurn();
+      return true;
+    }
+
+    function doLightning(move) {
+      const wiz = wizards[turn];
+      const enemy = wizardAt(move.r, move.c);
+      if (wiz.mana < SPELL.lightning.cost || enemy !== 1 - turn || !legalSpellTarget(move.r, move.c, SPELL.lightning.range)) return false;
+      wiz.mana -= SPELL.lightning.cost;
+      const res = damageWizard(enemy, SPELL.lightning.dmg);
+      last = `Sét đánh trúng pháp sư ${enemy + 1}: chặn ${res.blocked}, nhận ${res.dealt} sát thương.`;
+      ctx.sound("shot");
+      if (!checkEnd()) endTurn();
+      return true;
+    }
+
+    function doShield() {
+      const wiz = wizards[turn];
+      if (wiz.mana < SPELL.shield.cost) return false;
+      wiz.mana -= SPELL.shield.cost;
+      wiz.shield = Math.min(8, wiz.shield + SPELL.shield.value);
+      last = `Pháp sư ${turn + 1} dựng khiên năng lượng, khiên hiện tại ${wiz.shield}.`;
+      ctx.sound("select");
+      if (!checkEnd()) endTurn();
+      return true;
+    }
+
+    function doFreeze(move) {
+      const wiz = wizards[turn];
+      const enemy = wizardAt(move.r, move.c);
+      if (wiz.mana < SPELL.freeze.cost || enemy !== 1 - turn || !legalSpellTarget(move.r, move.c, SPELL.freeze.range)) return false;
+      wiz.mana -= SPELL.freeze.cost;
+      const target = wizards[enemy];
+      if (target.shield >= 2) {
+        target.shield -= 2;
+        last = `Băng thuật bị khiên của pháp sư ${enemy + 1} chặn lại.`;
+        ctx.sound("miss");
+      } else {
+        target.frozen = true;
+        last = `Pháp sư ${enemy + 1} bị đóng băng, lượt tới không thể di chuyển hoặc dịch chuyển.`;
+        ctx.sound("shot");
+      }
+      if (!checkEnd()) endTurn();
+      return true;
+    }
+
+    function doChannel() {
+      const wiz = wizards[turn];
+      const before = wiz.mana;
+      wiz.mana = Math.min(MAX_MANA, wiz.mana + 3);
+      last = `Pháp sư ${turn + 1} tụ mana: ${before} → ${wiz.mana}.`;
+      ctx.sound("select");
+      if (!checkEnd()) endTurn();
+      return true;
+    }
+
+    function damageWizard(idx, amount) {
+      const target = wizards[idx];
+      const blocked = Math.min(target.shield, amount);
+      target.shield -= blocked;
+      const dealt = amount - blocked;
+      target.hp = Math.max(0, target.hp - dealt);
+      return { blocked, dealt };
+    }
+
+    function captureCrystal(owner, r, c) {
+      const cell = grid[r][c];
+      if (cell.type !== "crystal" || cell.owner === owner) return false;
+      cell.owner = owner;
+      return true;
+    }
+
+    function endTurn() {
+      wizards[turn].frozen = false;
+      turn = 1 - turn;
+      mode = "move";
+      gainIncome(turn);
+      ctx.setTurn(turn);
+    }
+
+    function gainIncome(owner) {
+      const wiz = wizards[owner];
+      const crystals = crystalCount(owner);
+      wiz.mana = Math.min(MAX_MANA, wiz.mana + 1 + crystals * YIELD);
+    }
+
+    function checkEnd() {
+      if (wizards[0].hp <= 0 || wizards[1].hp <= 0) {
+        const winner = wizards[0].hp <= 0 ? 1 : 0;
+        finish(winner, "hạ gục pháp sư đối thủ");
+        return true;
+      }
+      if (crystalCount(turn) >= GOAL) {
+        finish(turn, `kiểm soát ${GOAL} tinh thể`);
+        return true;
+      }
+      return false;
+    }
+
+    function finish(winner, reason) {
+      over = true;
+      ctx.setTurn(-1);
+      ctx.incScore(winner);
+      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng - ${reason}!`);
+    }
+
+    function legalMove(r, c) {
+      const wiz = wizards[turn];
+      if (wiz.frozen || !passable(r, c)) return false;
+      return reachable(wiz.r, wiz.c, 2).has(r + "," + c);
+    }
+
+    function legalTeleport(r, c) {
+      const wiz = wizards[turn];
+      if (wiz.frozen || wiz.mana < SPELL.teleport.cost || !passable(r, c)) return false;
+      return teleportCells(turn).has(r + "," + c);
+    }
+
+    function legalSpellTarget(r, c, range) {
+      const wiz = wizards[turn];
+      return Math.abs(wiz.r - r) + Math.abs(wiz.c - c) <= range;
+    }
+
+    function teleportCells(owner) {
+      const set = new Set();
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          if (grid[r][c].type !== "crystal" || grid[r][c].owner !== owner) continue;
+          [[0, 0], ...DIRS].forEach(([dr, dc]) => {
+            const nr = r + dr, nc = c + dc;
+            if (passable(nr, nc)) set.add(nr + "," + nc);
+          });
+        }
+      }
+      return set;
+    }
+
+    function reachable(sr, sc, range) {
+      const q = [{ r: sr, c: sc, d: 0 }];
+      const seen = new Set([sr + "," + sc]);
+      const out = new Set();
+      while (q.length) {
+        const cur = q.shift();
+        if (cur.d >= range) continue;
+        for (const [dr, dc] of DIRS) {
+          const r = cur.r + dr, c = cur.c + dc;
+          const key = r + "," + c;
+          if (!passable(r, c) || seen.has(key)) continue;
+          seen.add(key);
+          out.add(key);
+          q.push({ r, c, d: cur.d + 1 });
+        }
+      }
+      return out;
+    }
+
+    function passable(r, c) {
+      return inside(r, c) && grid[r][c].type !== "rock" && wizardAt(r, c) === -1;
+    }
+
+    function wizardAt(r, c) {
+      return wizards.findIndex((w) => w.hp > 0 && w.r === r && w.c === c);
+    }
+
+    function crystalCount(owner) {
+      let count = 0;
+      for (let r = 0; r < N; r++)
+        for (let c = 0; c < N; c++)
+          if (grid[r][c].type === "crystal" && grid[r][c].owner === owner) count++;
+      return count;
+    }
+
+    function inside(r, c) {
+      return r >= 0 && r < N && c >= 0 && c < N;
+    }
+
+    function render() {
+      const legal = new Set();
+      const target = new Set();
+      if (canAct()) {
+        if (mode === "move") {
+          if (!wizards[turn].frozen) reachable(wizards[turn].r, wizards[turn].c, 2).forEach((k) => legal.add(k));
+        } else if (mode === "teleport") {
+          teleportCells(turn).forEach((k) => legal.add(k));
+        } else if (mode === "lightning" || mode === "freeze") {
+          const enemy = wizards[1 - turn];
+          if (legalSpellTarget(enemy.r, enemy.c, mode === "lightning" ? SPELL.lightning.range : SPELL.freeze.range)) {
+            target.add(enemy.r + "," + enemy.c);
+          }
+        }
+      }
+
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const cell = grid[r][c];
+          const el = cells[r][c];
+          const wiz = wizardAt(r, c);
+          el.className = "cc-cell";
+          el.innerHTML = "";
+          el.dataset.coord = coord(r, c);
+          if (r === N - 1 && c === 0) el.classList.add("base", "base-p1");
+          if (r === 0 && c === N - 1) el.classList.add("base", "base-p2");
+          if (cell.type === "rock") {
+            el.classList.add("rock");
+            el.innerHTML += `<span class="cc-rock" aria-hidden="true"></span>`;
+          } else if (cell.type === "crystal") {
+            el.classList.add("crystal", cell.owner === -1 ? "neutral" : cell.owner === 0 ? "p1" : "p2");
+            el.innerHTML += `<span class="cc-crystal" aria-hidden="true">✦</span>`;
+          }
+          if (wiz !== -1) {
+            el.classList.add("wizard", wiz === 0 ? "p1" : "p2");
+            if (wiz === turn && !over) el.classList.add("active-wizard");
+            el.innerHTML += wizardMarkup(wiz);
+          }
+          if (legal.has(r + "," + c)) el.classList.add(mode === "teleport" ? "legal-teleport" : "legal-move");
+          if (target.has(r + "," + c)) el.classList.add(mode === "freeze" ? "legal-freeze" : "legal-lightning");
+        }
+      }
+
+      hud.innerHTML = `
+        ${playerPanel(0)}
+        <div class="cc-mid">
+          <b>${over ? "Kết thúc" : "Lượt Người chơi " + (turn + 1)}</b>
+          <span>${modeLabel()}</span>
+          <small>${last}</small>
+        </div>
+        ${playerPanel(1)}
+      `;
+      updateButtons();
+    }
+
+    function wizardMarkup(idx) {
+      const w = wizards[idx];
+      return `
+        <span class="cc-mage" aria-hidden="true">
+          <span class="cc-aura"></span>
+          <span class="cc-robe"></span>
+          <span class="cc-hood"></span>
+          <span class="cc-staff"></span>
+          <span class="cc-orb"></span>
+          <span class="cc-tag">${idx + 1}</span>
+        </span>
+        <span class="cc-hp"><i style="width:${Math.max(0, w.hp / MAX_HP * 100)}%"></i></span>
+      `;
+    }
+
+    function playerPanel(idx) {
+      const w = wizards[idx];
+      const manaPct = Math.max(0, w.mana / MAX_MANA * 100);
+      const hpPct = Math.max(0, w.hp / MAX_HP * 100);
+      const status = [
+        crystalCount(idx) + " tinh thể",
+        "mana " + w.mana,
+        w.shield ? "khiên " + w.shield : "không khiên",
+        w.frozen ? "đóng băng" : "tự do",
+      ].join(" • ");
+      return `
+        <div class="cc-player p${idx + 1} ${turn === idx && !over ? "active" : ""}">
+          <span>Pháp sư ${idx + 1}</span>
+          <b>${w.hp}/${MAX_HP} HP</b>
+          <em>${status}</em>
+          <i class="hp" style="width:${hpPct}%"></i>
+          <i class="mana" style="width:${manaPct}%"></i>
+        </div>
+      `;
+    }
+
+    function modeLabel() {
+      if (mode === "move") return wizards[turn].frozen ? "Đang đóng băng - không thể di chuyển." : "Di chuyển tối đa 2 ô để chiếm tinh thể.";
+      if (mode === "lightning") return "Sét: gây 4 sát thương trong tầm 4 ô.";
+      if (mode === "teleport") return wizards[turn].frozen ? "Đang đóng băng - không thể dịch chuyển." : "Dịch chuyển tới vùng gần tinh thể bạn kiểm soát.";
+      if (mode === "freeze") return "Đóng băng: khóa di chuyển/dịch chuyển của đối thủ lượt tới.";
+      return "Chọn phép hoặc di chuyển.";
+    }
+
+    function updateButtons() {
+      const w = wizards[turn];
+      const lock = !canAct();
+      moveBtn.classList.toggle("active", mode === "move");
+      lightningBtn.classList.toggle("active", mode === "lightning");
+      teleportBtn.classList.toggle("active", mode === "teleport");
+      freezeBtn.classList.toggle("active", mode === "freeze");
+      moveBtn.disabled = lock || w.frozen;
+      lightningBtn.disabled = lock || w.mana < SPELL.lightning.cost;
+      shieldBtn.disabled = lock || w.mana < SPELL.shield.cost;
+      teleportBtn.disabled = lock || w.frozen || w.mana < SPELL.teleport.cost || teleportCells(turn).size === 0;
+      freezeBtn.disabled = lock || w.mana < SPELL.freeze.cost;
+      channelBtn.disabled = lock || w.mana >= MAX_MANA;
+    }
+
+    function updateStatus() {
+      if (over) return;
+      if (ctx.isOnline && turn !== ctx.mySeat) {
+        ctx.setStatus(`Đối thủ đang đi. ${last}`);
+      } else {
+        ctx.setStatus(`${modeLabel()} Thắng bằng cách hạ pháp sư địch hoặc kiểm soát ${GOAL} tinh thể.`);
+      }
+    }
+
+    function coord(r, c) {
+      return String.fromCharCode(65 + c) + (r + 1);
+    }
+
+    ctx.setTurn(0);
+    render();
+    updateStatus();
+    return { applyMove };
+  }
+
+  window.GameRegistry.register({
+    id: "crystalconquest",
+    name: "Crystal Conquest",
+    emoji: "💎",
+    description: "Điều khiển pháp sư chiếm tinh thể để tạo mana, rồi cast sét, khiên, dịch chuyển và đóng băng.",
+    onlineReady: true,
+    options: [
+      {
+        id: "size",
+        label: "Kích thước bản đồ",
+        default: 9,
+        choices: [
+          { value: 9, label: "9×9 (nhanh)" },
+          { value: 11, label: "11×11 (rộng)" },
+        ],
+      },
+      {
+        id: "goal",
+        label: "Tinh thể để thắng",
+        default: 4,
+        choices: [
+          { value: 3, label: "3 tinh thể" },
+          { value: 4, label: "4 tinh thể" },
+          { value: 5, label: "5 tinh thể" },
+        ],
+      },
+      {
+        id: "yield",
+        label: "Mana mỗi tinh thể",
+        default: 2,
+        choices: [
+          { value: 1, label: "1 mana" },
+          { value: 2, label: "2 mana" },
+          { value: 3, label: "3 mana" },
+        ],
+      },
+      {
+        id: "rocks",
+        label: "Đá ma thuật",
+        default: "normal",
+        choices: [
+          { value: "few", label: "Ít" },
+          { value: "normal", label: "Vừa" },
+          { value: "many", label: "Nhiều" },
+        ],
+      },
+    ],
+    howTo: [
+      "Mỗi người điều khiển một pháp sư. Mục tiêu là hạ pháp sư đối thủ hoặc kiểm soát đủ số tinh thể.",
+      "Di chuyển tối đa 2 ô mỗi lượt. Đứng lên tinh thể sẽ chiếm tinh thể đó.",
+      "Khi tới lượt, bạn nhận 1 mana cơ bản cộng thêm mana từ các tinh thể đang kiểm soát.",
+      "Sét tốn 4 mana, gây sát thương trong tầm 4 ô. Khiên tốn 3 mana và chặn sát thương.",
+      "Dịch chuyển tốn 5 mana, đưa pháp sư tới vùng gần tinh thể bạn kiểm soát.",
+      "Đóng băng tốn 4 mana, khiến đối thủ không thể di chuyển hoặc dịch chuyển trong lượt kế.",
+      "Tụ mana dùng cả lượt để nhận thêm 3 mana khi cần hồi tài nguyên.",
+    ],
+    create,
+  });
+})();
