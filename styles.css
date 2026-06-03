@@ -1452,6 +1452,61 @@ body {
   min-width: 0;
   padding: 6px 0 18px;
 }
+.bd-arena {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.72fr) minmax(420px, 1.8fr) minmax(176px, 0.78fr);
+  gap: 10px;
+  align-items: start;
+  width: 100%;
+  max-width: 960px;
+}
+.bd-center-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.bd-command-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.018)),
+    rgba(32,37,74,0.9);
+  box-shadow: var(--shadow);
+}
+.bd-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2px 2px 4px;
+}
+.bd-panel-head b {
+  color: var(--accent);
+  font-size: 0.92rem;
+}
+.bd-panel-head span,
+.bd-group-title {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+.bd-group-title {
+  margin-top: 2px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+.bd-action-group {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
 .bd-hud {
   display: grid;
   grid-template-columns: minmax(210px, 1fr) minmax(260px, 1.15fr) minmax(210px, 1fr);
@@ -1555,23 +1610,22 @@ body {
 }
 .bd-controls {
   display: grid;
-  grid-template-columns: minmax(120px, auto) minmax(220px, 0.75fr);
+  grid-template-columns: auto 1fr;
   gap: 10px;
   width: 100%;
-  max-width: 960px;
+  max-width: 840px;
 }
 .bd-sidebox,
-.bd-lanes,
-.bd-actions {
+.bd-lanes {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: stretch;
 }
-.bd-actions {
-  grid-column: 1 / -1;
+.bd-lanes {
   display: grid;
-  grid-template-columns: repeat(5, minmax(112px, 1fr));
+  grid-template-columns: repeat(3, minmax(72px, 1fr));
+  width: 100%;
 }
 .bd-side-btn,
 .bd-lane-btn,
@@ -1618,16 +1672,16 @@ body {
 .bd-action {
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   align-items: center;
   gap: 1px 7px;
-  min-height: 58px;
+  min-height: 64px;
   padding: 7px 8px;
   text-align: left;
   white-space: normal;
 }
 .bd-action span {
-  grid-row: 1 / -1;
+  grid-row: 1 / 4;
   min-width: 38px;
   padding: 5px 6px;
   border-radius: 7px;
@@ -1646,18 +1700,32 @@ body {
   color: var(--muted);
   font-size: 0.68rem;
 }
+.bd-action em {
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 850;
+}
 .bd-action:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 @media (max-width: 900px) {
   .bd-root,
+  .bd-arena,
   .bd-hud,
   .bd-controls,
+  .bd-command-panel,
   .bd-stage-wrap {
     width: calc(100vw - 32px);
     max-width: calc(100vw - 32px);
   }
+  .bd-arena {
+    grid-template-columns: 1fr;
+  }
+  .bd-center-col { order: 1; }
+  .bd-attack-panel { order: 2; }
+  .bd-defense-panel { order: 3; }
   .bd-hud {
     grid-template-columns: 1fr 1fr;
   }
@@ -1673,7 +1741,7 @@ body {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
   }
-  .bd-actions {
+  .bd-action-group {
     grid-template-columns: 1fr 1fr;
   }
   .bd-side-btn,
@@ -1684,8 +1752,13 @@ body {
 }
 @media (max-width: 560px) {
   .bd-hud,
+  .bd-arena,
   .bd-controls {
     grid-template-columns: 1fr;
+    width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+  }
+  .bd-command-panel {
     width: calc(100vw - 32px);
     max-width: calc(100vw - 32px);
   }
@@ -1700,41 +1773,10 @@ body {
   .bd-player b {
     justify-self: start;
   }
-  .bd-actions {
+  .bd-action-group {
     grid-template-columns: 1fr 1fr;
   }
 }
-@media (max-device-width: 900px) {
-  .bd-root,
-  .bd-hud,
-  .bd-controls,
-  .bd-stage-wrap {
-    width: calc(100vw - 32px);
-    max-width: calc(100vw - 32px);
-  }
-  .bd-hud,
-  .bd-controls {
-    grid-template-columns: 1fr;
-  }
-  .bd-mid {
-    grid-column: 1 / -1;
-    order: -1;
-  }
-  .bd-lanes {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 100%;
-  }
-  .bd-actions {
-    grid-template-columns: 1fr 1fr;
-  }
-  .bd-side-btn,
-  .bd-lane-btn,
-  .bd-action {
-    min-width: 0;
-  }
-}
-
 /* ---------- Battleship (Bắn Tàu) ---------- */
 .bs-root { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
 .bs-controls { display: flex; gap: 10px; }

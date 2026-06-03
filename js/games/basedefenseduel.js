@@ -99,6 +99,25 @@
     hud.className = "bd-hud";
     root.appendChild(hud);
 
+    const arena = document.createElement("div");
+    arena.className = "bd-arena";
+    root.appendChild(arena);
+
+    const attackPanel = document.createElement("div");
+    attackPanel.className = "bd-command-panel bd-attack-panel";
+    attackPanel.innerHTML = `
+      <div class="bd-panel-head">
+        <b>Tấn công</b>
+        <span>Gửi quái sang lane đối thủ</span>
+      </div>
+      <div class="bd-action-group bd-attack-actions"></div>
+    `;
+    arena.appendChild(attackPanel);
+
+    const centerCol = document.createElement("div");
+    centerCol.className = "bd-center-col";
+    arena.appendChild(centerCol);
+
     const stageWrap = document.createElement("div");
     stageWrap.className = "bd-stage-wrap";
     const canvas = document.createElement("canvas");
@@ -106,43 +125,61 @@
     canvas.height = H;
     canvas.className = "bd-canvas";
     stageWrap.appendChild(canvas);
-    root.appendChild(stageWrap);
+    centerCol.appendChild(stageWrap);
     const g = canvas.getContext("2d");
 
     function fitCanvas() {
       const viewport = Math.max(280, window.innerWidth - 32);
-      const boardW = ctx.boardEl.getBoundingClientRect().width || viewport;
+      const boardW = centerCol.getBoundingClientRect().width || ctx.boardEl.getBoundingClientRect().width || viewport;
       const width = Math.max(280, Math.min(W, viewport, boardW));
       canvas.style.width = width + "px";
       canvas.style.height = Math.round(width * H / W) + "px";
       stageWrap.style.width = width + "px";
     }
-    fitCanvas();
     window.addEventListener("resize", fitCanvas);
 
     const controls = document.createElement("div");
-    controls.className = "bd-controls";
+    controls.className = "bd-controls bd-center-controls";
     controls.innerHTML = `
       <div class="bd-sidebox"></div>
       <div class="bd-lanes"></div>
-      <div class="bd-actions"></div>
     `;
-    root.appendChild(controls);
+    centerCol.appendChild(controls);
+
+    const defensePanel = document.createElement("div");
+    defensePanel.className = "bd-command-panel bd-defense-panel";
+    defensePanel.innerHTML = `
+      <div class="bd-panel-head">
+        <b>Phòng thủ</b>
+        <span>Tháp, sửa nhà và nâng cấp</span>
+      </div>
+      <div class="bd-group-title">Tháp & nhà chính</div>
+      <div class="bd-action-group bd-defense-actions"></div>
+      <div class="bd-group-title">Kinh tế & sức mạnh</div>
+      <div class="bd-action-group bd-upgrade-actions"></div>
+    `;
+    arena.appendChild(defensePanel);
 
     const sideBox = controls.querySelector(".bd-sidebox");
     const laneBox = controls.querySelector(".bd-lanes");
-    const actionBox = controls.querySelector(".bd-actions");
+    const attackBox = attackPanel.querySelector(".bd-attack-actions");
+    const defenseBox = defensePanel.querySelector(".bd-defense-actions");
+    const upgradeBox = defensePanel.querySelector(".bd-upgrade-actions");
 
-    const actions = [
+    const attackActions = [
       { id: "grunt", kind: "unit", def: UNIT_DEFS.grunt },
       { id: "runner", kind: "unit", def: UNIT_DEFS.runner },
       { id: "brute", kind: "unit", def: UNIT_DEFS.brute },
       { id: "warlock", kind: "unit", def: UNIT_DEFS.warlock },
+    ];
+    const defenseActions = [
       { id: "tower", label: "Xây tháp", icon: "TWR", hint: "lane đã chọn" },
       { id: "upTower", label: "Nâng tháp", icon: "UP", hint: "tối đa 4" },
+      { id: "repair", label: "Sửa nhà", icon: "FIX", hint: "+90 HP" },
+    ];
+    const upgradeActions = [
       { id: "econ", label: "Kinh tế", icon: "GOLD", hint: "+vàng/giây" },
       { id: "armory", label: "Lò rèn", icon: "DMG", hint: "+quân/tháp" },
-      { id: "repair", label: "Sửa nhà", icon: "FIX", hint: "+90 HP" },
     ];
 
     function renderStaticControls() {
@@ -184,17 +221,26 @@
         laneBox.appendChild(btn);
       });
 
-      actionBox.innerHTML = "";
-      actions.forEach((a) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "btn small bd-action";
-        btn.dataset.action = a.id;
-        const label = a.def ? a.def.label : a.label;
-        const icon = a.def ? a.def.icon : a.icon;
-        btn.innerHTML = `<span>${icon}</span><b>${label}</b><small></small>`;
-        btn.addEventListener("click", () => submitAction(a.id));
-        actionBox.appendChild(btn);
+      attackBox.innerHTML = "";
+      defenseBox.innerHTML = "";
+      upgradeBox.innerHTML = "";
+      [
+        [attackActions, attackBox],
+        [defenseActions, defenseBox],
+        [upgradeActions, upgradeBox],
+      ].forEach(([list, box]) => {
+        list.forEach((a) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "btn small bd-action";
+          btn.dataset.action = a.id;
+          const label = a.def ? a.def.label : a.label;
+          const icon = a.def ? a.def.icon : a.icon;
+          const hint = a.def ? a.def.hint : a.hint;
+          btn.innerHTML = `<span>${icon}</span><b>${label}</b><small>${hint}</small><em></em>`;
+          btn.addEventListener("click", () => submitAction(a.id));
+          box.appendChild(btn);
+        });
       });
     }
 
@@ -349,6 +395,7 @@
         speed: def.speed * (1 + elapsed / 520 * 0.08),
         cd: 0.18 + ctx.rng() * 0.24,
         flash: 16,
+        phase: ctx.rng() * Math.PI * 2,
       });
       pops.push({ x: SPAWN_X[owner], y, text: "+" + def.label, color: def.color, t: 46 });
     }
@@ -371,6 +418,7 @@
         if (u.hp <= 0) return;
         u.flash = Math.max(0, u.flash - dt * 35);
         u.cd = Math.max(0, u.cd - dt);
+        u.phase += dt * (u.speed * 0.18 + 4);
         const dir = u.owner === 0 ? 1 : -1;
         const enemy = closestEnemyInLane(u);
         const enemyBaseX = BASE_X[1 - u.owner];
@@ -526,11 +574,11 @@
       laneBox.querySelectorAll(".bd-lane-btn").forEach((btn) => {
         btn.classList.toggle("active", Number(btn.dataset.lane) === selectedLane[side]);
       });
-      actionBox.querySelectorAll(".bd-action").forEach((btn) => {
+      root.querySelectorAll(".bd-action").forEach((btn) => {
         const id = btn.dataset.action;
         const cost = actionCost(side, id, selectedLane[side]);
         const label = cost === Infinity ? "không thể" : cost + " vàng";
-        btn.querySelector("small").textContent = label;
+        btn.querySelector("em").textContent = label;
         btn.disabled = over || (ctx.isOnline && side !== ctx.mySeat) || cost === Infinity || gold[side] < cost;
       });
     }
@@ -733,44 +781,166 @@
         const def = UNIT_DEFS[u.type];
         const sideColor = u.owner === 0 ? "#ff5d73" : "#4dd0e1";
         const dir = u.owner === 0 ? 1 : -1;
+        const body = u.flash > 0 ? "#ffffff" : def.color;
+        const walk = Math.sin(u.phase);
+        const stride = Math.cos(u.phase);
         g.save();
         g.translate(u.x, u.y);
         g.fillStyle = "rgba(0,0,0,0.28)";
         g.beginPath();
-        g.ellipse(0, 16, 18, 6, 0, 0, Math.PI * 2);
+        g.ellipse(0, 18, u.type === "brute" ? 24 : 18, 6, 0, 0, Math.PI * 2);
         g.fill();
-        g.fillStyle = u.flash > 0 ? "#ffffff" : def.color;
-        if (u.type === "brute") {
-          roundRect(g, -13, -17, 26, 31, 8);
-          g.fill();
-        } else if (u.type === "runner") {
-          g.beginPath();
-          g.moveTo(-14 * dir, 10);
-          g.lineTo(15 * dir, 0);
-          g.lineTo(-14 * dir, -11);
-          g.closePath();
-          g.fill();
-        } else if (u.type === "warlock") {
-          g.beginPath();
-          g.arc(0, -2, 14, 0, Math.PI * 2);
-          g.fill();
-          g.fillStyle = "#101422";
-          g.fillRect(-7, -9, 14, 18);
-        } else {
-          g.beginPath();
-          g.arc(0, -2, 13, 0, Math.PI * 2);
-          g.fill();
-        }
-        g.strokeStyle = sideColor;
-        g.lineWidth = 3;
-        g.stroke();
+        g.scale(dir, 1);
+        drawUnitLegs(walk, stride, sideColor, u.type === "brute" ? 1.18 : 1);
+        if (u.type === "brute") drawBruteUnit(body, sideColor, walk);
+        else if (u.type === "runner") drawRunnerUnit(body, sideColor, walk);
+        else if (u.type === "warlock") drawWarlockUnit(body, sideColor, walk);
+        else drawGruntUnit(body, sideColor, walk);
+        g.restore();
+
         const pct = Math.max(0, u.hp / u.maxHp);
+        g.save();
+        g.translate(u.x, u.y);
         g.fillStyle = "rgba(0,0,0,0.48)";
-        g.fillRect(-16, -26, 32, 5);
+        roundRect(g, -18, -34, 36, 5, 999);
+        g.fill();
         g.fillStyle = pct > 0.35 ? "#6ee7b7" : "#ff5d73";
-        g.fillRect(-16, -26, 32 * pct, 5);
+        roundRect(g, -18, -34, 36 * pct, 5, 999);
+        g.fill();
         g.restore();
       });
+    }
+
+    function drawUnitLegs(walk, stride, color, scale) {
+      g.strokeStyle = color;
+      g.lineWidth = 3;
+      g.lineCap = "round";
+      g.beginPath();
+      g.moveTo(-7, 6);
+      g.lineTo(-11 + walk * 5, 18 * scale);
+      g.lineTo(-18 + walk * 6, 20 * scale);
+      g.moveTo(7, 6);
+      g.lineTo(12 - walk * 5, 18 * scale);
+      g.lineTo(18 - walk * 6, 20 * scale);
+      g.stroke();
+      g.strokeStyle = "rgba(255,255,255,0.22)";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(-5, 7);
+      g.lineTo(-5 + stride * 4, 16 * scale);
+      g.moveTo(5, 7);
+      g.lineTo(5 - stride * 4, 16 * scale);
+      g.stroke();
+    }
+
+    function drawGruntUnit(body, sideColor, walk) {
+      g.fillStyle = body;
+      roundRect(g, -12, -18, 24, 25, 8);
+      g.fill();
+      g.fillStyle = sideColor;
+      roundRect(g, -9, -26, 18, 12, 6);
+      g.fill();
+      g.fillStyle = "#101422";
+      g.fillRect(-6, -22, 12, 3);
+      g.strokeStyle = "#d8dee9";
+      g.lineWidth = 3;
+      g.beginPath();
+      g.moveTo(12, -5);
+      g.lineTo(23, -13 + walk * 2);
+      g.stroke();
+      g.fillStyle = "rgba(255,255,255,0.2)";
+      roundRect(g, -18, -9, 9, 17, 4);
+      g.fill();
+    }
+
+    function drawRunnerUnit(body, sideColor, walk) {
+      g.save();
+      g.rotate(-0.18);
+      g.fillStyle = body;
+      g.beginPath();
+      g.moveTo(-14, 9);
+      g.quadraticCurveTo(-8, -18, 14, -12);
+      g.quadraticCurveTo(20, -2, 8, 9);
+      g.closePath();
+      g.fill();
+      g.strokeStyle = sideColor;
+      g.lineWidth = 3;
+      g.stroke();
+      g.fillStyle = sideColor;
+      g.beginPath();
+      g.arc(13, -17, 8, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "#f8fafc";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(-13, -6);
+      g.lineTo(-23, -10 - walk * 4);
+      g.moveTo(8, -3);
+      g.lineTo(21, 4 + walk * 2);
+      g.stroke();
+      g.restore();
+    }
+
+    function drawBruteUnit(body, sideColor, walk) {
+      g.fillStyle = "#2a3060";
+      roundRect(g, -19, -25, 38, 36, 10);
+      g.fill();
+      g.fillStyle = body;
+      roundRect(g, -15, -20, 30, 29, 8);
+      g.fill();
+      g.fillStyle = sideColor;
+      roundRect(g, -13, -33, 26, 16, 8);
+      g.fill();
+      g.fillStyle = "#101422";
+      g.fillRect(-8, -27, 16, 4);
+      g.strokeStyle = "rgba(255,255,255,0.5)";
+      g.lineWidth = 3;
+      g.beginPath();
+      g.moveTo(-18, -28);
+      g.lineTo(-27, -36);
+      g.moveTo(18, -28);
+      g.lineTo(27, -36);
+      g.stroke();
+      g.strokeStyle = sideColor;
+      g.lineWidth = 5;
+      g.beginPath();
+      g.moveTo(-19, -8);
+      g.lineTo(-29, 3 + walk * 2);
+      g.moveTo(19, -8);
+      g.lineTo(29, 3 - walk * 2);
+      g.stroke();
+    }
+
+    function drawWarlockUnit(body, sideColor, walk) {
+      g.fillStyle = body;
+      g.beginPath();
+      g.moveTo(0, -31);
+      g.lineTo(19, 12);
+      g.lineTo(-19, 12);
+      g.closePath();
+      g.fill();
+      g.strokeStyle = sideColor;
+      g.lineWidth = 3;
+      g.stroke();
+      g.fillStyle = "#101422";
+      g.beginPath();
+      g.arc(0, -17, 8, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "#c9a98a";
+      g.lineWidth = 3;
+      g.beginPath();
+      g.moveTo(17, -21);
+      g.lineTo(28, 13);
+      g.stroke();
+      g.fillStyle = sideColor;
+      g.beginPath();
+      g.arc(17, -21, 5 + Math.max(0, walk) * 1.5, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "rgba(255,255,255,0.22)";
+      g.beginPath();
+      g.arc(-7, -2, 4, 0, Math.PI * 2);
+      g.arc(6, 5, 3, 0, Math.PI * 2);
+      g.fill();
     }
 
     function drawEffects() {
@@ -855,6 +1025,7 @@
     observer.observe(ctx.boardEl.parentNode || document.body, { childList: true, subtree: true });
 
     renderStaticControls();
+    fitCanvas();
     ctx.setTurn(controlSide);
     renderHud();
     syncControls();
