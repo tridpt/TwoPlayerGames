@@ -7,6 +7,7 @@
   const el = {
     menu: $("menu"),
     gameGrid: $("gameGrid"),
+    openOnlineHubBtn: $("openOnlineHubBtn"),
     modeView: $("modeView"),
     modeTitle: $("modeTitle"),
     modeLocal: $("modeLocal"),
@@ -17,6 +18,9 @@
     lobbyView: $("lobbyView"),
     lobbyTitle: $("lobbyTitle"),
     lobbyBackBtn: $("lobbyBackBtn"),
+    lobbyGameSelect: $("lobbyGameSelect"),
+    lobbyOptionsPanel: $("lobbyOptionsPanel"),
+    lobbyOptionsList: $("lobbyOptionsList"),
     createRoomBtn: $("createRoomBtn"),
     roomCodeBox: $("roomCodeBox"),
     roomCodeVal: $("roomCodeVal"),
@@ -65,6 +69,9 @@
 
   // ---- Trạng thái phiên ----
   let selectedGame = null;
+  let lobbySelectedGame = null;
+  let lobbyReturnView = "menu";
+  let pendingRoomCode = null;
   let instance = null;
   let scores = [0, 0];
   let online = null; // null = chơi chung máy; {seat, seed} = online
@@ -156,6 +163,10 @@
     el.p2Score.textContent = scores[1];
   }
 
+  function getGameById(id) {
+    return GameRegistry.games.find((g) => g.id === id) || null;
+  }
+
   // ====================== Menu chọn game ======================
   function renderMenu() {
     el.gameGrid.innerHTML = "";
@@ -176,6 +187,38 @@
         hint: "Các game mới chưa gắn nhóm.",
       }, otherGames));
     }
+    buildLobbyGameSelect();
+  }
+
+  function buildLobbyGameSelect(preselectId = "") {
+    el.lobbyGameSelect.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Chọn game để tạo phòng";
+    el.lobbyGameSelect.appendChild(placeholder);
+
+    GameRegistry.games
+      .filter((g) => g.onlineReady !== false)
+      .forEach((game) => {
+        const option = document.createElement("option");
+        option.value = game.id;
+        option.textContent = `${game.emoji} ${game.name}`;
+        el.lobbyGameSelect.appendChild(option);
+      });
+
+    el.lobbyGameSelect.value = preselectId || "";
+    setLobbyGame(el.lobbyGameSelect.value);
+  }
+
+  function setLobbyGame(gameId) {
+    lobbySelectedGame = gameId ? getGameById(gameId) : null;
+    el.createRoomBtn.disabled = !lobbySelectedGame;
+    if (!lobbySelectedGame) {
+      el.lobbyOptionsPanel.classList.add("hidden");
+      el.lobbyOptionsList.innerHTML = "";
+      return;
+    }
+    buildOptionsUI(lobbySelectedGame, el.lobbyOptionsPanel, el.lobbyOptionsList, "lobby_opt_");
   }
 
   function createGameSection(group, games) {
@@ -221,29 +264,29 @@
     el.modeOnline.classList.toggle("disabled", game.onlineReady === false);
     // game chỉ chơi online (giấu thông tin) thì ẩn lựa chọn chung máy
     el.modeLocal.classList.toggle("disabled", game.localReady === false);
-    buildOptionsUI(game);
+    buildOptionsUI(game, el.optionsPanel, el.optionsList, "opt_");
     show("modeView");
   }
 
   // Dựng panel tùy chỉnh dựa trên schema options của game
-  function buildOptionsUI(game) {
-    el.optionsList.innerHTML = "";
+  function buildOptionsUI(game, panelEl = el.optionsPanel, listEl = el.optionsList, prefix = "opt_") {
+    listEl.innerHTML = "";
     const opts = game.options;
     if (!opts || !opts.length) {
-      el.optionsPanel.classList.add("hidden");
+      panelEl.classList.add("hidden");
       return;
     }
-    el.optionsPanel.classList.remove("hidden");
+    panelEl.classList.remove("hidden");
     opts.forEach((opt) => {
       const row = document.createElement("div");
       row.className = "option-row";
       const label = document.createElement("label");
       label.className = "option-label";
       label.textContent = opt.label;
-      label.htmlFor = "opt_" + opt.id;
+      label.htmlFor = prefix + opt.id;
       const select = document.createElement("select");
       select.className = "option-select";
-      select.id = "opt_" + opt.id;
+      select.id = prefix + opt.id;
       select.dataset.optId = opt.id;
       opt.choices.forEach((ch) => {
         const o = document.createElement("option");
@@ -254,16 +297,16 @@
       });
       row.appendChild(label);
       row.appendChild(select);
-      el.optionsList.appendChild(row);
+      listEl.appendChild(row);
     });
   }
 
   // Đọc giá trị người dùng đã chọn từ panel
-  function readOptions(game) {
+  function readOptions(game, prefix = "opt_") {
     const result = {};
     if (!game.options) return result;
     game.options.forEach((opt) => {
-      const sel = document.getElementById("opt_" + opt.id);
+      const sel = document.getElementById(prefix + opt.id);
       let val = sel ? sel.value : opt.default;
       // ép kiểu theo kiểu của default
       if (typeof opt.default === "number") val = Number(val);
@@ -282,12 +325,20 @@
 
   el.modeOnline.addEventListener("click", () => {
     if (selectedGame.onlineReady === false) return;
-    openLobby();
+    openLobby(selectedGame, "modeView");
   });
 
+  el.openOnlineHubBtn.addEventListener("click", () => openLobby(null, "menu"));
+
   // ====================== Sảnh online ======================
-  function openLobby() {
-    el.lobbyTitle.textContent = "🌐 " + selectedGame.name + " — Chơi online";
+  function openLobby(game = null, returnView = "menu") {
+    leavePendingRoom();
+    lobbyReturnView = returnView;
+    const preselect = game?.onlineReady === false ? null : game;
+    el.lobbyTitle.textContent = preselect
+      ? `🌐 ${preselect.name} — Tạo phòng online`
+      : "🌐 Sảnh online";
+    buildLobbyGameSelect(preselect?.id || "");
     el.roomCodeBox.classList.add("hidden");
     el.lobbyError.textContent = "";
     el.joinCodeInput.value = "";
@@ -304,11 +355,32 @@
     }
   }
 
+  function leavePendingRoom() {
+    if (!pendingRoomCode) return;
+    Net.send("leave");
+    pendingRoomCode = null;
+  }
+
+  el.lobbyGameSelect.addEventListener("change", () => {
+    setLobbyGame(el.lobbyGameSelect.value);
+    if (lobbySelectedGame) {
+      el.lobbyTitle.textContent = `🌐 ${lobbySelectedGame.name} — Tạo phòng online`;
+    } else {
+      el.lobbyTitle.textContent = "🌐 Sảnh online";
+    }
+  });
+
   el.createRoomBtn.addEventListener("click", async () => {
     el.lobbyError.textContent = "";
+    if (!lobbySelectedGame) {
+      el.lobbyError.textContent = "Hãy chọn game để tạo phòng.";
+      return;
+    }
+    leavePendingRoom();
     if (!(await ensureConnected())) return;
-    currentOptions = readOptions(selectedGame);
-    Net.send("create", { gameId: selectedGame.id, options: currentOptions });
+    selectedGame = lobbySelectedGame;
+    currentOptions = readOptions(lobbySelectedGame, "lobby_opt_");
+    Net.send("create", { gameId: lobbySelectedGame.id, options: currentOptions });
   });
 
   el.joinRoomBtn.addEventListener("click", async () => {
@@ -335,15 +407,25 @@
 
   // ---- Sự kiện từ server ----
   Net.on("created", (m) => {
+    pendingRoomCode = m.code;
     el.roomCodeVal.textContent = m.code;
     el.roomCodeBox.classList.remove("hidden");
-    el.waitingMsg.textContent = "Đang chờ người chơi thứ hai vào phòng...";
+    const game = getGameById(m.gameId);
+    if (game) selectedGame = game;
+    el.waitingMsg.textContent = `Đang chờ người chơi thứ hai vào ${game?.name || "phòng"}...`;
   });
 
   Net.on("error", (m) => { el.lobbyError.textContent = "⚠️ " + m.message; });
 
   Net.on("start", (m) => {
-    online = { seat: m.seat, seed: m.seed };
+    const game = getGameById(m.gameId);
+    if (!game) {
+      el.lobbyError.textContent = "⚠️ Phòng này dùng game không có trong bản web hiện tại.";
+      return;
+    }
+    selectedGame = game;
+    pendingRoomCode = null;
+    online = { seat: m.seat, seed: m.seed, gameId: m.gameId, code: m.code };
     if (m.options) currentOptions = m.options; // dùng tùy chỉnh của chủ phòng
     startGame(m.seed);
   });
@@ -353,7 +435,11 @@
   });
 
   Net.on("restart", (m) => {
-    online = { seat: m.seat, seed: m.seed };
+    if (m.gameId) {
+      const game = getGameById(m.gameId);
+      if (game) selectedGame = game;
+    }
+    online = { seat: m.seat, seed: m.seed, gameId: m.gameId || selectedGame?.id, code: m.code || online?.code };
     if (m.options) currentOptions = m.options;
     startGame(m.seed);
   });
@@ -476,12 +562,19 @@
   }
 
   function goHome() {
+    leavePendingRoom();
     if (online) { Net.send("leave"); online = null; }
     el.chatMessages.innerHTML = "";
     el.chatPanel.classList.add("hidden");
     selectedGame = null;
+    lobbySelectedGame = null;
     instance = null;
     show("menu");
+  }
+
+  function closeLobby() {
+    leavePendingRoom();
+    show(lobbyReturnView);
   }
 
   // ---- Điều hướng màn hình ----
@@ -494,7 +587,7 @@
   el.backBtn.addEventListener("click", goHome);
   el.homeBtn.addEventListener("click", goHome);
   el.modeBackBtn.addEventListener("click", () => show("menu"));
-  el.lobbyBackBtn.addEventListener("click", () => show("modeView"));
+  el.lobbyBackBtn.addEventListener("click", closeLobby);
   el.restartBtn.addEventListener("click", restartGame);
 
   // ---- Nút bật/tắt âm thanh ----

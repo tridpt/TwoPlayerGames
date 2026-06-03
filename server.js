@@ -70,10 +70,13 @@ function leaveRoom(ws) {
   const code = ws.roomCode;
   if (!code) return;
   const room = rooms.get(code);
-  if (!room) return;
-  const opp = otherPlayer(room, ws);
-  send(opp, "opponent_left");
-  rooms.delete(code);
+  if (room) {
+    const opp = otherPlayer(room, ws);
+    send(opp, "opponent_left");
+    rooms.delete(code);
+  }
+  ws.roomCode = null;
+  ws.seat = null;
 }
 
 wss.on("connection", (ws) => {
@@ -86,6 +89,8 @@ wss.on("connection", (ws) => {
 
     switch (msg.type) {
       case "create": {
+        if (!msg.gameId) return send(ws, "error", { message: "Thiếu game để tạo phòng." });
+        leaveRoom(ws);
         const code = makeCode();
         const seed = Math.floor(Math.random() * 1e9);
         const options = msg.options || {};
@@ -97,6 +102,7 @@ wss.on("connection", (ws) => {
       }
 
       case "join": {
+        leaveRoom(ws);
         const room = rooms.get(msg.code);
         if (!room) return send(ws, "error", { message: "Mã phòng không tồn tại." });
         if (room.players[1]) return send(ws, "error", { message: "Phòng đã đủ người." });
@@ -105,8 +111,8 @@ wss.on("connection", (ws) => {
         ws.seat = 1;
         send(ws, "joined", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, options: room.options });
         // báo cho cả hai bắt đầu (kèm options của chủ phòng)
-        send(room.players[0], "start", { seat: 0, gameId: room.gameId, seed: room.seed, options: room.options });
-        send(room.players[1], "start", { seat: 1, gameId: room.gameId, seed: room.seed, options: room.options });
+        send(room.players[0], "start", { code: msg.code, seat: 0, gameId: room.gameId, seed: room.seed, options: room.options });
+        send(room.players[1], "start", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, options: room.options });
         break;
       }
 
@@ -124,7 +130,7 @@ wss.on("connection", (ws) => {
         // người chủ phòng phát seed mới để đồng bộ (giữ nguyên options)
         const seed = Math.floor(Math.random() * 1e9);
         room.seed = seed;
-        room.players.forEach((p, i) => send(p, "restart", { seed, seat: i, options: room.options }));
+        room.players.forEach((p, i) => send(p, "restart", { code: ws.roomCode, gameId: room.gameId, seed, seat: i, options: room.options }));
         break;
       }
 

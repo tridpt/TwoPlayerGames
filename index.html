@@ -16,6 +16,13 @@
   <main id="app">
     <!-- Màn hình chọn game -->
     <section id="menu" class="menu">
+      <div class="online-entry">
+        <div>
+          <h2>🌐 Sảnh online</h2>
+          <p>Tạo phòng từ một game bất kỳ hoặc nhập mã phòng để tự vào đúng game mà chủ phòng đã tạo.</p>
+        </div>
+        <button class="btn primary" id="openOnlineHubBtn">Tạo / vào phòng</button>
+      </div>
       <div class="game-grid" id="gameGrid"><!-- thẻ game render bằng JS --></div>
     </section>
 
@@ -48,7 +55,13 @@
       <div class="lobby-cards">
         <div class="lobby-panel">
           <h3>Tạo phòng mới</h3>
-          <p>Tạo phòng và gửi mã cho bạn bè để cùng chơi.</p>
+          <p>Chọn game, chỉnh luật nếu có, rồi gửi mã phòng cho bạn bè.</p>
+          <label class="option-label" for="lobbyGameSelect">Game tạo phòng</label>
+          <select class="option-select lobby-game-select" id="lobbyGameSelect"></select>
+          <div class="options-panel lobby-options hidden" id="lobbyOptionsPanel">
+            <h3 class="options-title">⚙️ Tùy chỉnh ván chơi</h3>
+            <div class="options-list" id="lobbyOptionsList"></div>
+          </div>
           <button class="btn primary" id="createRoomBtn">Tạo phòng</button>
           <div class="room-code hidden" id="roomCodeBox">
             <span class="room-code-label">Mã phòng của bạn</span>
