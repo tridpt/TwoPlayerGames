@@ -128,16 +128,6 @@
     centerCol.appendChild(stageWrap);
     const g = canvas.getContext("2d");
 
-    function fitCanvas() {
-      const viewport = Math.max(280, window.innerWidth - 32);
-      const boardW = centerCol.getBoundingClientRect().width || ctx.boardEl.getBoundingClientRect().width || viewport;
-      const width = Math.max(280, Math.min(W, viewport, boardW));
-      canvas.style.width = width + "px";
-      canvas.style.height = Math.round(width * H / W) + "px";
-      stageWrap.style.width = width + "px";
-    }
-    window.addEventListener("resize", fitCanvas);
-
     const controls = document.createElement("div");
     controls.className = "bd-controls bd-center-controls";
     controls.innerHTML = `
@@ -1018,14 +1008,12 @@
     const observer = new MutationObserver(() => {
       if (!document.body.contains(root)) {
         cancelAnimationFrame(raf);
-        window.removeEventListener("resize", fitCanvas);
         observer.disconnect();
       }
     });
     observer.observe(ctx.boardEl.parentNode || document.body, { childList: true, subtree: true });
 
     renderStaticControls();
-    fitCanvas();
     ctx.setTurn(controlSide);
     renderHud();
     syncControls();
