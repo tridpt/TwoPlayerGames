@@ -101,7 +101,7 @@
     {
       title: "Ẩn thông tin & suy luận",
       hint: "Giấu vị trí, đoán tọa độ, tìm mìn, giải từ và đọc dấu hiệu.",
-      games: ["battleship", "seabattleplus", "hiddenassassin", "trapmansion", "minesweeper", "treasure", "bullscows", "hangman", "noitu"],
+      games: ["battleship", "seabattleplus", "submarinehunt", "hiddenassassin", "trapmansion", "minesweeper", "treasure", "bullscows", "hangman", "noitu"],
     },
     {
       title: "Xúc xắc, bài & may rủi",
