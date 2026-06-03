@@ -223,6 +223,52 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+@media (max-width: 560px) {
+  .game-bar {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+  }
+  .game-title {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-width: 0;
+    font-size: 1.22rem;
+    overflow-wrap: anywhere;
+  }
+  .game-bar .back-btn {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+  .game-bar-right {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+  .game-bar .btn {
+    padding: 8px 10px;
+    font-size: 0.84rem;
+  }
+  .scoreboard {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+  .turn-banner {
+    grid-column: 1 / -1;
+    order: -1;
+    padding: 7px 10px;
+  }
+  .score {
+    min-width: 0;
+    padding: 6px 8px;
+  }
+  .score-val {
+    font-size: 1.55rem;
+  }
+}
+
 /* ---------- Boards ---------- */
 .board-wrap {
   display: flex;
@@ -5081,13 +5127,16 @@ body {
   align-items: center;
   gap: 12px;
   width: 100%;
+  min-width: 0;
   padding: 8px 0 20px;
 }
 .ha-hud {
   display: grid;
   grid-template-columns: minmax(210px, 1fr) minmax(280px, 1.25fr) minmax(210px, 1fr);
   gap: 10px;
-  width: min(1040px, 96vw);
+  width: min(1040px, 100%);
+  max-width: 100%;
+  min-width: 0;
 }
 .ha-panel,
 .ha-mid,
@@ -5155,7 +5204,9 @@ body {
   line-height: 1.28;
 }
 .ha-stage-wrap {
-  width: min(1040px, 96vw);
+  width: min(1040px, 100%);
+  max-width: 100%;
+  min-width: 0;
   padding: 10px;
   background:
     radial-gradient(circle at 20% 14%, rgba(255,93,115,0.13), transparent 32%),
@@ -5165,6 +5216,7 @@ body {
 .ha-canvas {
   display: block;
   width: 100%;
+  max-width: 100%;
   height: auto;
   aspect-ratio: 900 / 560;
   border-radius: 7px;
@@ -5174,7 +5226,9 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  width: min(1040px, 96vw);
+  width: min(1040px, 100%);
+  max-width: 100%;
+  min-width: 0;
 }
 .ha-action {
   display: grid;
@@ -5225,7 +5279,9 @@ body {
   display: grid;
   grid-template-columns: minmax(260px, 0.9fr) minmax(300px, 1.1fr);
   gap: 10px;
-  width: min(1040px, 96vw);
+  width: min(1040px, 100%);
+  max-width: 100%;
+  min-width: 0;
 }
 .ha-notes,
 .ha-log {
@@ -5243,7 +5299,7 @@ body {
 }
 .ha-notes > div {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 7px;
 }
 .ha-notes span,

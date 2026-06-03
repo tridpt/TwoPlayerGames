@@ -21,6 +21,10 @@
     "đường đi khá vô hại",
     "có chứng cứ ngoại phạm tạm ổn",
   ];
+  const HABITS = ["hay đứng gần cửa", "thường tránh đám đông", "hay đổi phòng sau 2 lượt", "thích đứng ở nơi sáng", "hay đi theo người lạ"];
+  const ALIBIS = ["có hóa đơn ở quầy bar", "được bảo vệ nhìn thấy", "vừa ký sổ khách", "có người phục vụ xác nhận", "camera ghi bóng dáng mờ"];
+  const PROFILE_HOT = ["hồ sơ bị xé đúng trang quan trọng", "vỏ bọc có 2 chi tiết mâu thuẫn", "nhân chứng nhớ thấy vũ khí nhỏ", "lịch trình có khoảng trống nguy hiểm"];
+  const PROFILE_COLD = ["hồ sơ khá nhất quán", "vỏ bọc khớp lời khai", "nhân chứng xác nhận có mặt", "lịch trình chưa có lỗ hổng lớn"];
   const SPOTS = [
     { id: 0, name: "Sảnh chính", x: 450, y: 280, links: [1, 2, 3, 4, 5, 6, 7, 8] },
     { id: 1, name: "Quầy bar", x: 190, y: 170, links: [0, 3, 5] },
@@ -38,6 +42,8 @@
     const TEAM = o.team || 6;
     const MAX_TRAPS = o.traps || 2;
     const NOTES_TO_WARN = o.notes || 3;
+    const MAX_FOCUS = o.focus || 5;
+    const DOSSIER_GOAL = o.dossier || 3;
 
     let turn = 0;
     let mode = "move";
@@ -46,6 +52,10 @@
     let over = false;
     let moveNo = 1;
     const traps = [];
+    const watchers = [];
+    const focus = [Math.min(3, MAX_FOCUS), Math.min(3, MAX_FOCUS)];
+    const dossiers = [0, 0];
+    const profiles = [Object.create(null), Object.create(null)];
     const log = ["Đêm dạ tiệc bắt đầu. Một sát thủ đang lẩn trong đám đông."];
     const notes = [Object.create(null), Object.create(null)];
     const suspects = makeSuspects();
@@ -89,9 +99,14 @@
             idx: i,
             name,
             cover: COVERS[(owner * TEAM + i) % COVERS.length],
+            habit: HABITS[(owner * TEAM + i) % HABITS.length],
+            alibi: ALIBIS[(owner * 3 + i) % ALIBIS.length],
             spot: baseSpots[i % baseSpots.length],
+            route: [baseSpots[i % baseSpots.length]],
             alive: true,
             stun: 0,
+            decoy: 0,
+            disguise: 0,
             revealed: false,
             x: 0,
             y: 0,
@@ -141,14 +156,61 @@
       if (reason && observer === ctx.mySeat) addLog(reason);
     }
 
+    function actionCost(id) {
+      return { follow: 1, profile: 2, decoy: 1, disguise: 2 }[id] || 0;
+    }
+
+    function spendFocus(owner, amount) {
+      if (amount <= 0) return true;
+      if (focus[owner] < amount) return false;
+      focus[owner] -= amount;
+      return true;
+    }
+
+    function addDossier(owner) {
+      dossiers[owner] = Math.min(DOSSIER_GOAL, dossiers[owner] + 1);
+    }
+
+    function targetMasked(target) {
+      return target.decoy > 0 || target.disguise > 0;
+    }
+
+    function addWatcher(owner, targetId) {
+      const old = watchers.find((w) => w.owner === owner && w.target === targetId);
+      if (old) {
+        old.turns = 3;
+        return;
+      }
+      watchers.push({ owner, target: targetId, turns: 3 });
+    }
+
+    function triggerWatchers(s, fromSpot, toSpot) {
+      watchers
+        .filter((w) => w.target === s.id && w.owner !== s.owner && w.turns > 0)
+        .forEach((w) => {
+          w.turns -= 1;
+          note(w.owner, s.id, 1, w.owner === ctx.mySeat
+            ? `Theo dõi thấy ${s.name} rời ${spot(fromSpot).name} sang ${spot(toSpot).name}.`
+            : "");
+        });
+      for (let i = watchers.length - 1; i >= 0; i--) {
+        if (watchers[i].turns <= 0) watchers.splice(i, 1);
+      }
+    }
+
     function applyMove(move, fromRemote) {
       if (!move || over) return;
       if (!fromRemote && !canAct(false)) return;
 
       if (move.t === "move") return doMove(move, fromRemote);
       if (move.t === "trap") return doTrap(move, fromRemote);
+      if (move.t === "follow") return doFollow(move, fromRemote);
       if (move.t === "observe") return doObserve(move, fromRemote);
       if (move.t === "observeResult") return doObserveResult(move);
+      if (move.t === "profile") return doProfile(move, fromRemote);
+      if (move.t === "profileResult") return doProfileResult(move);
+      if (move.t === "decoy") return doDecoy(move, fromRemote);
+      if (move.t === "disguise") return doDisguise(move, fromRemote);
       if (move.t === "accuse") return doAccuse(move, fromRemote);
       if (move.t === "accuseResult") return doAccuseResult(move);
       if (move.t === "kill") return doKill(move, fromRemote);
@@ -160,8 +222,12 @@
       const to = Number(move.spot);
       if (!s || s.owner !== turn || !legalMove(s, to)) return;
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "move", id: s.id, spot: to });
+      const from = s.spot;
       s.spot = to;
+      s.route.push(to);
+      while (s.route.length > 5) s.route.shift();
       s.revealed = false;
+      triggerWatchers(s, from, to);
       const trappedId = triggerTrap(s);
       addLog(`P${s.owner + 1} đưa ${s.name} đến ${spot(to).name}.`);
       selected = null;
@@ -184,6 +250,17 @@
       endTurn();
     }
 
+    function doFollow(move, fromRemote) {
+      const target = getSuspect(move.target);
+      if (!target || target.owner === turn || !target.alive) return;
+      if (!spendFocus(turn, actionCost("follow"))) return;
+      if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "follow", target: target.id });
+      addWatcher(turn, target.id);
+      addLog(`P${turn + 1} cho người bám theo ${target.name} trong 3 nhịp di chuyển.`);
+      ctx.sound("select");
+      endTurn();
+    }
+
     function doObserve(move, fromRemote) {
       const target = getSuspect(move.target);
       if (!target || target.owner === turn || !target.alive) return;
@@ -198,9 +275,10 @@
         return;
       }
 
-      const hot = isMyAssassin(target.id);
-      const clue = makeClue(hot);
-      ctx.sendMove({ t: "observeResult", observer: 1 - ctx.mySeat, target: target.id, hot, clue });
+      const masked = targetMasked(target);
+      const hot = !masked && isMyAssassin(target.id);
+      const clue = masked ? "mục tiêu đang dùng mồi nhử hoặc cải trang, manh mối bị nhiễu" : makeClue(hot);
+      ctx.sendMove({ t: "observeResult", observer: 1 - ctx.mySeat, target: target.id, hot, masked, clue });
       addLog(`Đối thủ vừa quan sát ${target.name}.`);
       endTurn();
     }
@@ -210,13 +288,94 @@
       return source[Math.floor(Math.random() * source.length)];
     }
 
+    function makeProfileClue(hot) {
+      const source = hot ? PROFILE_HOT : PROFILE_COLD;
+      return source[Math.floor(Math.random() * source.length)];
+    }
+
     function doObserveResult(move) {
       awaiting = false;
       const target = getSuspect(move.target);
       if (!target) return;
       note(ctx.mySeat, target.id, move.hot ? 2 : 0, `${target.name}: ${move.clue}.`);
-      if (!move.hot) addLog(`${target.name} chưa có dấu hiệu nguy hiểm rõ ràng.`);
+      if (move.masked) addLog(`${target.name} làm nhiễu quan sát, cần hồ sơ hoặc theo dõi thêm.`);
+      else if (!move.hot) addLog(`${target.name} chưa có dấu hiệu nguy hiểm rõ ràng.`);
       ctx.sound(move.hot ? "capture" : "select");
+      endTurn();
+    }
+
+    function doProfile(move, fromRemote) {
+      const target = getSuspect(move.target);
+      if (!target || target.owner === turn || !target.alive) return;
+      if (!spendFocus(turn, actionCost("profile"))) return;
+
+      if (!fromRemote) {
+        awaiting = true;
+        ctx.sendMove({ t: "profile", target: target.id });
+        addLog(`Bạn lục hồ sơ của ${target.name}, chờ đối thủ đối chiếu bí mật...`);
+        render();
+        updateStatus();
+        return;
+      }
+
+      const masked = targetMasked(target);
+      const hot = !masked && isMyAssassin(target.id);
+      const clue = masked ? "hồ sơ bị tráo, dấu vết thật bị che" : makeProfileClue(hot);
+      addDossier(1 - ctx.mySeat);
+      ctx.sendMove({
+        t: "profileResult",
+        observer: 1 - ctx.mySeat,
+        target: target.id,
+        hot,
+        masked,
+        clue,
+        cover: target.cover,
+        habit: target.habit,
+        alibi: target.alibi,
+        route: target.route.slice(-4),
+      });
+      addLog(`Đối thủ vừa lục hồ sơ ${target.name}.`);
+      endTurn();
+    }
+
+    function doProfileResult(move) {
+      awaiting = false;
+      const target = getSuspect(move.target);
+      if (!target) return;
+      addDossier(ctx.mySeat);
+      profiles[ctx.mySeat][target.id] = {
+        clue: move.clue,
+        cover: move.cover || target.cover,
+        habit: move.habit || target.habit,
+        alibi: move.alibi || target.alibi,
+        route: Array.isArray(move.route) ? move.route : target.route.slice(-4),
+        masked: !!move.masked,
+      };
+      note(ctx.mySeat, target.id, move.hot ? 2 : move.masked ? 0 : 1, `${target.name}: ${move.clue}.`);
+      ctx.sound(move.hot ? "capture" : "select");
+      endTurn();
+    }
+
+    function doDecoy(move, fromRemote) {
+      const s = getSuspect(move.id);
+      if (!s || s.owner !== turn || !s.alive) return;
+      if (!spendFocus(turn, actionCost("decoy"))) return;
+      if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "decoy", id: s.id });
+      s.decoy = Math.max(s.decoy, 2);
+      addLog(`P${turn + 1} dựng mồi nhử quanh ${s.name}, quan sát lên người này sẽ bị nhiễu.`);
+      ctx.sound("select");
+      endTurn();
+    }
+
+    function doDisguise(move, fromRemote) {
+      const s = getSuspect(move.id);
+      if (!s || s.owner !== turn || !s.alive) return;
+      if (!spendFocus(turn, actionCost("disguise"))) return;
+      if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "disguise", id: s.id });
+      s.disguise = Math.max(s.disguise, 2);
+      s.revealed = false;
+      addLog(`P${turn + 1} cho ${s.name} thay vỏ bọc, hồ sơ và quan sát tạm thời kém chính xác.`);
+      ctx.sound("select");
       endTurn();
     }
 
@@ -233,7 +392,16 @@
       }
 
       const correct = isMyAssassin(target.id);
-      ctx.sendMove({ t: "accuseResult", accuser: 1 - ctx.mySeat, target: target.id, correct });
+      const accuser = 1 - ctx.mySeat;
+      const saved = !correct && dossiers[accuser] >= DOSSIER_GOAL;
+      if (saved) dossiers[accuser] = 0;
+      ctx.sendMove({ t: "accuseResult", accuser, target: target.id, correct, saved });
+      if (saved) {
+        addLog(`P${accuser + 1} tố cáo sai ${target.name}, nhưng hồ sơ dự phòng giúp thoát thua ngay.`);
+        ctx.sound("select");
+        endTurn();
+        return;
+      }
       finish(correct ? 1 - ctx.mySeat : ctx.mySeat, correct
         ? `${target.name} đúng là sát thủ.`
         : `Tố cáo sai ${target.name}, sát thủ thật thoát thân.`);
@@ -241,6 +409,15 @@
 
     function doAccuseResult(move) {
       awaiting = false;
+      if (move.saved) {
+        const accuser = typeof move.accuser === "number" ? move.accuser : ctx.mySeat;
+        dossiers[accuser] = 0;
+        const target = getSuspect(move.target);
+        addLog(`Tố cáo sai ${target?.name || "mục tiêu"}, nhưng bộ hồ sơ đã chặn thua ngay.`);
+        ctx.sound("select");
+        endTurn();
+        return;
+      }
       const winner = move.correct ? ctx.mySeat : 1 - ctx.mySeat;
       const target = getSuspect(move.target);
       finish(winner, move.correct
@@ -302,6 +479,19 @@
       return a.spot === b.spot;
     }
 
+    function decayTimers(activeSide) {
+      suspects.forEach((s) => {
+        if (s.owner !== activeSide) return;
+        if (s.decoy > 0) s.decoy -= 1;
+        if (s.disguise > 0) s.disguise -= 1;
+      });
+      for (let i = watchers.length - 1; i >= 0; i--) {
+        if (watchers[i].owner !== activeSide) continue;
+        watchers[i].turns -= 1;
+        if (watchers[i].turns <= 0) watchers.splice(i, 1);
+      }
+    }
+
     function endTurn(skipStunId) {
       if (over) return;
       suspects.forEach((s) => {
@@ -311,6 +501,8 @@
       awaiting = false;
       turn = 1 - turn;
       moveNo += 1;
+      focus[turn] = Math.min(MAX_FOCUS, focus[turn] + 1);
+      decayTimers(turn);
       ctx.setTurn(turn);
       render();
       updateStatus();
@@ -369,8 +561,16 @@
         return;
       }
 
+      if (targetSuspect && targetSuspect.owner === turn && isMine(targetSuspect)) {
+        if (mode === "decoy") applyMove({ t: "decoy", id: targetSuspect.id }, false);
+        else if (mode === "disguise") applyMove({ t: "disguise", id: targetSuspect.id }, false);
+        return;
+      }
+
       if (targetSuspect && targetSuspect.owner !== turn) {
-        if (mode === "observe") applyMove({ t: "observe", target: targetSuspect.id }, false);
+        if (mode === "follow") applyMove({ t: "follow", target: targetSuspect.id }, false);
+        else if (mode === "observe") applyMove({ t: "observe", target: targetSuspect.id }, false);
+        else if (mode === "profile") applyMove({ t: "profile", target: targetSuspect.id }, false);
         else if (mode === "accuse") applyMove({ t: "accuse", target: targetSuspect.id }, false);
         else if (mode === "kill") applyMove({ t: "kill", killer: myAssassinId, target: targetSuspect.id }, false);
       }
@@ -416,16 +616,18 @@
         <div class="ha-panel p1 ${turn === 0 && !over ? "active" : ""}">
           <span>Người chơi 1</span>
           <b>${aliveCount(0)} nhân vật</b>
+          <small>${focus[0]}/${MAX_FOCUS} tập trung · ${dossiers[0]}/${DOSSIER_GOAL} hồ sơ</small>
           <small>${ctx.mySeat === 0 ? `Sát thủ của bạn: ${own?.name || "?"}` : "Danh tính sát thủ bị ẩn"}</small>
         </div>
         <div class="ha-mid">
           <b>${over ? "Kết thúc" : awaiting ? "Đang chờ xác nhận" : "Lượt " + (turn + 1)}</b>
-          <span>${TEAM} nghi phạm mỗi bên · ${MAX_TRAPS} bẫy camera</span>
+          <span>${TEAM} nghi phạm mỗi bên · ${MAX_TRAPS} bẫy camera · hồ sơ cứu sai ở ${DOSSIER_GOAL}</span>
           <small>${log[0] || ""}</small>
         </div>
         <div class="ha-panel p2 ${turn === 1 && !over ? "active" : ""}">
           <span>Người chơi 2</span>
           <b>${aliveCount(1)} nhân vật</b>
+          <small>${focus[1]}/${MAX_FOCUS} tập trung · ${dossiers[1]}/${DOSSIER_GOAL} hồ sơ</small>
           <small>${ctx.mySeat === 1 ? `Sát thủ của bạn: ${own?.name || "?"}` : "Danh tính sát thủ bị ẩn"}</small>
         </div>
       `;
@@ -438,16 +640,25 @@
     function renderToolbar() {
       const buttons = [
         ["move", "MOVE", "Di chuyển", "chọn người rồi chọn địa điểm kề"],
+        ["follow", "TAIL", "Theo dõi", "bám tuyến đường mục tiêu"],
         ["observe", "EYE", "Quan sát", "cần người của bạn ở gần mục tiêu"],
+        ["profile", "FILE", "Hồ sơ", "lục hồ sơ để tăng chứng cứ"],
         ["trap", "CAM", "Gài bẫy", "camera ẩn tại một địa điểm"],
+        ["decoy", "FAKE", "Mồi nhử", "che nhiễu một người của bạn"],
+        ["disguise", "MASK", "Cải trang", "làm mờ hồ sơ và quan sát"],
         ["accuse", "CALL", "Tố cáo", "đúng thắng, sai thua"],
         ["kill", "KILL", "Ám sát", "sát thủ phải cùng địa điểm"],
       ];
-      toolbar.innerHTML = buttons.map(([id, icon, label, hint]) => `
-        <button class="btn small ha-action ${mode === id ? "active" : ""}" type="button" data-mode="${id}" ${canAct(false) ? "" : "disabled"}>
-          <span>${icon}</span><b>${label}</b><small>${hint}</small>
+      toolbar.innerHTML = buttons.map(([id, icon, label, hint]) => {
+        const cost = actionCost(id);
+        const disabled = !canAct(false) || focus[ctx.mySeat] < cost;
+        const meta = cost > 0 ? `${hint} · ${cost} tập trung` : hint;
+        return `
+        <button class="btn small ha-action ${mode === id ? "active" : ""}" type="button" data-mode="${id}" ${disabled ? "disabled" : ""}>
+          <span>${icon}</span><b>${label}</b><small>${meta}</small>
         </button>
-      `).join("");
+      `;
+      }).join("");
       toolbar.querySelectorAll("[data-mode]").forEach((btn) => {
         btn.addEventListener("click", () => setMode(btn.dataset.mode));
       });
@@ -457,7 +668,15 @@
       const myNotes = notes[ctx.mySeat] || {};
       const rows = suspects
         .filter((s) => s.owner !== ctx.mySeat)
-        .map((s) => `<span><b>${s.name}</b><small>${myNotes[s.id] || 0} nghi vấn · ${spot(s.spot).name}</small></span>`)
+        .map((s) => {
+          const prof = profiles[ctx.mySeat][s.id];
+          const route = prof?.route?.map((id) => spot(Number(id)).name).join(" > ");
+          return `<span>
+            <b>${s.name}</b>
+            <small>${myNotes[s.id] || 0} nghi vấn · ${spot(s.spot).name}</small>
+            ${prof ? `<small>${prof.cover} · ${prof.habit}</small><small>${prof.alibi}</small><small>${prof.clue}${route ? ` · tuyến ${route}` : ""}</small>` : `<small>${s.cover} · chưa có hồ sơ</small>`}
+          </span>`;
+        })
         .join("");
       details.innerHTML = `
         <div class="ha-notes"><b>Sổ nghi vấn</b><div>${rows}</div></div>
@@ -481,8 +700,12 @@
       }
       const text = {
         move: "Chọn nhân vật của bạn, rồi chọn một địa điểm nối liền để di chuyển.",
+        follow: "Chọn nghi phạm đối thủ để theo dõi. Khi họ di chuyển, bạn nhận thêm dấu nghi vấn.",
         observe: "Chọn nghi phạm đối thủ ở gần người của bạn để lấy manh mối.",
+        profile: "Chọn nghi phạm đối thủ để lục hồ sơ. Mỗi hồ sơ tăng bộ chứng cứ dự phòng.",
         trap: "Chọn một địa điểm để gài bẫy camera ẩn.",
+        decoy: "Chọn nhân vật của bạn để dựng mồi nhử, làm nhiễu quan sát của đối thủ.",
+        disguise: "Chọn nhân vật của bạn để cải trang, làm mờ hồ sơ và quan sát trong vài lượt.",
         accuse: "Chọn nghi phạm đối thủ để tố cáo. Đúng thắng, sai thua.",
         kill: "Chọn mục tiêu cùng địa điểm với sát thủ của bạn để ám sát.",
       };
@@ -559,9 +782,19 @@
         const ownAssassin = mine && isMyAssassin(s.id);
         const color = s.owner === 0 ? "#ff5d73" : "#4dd0e1";
         const n = notes[ctx.mySeat]?.[s.id] || 0;
+        const watched = watchers.some((w) => w.owner === ctx.mySeat && w.target === s.id);
         g.save();
         g.globalAlpha = s.stun > 0 ? 0.62 : 1;
         g.translate(s.x, s.y);
+        if (watched) {
+          g.strokeStyle = "#8be9ff";
+          g.lineWidth = 2;
+          g.setLineDash([5, 4]);
+          g.beginPath();
+          g.arc(0, 0, 29, 0, Math.PI * 2);
+          g.stroke();
+          g.setLineDash([]);
+        }
         if (selected === s.id) {
           g.strokeStyle = "#ffd166";
           g.lineWidth = 4;
@@ -590,6 +823,15 @@
         if (s.stun > 0) {
           g.fillStyle = "#ffd166";
           g.fillText("BẪY", 0, -22);
+        } else if (s.disguise > 0) {
+          g.fillStyle = "#c4b5fd";
+          g.fillText("MASK", 0, -22);
+        } else if (s.decoy > 0) {
+          g.fillStyle = "#6ee7b7";
+          g.fillText("FAKE", 0, -22);
+        } else if (!mine && watched) {
+          g.fillStyle = "#8be9ff";
+          g.fillText("TAIL", 0, -22);
         } else if (!mine && n > 0) {
           g.fillStyle = "#ffd166";
           g.fillText("?" + n, 0, -22);
@@ -631,7 +873,7 @@
     id: "hiddenassassin",
     name: "Hidden Assassin",
     emoji: "🕵️",
-    description: "Nhiều nhân vật lẫn trong đám đông, mỗi bên giấu một sát thủ thật. Quan sát, gài bẫy, tố cáo hoặc ám sát.",
+    description: "Suy luận sát thủ trong đám đông với theo dõi, hồ sơ, mồi nhử, cải trang, bẫy và tố cáo rủi ro.",
     onlineReady: true,
     localReady: false,
     options: [
@@ -665,13 +907,36 @@
           { value: 4, label: "4 dấu" },
         ],
       },
+      {
+        id: "focus",
+        label: "Tập trung tối đa",
+        default: 5,
+        choices: [
+          { value: 4, label: "4 điểm" },
+          { value: 5, label: "5 điểm" },
+          { value: 6, label: "6 điểm" },
+        ],
+      },
+      {
+        id: "dossier",
+        label: "Hồ sơ cứu tố cáo sai",
+        default: 3,
+        choices: [
+          { value: 2, label: "2 hồ sơ" },
+          { value: 3, label: "3 hồ sơ" },
+          { value: 4, label: "4 hồ sơ" },
+        ],
+      },
     ],
     howTo: [
       "Game chỉ chơi online để mỗi người giữ kín sát thủ thật của mình.",
       "Mỗi bên có nhiều nhân vật trong dạ tiệc. Bạn thấy sát thủ của mình, nhưng không biết sát thủ của đối thủ là ai.",
       "Di chuyển nhân vật qua các địa điểm nối liền. Quan sát mục tiêu khi có người của bạn đứng gần để lấy manh mối.",
+      "Tập trung hồi mỗi khi tới lượt. Theo dõi, lục hồ sơ, mồi nhử và cải trang đều tốn tập trung.",
+      "Theo dõi một nghi phạm để nhận dấu nghi vấn khi họ di chuyển. Lục hồ sơ cho thêm thông tin vỏ bọc, thói quen, lời khai và tuyến đường.",
+      "Mồi nhử và cải trang làm nhiễu quan sát/hồ sơ trong vài lượt, giúp bảo vệ sát thủ thật hoặc đánh lạc hướng đối thủ.",
       "Gài bẫy camera ở một địa điểm. Nếu đối thủ đi vào bẫy, nhân vật đó bị kẹt và tăng dấu nghi vấn trong sổ của bạn.",
-      "Tố cáo đúng sát thủ đối thủ thì thắng ngay. Tố cáo sai thì thua.",
+      "Tố cáo đúng sát thủ đối thủ thì thắng ngay. Nếu tố cáo sai nhưng đã gom đủ hồ sơ, bạn mất bộ hồ sơ đó thay vì thua ngay.",
       "Ám sát chỉ dùng được khi sát thủ của bạn cùng địa điểm với mục tiêu. Hạ đúng sát thủ đối thủ thì thắng, giết nhầm thì thua.",
     ],
     create,
