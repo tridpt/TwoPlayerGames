@@ -84,7 +84,7 @@
     {
       title: "Đối kháng hành động & vật lý",
       hint: "Canh lực, bắn, kéo thả, va chạm và phản xạ.",
-      games: ["pong", "poolbattle", "slingshotbattle", "artillery"],
+      games: ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery"],
     },
     {
       title: "Ván dài & xây dựng",
@@ -94,7 +94,7 @@
     {
       title: "Ẩn thông tin & suy luận",
       hint: "Giấu vị trí, đoán tọa độ, tìm mìn, giải từ và đọc dấu hiệu.",
-      games: ["battleship", "seabattleplus", "minesweeper", "treasure", "bullscows", "hangman", "noitu"],
+      games: ["battleship", "seabattleplus", "hiddenassassin", "trapmansion", "minesweeper", "treasure", "bullscows", "hangman", "noitu"],
     },
     {
       title: "Xúc xắc, bài & may rủi",
