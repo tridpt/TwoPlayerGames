@@ -1,28 +1,89 @@
-/* Cờ Quân Úp (Stratego mini) — chơi chung máy & ONLINE
-   Bàn 8×8. Mỗi người có 8 quân úp mặt, chỉ lộ khi giao chiến.
-   Quân có cấp; cấp cao ăn cấp thấp. Luật đặc biệt:
-     - Cờ (🏳️ rank 0): bắt được Cờ đối thủ là THẮNG.
-     - Bom (💣 rank 11): đứng yên; ai đâm vào bom thì chết, trừ Công Binh.
-     - Công Binh (rank 3): gỡ được bom (ăn bom).
-     - Điệp Viên (🕵️ rank 1): nếu CHỦ ĐỘNG tấn công Tướng (rank 10) thì thắng giao tranh đó.
-   Nước đi gửi qua mạng: { from, to }. Quân bố trí tất định theo seed chung. */
+/* Cờ Quân Úp (Stratego) - bản mở rộng 10x10, nhiều loại quân hơn. */
 (function () {
-  const N = 6; // bàn 6x6 cho gọn
-  // đội hình: rank + số lượng (tổng 6 quân mỗi người, hàng 2 dòng)
-  // ranks: 0=Cờ, 1=Điệp viên, 3=Công binh, 5, 8, 10=Tướng, 11=Bom
-  const FORMATION = [10, 8, 5, 3, 1, 0, 11, 5, 3, 8, 1, 3]; // 12 quân (2 hàng x 6)
-  const NAMES = {
-    0: "🏳️ Cờ", 1: "🕵️ Điệp viên", 3: "🛠️ Công binh", 5: "⚔️ Lính",
-    8: "🎖️ Sĩ quan", 10: "👑 Tướng", 11: "💣 Bom",
+  const N = 10;
+  const LAKES = new Set([42, 43, 52, 53, 46, 47, 56, 57]);
+  const FORMATION = [
+    10, 9, 8, 8,
+    7, 7, 7,
+    6, 6, 6, 6,
+    5, 5, 5, 5,
+    4, 4, 4, 4,
+    3, 3, 3, 3, 3,
+    2, 2, 2, 2, 2, 2, 2, 2,
+    1,
+    11, 11, 11, 11, 11, 11,
+    0,
+  ];
+  const PIECES = {
+    0: { name: "Cờ", short: "CỜ", icon: "🏳️", fixed: true },
+    1: { name: "Điệp viên", short: "ĐV", icon: "🕵️" },
+    2: { name: "Trinh sát", short: "TR", icon: "🔎", scout: true },
+    3: { name: "Công binh", short: "CB", icon: "🛠️" },
+    4: { name: "Trung sĩ", short: "TS", icon: "🛡️" },
+    5: { name: "Trung úy", short: "TU", icon: "🎯" },
+    6: { name: "Đại úy", short: "DU", icon: "⚔️" },
+    7: { name: "Thiếu tá", short: "TT", icon: "🏅" },
+    8: { name: "Đại tá", short: "DT", icon: "🎖️" },
+    9: { name: "Tư lệnh", short: "TL", icon: "⭐" },
+    10: { name: "Thống soái", short: "10", icon: "👑" },
+    11: { name: "Bom", short: "BOM", icon: "💣", fixed: true },
   };
-  const ICON = { 0: "🏳️", 1: "🕵️", 3: "🛠️", 5: "⚔️", 8: "🎖️", 10: "👑", 11: "💣" };
 
   function create(ctx) {
-    // board[i] = null | { owner, rank, revealed }
     const total = N * N;
     const board = new Array(total).fill(null);
+    let turn = 0;
+    let selected = null;
+    let over = false;
+    let lastMove = null;
+    const log = ["Hai đội đã dàn quân úp. Bắt cờ đối thủ hoặc khóa hết nước đi để thắng."];
 
-    // ----- bố trí quân tất định theo seed -----
+    setupSide(0);
+    setupSide(1);
+
+    const root = document.createElement("div");
+    root.className = "st-root";
+
+    const info = document.createElement("div");
+    info.className = "st-info";
+    root.appendChild(info);
+
+    const wrap = document.createElement("div");
+    wrap.className = "st-wrap";
+    const grid = document.createElement("div");
+    grid.className = "st-grid";
+    grid.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+    wrap.appendChild(grid);
+    root.appendChild(wrap);
+
+    const legend = document.createElement("div");
+    legend.className = "st-legend";
+    root.appendChild(legend);
+
+    ctx.boardEl.appendChild(root);
+
+    const cellEls = [];
+    for (let i = 0; i < total; i++) {
+      const cell = document.createElement("button");
+      cell.className = "st-cell";
+      cell.type = "button";
+      cell.addEventListener("click", () => onClick(i));
+      grid.appendChild(cell);
+      cellEls.push(cell);
+    }
+
+    function setupSide(owner) {
+      const ranks = shuffled(FORMATION);
+      const rows = owner === 0 ? [6, 7, 8, 9] : [0, 1, 2, 3];
+      let k = 0;
+      rows.forEach((r) => {
+        for (let c = 0; c < N; c++) {
+          const rank = ranks[k++];
+          board[r * N + c] = { owner, rank, revealed: false, moved: false };
+        }
+      });
+    }
+
     function shuffled(arr) {
       const a = arr.slice();
       for (let i = a.length - 1; i > 0; i--) {
@@ -31,130 +92,162 @@
       }
       return a;
     }
-    // P0 chiếm 2 hàng dưới (rows N-2, N-1), P1 chiếm 2 hàng trên (rows 0,1)
-    const f0 = shuffled(FORMATION), f1 = shuffled(FORMATION);
-    let k = 0;
-    for (let r = N - 2; r < N; r++) for (let c = 0; c < N; c++) {
-      board[r * N + c] = { owner: 0, rank: f0[k++], revealed: false };
-    }
-    k = 0;
-    for (let r = 0; r < 2; r++) for (let c = 0; c < N; c++) {
-      board[r * N + c] = { owner: 1, rank: f1[k++], revealed: false };
+
+    function rc(i) {
+      return [Math.floor(i / N), i % N];
     }
 
-    let turn = 0;
-    let selected = null;
-    let over = false;
-    let lastMove = null; // { from, to } nước đi gần nhất để đánh dấu
-
-    const wrap = document.createElement("div");
-    wrap.className = "st-wrap";
-    const grid = document.createElement("div");
-    grid.className = "st-grid";
-    grid.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
-    wrap.appendChild(grid);
-    ctx.boardEl.appendChild(wrap);
-
-    const cellEls = [];
-    for (let i = 0; i < total; i++) {
-      const cell = document.createElement("div");
-      cell.className = "st-cell";
-      const idx = i;
-      cell.addEventListener("click", () => onClick(idx));
-      grid.appendChild(cell);
-      cellEls.push(cell);
+    function index(r, c) {
+      return r * N + c;
     }
 
-    function rc(i) { return [Math.floor(i / N), i % N]; }
-    function adj(a, b) {
-      const [r1, c1] = rc(a), [r2, c2] = rc(b);
-      return Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
+    function inBounds(r, c) {
+      return r >= 0 && r < N && c >= 0 && c < N;
     }
 
-    function canPlay() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
+    function isLake(i) {
+      return LAKES.has(i);
+    }
 
-    // quân của mình có thể đi (không phải Cờ, không phải Bom)
-    function movable(p) { return p && p.rank !== 0 && p.rank !== 11; }
+    function canPlay() {
+      return !over && (!ctx.isOnline || turn === ctx.mySeat);
+    }
+
+    function movable(p) {
+      return p && !PIECES[p.rank].fixed;
+    }
 
     function legalTargets(i) {
       const p = board[i];
-      if (!movable(p)) return [];
+      if (!movable(p) || isLake(i)) return [];
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      const [r, c] = rc(i);
       const res = [];
-      for (let j = 0; j < total; j++) {
-        if (!adj(i, j)) continue;
-        const t = board[j];
-        if (!t || t.owner !== p.owner) res.push(j); // ô trống hoặc quân địch
-      }
+
+      dirs.forEach(([dr, dc]) => {
+        let nr = r + dr;
+        let nc = c + dc;
+        while (inBounds(nr, nc)) {
+          const ni = index(nr, nc);
+          if (isLake(ni)) break;
+          const target = board[ni];
+          if (target) {
+            if (target.owner !== p.owner) res.push(ni);
+            break;
+          }
+          res.push(ni);
+          if (!PIECES[p.rank].scout) break;
+          nr += dr;
+          nc += dc;
+        }
+      });
       return res;
     }
 
     function onClick(i) {
-      if (!canPlay()) return;
+      if (!canPlay() || isLake(i)) return;
       const p = board[i];
       if (selected === null) {
-        if (p && p.owner === turn && movable(p) && legalTargets(i).length) { selected = i; render(); }
+        if (p && p.owner === turn && movable(p) && legalTargets(i).length) {
+          selected = i;
+          render();
+        }
         return;
       }
-      if (i === selected) { selected = null; render(); return; }
-      // chọn quân khác của mình
-      if (p && p.owner === turn && movable(p)) {
-        selected = legalTargets(i).length ? i : null; render(); return;
+
+      if (i === selected) {
+        selected = null;
+        render();
+        return;
       }
-      // di chuyển/tấn công nếu hợp lệ
+
+      if (p && p.owner === turn && movable(p)) {
+        selected = legalTargets(i).length ? i : null;
+        render();
+        return;
+      }
+
       if (legalTargets(selected).includes(i)) {
         applyMove({ from: selected, to: i }, false);
       }
     }
 
-    // giải quyết giao tranh: trả về 'win'(attacker thắng) | 'lose' | 'both'
     function combat(att, def) {
-      if (def.rank === 0) return "flag";          // bắt cờ
-      if (def.rank === 11) return att.rank === 3 ? "win" : "lose"; // bom: chỉ công binh gỡ được
-      if (att.rank === 1 && def.rank === 10) return "win"; // điệp viên đâm tướng
-      if (att.rank === def.rank) return "both";   // cùng cấp: cả hai chết
+      if (def.rank === 0) return "flag";
+      if (def.rank === 11) return att.rank === 3 ? "win" : "lose";
+      if (att.rank === 1 && def.rank === 10) return "win";
+      if (att.rank === def.rank) return "both";
       return att.rank > def.rank ? "win" : "lose";
     }
 
     function applyMove(move, fromRemote) {
       if (over) return;
-      const { from, to } = move;
+      const from = Number(move.from);
+      const to = Number(move.to);
       const att = board[from];
-      if (!att) return;
+      if (!att || att.owner !== turn || !legalTargets(from).includes(to)) return;
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ from, to });
 
       const def = board[to];
+      lastMove = { from, to, landed: -1, battle: !!def };
+
       if (!def) {
-        // di chuyển vào ô trống
-        board[to] = att; board[from] = null;
+        att.moved = true;
+        board[to] = att;
+        board[from] = null;
+        lastMove.landed = to;
+        addLog(`P${att.owner + 1} di chuyển ${pieceName(att)}.`);
         ctx.sound("select");
-        lastMove = { from, to, landed: to }; // quân dừng ở 'to'
       } else {
-        // giao tranh: lộ cả hai
-        att.revealed = true; def.revealed = true;
+        att.revealed = true;
+        def.revealed = true;
         const result = combat(att, def);
         ctx.sound("capture");
         if (result === "flag") {
-          board[to] = att; board[from] = null;
-          lastMove = { from, to, landed: to };
+          att.moved = true;
+          board[to] = att;
+          board[from] = null;
+          lastMove.landed = to;
+          addLog(`${pieceName(att)} bắt được Cờ đối thủ.`);
+          selected = null;
           render();
-          return endGame(att.owner, "🏳️ Cờ đã bị bắt!");
+          return endGame(att.owner, "Cờ đã bị bắt!");
         }
-        if (result === "win") { board[to] = att; board[from] = null; lastMove = { from, to, landed: to }; }
-        else if (result === "lose") { board[from] = null; lastMove = { from, to, landed: -1 }; }
-        else { board[from] = null; board[to] = null; lastMove = { from, to, landed: -1 }; } // both
+        if (result === "win") {
+          att.moved = true;
+          board[to] = att;
+          board[from] = null;
+          lastMove.landed = to;
+          addLog(`${pieceName(att)} thắng ${pieceName(def)}.`);
+        } else if (result === "lose") {
+          board[from] = null;
+          addLog(`${pieceName(att)} thua ${pieceName(def)}.`);
+        } else {
+          board[from] = null;
+          board[to] = null;
+          addLog(`${pieceName(att)} và ${pieceName(def)} cùng cấp, cả hai bị loại.`);
+        }
       }
 
       selected = null;
-      render();
 
-      // kiểm tra: bên nào hết quân di chuyển được -> thua
       const loser = noMoves();
-      if (loser !== -1) return endGame(1 - loser, "Đối thủ không còn nước đi!");
+      if (loser !== -1) return endGame(1 - loser, "Đối thủ không còn quân có thể di chuyển.");
 
       turn = 1 - turn;
       ctx.setTurn(turn);
+      render();
       updateStatus();
+    }
+
+    function pieceName(p) {
+      return `${PIECES[p.rank].name} P${p.owner + 1}`;
+    }
+
+    function addLog(text) {
+      log.unshift(text);
+      while (log.length > 5) log.pop();
     }
 
     function noMoves() {
@@ -162,7 +255,10 @@
         let has = false;
         for (let i = 0; i < total; i++) {
           const p = board[i];
-          if (p && p.owner === pl && movable(p) && legalTargets(i).length) { has = true; break; }
+          if (p && p.owner === pl && movable(p) && legalTargets(i).length) {
+            has = true;
+            break;
+          }
         }
         if (!has) return pl;
       }
@@ -171,33 +267,56 @@
 
     function endGame(winner, msg) {
       over = true;
+      selected = null;
+      board.forEach((p) => {
+        if (p) p.revealed = true;
+      });
       ctx.setTurn(-1);
-      // lộ hết quân khi kết thúc
-      board.forEach((p) => { if (p) p.revealed = true; });
       render();
       ctx.incScore(winner);
       ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng! ${msg}`);
     }
 
+    function visibleToMe(p) {
+      if (!p) return false;
+      if (p.revealed || over) return true;
+      if (ctx.isOnline) return p.owner === ctx.mySeat;
+      return p.owner === turn;
+    }
+
     function render() {
+      renderInfo();
+      renderLegend();
       const targets = selected !== null ? new Set(legalTargets(selected)) : new Set();
       for (let i = 0; i < total; i++) {
         const cell = cellEls[i];
         const p = board[i];
         cell.className = "st-cell";
-        cell.textContent = "";
+        cell.innerHTML = "";
+        cell.disabled = over || isLake(i) || !canPlay();
+
+        if (isLake(i)) {
+          cell.classList.add("st-lake");
+          cell.textContent = "≈";
+          continue;
+        }
+
         if (p) {
-          const seeIt = p.revealed || p.owner === (ctx.isOnline ? ctx.mySeat : turn) || over;
+          const data = PIECES[p.rank];
+          const seeIt = visibleToMe(p);
           cell.classList.add(p.owner === 0 ? "st-p1" : "st-p2");
+          if (p.moved) cell.classList.add("st-moved");
           if (seeIt) {
-            cell.textContent = ICON[p.rank];
-            if (![0, 11].includes(p.rank)) {
-              const lv = document.createElement("span");
-              lv.className = "st-rank";
-              lv.textContent = p.rank;
-              cell.appendChild(lv);
-            }
-            // quân đã bị lộ trong giao tranh -> đánh dấu con mắt
+            const icon = document.createElement("span");
+            icon.className = "st-icon";
+            icon.textContent = data.icon;
+            cell.appendChild(icon);
+
+            const tag = document.createElement("span");
+            tag.className = "st-rank";
+            tag.textContent = data.short;
+            cell.appendChild(tag);
+
             if (p.revealed && !over) {
               const eye = document.createElement("span");
               eye.className = "st-revealed";
@@ -206,12 +325,13 @@
             }
           } else {
             cell.classList.add("st-hidden");
-            cell.textContent = "▩";
+            cell.textContent = p.moved ? "▣" : "▩";
           }
         }
-        // đánh dấu nước đi gần nhất
+
         if (lastMove) {
           if (i === lastMove.from) cell.classList.add("st-lastfrom");
+          if (i === lastMove.to && lastMove.battle) cell.classList.add("st-lastbattle");
           if (i === lastMove.landed) cell.classList.add("st-lastto");
         }
         if (selected === i) cell.classList.add("st-sel");
@@ -219,8 +339,54 @@
       }
     }
 
+    function renderInfo() {
+      const counts = [countArmy(0), countArmy(1)];
+      info.innerHTML = `
+        <div class="st-player ${turn === 0 && !over ? "active" : ""}">
+          <b>Người chơi 1</b>
+          <span>${counts[0].alive} quân · ${counts[0].mobile} cơ động</span>
+        </div>
+        <div class="st-mid">
+          <b>${over ? "Kết thúc" : "Lượt " + (turn + 1)}</b>
+          <span>Bàn 10x10 · 40 quân mỗi bên · hồ nước chặn đường</span>
+          <small>${log[0] || ""}</small>
+        </div>
+        <div class="st-player ${turn === 1 && !over ? "active" : ""}">
+          <b>Người chơi 2</b>
+          <span>${counts[1].alive} quân · ${counts[1].mobile} cơ động</span>
+        </div>
+      `;
+    }
+
+    function countArmy(owner) {
+      const mine = board.filter((p) => p && p.owner === owner);
+      return {
+        alive: mine.length,
+        mobile: mine.filter((p) => movable(p)).length,
+      };
+    }
+
+    function renderLegend() {
+      const ranks = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 11, 0];
+      legend.innerHTML = `
+        <div class="st-piece-list">
+          ${ranks.map((rank) => {
+            const p = PIECES[rank];
+            const note = rank === 2 ? "đi xa" : rank === 3 ? "gỡ bom" : rank === 1 ? "hạ 10 khi tấn công" : rank === 11 ? "đứng yên" : rank === 0 ? "bị bắt là thua" : `cấp ${rank}`;
+            return `<span><b>${p.icon} ${p.short}</b><small>${p.name} · ${note}</small></span>`;
+          }).join("")}
+        </div>
+        <div class="st-log">${log.map((x) => `<span>${x}</span>`).join("")}</div>
+      `;
+    }
+
     function updateStatus() {
-      ctx.setStatus(`Lượt Người chơi ${turn + 1}. Chọn quân rồi đi sang ô kề (đâm quân địch để giao tranh).`);
+      if (over) return;
+      if (ctx.isOnline && turn !== ctx.mySeat) {
+        ctx.setStatus("Đối thủ đang đi. Quân đã từng di chuyển sẽ có dấu xanh lá để bạn đọc dấu vết.");
+        return;
+      }
+      ctx.setStatus("Chọn quân của bạn rồi chọn ô hợp lệ. Trinh sát đi thẳng xa; quân đã di chuyển được đánh dấu xanh lá.");
     }
 
     if (ctx.isOnline) {
@@ -237,16 +403,17 @@
     id: "stratego",
     name: "Cờ Quân Úp (Stratego)",
     emoji: "🎖️",
-    description: "Quân úp mặt, chỉ lộ khi giao chiến. Cấp cao ăn cấp thấp. Bắt được Cờ đối thủ là thắng.",
+    description: "Stratego mở rộng: bàn 10x10, 40 quân mỗi bên, hồ nước, bom, cờ, trinh sát đi xa và nhiều cấp quân.",
     onlineReady: true,
+    options: [],
     howTo: [
-      "Bàn 6×6. Mỗi người có 12 quân xếp úp ở 2 hàng phía mình — bạn thấy quân mình, đối thủ chỉ thấy ô úp ▩.",
-      "Đến lượt, chọn một quân của mình rồi đi sang ô KỀ (ngang/dọc). Đi vào ô có quân địch = giao tranh.",
-      "Giao tranh: cả hai lộ mặt, quân CẤP CAO HƠN thắng (cấp ghi trên quân). Bằng cấp thì cả hai cùng chết.",
-      "Quân đặc biệt: 🏳️ Cờ và 💣 Bom KHÔNG di chuyển được. 🛠️ Công binh (cấp 3) gỡ được bom. 🕵️ Điệp viên (cấp 1) nếu chủ động đâm 👑 Tướng (cấp 10) thì thắng.",
-      "BẮT ĐƯỢC CỜ 🏳️ của đối thủ là thắng ngay. Hoặc khiến đối thủ không còn quân nào di chuyển được.",
-      "Quân vừa di chuyển được tô sáng vàng (ô đi và ô đến). Quân đã lộ mặt trong giao tranh có dấu 👁️ để bạn nhớ.",
-      "Mẹo: giấu Cờ sau Bom, dùng quân nhỏ thăm dò để lộ quân lớn của địch.",
+      "Bàn 10x10. Mỗi người có 40 quân úp ở 4 hàng phía mình. Bạn chỉ thấy quân của mình; quân đối thủ úp cho tới khi giao tranh.",
+      "Chọn một quân có thể đi rồi chọn ô hợp lệ. Phần lớn quân đi 1 ô ngang/dọc; 🔎 Trinh sát có thể đi thẳng nhiều ô nếu đường không bị chặn.",
+      "Hồ nước ở giữa là chướng ngại, không quân nào đi vào hoặc đi xuyên qua được.",
+      "Khi đâm vào quân địch, cả hai quân lộ mặt. Cấp cao hơn thắng; cùng cấp thì cả hai bị loại.",
+      "Luật đặc biệt: 💣 Bom đứng yên và hạ quân tấn công, trừ 🛠️ Công binh gỡ được bom. 🕵️ Điệp viên hạ 👑 Thống soái nếu chủ động tấn công.",
+      "🏳️ Cờ và 💣 Bom không di chuyển được. Bắt được Cờ đối thủ là thắng ngay.",
+      "Quân đã từng di chuyển được đánh dấu xanh lá. Dùng dấu này để suy luận quân nào không thể là Bom hoặc Cờ.",
     ],
     create,
   });
