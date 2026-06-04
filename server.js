@@ -45,7 +45,7 @@ const server = http.createServer((req, res) => {
 // ---------- WebSocket: phòng chơi online ----------
 const wss = new WebSocketServer({ server });
 
-/** rooms: code -> { players: [ws, ws], gameId, seed } */
+/** rooms: code -> { players: [ws, ws], gameId, seed, firstSeat, restartVotes } */
 const rooms = new Map();
 
 function makeCode() {
@@ -93,11 +93,12 @@ wss.on("connection", (ws) => {
         leaveRoom(ws);
         const code = makeCode();
         const seed = Math.floor(Math.random() * 1e9);
+        const firstSeat = Math.random() < 0.5 ? 0 : 1;
         const options = msg.options || {};
-        rooms.set(code, { players: [ws, null], gameId: msg.gameId, seed, options });
+        rooms.set(code, { players: [ws, null], gameId: msg.gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options });
         ws.roomCode = code;
         ws.seat = 0;
-        send(ws, "created", { code, seat: 0, gameId: msg.gameId, seed, options });
+        send(ws, "created", { code, seat: 0, gameId: msg.gameId, seed, firstSeat, round: 1, options });
         break;
       }
 
@@ -109,10 +110,10 @@ wss.on("connection", (ws) => {
         room.players[1] = ws;
         ws.roomCode = msg.code;
         ws.seat = 1;
-        send(ws, "joined", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, options: room.options });
+        send(ws, "joined", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options });
         // báo cho cả hai bắt đầu (kèm options của chủ phòng)
-        send(room.players[0], "start", { code: msg.code, seat: 0, gameId: room.gameId, seed: room.seed, options: room.options });
-        send(room.players[1], "start", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, options: room.options });
+        send(room.players[0], "start", { code: msg.code, seat: 0, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options });
+        send(room.players[1], "start", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options });
         break;
       }
 
@@ -127,10 +128,20 @@ wss.on("connection", (ws) => {
       case "restart": {
         const room = rooms.get(ws.roomCode);
         if (!room) return;
-        // người chủ phòng phát seed mới để đồng bộ (giữ nguyên options)
+        // Chơi lại online: đủ hai người đồng ý mới tạo seed mới, rồi đảo người đi trước.
+        if (!room.restartVotes) room.restartVotes = new Set();
+        room.restartVotes.add(ws.seat);
+        const ready = Array.from(room.restartVotes);
+        room.players.forEach((p) => send(p, "restart_pending", { code: ws.roomCode, ready, requester: ws.seat }));
+
+        if (!room.players[0] || !room.players[1] || room.restartVotes.size < 2) return;
+
         const seed = Math.floor(Math.random() * 1e9);
         room.seed = seed;
-        room.players.forEach((p, i) => send(p, "restart", { code: ws.roomCode, gameId: room.gameId, seed, seat: i, options: room.options }));
+        room.round = (room.round || 1) + 1;
+        room.firstSeat = typeof room.firstSeat === "number" ? 1 - room.firstSeat : (Math.random() < 0.5 ? 0 : 1);
+        room.restartVotes.clear();
+        room.players.forEach((p, i) => send(p, "restart", { code: ws.roomCode, gameId: room.gameId, seed, seat: i, firstSeat: room.firstSeat, round: room.round, options: room.options }));
         break;
       }
 

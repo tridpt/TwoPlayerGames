@@ -36,12 +36,12 @@
       </div>
       <div class="mode-cards">
         <div class="mode-card" id="modeLocal">
-          <div class="emoji">🛋️</div>
+          <div class="mode-icon mode-icon-local" aria-hidden="true"></div>
           <h3>Chơi chung máy</h3>
           <p>Hai người luân phiên trên cùng một thiết bị.</p>
         </div>
         <div class="mode-card" id="modeOnline">
-          <div class="emoji">🌐</div>
+          <div class="mode-icon mode-icon-online" aria-hidden="true"></div>
           <h3>Chơi online</h3>
           <p>Hai người ở hai máy khác nhau, kết nối qua mã phòng.</p>
         </div>
@@ -87,7 +87,7 @@
         <button class="btn back-btn" id="backBtn">← Thoát</button>
         <h2 class="game-title" id="gameTitle"></h2>
         <div class="game-bar-right">
-          <button class="btn icon-btn" id="helpBtn" title="Hướng dẫn chơi">❓</button>
+          <button class="btn icon-btn" id="helpBtn" title="Hướng dẫn chơi">?</button>
           <button class="btn" id="restartBtn">↻ Chơi lại</button>
         </div>
       </div>
@@ -137,7 +137,7 @@
   <div class="win-overlay hidden" id="winOverlay">
     <canvas class="win-confetti" id="winConfetti"></canvas>
     <div class="win-card" id="winCard">
-      <div class="win-emoji" id="winEmoji">🎉</div>
+      <div class="win-emoji win-win" id="winEmoji" aria-hidden="true"></div>
       <h2 class="win-title" id="winTitle">Chiến thắng!</h2>
       <p class="win-sub" id="winSub"></p>
       <div class="win-actions">
@@ -199,6 +199,7 @@
   <script src="js/games/bullscows.js"></script>
   <script src="js/games/stratego.js"></script>
   <script src="js/games/quoridor.js"></script>
+  <script src="js/games/auctionwar.js"></script>
   <script src="js/games/pig.js"></script>
   <script src="js/games/yahtzee.js"></script>
   <script src="js/games/domino.js"></script>

@@ -1,17 +1,17 @@
-/* Cờ Quân Úp (Stratego) - bản mở rộng 10x10, nhiều loại quân hơn. */
+/* Cờ Quân Úp (Stratego) - bản gọn 10x10, mỗi bên 2 hàng quân. */
 (function () {
   const N = 10;
-  const LAKES = new Set([42, 43, 52, 53, 46, 47, 56, 57]);
+  const LAKES = new Set();
   const FORMATION = [
-    10, 9, 8, 8,
-    7, 7, 7,
-    6, 6, 6, 6,
-    5, 5, 5, 5,
-    4, 4, 4, 4,
-    3, 3, 3, 3, 3,
-    2, 2, 2, 2, 2, 2, 2, 2,
+    9, 8,
+    7, 7,
+    6, 6, 6,
+    5, 5, 5,
+    4, 4,
+    3, 3, 3,
+    2, 2,
     1,
-    11, 11, 11, 11, 11, 11,
+    11,
     0,
   ];
   const PIECES = {
@@ -24,8 +24,7 @@
     6: { name: "Đại úy", short: "DU", icon: "⚔️" },
     7: { name: "Thiếu tá", short: "TT", icon: "🏅" },
     8: { name: "Đại tá", short: "DT", icon: "🎖️" },
-    9: { name: "Tư lệnh", short: "TL", icon: "⭐" },
-    10: { name: "Thống soái", short: "10", icon: "👑" },
+    9: { name: "Tướng", short: "T9", icon: "👑" },
     11: { name: "Bom", short: "BOM", icon: "💣", fixed: true },
   };
 
@@ -36,7 +35,7 @@
     let selected = null;
     let over = false;
     let lastMove = null;
-    const log = ["Hai đội đã dàn quân úp. Bắt cờ đối thủ hoặc khóa hết nước đi để thắng."];
+    const log = ["Mỗi bên chỉ có 2 hàng quân. Bàn rộng, khoảng trống nhiều để dò và bọc cờ."];
 
     setupSide(0);
     setupSide(1);
@@ -74,7 +73,7 @@
 
     function setupSide(owner) {
       const ranks = shuffled(FORMATION);
-      const rows = owner === 0 ? [6, 7, 8, 9] : [0, 1, 2, 3];
+      const rows = owner === 0 ? [8, 9] : [0, 1];
       let k = 0;
       rows.forEach((r) => {
         for (let c = 0; c < N; c++) {
@@ -175,7 +174,7 @@
     function combat(att, def) {
       if (def.rank === 0) return "flag";
       if (def.rank === 11) return att.rank === 3 ? "win" : "lose";
-      if (att.rank === 1 && def.rank === 10) return "win";
+      if (att.rank === 1 && def.rank === 9) return "win";
       if (att.rank === def.rank) return "both";
       return att.rank > def.rank ? "win" : "lose";
     }
@@ -348,7 +347,7 @@
         </div>
         <div class="st-mid">
           <b>${over ? "Kết thúc" : "Lượt " + (turn + 1)}</b>
-          <span>Bàn 10x10 · 40 quân mỗi bên · hồ nước chặn đường</span>
+          <span>Bàn 10x10 · 20 quân mỗi bên · chỉ 2 hàng quân</span>
           <small>${log[0] || ""}</small>
         </div>
         <div class="st-player ${turn === 1 && !over ? "active" : ""}">
@@ -367,12 +366,12 @@
     }
 
     function renderLegend() {
-      const ranks = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 11, 0];
+      const ranks = [9, 8, 7, 6, 5, 4, 3, 2, 1, 11, 0];
       legend.innerHTML = `
         <div class="st-piece-list">
           ${ranks.map((rank) => {
             const p = PIECES[rank];
-            const note = rank === 2 ? "đi xa" : rank === 3 ? "gỡ bom" : rank === 1 ? "hạ 10 khi tấn công" : rank === 11 ? "đứng yên" : rank === 0 ? "bị bắt là thua" : `cấp ${rank}`;
+            const note = rank === 2 ? "đi xa" : rank === 3 ? "gỡ bom" : rank === 1 ? "hạ Tướng khi tấn công" : rank === 11 ? "đứng yên" : rank === 0 ? "bị bắt là thua" : `cấp ${rank}`;
             return `<span><b>${p.icon} ${p.short}</b><small>${p.name} · ${note}</small></span>`;
           }).join("")}
         </div>
@@ -386,7 +385,7 @@
         ctx.setStatus("Đối thủ đang đi. Quân đã từng di chuyển sẽ có dấu xanh lá để bạn đọc dấu vết.");
         return;
       }
-      ctx.setStatus("Chọn quân của bạn rồi chọn ô hợp lệ. Trinh sát đi thẳng xa; quân đã di chuyển được đánh dấu xanh lá.");
+      ctx.setStatus("Chọn quân của bạn rồi chọn ô hợp lệ. Bàn rộng hơn đội hình, quân đã di chuyển được đánh dấu xanh lá.");
     }
 
     if (ctx.isOnline) {
@@ -403,15 +402,15 @@
     id: "stratego",
     name: "Cờ Quân Úp (Stratego)",
     emoji: "🎖️",
-    description: "Stratego mở rộng: bàn 10x10, 40 quân mỗi bên, hồ nước, bom, cờ, trinh sát đi xa và nhiều cấp quân.",
+    description: "Stratego gọn: bàn 10x10 rộng, mỗi bên 2 hàng quân úp, bắt Cờ đối thủ để thắng.",
     onlineReady: true,
     options: [],
     howTo: [
-      "Bàn 10x10. Mỗi người có 40 quân úp ở 4 hàng phía mình. Bạn chỉ thấy quân của mình; quân đối thủ úp cho tới khi giao tranh.",
+      "Bàn 10x10 rộng nhưng mỗi người chỉ có 20 quân úp ở 2 hàng phía mình.",
+      "Bạn chỉ thấy quân của mình; quân đối thủ úp cho tới khi giao tranh.",
       "Chọn một quân có thể đi rồi chọn ô hợp lệ. Phần lớn quân đi 1 ô ngang/dọc; 🔎 Trinh sát có thể đi thẳng nhiều ô nếu đường không bị chặn.",
-      "Hồ nước ở giữa là chướng ngại, không quân nào đi vào hoặc đi xuyên qua được.",
       "Khi đâm vào quân địch, cả hai quân lộ mặt. Cấp cao hơn thắng; cùng cấp thì cả hai bị loại.",
-      "Luật đặc biệt: 💣 Bom đứng yên và hạ quân tấn công, trừ 🛠️ Công binh gỡ được bom. 🕵️ Điệp viên hạ 👑 Thống soái nếu chủ động tấn công.",
+      "Luật đặc biệt: 💣 Bom đứng yên và hạ quân tấn công, trừ 🛠️ Công binh gỡ được bom. 🕵️ Điệp viên hạ 👑 Tướng nếu chủ động tấn công.",
       "🏳️ Cờ và 💣 Bom không di chuyển được. Bắt được Cờ đối thủ là thắng ngay.",
       "Quân đã từng di chuyển được đánh dấu xanh lá. Dùng dấu này để suy luận quân nào không thể là Bom hoặc Cờ.",
     ],
