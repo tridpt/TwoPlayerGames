@@ -4523,6 +4523,61 @@ body {
   font-size: 0.78rem;
   font-weight: 900;
 }
+.cd-spawn {
+  display: none;
+}
+.cd-route-gates {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+}
+.cd-gate {
+  position: absolute;
+  width: 34px;
+  height: 28px;
+  transform: translate(-82%, -50%);
+  border-radius: 50% 50% 9px 9px;
+  background:
+    radial-gradient(circle at 50% 58%, #271b18 0 31%, transparent 33%),
+    linear-gradient(180deg, #c94f3f, #7d2f2a);
+  border: 3px solid rgba(69,37,25,0.48);
+  box-shadow: 0 7px 0 rgba(68,43,27,0.28), 0 12px 18px rgba(0,0,0,0.22);
+}
+.cd-gate::before,
+.cd-gate::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  width: 11px;
+  height: 15px;
+  border-radius: 50%;
+  background: #e6d8b9;
+}
+.cd-gate::before {
+  left: 1px;
+  transform: rotate(-28deg);
+}
+.cd-gate::after {
+  right: 1px;
+  transform: rotate(28deg);
+}
+.cd-map.map-coast .cd-gate {
+  background:
+    radial-gradient(circle at 50% 58%, #17202a 0 31%, transparent 33%),
+    linear-gradient(180deg, #7fb7bd, #3f7480);
+}
+.cd-map.map-canyon .cd-gate {
+  background:
+    radial-gradient(circle at 50% 58%, #261914 0 31%, transparent 33%),
+    linear-gradient(180deg, #9a563c, #5a3029);
+}
+.cd-map.map-ruins .cd-gate {
+  background:
+    radial-gradient(circle at 50% 58%, #171928 0 31%, transparent 33%),
+    linear-gradient(180deg, #8d79c7, #4f4b79);
+  box-shadow: 0 7px 0 rgba(35,37,59,0.35), 0 0 14px rgba(198,167,255,0.32);
+}
 .cd-map-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4718,6 +4773,16 @@ body {
   background: rgba(86,196,218,0.62);
   box-shadow: inset 0 0 0 4px rgba(255,255,255,0.16);
 }
+.cd-deco-bridge {
+  width: 64px;
+  height: 24px;
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(90deg, rgba(80,50,20,0.32) 0 5px, transparent 5px 12px),
+    linear-gradient(180deg, #b88444, #7b532d);
+  box-shadow: 0 5px 0 rgba(65,43,22,0.32);
+  transform: translate(-50%, -50%) rotate(-16deg);
+}
 .cd-deco-bones {
   width: 34px;
   height: 16px;
@@ -4845,6 +4910,83 @@ body {
   .cd-map {
     min-width: 0;
     min-height: 520px;
+  }
+}
+
+/* Panel xuống dưới để bản đồ chiếm full chiều ngang. */
+.cd-layout {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+.cd-map {
+  min-height: clamp(640px, 58vw, 790px);
+}
+.cd-panel {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 12px;
+}
+.cd-panel-section {
+  height: auto;
+  min-width: 0;
+}
+.cd-map-list {
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+.cd-tower-list {
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+}
+.cd-tower-card {
+  grid-template-columns: 56px minmax(0, 1fr);
+  min-height: 66px;
+  overflow: visible;
+}
+.cd-tower-card b,
+.cd-tower-card small {
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.cd-panel-section:nth-child(3) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+.cd-panel-section:nth-child(3) h3 {
+  grid-column: 1 / -1;
+}
+.cd-panel-section:nth-child(3) .cd-empty-select,
+.cd-panel-section:nth-child(3) .cd-selected {
+  margin-bottom: 0;
+}
+.cd-panel-section:nth-child(3) .cd-start {
+  align-self: stretch;
+  min-height: 62px;
+  margin-top: 0;
+}
+.cd-route-gates,
+.cd-gate {
+  display: none;
+}
+@media (max-width: 1180px) {
+  .cd-tower-list {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+  .cd-map-list {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+@media (max-width: 680px) {
+  .cd-map {
+    min-height: 540px;
+  }
+  .cd-tower-list,
+  .cd-map-list {
+    grid-template-columns: 1fr;
   }
 }
 
