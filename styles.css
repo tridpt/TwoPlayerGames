@@ -166,6 +166,274 @@ body {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
+.game-avatar {
+  --av-a: var(--accent);
+  --av-b: var(--p2);
+  --av-c: var(--p1);
+  position: relative;
+  height: 116px;
+  margin: -6px -6px 18px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.11), rgba(255,255,255,0.01)),
+    #151936;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+.game-avatar::before {
+  content: attr(data-mark);
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 5;
+  min-width: 34px;
+  height: 28px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: rgba(8,11,27,0.7);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: var(--av-a);
+  font-weight: 900;
+  font-size: 0.92rem;
+  letter-spacing: 0;
+}
+.game-avatar::after,
+.avatar-orbit,
+.avatar-piece {
+  content: "";
+  position: absolute;
+  display: block;
+}
+.avatar-piece {
+  z-index: 3;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.28);
+}
+.game-avatar-board {
+  --av-a: #ffd166;
+  --av-b: #4dd0e1;
+  --av-c: #ff5d73;
+  background:
+    linear-gradient(rgba(255,255,255,0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.09) 1px, transparent 1px),
+    linear-gradient(135deg, #171b38, #2b3267);
+  background-size: 26px 26px, 26px 26px, auto;
+}
+.game-avatar-board .avatar-piece {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+.game-avatar-board .avatar-piece.a { right: 25px; top: 24px; background: var(--av-b); }
+.game-avatar-board .avatar-piece.b { right: 54px; top: 54px; background: var(--av-a); }
+.game-avatar-board .avatar-piece.c { right: 88px; bottom: 18px; background: var(--av-c); }
+.game-avatar-board .avatar-orbit.one {
+  left: 63px;
+  top: 72px;
+  width: 88px;
+  height: 3px;
+  background: var(--av-a);
+  transform: rotate(-26deg);
+}
+.game-avatar-map {
+  --av-a: #6ee7b7;
+  --av-b: #4dd0e1;
+  --av-c: #ffd166;
+  background:
+    linear-gradient(150deg, rgba(110,231,183,0.28) 0 26%, transparent 26% 100%),
+    linear-gradient(28deg, transparent 0 42%, rgba(77,208,225,0.2) 42% 64%, transparent 64%),
+    #151936;
+}
+.game-avatar-map .avatar-piece.a {
+  width: 58px;
+  height: 33px;
+  right: 22px;
+  bottom: 22px;
+  background: var(--av-b);
+  clip-path: polygon(8% 30%, 65% 30%, 100% 50%, 65% 70%, 8% 70%, 0 50%);
+}
+.game-avatar-map .avatar-piece.b {
+  width: 40px;
+  height: 40px;
+  left: 76px;
+  top: 35px;
+  background: rgba(255,209,102,0.88);
+  clip-path: polygon(50% 0, 100% 28%, 82% 100%, 18% 100%, 0 28%);
+}
+.game-avatar-map .avatar-piece.c {
+  width: 28px;
+  height: 28px;
+  right: 95px;
+  top: 20px;
+  border: 3px solid var(--av-c);
+  background: transparent;
+}
+.game-avatar-action {
+  --av-a: #ffd166;
+  --av-b: #6ee7b7;
+  --av-c: #ff5d73;
+  background:
+    radial-gradient(circle at 70% 48%, transparent 0 17px, rgba(255,255,255,0.16) 18px 20px, transparent 21px 38px, rgba(255,255,255,0.12) 39px 41px, transparent 42px),
+    linear-gradient(135deg, #171b38, #27305d);
+}
+.game-avatar-action .avatar-orbit.one {
+  left: 34px;
+  top: 74px;
+  width: 122px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--av-a);
+  transform: rotate(-17deg);
+}
+.game-avatar-action .avatar-piece.a {
+  left: 49px;
+  top: 67px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--av-c);
+}
+.game-avatar-action .avatar-piece.b {
+  right: 34px;
+  top: 43px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--av-a);
+}
+.game-avatar-action .avatar-piece.c {
+  right: 80px;
+  bottom: 17px;
+  width: 42px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--av-b);
+}
+.game-avatar-long {
+  --av-a: #ff9f7a;
+  --av-b: #6ee7b7;
+  --av-c: #ffd166;
+  background:
+    linear-gradient(rgba(255,255,255,0.1) 0 2px, transparent 2px 33px),
+    linear-gradient(135deg, #171b38, #2a315c);
+  background-size: 100% 34px, auto;
+}
+.game-avatar-long .avatar-piece.a,
+.game-avatar-long .avatar-piece.b {
+  width: 32px;
+  height: 42px;
+  bottom: 18px;
+  background: var(--av-a);
+  clip-path: polygon(12% 100%, 12% 38%, 50% 0, 88% 38%, 88% 100%);
+}
+.game-avatar-long .avatar-piece.a { left: 70px; }
+.game-avatar-long .avatar-piece.b { right: 30px; background: var(--av-b); }
+.game-avatar-long .avatar-piece.c {
+  left: 130px;
+  top: 50px;
+  width: 36px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--av-c);
+}
+.game-avatar-hidden {
+  --av-a: #c6a7ff;
+  --av-b: #4dd0e1;
+  --av-c: #ffd166;
+  background:
+    radial-gradient(circle at 68% 55%, transparent 0 22px, rgba(77,208,225,0.22) 23px 25px, transparent 26px 43px, rgba(77,208,225,0.18) 44px 46px, transparent 47px),
+    linear-gradient(135deg, #151936, #272b55);
+}
+.game-avatar-hidden .avatar-orbit.one {
+  right: 28px;
+  top: 19px;
+  width: 4px;
+  height: 88px;
+  border-radius: 999px;
+  background: var(--av-b);
+  transform: rotate(44deg);
+  transform-origin: center;
+}
+.game-avatar-hidden .avatar-piece.a {
+  left: 70px;
+  bottom: 22px;
+  width: 42px;
+  height: 28px;
+  border-radius: 50% 50% 46% 46%;
+  background: var(--av-a);
+}
+.game-avatar-hidden .avatar-piece.b,
+.game-avatar-hidden .avatar-piece.c {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--av-c);
+}
+.game-avatar-hidden .avatar-piece.b { right: 55px; top: 38px; }
+.game-avatar-hidden .avatar-piece.c { right: 95px; bottom: 30px; }
+.game-avatar-chance {
+  --av-a: #ffd166;
+  --av-b: #4dd0e1;
+  --av-c: #ff5d73;
+  background:
+    linear-gradient(135deg, rgba(255,209,102,0.2), transparent 38%),
+    linear-gradient(160deg, #171b38, #2b315f);
+}
+.game-avatar-chance .avatar-piece.a,
+.game-avatar-chance .avatar-piece.b {
+  width: 45px;
+  height: 64px;
+  top: 26px;
+  border-radius: 8px;
+  background: #f4e1ae;
+}
+.game-avatar-chance .avatar-piece.a {
+  right: 57px;
+  transform: rotate(-10deg);
+}
+.game-avatar-chance .avatar-piece.b {
+  right: 22px;
+  background: var(--av-b);
+  transform: rotate(9deg);
+}
+.game-avatar-chance .avatar-piece.c {
+  left: 72px;
+  bottom: 20px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--av-a);
+}
+.game-avatar-auctionwar .avatar-piece.a {
+  right: 34px;
+  top: 22px;
+  width: 62px;
+  height: 46px;
+  border-radius: 8px;
+  background: #f0d79c;
+  clip-path: polygon(0 0, 100% 0, 100% 72%, 50% 100%, 0 72%);
+}
+.game-avatar-auctionwar .avatar-piece.b {
+  right: 76px;
+  bottom: 20px;
+  width: 55px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--av-c);
+  transform: rotate(-28deg);
+}
+.game-avatar-auctionwar .avatar-piece.c {
+  left: 80px;
+  bottom: 20px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--av-a);
+}
 .game-icon {
   --icon-a: var(--accent);
   --icon-b: var(--p2);

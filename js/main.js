@@ -215,6 +215,19 @@
     yahtzee: "YZ",
   };
 
+  const AVATAR_FAMILY = {
+    tictactoe: "board", gomoku: "board", ultimate: "board", connectfour: "board",
+    reversi: "board", pentago: "board", morris: "board", checkers: "board",
+    hex: "board", quoridor: "board", mancala: "board", dotsandboxes: "board",
+    orderchaos: "board", nim: "board", stratego: "board",
+    tankarena: "map", dicebattle: "map", territorywar: "map", crystalconquest: "map",
+    pong: "action", poolbattle: "action", slingshotbattle: "action", timeloopduel: "action", artillery: "action",
+    basedefenseduel: "long", dungeonrival: "long",
+    battleship: "hidden", seabattleplus: "hidden", submarinehunt: "hidden", hiddenassassin: "hidden",
+    trapmansion: "hidden", minesweeper: "hidden", treasure: "hidden", bullscows: "hidden", hangman: "hidden", noitu: "hidden",
+    auctionwar: "chance", memory: "chance", pig: "chance", yahtzee: "chance", domino: "chance",
+  };
+
   function gameMark(game) {
     if (GAME_MARKS[game.id]) return GAME_MARKS[game.id];
     return game.name
@@ -230,6 +243,20 @@
   function gameIconHtml(game, extraClass = "") {
     const mark = gameMark(game);
     return `<span class="game-icon game-icon-${game.id} ${extraClass}" data-mark="${mark}" aria-hidden="true"></span>`;
+  }
+
+  function gameAvatarHtml(game) {
+    const family = AVATAR_FAMILY[game.id] || "board";
+    const mark = gameMark(game);
+    return `
+      <div class="game-avatar game-avatar-${family} game-avatar-${game.id}" data-mark="${mark}" aria-hidden="true">
+        <span class="avatar-orbit one"></span>
+        <span class="avatar-orbit two"></span>
+        <span class="avatar-piece a"></span>
+        <span class="avatar-piece b"></span>
+        <span class="avatar-piece c"></span>
+      </div>
+    `;
   }
 
   function setGameHeading(target, game) {
@@ -376,7 +403,7 @@
     if (g.onlineReady === false) tags.push("chỉ chung máy");
     if (g.localReady === false) tags.push("chỉ online");
     card.innerHTML =
-      gameIconHtml(g) +
+      gameAvatarHtml(g) +
       `<h3>${g.name}</h3>` +
       `<p>${g.description}</p>` +
       tags.map((tag) => `<span class="tag-local">${tag}</span>`).join("");
@@ -448,7 +475,7 @@
     if (selectedGame.localReady === false) return;
     online = null;
     currentOptions = readOptions(selectedGame);
-    startGame();
+    startGame(null, { autoHelp: true });
   });
 
   el.modeOnline.addEventListener("click", () => {
@@ -555,7 +582,7 @@
     pendingRoomCode = null;
     online = normalizeOnlineSession(m);
     if (m.options) currentOptions = m.options; // dùng tùy chỉnh của chủ phòng
-    startGame(m.seed);
+    startGame(m.seed, { autoHelp: true });
   });
 
   Net.on("move", (m) => {
@@ -654,7 +681,7 @@
   });
 
   // ====================== Vòng chơi ======================
-  function startGame(seed) {
+  function startGame(seed, opts = {}) {
     el.boardWrap.innerHTML = "";
     el.status.textContent = "";
     restartReadySeats = [];
@@ -686,6 +713,9 @@
     ctx.setNames("Người chơi 1", "Người chơi 2");
     instance = selectedGame.create(ctx);
     show("gameView");
+    if (opts.autoHelp) {
+      setTimeout(openHelp, 0);
+    }
   }
 
   function restartGame() {
