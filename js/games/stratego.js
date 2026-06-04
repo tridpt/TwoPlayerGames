@@ -66,7 +66,7 @@
       const cell = document.createElement("button");
       cell.className = "st-cell";
       cell.type = "button";
-      cell.addEventListener("click", () => onClick(i));
+      cell.addEventListener("click", () => onClick(visualToBoard(i)));
       grid.appendChild(cell);
       cellEls.push(cell);
     }
@@ -98,6 +98,21 @@
 
     function index(r, c) {
       return r * N + c;
+    }
+
+    function viewSeat() {
+      if (ctx.isOnline) return ctx.mySeat;
+      return turn === 1 ? 1 : 0;
+    }
+
+    function shouldFlipBoard() {
+      return viewSeat() === 1;
+    }
+
+    function visualToBoard(i) {
+      if (!shouldFlipBoard()) return i;
+      const [r, c] = rc(i);
+      return index(N - 1 - r, N - 1 - c);
     }
 
     function inBounds(r, c) {
@@ -286,9 +301,11 @@
     function render() {
       renderInfo();
       renderLegend();
+      root.classList.toggle("st-flipped", shouldFlipBoard());
       const targets = selected !== null ? new Set(legalTargets(selected)) : new Set();
-      for (let i = 0; i < total; i++) {
-        const cell = cellEls[i];
+      for (let vi = 0; vi < total; vi++) {
+        const i = visualToBoard(vi);
+        const cell = cellEls[vi];
         const p = board[i];
         cell.className = "st-cell";
         cell.innerHTML = "";
@@ -310,6 +327,11 @@
             icon.className = "st-icon";
             icon.textContent = data.icon;
             cell.appendChild(icon);
+
+            const power = document.createElement("span");
+            power.className = "st-power";
+            power.textContent = powerText(p.rank);
+            cell.appendChild(power);
 
             const tag = document.createElement("span");
             tag.className = "st-rank";
@@ -336,6 +358,12 @@
         if (selected === i) cell.classList.add("st-sel");
         if (targets.has(i)) cell.classList.add("st-target");
       }
+    }
+
+    function powerText(rank) {
+      if (rank === 0) return "Cờ";
+      if (rank === 11) return "Bom";
+      return "Sức " + rank;
     }
 
     function renderInfo() {
