@@ -97,7 +97,7 @@
     {
       title: "Ván dài & xây dựng",
       hint: "Có tiến triển lâu hơn: thủ nhà, gửi quái, đi dungeon và lên cấp.",
-      games: ["basedefenseduel", "dungeonrival"],
+      games: ["coopdefense", "basedefenseduel", "dungeonrival"],
     },
     {
       title: "Ẩn thông tin & suy luận",
@@ -179,6 +179,7 @@
     bullscows: "BC",
     checkers: "CK",
     connectfour: "C4",
+    coopdefense: "CD",
     crystalconquest: "CC",
     dicebattle: "DB",
     domino: "DM",
@@ -272,7 +273,7 @@
     if (id === "auctionwar") return { a: "#ffd166", b: "#6ee7b7", c: "#ff5d73", bg1: "#202747", bg2: "#12162f" };
     if (map.includes(id)) return { a: "#6ee7b7", b: "#4dd0e1", c: "#ffd166", bg1: "#17304b", bg2: "#11182f" };
     if (action.includes(id)) return { a: "#ffd166", b: "#ff5d73", c: "#6ee7b7", bg1: "#2c254c", bg2: "#11142d" };
-    if (long.includes(id)) return { a: "#ff9f7a", b: "#6ee7b7", c: "#ffd166", bg1: "#2d2946", bg2: "#14172e" };
+    if (long.includes(id) || id === "coopdefense") return { a: "#ff9f7a", b: "#6ee7b7", c: "#ffd166", bg1: "#2d2946", bg2: "#14172e" };
     if (hidden.includes(id)) return { a: "#c6a7ff", b: "#4dd0e1", c: "#ffd166", bg1: "#17243f", bg2: "#11142b" };
     if (board.includes(id)) return { a: "#ffd166", b: "#4dd0e1", c: "#ff5d73", bg1: "#242c5b", bg2: "#12152e" };
     return { a: "#ffd166", b: "#4dd0e1", c: "#ff5d73", bg1: "#202747", bg2: "#12162f" };
@@ -328,6 +329,8 @@
         return `<g transform="translate(72 28)"><path d="M8 70c28-35 43-15 68-32s44-8 60 32z" fill="#233f4c"/><g transform="translate(32 49)"><rect width="36" height="16" rx="6" fill="${p.a}"/><rect x="24" y="-6" width="42" height="7" rx="4" fill="${p.a}" transform="rotate(-18 24 -6)"/></g><path d="M86 31c18-24 37-27 55-10" fill="none" stroke="${p.c}" stroke-width="4" stroke-dasharray="7 6"/><circle cx="147" cy="22" r="7" fill="${p.c}"/></g>`;
       case "basedefenseduel":
         return `<g transform="translate(72 25)"><path d="M12 28h126M12 58h126" stroke="#fff" stroke-opacity=".14" stroke-width="14"/><path d="M15 74V32l22-18l22 18v42z" fill="${p.c}"/><path d="M98 74V32l22-18l22 18v42z" fill="${p.b}"/><rect x="62" y="37" width="18" height="27" rx="4" fill="${p.a}"/><circle cx="83" cy="50" r="7" fill="${p.a}"/></g>`;
+      case "coopdefense":
+        return `<g transform="translate(68 22)"><path d="M10 26c28 12 40-15 66 0s45-9 72-2M10 52c31-10 45 15 72 0s42 11 76 0M10 78c33 10 48-15 76 0s42-10 68 2" fill="none" stroke="#593f1f" stroke-opacity=".32" stroke-width="14" stroke-linecap="round"/><path d="M10 26c28 12 40-15 66 0s45-9 72-2M10 52c31-10 45 15 72 0s42 11 76 0M10 78c33 10 48-15 76 0s42-10 68 2" fill="none" stroke="#e6c97c" stroke-width="11" stroke-linecap="round"/><rect x="4" y="33" width="16" height="48" rx="5" fill="${p.c}"/><text x="12" y="61" text-anchor="middle" font-size="9" font-weight="900" fill="#151936" font-family="Segoe UI,Arial">EX</text><g fill="${p.a}"><rect x="46" y="18" width="20" height="18" rx="5"/><rect x="85" y="55" width="20" height="18" rx="5"/><rect x="113" y="21" width="20" height="18" rx="5"/></g><g stroke="${p.a}" stroke-width="5" stroke-linecap="round"><path d="M62 23l28-7"/><path d="M101 60l31-6"/><path d="M129 26l28 8"/></g><circle cx="143" cy="25" r="7" fill="${p.b}"/><circle cx="151" cy="53" r="6" fill="${p.b}"/><circle cx="136" cy="82" r="7" fill="${p.b}"/></g>`;
       case "dungeonrival":
         return `<g transform="translate(76 22)"><rect x="10" y="12" width="40" height="30" rx="6" fill="#25304f"/><rect x="58" y="12" width="40" height="30" rx="6" fill="#25304f"/><rect x="34" y="50" width="40" height="30" rx="6" fill="#25304f"/><rect x="82" y="50" width="40" height="30" rx="6" fill="#25304f"/><path d="M50 27h8M78 42v8M74 65h8" ${line}/><circle cx="30" cy="27" r="8" fill="${p.a}"/><path d="M101 57l13 20H88z" fill="${p.c}"/><rect x="45" y="61" width="18" height="12" rx="3" fill="${p.b}"/></g>`;
       case "submarinehunt":
