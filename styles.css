@@ -434,6 +434,21 @@ body {
   border-radius: 50%;
   background: var(--av-a);
 }
+.game-avatar {
+  height: 132px;
+  margin: -6px -6px 18px;
+  border-radius: 12px;
+  background: transparent;
+}
+.game-avatar::before,
+.game-avatar::after {
+  display: none;
+}
+.game-avatar-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 .game-icon {
   --icon-a: var(--accent);
   --icon-b: var(--p2);
