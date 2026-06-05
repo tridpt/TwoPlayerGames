@@ -26,23 +26,24 @@
   const PROFILE_HOT = ["hồ sơ bị xé đúng trang quan trọng", "vỏ bọc có 2 chi tiết mâu thuẫn", "nhân chứng nhớ thấy vũ khí nhỏ", "lịch trình có khoảng trống nguy hiểm"];
   const PROFILE_COLD = ["hồ sơ khá nhất quán", "vỏ bọc khớp lời khai", "nhân chứng xác nhận có mặt", "lịch trình chưa có lỗ hổng lớn"];
   const SPOTS = [
-    { id: 0, name: "Sảnh chính", x: 450, y: 280, links: [1, 2, 3, 4, 5, 6, 7, 8] },
-    { id: 1, name: "Quầy bar", x: 190, y: 170, links: [0, 3, 5] },
-    { id: 2, name: "Ban công", x: 710, y: 170, links: [0, 4, 6] },
-    { id: 3, name: "Phòng tranh", x: 190, y: 365, links: [0, 1, 7] },
-    { id: 4, name: "Vườn kính", x: 710, y: 365, links: [0, 2, 8] },
-    { id: 5, name: "Sân khấu", x: 360, y: 125, links: [0, 1, 6] },
-    { id: 6, name: "Bếp sau", x: 610, y: 125, links: [0, 2, 5] },
-    { id: 7, name: "Tượng đá", x: 330, y: 445, links: [0, 3, 8] },
-    { id: 8, name: "Cổng phụ", x: 610, y: 445, links: [0, 4, 7] },
+    { id: 0, name: "Sảnh chính", icon: "🏛️", x: 450, y: 280, links: [1, 2, 3, 4, 5, 6, 7, 8] },
+    { id: 1, name: "Quầy bar", icon: "🍸", x: 190, y: 170, links: [0, 3, 5] },
+    { id: 2, name: "Ban công", icon: "🌃", x: 710, y: 170, links: [0, 4, 6] },
+    { id: 3, name: "Phòng tranh", icon: "🖼️", x: 190, y: 365, links: [0, 1, 7] },
+    { id: 4, name: "Vườn kính", icon: "🌿", x: 710, y: 365, links: [0, 2, 8] },
+    { id: 5, name: "Sân khấu", icon: "🎭", x: 360, y: 125, links: [0, 1, 6] },
+    { id: 6, name: "Bếp sau", icon: "🍳", x: 610, y: 125, links: [0, 2, 5] },
+    { id: 7, name: "Tượng đá", icon: "🗿", x: 330, y: 445, links: [0, 3, 8] },
+    { id: 8, name: "Cổng phụ", icon: "🚪", x: 610, y: 445, links: [0, 4, 7] },
   ];
+  const PERSON = ["🕴️", "💃", "🤵", "👮", "👩‍🎤", "🧑‍🍳", "🕵️", "👨‍🎨", "👰", "🧑‍🚀", "👨‍⚕️", "👩‍🔬", "🧑‍🎤", "💂"];
 
   function create(ctx) {
     const o = ctx.options || {};
-    const TEAM = o.team || 6;
+    const TEAM = o.team || 5;
     const MAX_TRAPS = o.traps || 2;
     const NOTES_TO_WARN = o.notes || 3;
-    const MAX_FOCUS = o.focus || 5;
+    const MAX_FOCUS = o.focus || 6;
     const DOSSIER_GOAL = o.dossier || 3;
 
     let turn = 0;
@@ -98,6 +99,7 @@
             owner,
             idx: i,
             name,
+            emoji: PERSON[(owner * 7 + i) % PERSON.length],
             cover: COVERS[(owner * TEAM + i) % COVERS.length],
             habit: HABITS[(owner * TEAM + i) % HABITS.length],
             alibi: ALIBIS[(owner * 3 + i) % ALIBIS.length],
@@ -157,7 +159,7 @@
     }
 
     function actionCost(id) {
-      return { follow: 1, profile: 2, decoy: 1, disguise: 2 }[id] || 0;
+      return { follow: 1, profile: 1, decoy: 1, disguise: 1 }[id] || 0;
     }
 
     function spendFocus(owner, amount) {
@@ -562,17 +564,14 @@
       }
 
       if (targetSuspect && targetSuspect.owner === turn && isMine(targetSuspect)) {
-        if (mode === "decoy") applyMove({ t: "decoy", id: targetSuspect.id }, false);
-        else if (mode === "disguise") applyMove({ t: "disguise", id: targetSuspect.id }, false);
+        if (mode === "disguise") applyMove({ t: "disguise", id: targetSuspect.id }, false);
         return;
       }
 
       if (targetSuspect && targetSuspect.owner !== turn) {
-        if (mode === "follow") applyMove({ t: "follow", target: targetSuspect.id }, false);
-        else if (mode === "observe") applyMove({ t: "observe", target: targetSuspect.id }, false);
+        if (mode === "observe") applyMove({ t: "observe", target: targetSuspect.id }, false);
         else if (mode === "profile") applyMove({ t: "profile", target: targetSuspect.id }, false);
         else if (mode === "accuse") applyMove({ t: "accuse", target: targetSuspect.id }, false);
-        else if (mode === "kill") applyMove({ t: "kill", killer: myAssassinId, target: targetSuspect.id }, false);
       }
     }
 
@@ -614,21 +613,21 @@
       const own = getSuspect(myAssassinId);
       hud.innerHTML = `
         <div class="ha-panel p1 ${turn === 0 && !over ? "active" : ""}">
-          <span>Người chơi 1</span>
+          <span>🔴 Người chơi 1</span>
           <b>${aliveCount(0)} nhân vật</b>
-          <small>${focus[0]}/${MAX_FOCUS} tập trung · ${dossiers[0]}/${DOSSIER_GOAL} hồ sơ</small>
-          <small>${ctx.mySeat === 0 ? `Sát thủ của bạn: ${own?.name || "?"}` : "Danh tính sát thủ bị ẩn"}</small>
+          <small>⚡ ${focus[0]}/${MAX_FOCUS} · 📂 ${dossiers[0]}/${DOSSIER_GOAL} hồ sơ</small>
+          <small>${ctx.mySeat === 0 ? `👑 Sát thủ của bạn: ${own?.name || "?"}` : "Danh tính sát thủ bị ẩn"}</small>
         </div>
         <div class="ha-mid">
           <b>${over ? "Kết thúc" : awaiting ? "Đang chờ xác nhận" : "Lượt " + (turn + 1)}</b>
-          <span>${TEAM} nghi phạm mỗi bên · ${MAX_TRAPS} bẫy camera · hồ sơ cứu sai ở ${DOSSIER_GOAL}</span>
+          <span>🎯 Tìm & TỐ CÁO đúng sát thủ ẩn của đối thủ để thắng. Tố cáo sai là thua!</span>
           <small>${log[0] || ""}</small>
         </div>
         <div class="ha-panel p2 ${turn === 1 && !over ? "active" : ""}">
-          <span>Người chơi 2</span>
+          <span>🔵 Người chơi 2</span>
           <b>${aliveCount(1)} nhân vật</b>
-          <small>${focus[1]}/${MAX_FOCUS} tập trung · ${dossiers[1]}/${DOSSIER_GOAL} hồ sơ</small>
-          <small>${ctx.mySeat === 1 ? `Sát thủ của bạn: ${own?.name || "?"}` : "Danh tính sát thủ bị ẩn"}</small>
+          <small>⚡ ${focus[1]}/${MAX_FOCUS} · 📂 ${dossiers[1]}/${DOSSIER_GOAL} hồ sơ</small>
+          <small>${ctx.mySeat === 1 ? `👑 Sát thủ của bạn: ${own?.name || "?"}` : "Danh tính sát thủ bị ẩn"}</small>
         </div>
       `;
     }
@@ -639,20 +638,17 @@
 
     function renderToolbar() {
       const buttons = [
-        ["move", "MOVE", "Di chuyển", "chọn người rồi chọn địa điểm kề"],
-        ["follow", "TAIL", "Theo dõi", "bám tuyến đường mục tiêu"],
-        ["observe", "EYE", "Quan sát", "cần người của bạn ở gần mục tiêu"],
-        ["profile", "FILE", "Hồ sơ", "lục hồ sơ để tăng chứng cứ"],
-        ["trap", "CAM", "Gài bẫy", "camera ẩn tại một địa điểm"],
-        ["decoy", "FAKE", "Mồi nhử", "che nhiễu một người của bạn"],
-        ["disguise", "MASK", "Cải trang", "làm mờ hồ sơ và quan sát"],
-        ["accuse", "CALL", "Tố cáo", "đúng thắng, sai thua"],
-        ["kill", "KILL", "Ám sát", "sát thủ phải cùng địa điểm"],
+        ["move", "🚶", "Di chuyển", "chọn người của bạn rồi tới địa điểm kề"],
+        ["observe", "🔍", "Điều tra", "đứng gần mục tiêu để lấy manh mối"],
+        ["profile", "📂", "Lục hồ sơ", "thêm thông tin + tích hồ sơ cứu"],
+        ["trap", "📹", "Gài bẫy", "camera ẩn ở một địa điểm"],
+        ["disguise", "🎭", "Ngụy trang", "làm mờ manh mối người của bạn"],
+        ["accuse", "⚖️", "Tố cáo", "đúng thắng — sai thua"],
       ];
       toolbar.innerHTML = buttons.map(([id, icon, label, hint]) => {
         const cost = actionCost(id);
         const disabled = !canAct(false) || focus[ctx.mySeat] < cost;
-        const meta = cost > 0 ? `${hint} · ${cost} tập trung` : hint;
+        const meta = cost > 0 ? `${hint} · ${cost}⚡` : hint;
         return `
         <button class="btn small ha-action ${mode === id ? "active" : ""}" type="button" data-mode="${id}" ${disabled ? "disabled" : ""}>
           <span>${icon}</span><b>${label}</b><small>${meta}</small>
@@ -699,17 +695,14 @@
         return;
       }
       const text = {
-        move: "Chọn nhân vật của bạn, rồi chọn một địa điểm nối liền để di chuyển.",
-        follow: "Chọn nghi phạm đối thủ để theo dõi. Khi họ di chuyển, bạn nhận thêm dấu nghi vấn.",
-        observe: "Chọn nghi phạm đối thủ ở gần người của bạn để lấy manh mối.",
-        profile: "Chọn nghi phạm đối thủ để lục hồ sơ. Mỗi hồ sơ tăng bộ chứng cứ dự phòng.",
-        trap: "Chọn một địa điểm để gài bẫy camera ẩn.",
-        decoy: "Chọn nhân vật của bạn để dựng mồi nhử, làm nhiễu quan sát của đối thủ.",
-        disguise: "Chọn nhân vật của bạn để cải trang, làm mờ hồ sơ và quan sát trong vài lượt.",
-        accuse: "Chọn nghi phạm đối thủ để tố cáo. Đúng thắng, sai thua.",
-        kill: "Chọn mục tiêu cùng địa điểm với sát thủ của bạn để ám sát.",
+        move: "🚶 Chọn nhân vật của bạn (viền vàng), rồi chọn địa điểm sáng xanh kề bên để di chuyển.",
+        observe: "🔍 Chọn nghi phạm đối thủ đang ở GẦN người của bạn để lấy manh mối nóng/lạnh.",
+        profile: "📂 Chọn nghi phạm đối thủ để lục hồ sơ — thêm thông tin và tích hồ sơ cứu tố cáo sai.",
+        trap: "📹 Chọn một địa điểm để gài camera ẩn. Người đối thủ đi vào sẽ bị kẹt và lộ nghi vấn.",
+        disguise: "🎭 Chọn nhân vật của bạn để ngụy trang — làm mờ manh mối, bảo vệ sát thủ thật.",
+        accuse: "⚖️ Chọn nghi phạm bạn nghi là sát thủ để tố cáo. Đúng thì THẮNG, sai thì THUA.",
       };
-      ctx.setStatus(text[mode]);
+      ctx.setStatus(text[mode] || "Đến lượt bạn.");
     }
 
     function draw() {
@@ -743,17 +736,30 @@
 
       SPOTS.forEach((sp) => {
         const active = selected && legalMove(getSuspect(selected), sp.id);
-        g.fillStyle = active ? "rgba(110,231,183,0.18)" : "rgba(255,255,255,0.07)";
+        g.fillStyle = active ? "rgba(110,231,183,0.2)" : "rgba(255,255,255,0.06)";
         g.strokeStyle = active ? "#6ee7b7" : "rgba(255,209,102,0.28)";
-        g.lineWidth = active ? 3 : 2;
+        g.lineWidth = active ? 4 : 2;
         g.beginPath();
-        g.arc(sp.x, sp.y, 34, 0, Math.PI * 2);
+        g.arc(sp.x, sp.y, 38, 0, Math.PI * 2);
         g.fill();
         g.stroke();
-        g.fillStyle = "#e9ecff";
-        g.font = "800 12px Segoe UI, sans-serif";
+        if (active) {
+          g.save();
+          g.shadowColor = "rgba(110,231,183,0.7)"; g.shadowBlur = 16;
+          g.strokeStyle = "#6ee7b7"; g.lineWidth = 2;
+          g.beginPath(); g.arc(sp.x, sp.y, 38, 0, Math.PI * 2); g.stroke();
+          g.restore();
+        }
+        g.font = "26px 'Segoe UI Emoji', sans-serif";
         g.textAlign = "center";
-        g.fillText(sp.name, sp.x, sp.y + 53);
+        g.textBaseline = "middle";
+        g.globalAlpha = 0.85;
+        g.fillText(sp.icon, sp.x, sp.y - 2);
+        g.globalAlpha = 1;
+        g.fillStyle = active ? "#bff3dd" : "#e9ecff";
+        g.font = "800 12px Segoe UI, sans-serif";
+        g.textBaseline = "alphabetic";
+        g.fillText(sp.name, sp.x, sp.y + 56);
       });
     }
 
@@ -784,57 +790,55 @@
         const n = notes[ctx.mySeat]?.[s.id] || 0;
         const watched = watchers.some((w) => w.owner === ctx.mySeat && w.target === s.id);
         g.save();
-        g.globalAlpha = s.stun > 0 ? 0.62 : 1;
+        g.globalAlpha = s.stun > 0 ? 0.6 : 1;
         g.translate(s.x, s.y);
+
+        // bệ tròn màu theo phe
+        g.fillStyle = "rgba(0,0,0,0.25)";
+        g.beginPath(); g.ellipse(0, 16, 15, 5, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = s.owner === 0 ? "rgba(255,93,115,0.22)" : "rgba(77,208,225,0.22)";
+        g.beginPath(); g.arc(0, 2, 17, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = color; g.lineWidth = 2;
+        g.beginPath(); g.arc(0, 2, 17, 0, Math.PI * 2); g.stroke();
+
         if (watched) {
-          g.strokeStyle = "#8be9ff";
-          g.lineWidth = 2;
-          g.setLineDash([5, 4]);
-          g.beginPath();
-          g.arc(0, 0, 29, 0, Math.PI * 2);
-          g.stroke();
+          g.strokeStyle = "#8be9ff"; g.lineWidth = 2; g.setLineDash([5, 4]);
+          g.beginPath(); g.arc(0, 2, 23, 0, Math.PI * 2); g.stroke();
           g.setLineDash([]);
         }
         if (selected === s.id) {
-          g.strokeStyle = "#ffd166";
-          g.lineWidth = 4;
-          g.beginPath();
-          g.arc(0, 0, 22, 0, Math.PI * 2);
-          g.stroke();
+          g.save();
+          g.shadowColor = "rgba(255,209,102,0.8)"; g.shadowBlur = 14;
+          g.strokeStyle = "#ffd166"; g.lineWidth = 3;
+          g.beginPath(); g.arc(0, 2, 21, 0, Math.PI * 2); g.stroke();
+          g.restore();
         }
+
+        // nhân vật bằng emoji
+        g.font = "24px 'Segoe UI Emoji', sans-serif";
+        g.textAlign = "center"; g.textBaseline = "middle";
+        g.fillText(s.emoji || "🕴️", 0, 2);
+
+        // vương miện cho sát thủ của mình (hoặc lộ khi kết thúc)
         if (ownAssassin || (over && s.id === myAssassinId)) {
-          g.strokeStyle = "#ffd166";
-          g.lineWidth = 3;
-          g.beginPath();
-          g.arc(0, 0, 25, 0, Math.PI * 2);
-          g.stroke();
+          g.font = "16px 'Segoe UI Emoji', sans-serif";
+          g.fillText("👑", 0, -20);
         }
-        g.fillStyle = color;
-        g.beginPath();
-        g.arc(0, -5, 9, 0, Math.PI * 2);
-        g.fill();
-        g.fillStyle = s.owner === 0 ? "#6d2136" : "#15566a";
-        roundRect(g, -13, 4, 26, 24, 8);
-        g.fill();
+
+        // tên
+        g.globalAlpha = s.stun > 0 ? 0.6 : 1;
         g.fillStyle = "#fff";
-        g.font = "900 10px Segoe UI, sans-serif";
-        g.textAlign = "center";
-        g.fillText(s.name, 0, 43);
-        if (s.stun > 0) {
-          g.fillStyle = "#ffd166";
-          g.fillText("BẪY", 0, -22);
-        } else if (s.disguise > 0) {
-          g.fillStyle = "#c4b5fd";
-          g.fillText("MASK", 0, -22);
-        } else if (s.decoy > 0) {
-          g.fillStyle = "#6ee7b7";
-          g.fillText("FAKE", 0, -22);
-        } else if (!mine && watched) {
-          g.fillStyle = "#8be9ff";
-          g.fillText("TAIL", 0, -22);
-        } else if (!mine && n > 0) {
-          g.fillStyle = "#ffd166";
-          g.fillText("?" + n, 0, -22);
+        g.font = "900 11px Segoe UI, sans-serif";
+        g.fillText(s.name, 0, 38);
+
+        // huy hiệu trạng thái / nghi vấn
+        g.font = "13px 'Segoe UI Emoji', sans-serif";
+        if (s.stun > 0) { g.fillText("🚨", 17, -10); }
+        else if ((s.disguise > 0 || s.decoy > 0) && mine) { g.fillText("🎭", 17, -10); }
+        if (!mine && watched) g.fillText("🔭", -17, -10);
+        if (!mine && n > 0) {
+          g.font = "11px 'Segoe UI Emoji', sans-serif";
+          g.fillText("🔥".repeat(Math.min(n, 3)), 0, -16);
         }
         g.restore();
       });
@@ -873,18 +877,19 @@
     id: "hiddenassassin",
     name: "Hidden Assassin",
     emoji: "🕵️",
-    description: "Suy luận sát thủ trong đám đông với theo dõi, hồ sơ, mồi nhử, cải trang, bẫy và tố cáo rủi ro.",
+    description: "Suy luận tìm sát thủ ẩn trong đám đông: điều tra manh mối, lục hồ sơ, gài bẫy, ngụy trang rồi tố cáo đúng để thắng.",
     onlineReady: true,
     localReady: false,
     options: [
       {
         id: "team",
         label: "Số nhân vật mỗi bên",
-        default: 6,
+        default: 5,
         choices: [
+          { value: 4, label: "4 (dễ)" },
           { value: 5, label: "5 nhân vật" },
           { value: 6, label: "6 nhân vật" },
-          { value: 7, label: "7 nhân vật" },
+          { value: 7, label: "7 (khó)" },
         ],
       },
       {
@@ -910,11 +915,11 @@
       {
         id: "focus",
         label: "Tập trung tối đa",
-        default: 5,
+        default: 6,
         choices: [
-          { value: 4, label: "4 điểm" },
           { value: 5, label: "5 điểm" },
           { value: 6, label: "6 điểm" },
+          { value: 8, label: "8 điểm (thoải mái)" },
         ],
       },
       {
@@ -930,14 +935,14 @@
     ],
     howTo: [
       "Game chỉ chơi online để mỗi người giữ kín sát thủ thật của mình.",
-      "Mỗi bên có nhiều nhân vật trong dạ tiệc. Bạn thấy sát thủ của mình, nhưng không biết sát thủ của đối thủ là ai.",
-      "Di chuyển nhân vật qua các địa điểm nối liền. Quan sát mục tiêu khi có người của bạn đứng gần để lấy manh mối.",
-      "Tập trung hồi mỗi khi tới lượt. Theo dõi, lục hồ sơ, mồi nhử và cải trang đều tốn tập trung.",
-      "Theo dõi một nghi phạm để nhận dấu nghi vấn khi họ di chuyển. Lục hồ sơ cho thêm thông tin vỏ bọc, thói quen, lời khai và tuyến đường.",
-      "Mồi nhử và cải trang làm nhiễu quan sát/hồ sơ trong vài lượt, giúp bảo vệ sát thủ thật hoặc đánh lạc hướng đối thủ.",
-      "Gài bẫy camera ở một địa điểm. Nếu đối thủ đi vào bẫy, nhân vật đó bị kẹt và tăng dấu nghi vấn trong sổ của bạn.",
-      "Tố cáo đúng sát thủ đối thủ thì thắng ngay. Nếu tố cáo sai nhưng đã gom đủ hồ sơ, bạn mất bộ hồ sơ đó thay vì thua ngay.",
-      "Ám sát chỉ dùng được khi sát thủ của bạn cùng địa điểm với mục tiêu. Hạ đúng sát thủ đối thủ thì thắng, giết nhầm thì thua.",
+      "Mỗi bên có vài nhân vật trong dạ tiệc. Bạn thấy 👑 sát thủ CỦA BẠN, nhưng KHÔNG biết sát thủ của đối thủ là ai. Mục tiêu: tìm & tố cáo đúng sát thủ ẩn của đối thủ.",
+      "🚶 Di chuyển: bấm 1 nhân vật của bạn (viền vàng), rồi bấm địa điểm sáng xanh kề bên.",
+      "🔍 Điều tra: khi có người của bạn đứng GẦN một nghi phạm đối thủ, điều tra để nhận manh mối. Trúng sát thủ sẽ cho dấu 🔥 nghi vấn cao.",
+      "📂 Lục hồ sơ: xem vỏ bọc/thói quen/lời khai/tuyến đi của nghi phạm, đồng thời tích 'hồ sơ' — đủ hồ sơ thì một lần tố cáo sai sẽ được tha (không thua ngay).",
+      "🎭 Ngụy trang: làm mờ manh mối của một nhân vật CỦA BẠN trong vài lượt — dùng để bảo vệ sát thủ thật.",
+      "📹 Gài bẫy: đặt camera ẩn ở một địa điểm. Nhân vật đối thủ đi vào sẽ bị kẹt 1 lượt và bị thêm dấu nghi vấn.",
+      "⚖️ Tố cáo: chọn nghi phạm bạn nghi là sát thủ. Đúng thì THẮNG ngay, sai thì THUA (trừ khi bạn đã đủ hồ sơ cứu).",
+      "Mỗi lượt làm 1 hành động. Tập trung ⚡ hồi dần mỗi lượt; điều tra/lục hồ sơ/ngụy trang tốn tập trung.",
     ],
     create,
   });
