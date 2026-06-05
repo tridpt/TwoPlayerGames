@@ -75,6 +75,7 @@
   let instance = null;
   let scores = [0, 0];
   let restartReadySeats = [];
+  let sessionLocked = false;
   let online = null; // null = chơi chung máy; {roomSeat, seat, seed} = online
   let currentOptions = {}; // giá trị tùy chỉnh ván chơi đang dùng
 
@@ -157,7 +158,7 @@
       setNames(n1, n2) { el.p1Name.textContent = n1; el.p2Name.textContent = n2; },
       incScore(idx) { scores[idx]++; renderScores(); },
       getScore(idx) { return scores[idx]; },
-      sendMove(move) { if (online) Net.send("move", { move }); },
+      sendMove(move) { if (online && !sessionLocked) Net.send("move", { move }); },
       sound(name) { window.Sound && Sound.play(name); },
     };
   }
@@ -165,6 +166,52 @@
   function renderScores() {
     el.p1Score.textContent = scores[0];
     el.p2Score.textContent = scores[1];
+  }
+
+  function showToast(text) {
+    const old = document.querySelector(".app-toast");
+    if (old) old.remove();
+    const toast = document.createElement("div");
+    toast.className = "app-toast";
+    toast.textContent = text;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add("show"), 10);
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.remove(), 220);
+    }, 2800);
+  }
+
+  function clearSessionLock() {
+    sessionLocked = false;
+    el.boardWrap.classList.remove("session-locked");
+    const lock = el.boardWrap.querySelector(".session-lock");
+    if (lock) lock.remove();
+  }
+
+  function lockOnlineSession(message) {
+    if (!online) return;
+    if (sessionLocked) return;
+    sessionLocked = true;
+    restartReadySeats = [];
+    updateRestartButtons();
+    el.restartBtn.disabled = true;
+    el.winAgain.disabled = true;
+    el.status.textContent = message;
+    el.turnBanner.textContent = "Ván đã dừng";
+    el.scoreP1.classList.remove("active");
+    el.scoreP2.classList.remove("active");
+    if (instance && typeof instance.destroy === "function") instance.destroy();
+    instance = null;
+    el.boardWrap.innerHTML = "";
+    el.boardWrap.classList.add("session-locked");
+
+    const lock = document.createElement("div");
+    lock.className = "session-lock";
+    el.boardWrap.appendChild(lock);
+    lock.textContent = message;
+    showToast(message);
+    window.Sound && Sound.play("notify");
   }
 
   function getGameById(id) {
@@ -400,6 +447,14 @@
     const roomSeat = online?.roomSeat;
     const mineReady = onlineMode && restartReadySeats.includes(roomSeat);
     const otherReady = onlineMode && restartReadySeats.includes(1 - roomSeat);
+
+    if (sessionLocked) {
+      el.restartBtn.disabled = true;
+      el.winAgain.disabled = true;
+      el.restartBtn.textContent = "Ván đã dừng";
+      el.winAgain.textContent = "Ván đã dừng";
+      return;
+    }
 
     el.restartBtn.disabled = !!mineReady;
     el.winAgain.disabled = !!mineReady;
@@ -701,9 +756,16 @@
     online = normalizeOnlineSession(m);
     if (m.options) currentOptions = m.options; // dùng tùy chỉnh của chủ phòng
     startGame(m.seed, { autoHelp: true });
+    const joinedText = online.roomSeat === 0
+      ? "Đối thủ đã vào phòng. Bắt đầu ván."
+      : "Bạn đã vào phòng. Bắt đầu ván.";
+    addChatMessage(joinedText, "sys");
+    showToast(joinedText);
+    if (online.roomSeat === 0 && window.Sound) Sound.play("notify");
   });
 
   Net.on("move", (m) => {
+    if (sessionLocked) return;
     if (instance && instance.applyMove) instance.applyMove(m.move, true);
   });
 
@@ -714,6 +776,7 @@
     }
     online = normalizeOnlineSession(m);
     if (m.options) currentOptions = m.options;
+    clearSessionLock();
     startGame(m.seed);
   });
 
@@ -721,17 +784,15 @@
 
   Net.on("opponent_left", () => {
     if (!online) return;
-    restartReadySeats = [];
-    updateRestartButtons();
-    el.restartBtn.disabled = true;
-    el.winAgain.disabled = true;
-    el.status.textContent = "👋 Đối thủ đã rời phòng.";
-    el.turnBanner.textContent = "Đối thủ thoát";
+    lockOnlineSession("Đối thủ đã rời phòng. Ván online đã dừng.");
     addChatMessage("Đối thủ đã rời phòng.", "sys");
   });
 
   Net.on("disconnected", () => {
-    if (online) el.status.textContent = "🔌 Mất kết nối tới server.";
+    if (online) {
+      lockOnlineSession("Mất kết nối tới server. Ván online đã dừng.");
+      addChatMessage("Mất kết nối tới server.", "sys");
+    }
   });
 
   Net.on("chat", (m) => {
@@ -800,6 +861,7 @@
 
   // ====================== Vòng chơi ======================
   function startGame(seed, opts = {}) {
+    clearSessionLock();
     el.boardWrap.innerHTML = "";
     el.status.textContent = "";
     restartReadySeats = [];
@@ -838,6 +900,7 @@
 
   function restartGame() {
     if (!selectedGame) return;
+    if (sessionLocked) return;
     if (online) {
       // Online rematch: gửi phiếu đồng ý, server chỉ reset khi đủ hai người.
       if (restartReadySeats.includes(online.roomSeat)) return;
@@ -856,6 +919,7 @@
   function goHome() {
     leavePendingRoom();
     if (online) { Net.send("leave"); online = null; }
+    clearSessionLock();
     restartReadySeats = [];
     el.chatMessages.innerHTML = "";
     el.chatPanel.classList.add("hidden");
