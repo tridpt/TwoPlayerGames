@@ -254,12 +254,18 @@
       const dt = Math.min(0.05, (now - lastT) / 1000 || 0);
       lastT = now;
 
-      if (phase === "play") {
-        spawnAcc += dt; itemAcc += dt;
-        if (spawnAcc > 0.85) { spawnAcc = 0; if (rng() < 0.85) spawnFish(); }
-        if (itemAcc > 2.8) { itemAcc = 0; if (rng() < 0.9) spawnItem(); }
-        if (bossTimer > 0) { bossTimer -= dt; if (bossTimer <= 0) spawnBoss(); }
-        else if (!fishes.some((f) => f.isBoss)) spawnBoss();
+      if (phase === "play" || phase === "over") {
+        if (phase === "play") {
+          spawnAcc += dt; itemAcc += dt;
+          if (spawnAcc > 0.85) { spawnAcc = 0; if (rng() < 0.85) spawnFish(); }
+          if (itemAcc > 2.8) { itemAcc = 0; if (rng() < 0.9) spawnItem(); }
+          if (bossTimer > 0) { bossTimer -= dt; if (bossTimer <= 0) spawnBoss(); }
+          else if (!fishes.some((f) => f.isBoss)) spawnBoss();
+        } else {
+          // hết giờ: vẫn thả thêm cá cho hồ sống động, không sinh vật phẩm/boss mới
+          spawnAcc += dt;
+          if (spawnAcc > 1.1) { spawnAcc = 0; if (rng() < 0.6 && fishes.length < 8) spawnFish(); }
+        }
 
         fishes.forEach((f) => moveEntity(f, dt));
         items.forEach((f) => moveEntity(f, dt));
@@ -577,7 +583,8 @@
       if (timerInt) { clearInterval(timerInt); timerInt = null; }
       if (phase === "over") return;
       phase = "over";
-      attached = null; reeled = null; reel.classList.add("fh-hidden");
+      attached = null; reeled = null; hookState = "swing"; L = LMIN;
+      reel.classList.add("fh-hidden");
       myDone = true;
       if (ctx.isOnline) ctx.sendMove({ kind: "final", score: myScore, count: myCount });
       ctx.setStatus("Hết giờ! Đang tổng kết...");
@@ -594,8 +601,7 @@
     function decide() {
       if (decided) return;
       decided = true;
-      if (raf) { cancelAnimationFrame(raf); raf = null; }
-      draw();
+      // KHÔNG dừng vòng lặp: cảnh hồ vẫn sống động, chỉ là không câu được nữa
       if (!ctx.isOnline) { ctx.setStatus(`🏁 Luyện tập xong — ${myScore} điểm (${myCount} con).`); return; }
       let winner;
       if (myScore === oppScore) winner = -1;
