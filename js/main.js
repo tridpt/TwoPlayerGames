@@ -90,7 +90,7 @@
     {
       title: "Cờ & chiến thuật bàn",
       hint: "Caro, cờ lật, kết nối, đặt tường và các game bàn cờ kinh điển.",
-      games: ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
+      games: ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
     },
     {
       title: "Chiến thuật trên bản đồ",
@@ -391,6 +391,7 @@
     hangman: "HM",
     hex: "HX",
     hiddenassassin: "HA",
+    isolation: "IS",
     mancala: "MC",
     memory: "MM",
     minesweeper: "MS",
@@ -468,7 +469,7 @@
   }
 
   function avatarPalette(id) {
-    const board = ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"];
+    const board = ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"];
     const map = ["tankarena", "dicebattle", "territorywar", "crystalconquest"];
     const action = ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery"];
     const long = ["basedefenseduel", "robotfactorywar", "dungeonrival"];
@@ -502,6 +503,8 @@
         return `<g transform="translate(80 20)"><rect width="120" height="92" rx="10" fill="#151d3d"/><path d="M18 14h84v64H18zM38 30h44v32H38zM60 14v64M18 46h84" fill="none" stroke="${p.b}" stroke-width="3" opacity=".8"/><circle cx="18" cy="14" r="6" fill="${p.a}"/><circle cx="60" cy="14" r="6" fill="${p.a}"/><circle cx="102" cy="14" r="6" fill="${p.a}"/><circle cx="38" cy="62" r="6" fill="${p.c}"/><circle cx="82" cy="30" r="6" fill="${p.c}"/></g>`;
       case "checkers":
         return `<g transform="translate(82 24)"><rect width="112" height="84" rx="10" fill="#0b1026"/><g>${[0,1,2,3].map((r)=>[0,1,2,3,4].map((c)=>`<rect x="${8+c*20+(r%2)*10}" y="${8+r*17}" width="10" height="17" fill="${(r+c)%2?p.b:p.a}" opacity=".42"/>`).join("")).join("")}</g><circle cx="38" cy="32" r="12" fill="${p.c}"/><circle cx="72" cy="54" r="12" fill="${p.a}"/></g>`;
+      case "isolation":
+        return `<g transform="translate(80 22)"><rect width="120" height="88" rx="10" fill="#121a36"/><path d="M20 12v64M40 12v64M60 12v64M80 12v64M100 12v64M10 24h100M10 44h100M10 64h100" ${line}/><rect x="42" y="24" width="18" height="18" rx="4" fill="#ffffff" opacity=".1"/><rect x="62" y="44" width="18" height="18" rx="4" fill="#ffffff" opacity=".1"/><rect x="82" y="24" width="18" height="18" rx="4" fill="#ffffff" opacity=".1"/><circle cx="20" cy="24" r="11" fill="${p.c}"/><circle cx="100" cy="64" r="11" fill="${p.b}"/><path d="M20 24L40 44L60 64" fill="none" stroke="${p.a}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M40 44l-9 0l5 8" fill="${p.a}"/></g>`;
       case "hex":
         return `<g transform="translate(84 22)" fill="none" stroke-width="3">${[0,1,2].map((r)=>[0,1,2,3].map((c)=>`<path d="M${18+c*25+r*12} ${20+r*21}l10 6v12l-10 6l-10-6v-12z" fill="${(r+c)%2?p.a:p.b}" opacity=".85"/>`).join("")).join("")}<path d="M16 85h90" stroke="${p.a}"/><path d="M118 15v78" stroke="${p.b}"/></g>`;
       case "quoridor":
