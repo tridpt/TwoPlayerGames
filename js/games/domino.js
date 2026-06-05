@@ -74,10 +74,10 @@
       return face;
     }
 
-    // tạo một quân hoàn chỉnh gồm 2 mặt (placed=true cho quân nằm ngang trên bàn)
-    function makeTile(t, placed) {
+    // tạo một quân hoàn chỉnh gồm 2 mặt. orient: "h" (ngang) | "v" (dọc)
+    function makeTile(t, orient) {
       const tile = document.createElement("div");
-      tile.className = "dom-tile" + (placed ? " placed" : "");
+      tile.className = "dom-tile dom-" + orient;
       tile.appendChild(makeFace(t[0]));
       const divider = document.createElement("span");
       divider.className = "dom-divider";
@@ -210,29 +210,45 @@
       infoEl.textContent = `Nọc: ${boneyard.length} quân • P1: ${hands[0].length} quân • P2: ${hands[1].length} quân`
         + (line.length ? ` • Hai đầu: ${pips(leftEnd)} … ${pips(rightEnd)}` : "");
 
-      // chuỗi quân đã đánh
+      // chuỗi quân đã đánh — xếp kiểu rắn bò (serpentine): hàng xen kẽ chiều,
+      // quân ở chỗ rẽ cuối hàng để dọc, các quân khác để ngang.
       lineEl.innerHTML = "";
-      line.forEach((t) => {
-        lineEl.appendChild(makeTile(t, true));
-      });
-      lineEl.scrollLeft = lineEl.scrollWidth;
+      const perRow = 9; // số quân tối đa mỗi hàng trước khi rẽ xuống
+      let i = 0, rowIndex = 0;
+      while (i < line.length) {
+        const row = document.createElement("div");
+        row.className = "dom-row" + (rowIndex % 2 ? " reverse" : "");
+        const count = Math.min(perRow, line.length - i);
+        for (let k = 0; k < count; k++) {
+          const t = line[i + k];
+          // quân cuối hàng (trừ quân cuối cùng toàn chuỗi) là chỗ rẽ -> để dọc
+          const isTurn = (k === count - 1) && (i + k < line.length - 1);
+          row.appendChild(makeTile(t, isTurn ? "v" : "h"));
+        }
+        lineEl.appendChild(row);
+        i += count;
+        rowIndex++;
+      }
+      lineEl.scrollTop = lineEl.scrollHeight;
 
       // quân trên tay của người chơi cục bộ
       handEl.innerHTML = "";
       const seat = localSeat();
       hands[seat].forEach((t) => {
-        const d = makeTile(t, false);
+        const d = makeTile(t, "v");
         const playable = myTurn() && !over && canPlayTile(t);
         if (playable) d.classList.add("playable");
         d.addEventListener("click", () => onTileClick(t));
         handEl.appendChild(d);
       });
 
-      // nút bốc/bỏ lượt
+      // nút bốc/bỏ lượt — sáng lên khi bí (không còn quân đánh được)
       const mine = myTurn() && !over;
       const stuck = mine && !handCanPlay(turn);
       drawBtn.disabled = !(stuck && boneyard.length > 0);
       passBtn.disabled = !(stuck && boneyard.length === 0);
+      drawBtn.classList.toggle("dom-glow", stuck && boneyard.length > 0);
+      passBtn.classList.toggle("dom-glow", stuck && boneyard.length === 0);
     }
 
     ctx.setTurn(0);
