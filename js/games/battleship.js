@@ -15,9 +15,9 @@
   ];
   const ABILITIES = {
     normal:  { icon: "🎯", name: "Bắn thường", hint: "1 ô", charges: Infinity },
-    radar:   { icon: "📡", name: "Radar", hint: "quét 3×3", charges: 3 },
+    radar:   { icon: "📡", name: "Radar", hint: "quét 2×2", charges: 3 },
     bomb:    { icon: "💥", name: "Bom chùm", hint: "nổ 2×2", charges: 2 },
-    torpedo: { icon: "🚀", name: "Ngư lôi", hint: "xuyên hàng/cột", charges: 2 },
+    torpedo: { icon: "🚀", name: "Ngư lôi", hint: "tia 4 ô", charges: 2 },
   };
 
   function create(ctx) {
@@ -251,26 +251,31 @@
     }
 
     // ====================== VẬT PHẨM / NGẮM BẮN ======================
+    const TORP_LEN = 4;
     function targetCells(ab, r, c) {
       if (ab === "bomb") {
         const r0 = clamp(r, 0, N - 2), c0 = clamp(c, 0, N - 2);
         return [[r0, c0], [r0, c0 + 1], [r0 + 1, c0], [r0 + 1, c0 + 1]];
       }
       if (ab === "radar") {
-        const [rc, cc] = radarCenter(r, c);
-        const out = [];
-        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) out.push([rc + dr, cc + dc]);
-        return out;
+        const [r0, c0] = radarCenter(r, c);
+        return [[r0, c0], [r0, c0 + 1], [r0 + 1, c0], [r0 + 1, c0 + 1]];
       }
       if (ab === "torpedo") {
         const out = [];
-        if (torpedoAxis === "row") for (let cc = 0; cc < N; cc++) out.push([r, cc]);
-        else for (let rr = 0; rr < N; rr++) out.push([rr, c]);
+        if (torpedoAxis === "row") {
+          const c0 = clamp(c, 0, N - TORP_LEN);
+          for (let k = 0; k < TORP_LEN; k++) out.push([r, c0 + k]);
+        } else {
+          const r0 = clamp(r, 0, N - TORP_LEN);
+          for (let k = 0; k < TORP_LEN; k++) out.push([r0 + k, c]);
+        }
         return out;
       }
       return [[r, c]];
     }
-    function radarCenter(r, c) { return [clamp(r, 1, N - 2), clamp(c, 1, N - 2)]; }
+    // mỏ neo (góc trên-trái) của vùng radar 2×2 — cũng là nơi gắn badge số
+    function radarCenter(r, c) { return [clamp(r, 0, N - 2), clamp(c, 0, N - 2)]; }
 
     oppWrap.grid.addEventListener("mousemove", (e) => {
       if (phase !== "playing" || turn !== ctx.mySeat || awaiting) return;
@@ -323,9 +328,9 @@
       render();
       const tip = {
         normal: "Bấm 1 ô để bắn.",
-        radar: "Bấm để quét vùng 3×3 — chỉ đếm số ô tàu, không gây sát thương.",
+        radar: "Bấm để quét vùng 2×2 — chỉ đếm số ô tàu, không gây sát thương.",
         bomb: "Bấm để thả bom chùm phủ 2×2 (4 phát cùng lúc).",
-        torpedo: `Ngư lôi xuyên cả ${torpedoAxis === "row" ? "HÀNG" : "CỘT"} — bấm để phóng.`,
+        torpedo: `Ngư lôi tia 4 ô theo ${torpedoAxis === "row" ? "HÀNG" : "CỘT"} — bấm để phóng.`,
       };
       ctx.setStatus(tip[ab] || "");
     }
@@ -581,9 +586,9 @@
       "Đây là game CHỈ chơi online — vì mỗi người có hạm đội giấu kín với đối thủ.",
       "XẾP TÀU: bấm một tàu trong danh sách để chọn, bấm 'Xoay' (hoặc phím R / chuột phải) để đổi ngang–dọc, rồi bấm lên bàn của bạn để đặt. Bấm lại tàu đã đặt để nhấc lên chỉnh. Hoặc bấm '🔀 Ngẫu nhiên'. Đủ 5 tàu thì bấm 'Sẵn sàng'.",
       "Khi cả hai sẵn sàng, hai bên luân phiên bắn vào 'Vùng biển đối thủ'. Ô đỏ = trúng, ô trắng = trượt, bắn hết các ô của một tàu là đánh chìm.",
-      "📡 Radar: quét vùng 3×3, chỉ cho biết SỐ ô tàu trong vùng (không gây sát thương) — dùng để khoanh vùng. Có 3 lần.",
+      "📡 Radar: quét vùng 2×2, chỉ cho biết SỐ ô tàu trong vùng (không gây sát thương) — dùng để khoanh vùng. Có 3 lần.",
       "💥 Bom chùm: nổ phủ khối 2×2, bắn 4 ô cùng lúc. Có 2 lần.",
-      "🚀 Ngư lôi: lao xuyên TRỌN một hàng hoặc cột (đổi hướng bằng nút bên cạnh), làm lộ toàn bộ hàng/cột đó và đánh trúng MỌI tàu nằm trên đường đi. Có 2 lần.",
+      "🚀 Ngư lôi: bắn một tia thẳng 4 ô theo hàng hoặc cột (đổi hướng bằng nút bên cạnh), trúng mọi tàu nằm trên tia đó. Có 2 lần.",
       "Mỗi lượt chỉ được một hành động (bắn thường hoặc một vật phẩm). Ai đánh chìm toàn bộ hạm đội đối thủ trước sẽ thắng.",
     ],
     create,
