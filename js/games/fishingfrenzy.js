@@ -1,6 +1,6 @@
 /* Câu Cá Đối Đầu (Fishing Frenzy) — ONLINE song song, điều khiển bằng BÀN PHÍM.
    Lưỡi câu đung đưa trái–phải. Bấm PHÍM CÁCH để thả câu xuống (như game Đào Vàng).
-   Khi lưỡi câu chạm cá/vật phẩm, hiện một PHÍM CHỮ ngẫu nhiên (A–Z) — bấm phím đó
+   Khi lưỡi câu chạm cá/vật phẩm, hiện một PHÍM SỐ ngẫu nhiên (0–9) — bấm phím đó
    liên tục để kéo lên (cá càng nặng tụt càng nhanh). Có cá BOSS dưới đáy hồ.
    Chỉ relay điểm. Giao thức:
      { kind:"ready" } / { kind:"score", score, count } / { kind:"final", score, count } */
@@ -22,7 +22,7 @@
     { emoji: "💎", name: "Ngọc biển", kind: "gem", rate: 3, r: 15, speed: 45 },
     { emoji: "🥾", name: "Giày rách", kind: "junk", rate: 5, r: 15, speed: 70 },
   ];
-  const ALPHA = "abcdefghijklmnopqrstuvwxyz";
+  const ALPHA = "0123456789";
 
   function create(ctx) {
     const o = ctx.options || {};
@@ -587,7 +587,7 @@
       spawnBoss();
       spawnItem();
       itemAcc = 1.6;
-      ctx.setStatus("Câu nào! PHÍM CÁCH thả câu, bấm phím chữ hiện ra để kéo cá lên.");
+      ctx.setStatus("Câu nào! PHÍM CÁCH thả câu, bấm phím số hiện ra để kéo cá lên.");
       renderTop();
       timerInt = setInterval(() => {
         timeLeft -= 1;
@@ -672,7 +672,7 @@
       if (oppReady) startCountdown();
       else ctx.setStatus("Đang chờ đối thủ vào hồ câu...");
     } else {
-      ctx.setStatus("Chế độ luyện tập 1 người. PHÍM CÁCH thả câu, bấm phím chữ để kéo cá.");
+      ctx.setStatus("Chế độ luyện tập 1 người. PHÍM CÁCH thả câu, bấm phím số để kéo cá.");
       startCountdown();
     }
     return { applyMove, destroy: teardown };
@@ -682,7 +682,7 @@
     id: "fishingfrenzy",
     name: "Câu Cá Đối Đầu",
     emoji: "🎣",
-    description: "Đua câu cá bằng bàn phím: lưỡi câu đung đưa, bấm Cách thả câu, dính cá thì bấm phím chữ hiện ra liên tục để kéo lên. Có cá boss, vật phẩm hỗ trợ. Ai nhiều điểm hơn thắng.",
+    description: "Đua câu cá bằng bàn phím: lưỡi câu đung đưa, bấm Cách thả câu, dính cá thì bấm phím số hiện ra liên tục để kéo lên. Có cá boss, vật phẩm hỗ trợ. Ai nhiều điểm hơn thắng.",
     onlineReady: true,
     localReady: true,
     options: [
@@ -700,7 +700,7 @@
     howTo: [
       "Mỗi người câu trên hồ riêng; cùng đua trong thời gian định sẵn. Điều khiển hoàn toàn bằng BÀN PHÍM.",
       "Lưỡi câu treo trên thuyền tự đung đưa trái–phải. Bấm PHÍM CÁCH để thả lưỡi câu xuống theo hướng đang nhắm (giống game Đào Vàng).",
-      "Khi lưỡi câu chạm trúng cá/vật phẩm, màn hình hiện một PHÍM CHỮ ngẫu nhiên (A–Z). Bấm phím đó thật nhanh, liên tục để kéo con cá lên.",
+      "Khi lưỡi câu chạm trúng cá/vật phẩm, màn hình hiện một PHÍM SỐ ngẫu nhiên (0–9). Bấm phím đó thật nhanh, liên tục để kéo con cá lên.",
       "Cá càng nặng thì thanh kéo tụt càng nhanh — phải bấm nhanh hơn. Nếu thanh về 0 hoặc quá lâu thì cá sổng mất.",
       "Vật phẩm phải câu lên mới nhận: 🪱 mồi xịn (con kế dễ kéo), ⭐ sao (x2 điểm con kế), 🧲 nam châm (con kế tự dính), 💎 ngọc (+6 điểm), 🥾 giày rách (chẳng được gì).",
       "🐋 Cá BOSS bơi dưới đáy hồ: rất nặng và khó kéo nhưng được tới 25 điểm — phải thả câu xuống sâu mới tới.",
