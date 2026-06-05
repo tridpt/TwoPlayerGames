@@ -879,6 +879,66 @@ body {
   color: #061b22;
 }
 
+/* Laser Chess */
+.lc-board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
+  width: min(560px, 92vw);
+  aspect-ratio: 1 / 1;
+  padding: 10px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #141c3a, #0f142d);
+  box-shadow: var(--shadow);
+}
+.lc-cell {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--text);
+  font-size: clamp(1rem, 3.3vw, 1.55rem);
+  font-weight: 900;
+  cursor: default;
+  transition: transform 0.1s, background 0.15s, box-shadow 0.15s;
+}
+.lc-cell:disabled { opacity: 1; }
+.lc-cell.legal {
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.5);
+}
+.lc-cell.legal:hover {
+  transform: scale(1.04);
+  background: rgba(255, 209, 102, 0.18);
+}
+.lc-cell.p1 { color: var(--p1); }
+.lc-cell.p2 { color: var(--p2); }
+.lc-cell.core {
+  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.2), rgba(255,255,255,0.04));
+}
+.lc-cell.cannon {
+  background: rgba(255, 209, 102, 0.13);
+}
+.lc-cell.mirror {
+  background: rgba(255, 255, 255, 0.08);
+}
+.lc-cell.beam::after {
+  content: "";
+  position: absolute;
+  inset: 42% 7%;
+  border-radius: 999px;
+  background: #ffd166;
+  box-shadow: 0 0 12px #ffd166, 0 0 22px rgba(255, 209, 102, 0.8);
+  pointer-events: none;
+  transform: rotate(0deg);
+}
+.lc-cell.beam:nth-child(odd)::after {
+  transform: rotate(90deg);
+}
+.lc-cell.hit {
+  box-shadow: inset 0 0 0 3px var(--p1), 0 0 18px rgba(255, 93, 115, 0.75);
+}
+
 /* Reversi */
 .rv-board {
   display: grid;
