@@ -363,11 +363,7 @@
         cells.forEach(([r, c]) => { if (inBoard(r, c) && myBoard[r][c] !== null) count++; });
         return { ability: "radar", results: [], sunkCells: null, radarCount: count, scanCells: cells, center: move.center, gameOver: false };
       }
-      let order = cells;
-      if (ab === "torpedo") {
-        const idx = cells.findIndex(([r, c]) => inBoard(r, c) && myBoard[r][c] !== null);
-        order = cells.slice(0, idx === -1 ? cells.length : idx + 1);
-      }
+      const order = cells;
       const results = [];
       const sunkCells = [];
       order.forEach(([r, c]) => {
@@ -587,7 +583,7 @@
       "Khi cả hai sẵn sàng, hai bên luân phiên bắn vào 'Vùng biển đối thủ'. Ô đỏ = trúng, ô trắng = trượt, bắn hết các ô của một tàu là đánh chìm.",
       "📡 Radar: quét vùng 3×3, chỉ cho biết SỐ ô tàu trong vùng (không gây sát thương) — dùng để khoanh vùng. Có 3 lần.",
       "💥 Bom chùm: nổ phủ khối 2×2, bắn 4 ô cùng lúc. Có 2 lần.",
-      "🚀 Ngư lôi: lao xuyên cả một hàng hoặc cột (đổi hướng bằng nút bên cạnh), trúng tàu đầu tiên trên đường đi và lộ phần nước đã đi qua. Có 2 lần.",
+      "🚀 Ngư lôi: lao xuyên TRỌN một hàng hoặc cột (đổi hướng bằng nút bên cạnh), làm lộ toàn bộ hàng/cột đó và đánh trúng MỌI tàu nằm trên đường đi. Có 2 lần.",
       "Mỗi lượt chỉ được một hành động (bắn thường hoặc một vật phẩm). Ai đánh chìm toàn bộ hạm đội đối thủ trước sẽ thắng.",
     ],
     create,
