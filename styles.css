@@ -5884,32 +5884,110 @@ body {
 
 /* ---------- Yahtzee ---------- */
 .yz-root { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
-.yz-dice { display: flex; gap: 10px; }
+
+/* xúc xắc dạng chấm 3D */
+.yz-dice { display: flex; gap: 12px; perspective: 600px; }
 .yz-die {
-  width: 60px; height: 60px;
-  font-size: 2.8rem; line-height: 60px; text-align: center;
-  background: var(--panel); border-radius: 12px; box-shadow: var(--shadow);
+  width: 62px; height: 62px;
+  background: linear-gradient(155deg, #ffffff, #d6dae8);
+  border-radius: 14px;
+  box-shadow: 0 5px 0 #9aa0c0, 0 8px 14px rgba(0,0,0,0.4);
+  padding: 8px;
+  position: relative;
   cursor: default; user-select: none;
-  border: 3px solid transparent;
+  transition: transform 0.12s, box-shadow 0.12s;
 }
+.yz-die-face {
+  width: 100%; height: 100%;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+  gap: 2px;
+}
+.yz-pip-slot { display: flex; align-items: center; justify-content: center; }
+.yz-pip-slot.on::after {
+  content: ""; width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #4a4f6b, #14172a);
+  box-shadow: inset 0 -1px 1px rgba(255,255,255,0.3);
+}
+.yz-die.yz-blank { opacity: 0.45; }
 .yz-die.rollable { cursor: pointer; }
-.yz-die.held { border-color: var(--accent); background: var(--panel-2); }
-.yz-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
-.yz-hint { font-size: 0.85rem; color: var(--muted); max-width: 280px; }
-.yz-table {
-  width: min(440px, 96vw);
-  background: var(--panel); border-radius: var(--radius);
-  padding: 8px; box-shadow: var(--shadow);
+.yz-die.rollable:hover { transform: translateY(-3px); }
+.yz-die.held {
+  background: linear-gradient(155deg, #fff3cf, #ffd166);
+  box-shadow: 0 5px 0 #c79a3a, 0 0 14px rgba(255,209,102,0.7);
 }
-.yz-row { display: grid; grid-template-columns: 1fr 60px 60px; align-items: center; padding: 4px 8px; border-radius: 6px; }
-.yz-row:nth-child(odd) { background: rgba(255,255,255,0.03); }
-.yz-cat { font-size: 0.85rem; }
-.yz-v { text-align: center; font-weight: 700; height: 26px; line-height: 26px; border-radius: 5px; }
-.yz-v.filled { color: var(--text); }
-.yz-v.preview { color: var(--muted); opacity: 0.6; }
-.yz-v.pickable { cursor: pointer; background: rgba(255,209,102,0.15); }
-.yz-v.pickable:hover { background: var(--accent); color: #1a1a1a; opacity: 1; }
-.yz-total { border-top: 2px solid rgba(255,255,255,0.1); margin-top: 4px; font-size: 1.05rem; }
+.yz-die-lock {
+  position: absolute; top: -8px; right: -6px;
+  font-size: 0.85rem; opacity: 0; transform: scale(0.5);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.yz-die.held .yz-die-lock { opacity: 1; transform: scale(1); }
+.yz-die.rolling { animation: yzShake 0.12s linear infinite; }
+@keyframes yzShake {
+  0% { transform: rotate(-8deg) translateY(0); }
+  50% { transform: rotate(8deg) translateY(-3px); }
+  100% { transform: rotate(-8deg) translateY(0); }
+}
+
+.yz-actions { display: flex; align-items: center; gap: 12px; }
+.yz-rollbtn { font-size: 1.05rem; padding: 12px 26px; border-radius: 12px; }
+.yz-rollbtn b { font-size: 1.15rem; }
+.yz-rollbtn .yz-rollicon { display: inline-block; }
+.yz-rollbtn:not(:disabled):hover .yz-rollicon { animation: yzShake 0.18s linear 3; }
+.yz-rollbtn.yz-spent { opacity: 0.5; }
+
+.yz-hint {
+  font-size: 0.9rem; color: var(--muted); max-width: 340px; text-align: center;
+  min-height: 1.3em;
+}
+.yz-hint.yz-celebrate {
+  color: #1a1a1a; background: var(--accent); border-radius: 999px;
+  padding: 6px 16px; font-weight: 700;
+  animation: yzPulse 0.6s ease-in-out infinite;
+}
+@keyframes yzPulse { 0%,100%{ transform: scale(1);} 50%{ transform: scale(1.05);} }
+
+.yz-table {
+  width: min(460px, 96vw);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border-radius: var(--radius);
+  padding: 8px; box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.yz-row {
+  display: grid; grid-template-columns: 1fr 62px 62px; align-items: center;
+  padding: 5px 10px; border-radius: 7px;
+}
+.yz-row:not(.yz-head):not(.yz-total):nth-child(odd) { background: rgba(255,255,255,0.03); }
+.yz-head { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 6px; }
+.yz-head .yz-v { font-weight: 800; border-radius: 6px; transition: background 0.2s; }
+.yz-head .yz-h1 { color: var(--p1); }
+.yz-head .yz-h2 { color: var(--p2); }
+.yz-head .yz-v.active { background: var(--bg-soft); box-shadow: 0 0 0 2px currentColor inset; }
+.yz-upper .yz-cat { color: #cfe0ff; }
+.yz-cat { font-size: 0.88rem; display: flex; align-items: center; gap: 7px; }
+.yz-ic { font-size: 1rem; width: 1.3em; text-align: center; }
+.yz-v {
+  text-align: center; font-weight: 700; height: 30px; line-height: 30px;
+  border-radius: 6px; font-size: 0.95rem;
+}
+.yz-v.filled { color: var(--text); background: rgba(255,255,255,0.06); }
+.yz-v.zero { color: var(--muted); }
+.yz-v.preview { color: var(--accent); opacity: 0.75; font-style: italic; }
+.yz-v.pickable { cursor: pointer; outline: 2px dashed rgba(255,209,102,0.5); }
+.yz-v.pickable:hover { background: var(--accent); color: #1a1a1a; opacity: 1; outline-style: solid; }
+.yz-v.yz-pop-good { animation: yzPopGood 0.6s ease; }
+.yz-v.yz-pop-zero { animation: yzPopZero 0.6s ease; }
+@keyframes yzPopGood {
+  0% { transform: scale(1.6); background: var(--good); color: #0f1226; }
+  100% { transform: scale(1); }
+}
+@keyframes yzPopZero {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); } 75% { transform: translateX(4px); }
+}
+.yz-bonus { font-size: 0.82rem; color: var(--muted); border-top: 1px dashed rgba(255,255,255,0.12); margin-top: 4px; padding-top: 7px; }
+.yz-bonus .yz-v.filled { color: var(--good); background: rgba(110,231,183,0.15); }
+.yz-total { border-top: 2px solid rgba(255,255,255,0.12); margin-top: 4px; font-size: 1.15rem; padding-top: 8px; }
 .yz-total .yz-cat { font-weight: 800; }
 .yz-total .p1 { color: var(--p1); }
 .yz-total .p2 { color: var(--p2); }

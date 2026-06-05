@@ -1,23 +1,26 @@
 /* Yahtzee — xúc xắc, chơi chung máy & ONLINE
    Mỗi lượt: gieo 5 xúc xắc tối đa 3 lần (giữ lại viên ưng ý), rồi chọn 1 ô điểm.
-   13 ô điểm, ai tổng điểm cao hơn khi lấp hết sẽ thắng.
-   Nước đi: { kind:"roll", dice } (mảng 5 số mới) | { kind:"score", cat }.
-   Người gieo tự random rồi gửi kết quả cho đối thủ. */
+   13 ô điểm + thưởng phần trên (tổng ô số ≥ 63 thì +35). Ai tổng cao hơn thắng.
+   Nước đi: { kind:"roll", dice } | { kind:"score", cat }.
+   Người gieo tự random rồi gửi kết quả cho đối thủ (đồng bộ). */
 (function () {
+  const UPPER = ["ones", "twos", "threes", "fours", "fives", "sixes"];
+  const UPPER_BONUS = 35, UPPER_TARGET = 63;
+
   const CATS = [
-    { id: "ones", name: "Số 1", fn: (d) => sumOf(d, 1) },
-    { id: "twos", name: "Số 2", fn: (d) => sumOf(d, 2) },
-    { id: "threes", name: "Số 3", fn: (d) => sumOf(d, 3) },
-    { id: "fours", name: "Số 4", fn: (d) => sumOf(d, 4) },
-    { id: "fives", name: "Số 5", fn: (d) => sumOf(d, 5) },
-    { id: "sixes", name: "Số 6", fn: (d) => sumOf(d, 6) },
-    { id: "three", name: "3 giống nhau", fn: (d) => ofAKind(d, 3) ? sum(d) : 0 },
-    { id: "four", name: "4 giống nhau", fn: (d) => ofAKind(d, 4) ? sum(d) : 0 },
-    { id: "full", name: "Cù lũ (Full House)", fn: (d) => fullHouse(d) ? 25 : 0 },
-    { id: "small", name: "Sảnh nhỏ (4 liên tiếp)", fn: (d) => straight(d, 4) ? 30 : 0 },
-    { id: "large", name: "Sảnh lớn (5 liên tiếp)", fn: (d) => straight(d, 5) ? 40 : 0 },
-    { id: "yahtzee", name: "Yahtzee (5 giống)", fn: (d) => ofAKind(d, 5) ? 50 : 0 },
-    { id: "chance", name: "May rủi (tổng)", fn: (d) => sum(d) },
+    { id: "ones",   name: "Số 1",        icon: "1️⃣", fn: (d) => sumOf(d, 1) },
+    { id: "twos",   name: "Số 2",        icon: "2️⃣", fn: (d) => sumOf(d, 2) },
+    { id: "threes", name: "Số 3",        icon: "3️⃣", fn: (d) => sumOf(d, 3) },
+    { id: "fours",  name: "Số 4",        icon: "4️⃣", fn: (d) => sumOf(d, 4) },
+    { id: "fives",  name: "Số 5",        icon: "5️⃣", fn: (d) => sumOf(d, 5) },
+    { id: "sixes",  name: "Số 6",        icon: "6️⃣", fn: (d) => sumOf(d, 6) },
+    { id: "three",  name: "3 giống nhau", icon: "🎯", fn: (d) => ofAKind(d, 3) ? sum(d) : 0 },
+    { id: "four",   name: "4 giống nhau", icon: "🎯", fn: (d) => ofAKind(d, 4) ? sum(d) : 0 },
+    { id: "full",   name: "Cù lũ",        icon: "🏠", fn: (d) => fullHouse(d) ? 25 : 0 },
+    { id: "small",  name: "Sảnh nhỏ",     icon: "📏", fn: (d) => straight(d, 4) ? 30 : 0 },
+    { id: "large",  name: "Sảnh lớn",     icon: "📐", fn: (d) => straight(d, 5) ? 40 : 0 },
+    { id: "yahtzee",name: "YAHTZEE!",     icon: "⭐", fn: (d) => ofAKind(d, 5) ? 50 : 0 },
+    { id: "chance", name: "May rủi",      icon: "🎲", fn: (d) => sum(d) },
   ];
 
   function counts(d) { const c = [0,0,0,0,0,0,0]; d.forEach((v) => c[v]++); return c; }
@@ -34,15 +37,19 @@
     return best >= len;
   }
 
+  // bố cục chấm xúc xắc trên lưới 3x3
+  const PIP_LAYOUT = {
+    1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
+  };
+
   function create(ctx) {
-    const DICE_FACE = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
     let turn = 0;
     let over = false;
     let dice = [1, 1, 1, 1, 1];
     let held = [false, false, false, false, false];
     let rollsLeft = 3;
     let rolledThisTurn = false;
-    // bảng điểm: scores[player][catId] = số | undefined(chưa điền)
+    let animating = false;
     const scores = [{}, {}];
 
     const root = document.createElement("div");
@@ -50,34 +57,64 @@
     root.innerHTML =
       `<div class="yz-dice" id="yzDice"></div>` +
       `<div class="yz-actions">` +
-      `<button class="btn primary" id="yzRoll">🎲 Gieo (3)</button>` +
-      `<span class="yz-hint" id="yzHint">Bấm vào xúc xắc để giữ lại trước khi gieo tiếp.</span>` +
+      `<button class="btn primary yz-rollbtn" id="yzRoll"><span class="yz-rollicon">🎲</span> Gieo <b id="yzRollN">3</b></button>` +
       `</div>` +
+      `<div class="yz-hint" id="yzHint">Bấm Gieo để bắt đầu lượt.</div>` +
       `<div class="yz-table" id="yzTable"></div>`;
     ctx.boardEl.appendChild(root);
 
     const diceEl = root.querySelector("#yzDice");
     const rollBtn = root.querySelector("#yzRoll");
+    const rollN = root.querySelector("#yzRollN");
     const hintEl = root.querySelector("#yzHint");
     const tableEl = root.querySelector("#yzTable");
 
-    // dựng 5 ô xúc xắc
+    // ----- xúc xắc dạng chấm -----
     const dieEls = [];
     for (let i = 0; i < 5; i++) {
       const d = document.createElement("div");
       d.className = "yz-die";
+      const inner = document.createElement("div");
+      inner.className = "yz-die-face";
+      for (let k = 0; k < 9; k++) {
+        const slot = document.createElement("span");
+        slot.className = "yz-pip-slot";
+        inner.appendChild(slot);
+      }
+      const lock = document.createElement("span");
+      lock.className = "yz-die-lock";
+      lock.textContent = "🔒";
+      d.appendChild(inner);
+      d.appendChild(lock);
       const idx = i;
       d.addEventListener("click", () => toggleHold(idx));
       diceEl.appendChild(d);
-      dieEls.push(d);
+      dieEls.push({ wrap: d, face: inner });
     }
 
-    // dựng bảng điểm
+    function paintDie(slot, value) {
+      const set = new Set(PIP_LAYOUT[value] || []);
+      const slots = slot.children;
+      for (let k = 0; k < 9; k++) {
+        slots[k].className = "yz-pip-slot" + (set.has(k) ? " on" : "");
+      }
+    }
+
+    // ----- bảng điểm: 2 cột header + các hàng -----
+    tableEl.innerHTML = "";
+    const header = document.createElement("div");
+    header.className = "yz-row yz-head";
+    header.innerHTML = `<span class="yz-cat">Tổ hợp</span>` +
+      `<span class="yz-v yz-h1" id="yzH0">P1</span>` +
+      `<span class="yz-v yz-h2" id="yzH1">P2</span>`;
+    tableEl.appendChild(header);
+
     const rowEls = {};
     CATS.forEach((cat) => {
       const row = document.createElement("div");
       row.className = "yz-row";
-      row.innerHTML = `<span class="yz-cat">${cat.name}</span>` +
+      if (UPPER.includes(cat.id)) row.classList.add("yz-upper");
+      row.innerHTML = `<span class="yz-cat"><i class="yz-ic">${cat.icon}</i>${cat.name}</span>` +
         `<span class="yz-v p1" data-p="0"></span>` +
         `<span class="yz-v p2" data-p="1"></span>`;
       const c0 = row.querySelector('[data-p="0"]');
@@ -85,12 +122,21 @@
       c0.addEventListener("click", () => chooseCat(cat.id, 0));
       c1.addEventListener("click", () => chooseCat(cat.id, 1));
       tableEl.appendChild(row);
-      rowEls[cat.id] = { c0, c1 };
+      rowEls[cat.id] = { c0, c1, row };
     });
+
+    // hàng thưởng phần trên
+    const bonusRow = document.createElement("div");
+    bonusRow.className = "yz-row yz-bonus";
+    bonusRow.innerHTML = `<span class="yz-cat">🎁 Thưởng (ô số ≥ ${UPPER_TARGET})</span>` +
+      `<span class="yz-v p1" id="yzB0"></span>` +
+      `<span class="yz-v p2" id="yzB1"></span>`;
+    tableEl.appendChild(bonusRow);
+
     // hàng tổng
     const totalRow = document.createElement("div");
     totalRow.className = "yz-row yz-total";
-    totalRow.innerHTML = `<span class="yz-cat">TỔNG</span>` +
+    totalRow.innerHTML = `<span class="yz-cat">TỔNG ĐIỂM</span>` +
       `<span class="yz-v p1" id="yzTot0">0</span>` +
       `<span class="yz-v p2" id="yzTot1">0</span>`;
     tableEl.appendChild(totalRow);
@@ -98,20 +144,21 @@
     function myTurn() { return !ctx.isOnline || turn === ctx.mySeat; }
 
     function toggleHold(i) {
-      if (!myTurn() || over || !rolledThisTurn) return;
+      if (!myTurn() || over || !rolledThisTurn || animating) return;
       held[i] = !held[i];
+      ctx.sound("select");
       renderDice();
     }
 
     rollBtn.addEventListener("click", () => {
-      if (!myTurn() || over || rollsLeft <= 0) return;
+      if (!myTurn() || over || rollsLeft <= 0 || animating) return;
       const nd = dice.map((v, i) => (rolledThisTurn && held[i]) ? v : 1 + Math.floor(Math.random() * 6));
       applyMove({ kind: "roll", dice: nd }, false);
     });
 
     function chooseCat(catId, player) {
-      if (!myTurn() || over || player !== turn || !rolledThisTurn) return;
-      if (scores[player][catId] !== undefined) return; // đã điền
+      if (!myTurn() || over || player !== turn || !rolledThisTurn || animating) return;
+      if (scores[player][catId] !== undefined) return;
       applyMove({ kind: "score", cat: catId }, false);
     }
 
@@ -121,17 +168,10 @@
       if (move.kind === "roll") {
         if (rollsLeft <= 0) return;
         if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
-        dice = move.dice.slice();
         rollsLeft--;
         rolledThisTurn = true;
-        ctx.sound("select");
-        renderDice();
-        renderTable();
-        rollBtn.textContent = `🎲 Gieo (${rollsLeft})`;
-        rollBtn.disabled = rollsLeft <= 0 || !myTurn();
-        hintEl.textContent = rollsLeft > 0
-          ? "Giữ viên ưng ý rồi gieo tiếp, hoặc chọn một ô điểm."
-          : "Hết lượt gieo — hãy chọn một ô điểm để ghi.";
+        ctx.sound("shot");
+        animateRoll(move.dice.slice());
         return;
       }
 
@@ -139,15 +179,62 @@
         const cat = CATS.find((c) => c.id === move.cat);
         if (!cat || scores[turn][move.cat] !== undefined) return;
         if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
-        scores[turn][move.cat] = cat.fn(dice);
-        ctx.sound("capture");
+        const val = cat.fn(dice);
+        scores[turn][move.cat] = val;
+        ctx.sound(val > 0 ? "capture" : "error");
+        flashCell(turn, move.cat, val);
         renderTable();
-        // hết bàn khi cả hai điền đủ 13 ô
         const done0 = Object.keys(scores[0]).length === CATS.length;
         const done1 = Object.keys(scores[1]).length === CATS.length;
         if (done0 && done1) return finish();
         nextTurn();
       }
+    }
+
+    // hoạt ảnh lăn xúc xắc: nhấp nháy mặt ngẫu nhiên rồi dừng ở kết quả
+    function animateRoll(finalDice) {
+      animating = true;
+      rollBtn.disabled = true;
+      let ticks = 0;
+      const anim = setInterval(() => {
+        dice.forEach((_, i) => {
+          if (held[i]) return;
+          paintDie(dieEls[i].face, 1 + Math.floor(Math.random() * 6));
+          dieEls[i].wrap.classList.add("rolling");
+        });
+        if (++ticks >= 8) {
+          clearInterval(anim);
+          dice = finalDice;
+          dieEls.forEach((d) => d.wrap.classList.remove("rolling"));
+          animating = false;
+          renderDice();
+          renderTable();
+          afterRoll();
+        }
+      }, 55);
+    }
+
+    function afterRoll() {
+      rollN.textContent = rollsLeft;
+      rollBtn.disabled = rollsLeft <= 0 || !myTurn();
+      rollBtn.classList.toggle("yz-spent", rollsLeft <= 0);
+      // phát hiện Yahtzee để khoe
+      if (ofAKind(dice, 5)) {
+        hintEl.innerHTML = "⭐ <b>YAHTZEE!</b> 5 viên giống nhau — ghi vào ô ⭐ để ăn 50 điểm!";
+        hintEl.classList.add("yz-celebrate");
+        ctx.sound("win");
+      } else {
+        hintEl.classList.remove("yz-celebrate");
+        hintEl.textContent = rollsLeft > 0
+          ? "Bấm xúc xắc để GIỮ, rồi gieo tiếp — hoặc chọn ô điểm."
+          : "Hết lượt gieo — chọn một ô điểm để ghi.";
+      }
+    }
+
+    function flashCell(p, catId, val) {
+      const cell = p === 0 ? rowEls[catId].c0 : rowEls[catId].c1;
+      cell.classList.add(val > 0 ? "yz-pop-good" : "yz-pop-zero");
+      setTimeout(() => cell.classList.remove("yz-pop-good", "yz-pop-zero"), 600);
     }
 
     function nextTurn() {
@@ -156,17 +243,21 @@
       held = [false, false, false, false, false];
       rollsLeft = 3;
       rolledThisTurn = false;
-      rollBtn.textContent = "🎲 Gieo (3)";
+      rollN.textContent = "3";
       rollBtn.disabled = !myTurn();
+      rollBtn.classList.remove("yz-spent");
+      hintEl.classList.remove("yz-celebrate");
       ctx.setTurn(turn);
       renderDice();
       renderTable();
-      hintEl.textContent = "Bấm vào xúc xắc để giữ lại trước khi gieo tiếp.";
-      ctx.setStatus(`Lượt Người chơi ${turn + 1} — bấm Gieo để bắt đầu.`);
+      hintEl.textContent = "Bấm Gieo để bắt đầu lượt.";
+      ctx.setStatus(`Lượt Người chơi ${turn + 1}.`);
     }
 
+    function upperSum(p) { return UPPER.reduce((s, id) => s + (scores[p][id] || 0), 0); }
+    function bonus(p) { return upperSum(p) >= UPPER_TARGET ? UPPER_BONUS : 0; }
     function total(p) {
-      return CATS.reduce((s, c) => s + (scores[p][c.id] || 0), 0);
+      return CATS.reduce((s, c) => s + (scores[p][c.id] || 0), 0) + bonus(p);
     }
 
     function finish() {
@@ -181,29 +272,41 @@
 
     function renderDice() {
       dice.forEach((v, i) => {
-        dieEls[i].textContent = DICE_FACE[v];
-        dieEls[i].classList.toggle("held", rolledThisTurn && held[i]);
-        dieEls[i].classList.toggle("rollable", rolledThisTurn && myTurn() && !over);
+        paintDie(dieEls[i].face, v);
+        const h = rolledThisTurn && held[i];
+        dieEls[i].wrap.classList.toggle("held", h);
+        dieEls[i].wrap.classList.toggle("rollable", rolledThisTurn && myTurn() && !over && !animating);
+        dieEls[i].wrap.classList.toggle("yz-blank", !rolledThisTurn);
       });
     }
 
     function renderTable() {
+      // tô sáng cột người đang chơi
+      root.querySelector("#yzH0").classList.toggle("active", turn === 0 && !over);
+      root.querySelector("#yzH1").classList.toggle("active", turn === 1 && !over);
       CATS.forEach((cat) => {
         [0, 1].forEach((p) => {
           const cell = p === 0 ? rowEls[cat.id].c0 : rowEls[cat.id].c1;
           const val = scores[p][cat.id];
-          cell.classList.remove("filled", "preview", "pickable");
+          cell.classList.remove("filled", "preview", "pickable", "zero");
           if (val !== undefined) {
             cell.textContent = val;
             cell.classList.add("filled");
-          } else if (p === turn && myTurn() && rolledThisTurn && !over) {
-            // xem trước điểm nếu chọn ô này
+            if (val === 0) cell.classList.add("zero");
+          } else if (p === turn && myTurn() && rolledThisTurn && !over && !animating) {
             cell.textContent = cat.fn(dice);
             cell.classList.add("preview", "pickable");
           } else {
-            cell.textContent = "";
+            cell.textContent = "·";
           }
         });
+      });
+      // thưởng
+      [0, 1].forEach((p) => {
+        const el = root.querySelector("#yzB" + p);
+        const us = upperSum(p), bn = bonus(p);
+        el.textContent = bn ? "+" + bn : us + "/" + UPPER_TARGET;
+        el.classList.toggle("filled", bn > 0);
       });
       root.querySelector("#yzTot0").textContent = total(0);
       root.querySelector("#yzTot1").textContent = total(1);
@@ -224,12 +327,12 @@
     description: "Gieo 5 xúc xắc, ghi điểm theo 13 tổ hợp (cù lũ, sảnh, Yahtzee...). Ai tổng điểm cao hơn thắng.",
     onlineReady: true,
     howTo: [
-      "Mỗi lượt bạn được gieo 5 xúc xắc tối đa 3 lần. Sau mỗi lần gieo, bấm vào viên xúc xắc muốn GIỮ lại rồi gieo tiếp các viên còn lại.",
-      "Sau khi gieo xong (hoặc dùng hết 3 lần), chọn MỘT ô điểm trong bảng để ghi — ô bạn chọn sẽ tính điểm theo xúc xắc hiện tại.",
+      "Mỗi lượt bạn được gieo 5 xúc xắc tối đa 3 lần. Sau mỗi lần gieo, bấm vào viên xúc xắc muốn GIỮ lại (hiện ổ khóa 🔒) rồi gieo tiếp các viên còn lại.",
+      "Sau khi gieo, chọn MỘT ô điểm trong bảng để ghi — ô bạn chọn sẽ tính điểm theo xúc xắc hiện tại (số mờ là điểm dự kiến).",
       "Các ô số (1–6): tính tổng các viên có số đó. 3/4 giống nhau: tổng tất cả viên. Cù lũ: 25đ. Sảnh nhỏ (4 liên tiếp): 30đ. Sảnh lớn (5 liên tiếp): 40đ.",
-      "Yahtzee (cả 5 viên giống nhau): 50đ. May rủi: tổng tất cả viên (dùng khi không có tổ hợp nào tốt).",
-      "Mỗi ô chỉ điền được một lần. Khi cả hai đã điền hết 13 ô, ai tổng điểm cao hơn sẽ thắng.",
-      "Ô có số mờ là điểm DỰ KIẾN nếu bạn chọn ô đó — bấm vào để chốt.",
+      "Yahtzee (cả 5 viên giống nhau): 50đ. May rủi: tổng tất cả viên.",
+      "THƯỞNG: nếu tổng 6 ô số (1–6) đạt từ 63 điểm trở lên, bạn được cộng thêm 35 điểm.",
+      "Mỗi ô chỉ điền một lần. Khi cả hai điền hết 13 ô, ai tổng điểm cao hơn sẽ thắng.",
     ],
     create,
   });
