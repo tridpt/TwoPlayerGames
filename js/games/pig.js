@@ -16,6 +16,7 @@
     let over = false;
     let lastDie = 0;
     let rolling = false;
+    let rollTimer = null;
 
     const root = document.createElement("div");
     root.className = "pig-root";
@@ -24,8 +25,7 @@
       `<div class="pig-p p1"><span>Người chơi 1</span><b id="pigT0">0</b></div>` +
       `<div class="pig-p p2"><span>Người chơi 2</span><b id="pigT1">0</b></div>` +
       `</div>` +
-      `<div class="pig-die-stage"><div class="pig-die" id="pigDie">` +
-      `<div class="pig-die-face" id="pigDieFace"></div></div></div>` +
+      `<div class="pig-die-stage"><div class="pig-cube" id="pigCube"></div></div>` +
       `<div class="pig-temp">Điểm tạm lượt này: <b id="pigTemp">0</b></div>` +
       `<div class="pig-actions">` +
       `<button class="btn primary" id="pigRoll">🎲 Gieo</button>` +
@@ -33,8 +33,7 @@
       `</div>`;
     ctx.boardEl.appendChild(root);
 
-    const dieEl = root.querySelector("#pigDie");
-    const dieFace = root.querySelector("#pigDieFace");
+    const cube = root.querySelector("#pigCube");
     const tempEl = root.querySelector("#pigTemp");
     const rollBtn = root.querySelector("#pigRoll");
     const holdBtn = root.querySelector("#pigHold");
@@ -44,16 +43,38 @@
     const PIP_LAYOUT = {
       1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
     };
-    function paintDie(value) {
-      const set = new Set(PIP_LAYOUT[value] || []);
-      dieFace.innerHTML = "";
+    // 6 mặt khối lập phương: front=1, back=6, right=2, left=5, top=3, bottom=4
+    const FACES = [
+      { cls: "front", val: 1 }, { cls: "back", val: 6 },
+      { cls: "right", val: 2 }, { cls: "left", val: 5 },
+      { cls: "top", val: 3 }, { cls: "bottom", val: 4 },
+    ];
+    // góc xoay để mặt có giá trị v hướng ra trước (front)
+    const FACE_ROT = {
+      1: [0, 0], 6: [0, 180], 2: [0, -90], 5: [0, 90], 3: [-90, 0], 4: [90, 0],
+    };
+    FACES.forEach((f) => {
+      const face = document.createElement("div");
+      face.className = "pig-cube-face " + f.cls;
+      const set = new Set(PIP_LAYOUT[f.val] || []);
       for (let k = 0; k < 9; k++) {
         const slot = document.createElement("span");
         slot.className = "pig-pip-slot" + (set.has(k) ? " on" : "");
-        dieFace.appendChild(slot);
+        face.appendChild(slot);
       }
+      cube.appendChild(face);
+    });
+
+    // đặt khối hiển thị mặt `value` hướng ra trước, kèm số vòng quay thêm.
+    // thêm nghiêng nhẹ (-18°, 18°) khi đứng yên để luôn thấy khối 3D.
+    function setCubeFace(value, spins) {
+      const [rx, ry] = FACE_ROT[value] || [0, 0];
+      const ex = (spins || 0) * 360;
+      const tiltX = spins ? 0 : -18;
+      const tiltY = spins ? 0 : 18;
+      cube.style.transform = `rotateX(${rx + ex + tiltX}deg) rotateY(${ry + ex + tiltY}deg)`;
     }
-    paintDie(1);
+    setCubeFace(1, 0);
 
     function myTurn() { return !ctx.isOnline || turn === ctx.mySeat; }
 
@@ -79,24 +100,24 @@
       if (move.kind === "roll") {
         if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
         lastDie = move.die;
-        // hoạt ảnh lăn: viên xúc xắc xoay + đổi mặt ngẫu nhiên rồi dừng
+        // hoạt ảnh: khối lập phương lăn nhiều vòng rồi dừng ở mặt kết quả
         rolling = true;
         updateButtons();
-        dieEl.classList.add("rolling");
         ctx.sound("shot");
-        let ticks = 0;
-        const anim = setInterval(() => {
-          paintDie(1 + Math.floor(Math.random() * 6));
-          if (++ticks >= 9) {
-            clearInterval(anim);
-            dieEl.classList.remove("rolling");
-            paintDie(move.die);
-            dieEl.classList.add("landed");
-            setTimeout(() => dieEl.classList.remove("landed"), 350);
-            rolling = false;
-            resolveRoll(move.die);
-          }
-        }, 60);
+        cube.classList.add("tumbling");
+        // quay tới mặt kết quả + thêm vài vòng cho tự nhiên
+        const spins = 2 + Math.floor(Math.random() * 2);
+        setCubeFace(move.die, spins);
+        clearTimeout(rollTimer);
+        rollTimer = setTimeout(() => {
+          cube.classList.remove("tumbling");
+          // chuẩn hoá lại transform về đúng mặt (bỏ vòng quay thừa) để lần sau mượt
+          setCubeFace(move.die, 0);
+          cube.classList.add("landed");
+          setTimeout(() => cube.classList.remove("landed"), 320);
+          rolling = false;
+          resolveRoll(move.die);
+        }, 900);
         return;
       }
 
@@ -112,8 +133,8 @@
 
     function resolveRoll(die) {
       if (die === 1) {
-        dieEl.classList.add("bust");
-        setTimeout(() => dieEl.classList.remove("bust"), 700);
+        cube.classList.add("bust");
+        setTimeout(() => cube.classList.remove("bust"), 700);
         const opp = 1 - turn;
         const moved = temp;
         if (moved > 0) {
