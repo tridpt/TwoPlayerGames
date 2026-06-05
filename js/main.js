@@ -1131,6 +1131,7 @@
 
   function goHome() {
     clearRoomExitNotice();
+    hideWinScreen();
     leavePendingRoom();
     if (online) { Net.send("leave"); online = null; }
     clearSessionLock();
