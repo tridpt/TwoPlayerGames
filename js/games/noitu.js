@@ -5,16 +5,70 @@
    Lưu ý: tính đúng/sai nghĩa của từ theo "luật danh dự" (không có từ điển đầy đủ);
    chỉ kiểm tra định dạng 2 tiếng, nối đúng tiếng, và không lặp. */
 (function () {
-  // vài từ mở màn gợi ý (chọn tất định theo seed để 2 máy giống nhau)
+  // vài từ mở màn gợi ý (chọn ngẫu nhiên mỗi ván; online dùng seed chung)
   const STARTERS = [
     "học sinh", "bầu trời", "con đường", "mặt trời", "hoa hồng",
     "xinh đẹp", "vui vẻ", "bình minh", "quê hương", "tình bạn",
+    "mùa xuân", "dòng sông", "núi rừng", "ánh sáng", "gia đình",
+    "thành phố", "biển cả", "cánh đồng", "ngôi sao", "trái tim",
+    "cơn mưa", "buổi sáng", "tuổi thơ", "âm nhạc", "hạnh phúc",
   ];
 
   function norm(s) {
     return s.trim().toLowerCase().replace(/\s+/g, " ");
   }
   function syllables(s) { return norm(s).split(" ").filter(Boolean); }
+
+  // ----- Kiểm tra một tiếng có đúng cấu trúc âm tiết tiếng Việt không -----
+  // (chặn gõ bậy kiểu "asdf", "xyzq"; KHÔNG xác minh nghĩa của từ).
+  // Bản đồ bỏ dấu thanh + dấu mũ/móc về nguyên âm cơ bản.
+  const BASE_MAP = {
+    "à":"a","á":"a","ả":"a","ã":"a","ạ":"a","ă":"a","ằ":"a","ắ":"a","ẳ":"a","ẵ":"a","ặ":"a",
+    "â":"a","ầ":"a","ấ":"a","ẩ":"a","ẫ":"a","ậ":"a",
+    "è":"e","é":"e","ẻ":"e","ẽ":"e","ẹ":"e","ê":"e","ề":"e","ế":"e","ể":"e","ễ":"e","ệ":"e",
+    "ì":"i","í":"i","ỉ":"i","ĩ":"i","ị":"i",
+    "ò":"o","ó":"o","ỏ":"o","õ":"o","ọ":"o","ô":"o","ồ":"o","ố":"o","ổ":"o","ỗ":"o","ộ":"o",
+    "ơ":"o","ờ":"o","ớ":"o","ở":"o","ỡ":"o","ợ":"o",
+    "ù":"u","ú":"u","ủ":"u","ũ":"u","ụ":"u","ư":"u","ừ":"u","ứ":"u","ử":"u","ữ":"u","ự":"u",
+    "ỳ":"y","ý":"y","ỷ":"y","ỹ":"y","ỵ":"y",
+    "đ":"d",
+  };
+  function toBase(s) {
+    let out = "";
+    for (const ch of s) out += BASE_MAP[ch] || ch;
+    return out;
+  }
+  // phụ âm đầu hợp lệ (gồm ghép), sắp dài trước
+  const ONSETS = ["ngh", "ng", "nh", "ch", "gh", "gi", "kh", "ph", "th", "tr", "qu",
+    "b", "c", "d", "g", "h", "k", "l", "m", "n", "p", "r", "s", "t", "v", "x"];
+  // vần hợp lệ (phần sau phụ âm đầu, dạng đã bỏ dấu). Tập phổ biến của tiếng Việt.
+  const VOWELS = "aeiouy";
+  const FINALS = ["", "c", "ch", "m", "n", "ng", "nh", "p", "t", "i", "o", "u", "y"];
+
+  function isVietnameseSyllable(raw) {
+    const s = norm(raw);
+    if (!s || /[^a-zàáâãèéêìíòóôõùúýăđĩũơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/.test(s)) {
+      return false;
+    }
+    // bỏ dấu trước, rồi mới tách phụ âm đầu (để "đ"→"d", "ư/ơ/ê..."→nguyên âm cơ bản)
+    const base = toBase(s);
+    let onset = "";
+    for (const o of ONSETS) { if (base.startsWith(o)) { onset = o; break; } }
+    const rhyme = base.slice(onset.length);
+    if (!rhyme) return false;
+    // vần phải bắt đầu bằng nguyên âm
+    if (!VOWELS.includes(rhyme[0])) return false;
+    let i = 0;
+    while (i < rhyme.length && VOWELS.includes(rhyme[i])) i++;
+    const nucleus = rhyme.slice(0, i);
+    const final = rhyme.slice(i);
+    if (nucleus.length === 0 || nucleus.length > 3) return false;
+    if (!FINALS.includes(final)) return false;
+    return true;
+  }
+  function validVietnamese(phrase) {
+    return syllables(phrase).every(isVietnameseSyllable);
+  }
 
   function create(ctx) {
     const o = ctx.options || {};
@@ -46,8 +100,9 @@
     const errEl = root.querySelector("#ntErr");
     const chainEl = root.querySelector("#ntChain");
 
-    // từ mở màn cố định theo seed
-    const opener = STARTERS[Math.floor(ctx.rng() * STARTERS.length)];
+    // từ mở màn: online dùng RNG chung (2 máy giống nhau), local đổi mỗi ván
+    const rand = ctx.isOnline ? ctx.rng : Math.random;
+    const opener = STARTERS[Math.floor(rand() * STARTERS.length)];
 
     function myTurn() { return !ctx.isOnline || turn === ctx.mySeat; }
 
@@ -75,6 +130,7 @@
     function validate(phrase) {
       const sy = syllables(phrase);
       if (sy.length !== 2) return "Phải là từ GỒM 2 TIẾNG (ví dụ: học sinh).";
+      if (!validVietnamese(phrase)) return "Phải là tiếng Việt có nghĩa, không gõ bậy nhé!";
       if (lastWord && sy[0] !== lastWord) return `Phải bắt đầu bằng tiếng "${lastWord}".`;
       const key = sy.join(" ");
       if (used.has(key)) return "Từ này đã được dùng rồi.";
@@ -191,7 +247,7 @@
       "Người tiếp theo phải nối bằng từ 2 tiếng bắt đầu bằng TIẾNG CUỐI của từ trước (ví dụ sau 'học sinh' → 'sinh viên').",
       "Không được dùng lại từ đã xuất hiện trong chuỗi.",
       "Mỗi lượt có đồng hồ đếm ngược — hết giờ là thua. Bí thì bấm '🏳️ Bí, chịu thua'.",
-      "Lưu ý: trò chơi tin tưởng người chơi về nghĩa của từ (không có từ điển kiểm tra tự động) — chơi đẹp nhé!",
+      "Trò chơi tự kiểm tra cấu trúc âm tiết tiếng Việt nên không gõ bậy được. Tuy nhiên nó chưa kiểm tra được nghĩa của từ ghép — phần này hai bạn tự công nhận với nhau cho vui.",
     ],
     create,
   });
