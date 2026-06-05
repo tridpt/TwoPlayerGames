@@ -1,39 +1,39 @@
 /* Auction War - đấu giá kín, quản lý tiền và định giá tài sản. */
 (function () {
   const TYPE_INFO = {
-    land: { name: "Đất" },
-    resource: { name: "Tài nguyên" },
-    relic: { name: "Đồ hiếm" },
-    contract: { name: "Hợp đồng" },
-    intel: { name: "Tin tức" },
+    land: { name: "Đất", emoji: "🏝️" },
+    resource: { name: "Tài nguyên", emoji: "⛏️" },
+    relic: { name: "Đồ hiếm", emoji: "💎" },
+    contract: { name: "Hợp đồng", emoji: "📜" },
+    intel: { name: "Tin tức", emoji: "🕵️" },
   };
 
   const CATALOG = [
-    { name: "Bến cảng cũ", type: "land", base: 24, swing: 8, text: "Đất tốt để gom bộ, giá dễ bị đẩy cao." },
-    { name: "Khu phố đêm", type: "land", base: 28, swing: 15, text: "Biên độ lớn, lời nhiều hoặc mua hớ rất đau." },
-    { name: "Đảo san hô", type: "land", base: 23, swing: 10, text: "Giá trị ổn nếu bạn đang thiếu Đất." },
-    { name: "Trang trại năng lượng", type: "land", base: 20, swing: 7, text: "Món an toàn, ít biến động." },
-    { name: "Kho lạnh ven sông", type: "land", base: 18, swing: 9, text: "Rẻ nhưng có thể thành món ghép bộ tốt." },
-    { name: "Mỏ bạc lộ thiên", type: "resource", base: 25, swing: 8, text: "Tài nguyên ghép tốt với Hợp đồng." },
-    { name: "Kho gia vị", type: "resource", base: 19, swing: 10, text: "Dễ bị đánh giá sai nếu chỉ nhìn khoảng giá." },
-    { name: "Giếng dầu nhỏ", type: "resource", base: 30, swing: 13, text: "Món đắt, hợp để dụ đối thủ tiêu tiền." },
-    { name: "Xưởng gỗ đỏ", type: "resource", base: 17, swing: 6, text: "Không hào nhoáng nhưng khó mua hớ nặng." },
-    { name: "Kho quặng lạ", type: "resource", base: 22, swing: 14, text: "Rủi ro cao, giá thật có thể lệch mạnh." },
-    { name: "Vương miện nứt", type: "relic", base: 31, swing: 14, text: "Đồ hiếm càng nhiều càng được cộng bonus." },
-    { name: "Đồng hồ thiên văn", type: "relic", base: 27, swing: 11, text: "Món hiếm có giá sàn khá tốt." },
-    { name: "Tranh mất dấu", type: "relic", base: 21, swing: 18, text: "Có thể là kiệt tác hoặc chỉ là bản sao." },
-    { name: "Ngọc ấn hoàng gia", type: "relic", base: 34, swing: 12, text: "Giá cao, phù hợp khi còn nhiều tiền mặt." },
-    { name: "Bản đồ kho báu", type: "relic", base: 18, swing: 16, text: "Món bluff mạnh vì khoảng giá rộng." },
-    { name: "Hợp đồng vận tải", type: "contract", base: 18, swing: 5, text: "Ghép với Tài nguyên để ăn bonus cuối ván." },
-    { name: "Giấy phép khai thác", type: "contract", base: 24, swing: 8, text: "Đắt hơn nhưng dễ tạo combo." },
-    { name: "Độc quyền chợ đêm", type: "contract", base: 26, swing: 12, text: "Có thể kéo điểm cuối ván nếu trả đúng giá." },
-    { name: "Đơn hàng quân nhu", type: "contract", base: 20, swing: 7, text: "Món ổn định để giữ nhịp điểm." },
-    { name: "Bảo hiểm thương thuyền", type: "contract", base: 16, swing: 6, text: "Không lớn nhưng ít rủi ro." },
-    { name: "Sổ nợ quý tộc", type: "intel", base: 17, swing: 15, text: "Tin tức giúp ăn bonus đa dạng cuối ván." },
-    { name: "Tin đồn sáp nhập", type: "intel", base: 15, swing: 20, text: "Món cực khó định giá, hợp để bẫy giá." },
-    { name: "Hồ sơ mật", type: "intel", base: 22, swing: 12, text: "Nếu gom đủ loại tài sản, Tin tức rất có giá." },
-    { name: "Danh sách khách VIP", type: "intel", base: 19, swing: 9, text: "Vừa có điểm, vừa hỗ trợ bonus đa dạng." },
-    { name: "Mật báo ngân hàng", type: "intel", base: 25, swing: 17, text: "Món cuối ván dễ tạo cú lật điểm." },
+    { name: "Bến cảng cũ", emoji: "⚓", type: "land", base: 24, swing: 8, text: "Đất tốt để gom bộ, giá dễ bị đẩy cao." },
+    { name: "Khu phố đêm", emoji: "🌃", type: "land", base: 28, swing: 15, text: "Biên độ lớn, lời nhiều hoặc mua hớ rất đau." },
+    { name: "Đảo san hô", emoji: "🏝️", type: "land", base: 23, swing: 10, text: "Giá trị ổn nếu bạn đang thiếu Đất." },
+    { name: "Trang trại năng lượng", emoji: "🌾", type: "land", base: 20, swing: 7, text: "Món an toàn, ít biến động." },
+    { name: "Kho lạnh ven sông", emoji: "🏚️", type: "land", base: 18, swing: 9, text: "Rẻ nhưng có thể thành món ghép bộ tốt." },
+    { name: "Mỏ bạc lộ thiên", emoji: "⛏️", type: "resource", base: 25, swing: 8, text: "Tài nguyên ghép tốt với Hợp đồng." },
+    { name: "Kho gia vị", emoji: "🧂", type: "resource", base: 19, swing: 10, text: "Dễ bị đánh giá sai nếu chỉ nhìn khoảng giá." },
+    { name: "Giếng dầu nhỏ", emoji: "🛢️", type: "resource", base: 30, swing: 13, text: "Món đắt, hợp để dụ đối thủ tiêu tiền." },
+    { name: "Xưởng gỗ đỏ", emoji: "🪵", type: "resource", base: 17, swing: 6, text: "Không hào nhoáng nhưng khó mua hớ nặng." },
+    { name: "Kho quặng lạ", emoji: "🪨", type: "resource", base: 22, swing: 14, text: "Rủi ro cao, giá thật có thể lệch mạnh." },
+    { name: "Vương miện nứt", emoji: "👑", type: "relic", base: 31, swing: 14, text: "Đồ hiếm càng nhiều càng được cộng bonus." },
+    { name: "Đồng hồ thiên văn", emoji: "🕰️", type: "relic", base: 27, swing: 11, text: "Món hiếm có giá sàn khá tốt." },
+    { name: "Tranh mất dấu", emoji: "🖼️", type: "relic", base: 21, swing: 18, text: "Có thể là kiệt tác hoặc chỉ là bản sao." },
+    { name: "Ngọc ấn hoàng gia", emoji: "💍", type: "relic", base: 34, swing: 12, text: "Giá cao, phù hợp khi còn nhiều tiền mặt." },
+    { name: "Bản đồ kho báu", emoji: "🗺️", type: "relic", base: 18, swing: 16, text: "Món bluff mạnh vì khoảng giá rộng." },
+    { name: "Hợp đồng vận tải", emoji: "🚚", type: "contract", base: 18, swing: 5, text: "Ghép với Tài nguyên để ăn bonus cuối ván." },
+    { name: "Giấy phép khai thác", emoji: "📋", type: "contract", base: 24, swing: 8, text: "Đắt hơn nhưng dễ tạo combo." },
+    { name: "Độc quyền chợ đêm", emoji: "🏪", type: "contract", base: 26, swing: 12, text: "Có thể kéo điểm cuối ván nếu trả đúng giá." },
+    { name: "Đơn hàng quân nhu", emoji: "📦", type: "contract", base: 20, swing: 7, text: "Món ổn định để giữ nhịp điểm." },
+    { name: "Bảo hiểm thương thuyền", emoji: "🛡️", type: "contract", base: 16, swing: 6, text: "Không lớn nhưng ít rủi ro." },
+    { name: "Sổ nợ quý tộc", emoji: "📕", type: "intel", base: 17, swing: 15, text: "Tin tức giúp ăn bonus đa dạng cuối ván." },
+    { name: "Tin đồn sáp nhập", emoji: "📰", type: "intel", base: 15, swing: 20, text: "Món cực khó định giá, hợp để bẫy giá." },
+    { name: "Hồ sơ mật", emoji: "🗂️", type: "intel", base: 22, swing: 12, text: "Nếu gom đủ loại tài sản, Tin tức rất có giá." },
+    { name: "Danh sách khách VIP", emoji: "📇", type: "intel", base: 19, swing: 9, text: "Vừa có điểm, vừa hỗ trợ bonus đa dạng." },
+    { name: "Mật báo ngân hàng", emoji: "🔐", type: "intel", base: 25, swing: 17, text: "Món cuối ván dễ tạo cú lật điểm." },
   ];
 
   function create(ctx) {
@@ -305,7 +305,7 @@
         itemEl.innerHTML = `
           <div class="aw-round">Đã đóng sàn</div>
           <div class="aw-item-main">
-            <div class="aw-item-icon aw-icon-bank" aria-hidden="true"></div>
+            <div class="aw-item-emoji">🏛️</div>
             <div>
               <h3>Kết thúc đấu giá</h3>
               <p>Tất cả phiên đã chốt. So tiền, tài sản và bonus để tìm người thắng.</p>
@@ -318,20 +318,25 @@
       const type = TYPE_INFO[item.type];
       const revealed = phase === "result" || phase === "done";
       itemEl.innerHTML = `
-        <div class="aw-round">Phiên ${round + 1}/${deck.length}</div>
+        <div class="aw-lot-head">
+          <span class="aw-round">🔨 Phiên ${round + 1}/${deck.length}</span>
+          <span class="aw-type-tag aw-tag-${item.type}">${type.emoji} ${type.name}</span>
+        </div>
         <div class="aw-item-main">
-          <div class="aw-item-icon aw-icon-${item.type}" aria-hidden="true"></div>
+          <div class="aw-item-emoji aw-emoji-${item.type}">${item.emoji}</div>
           <div>
             <h3>${item.name}</h3>
-            <p>${type.name} · Ước tính ${item.low}-${item.high} vàng</p>
+            <p class="aw-estimate">Ước tính <b>${item.low}–${item.high}</b> vàng</p>
           </div>
         </div>
-        <div class="aw-value ${revealed ? "revealed" : ""}">
-          ${revealed ? `Giá thật: <b>${item.trueValue}</b>` : "Giá thật đang ẩn"}
+        <div class="aw-value ${revealed ? "revealed" : "hidden-val"}">
+          ${revealed
+            ? `<span class="aw-val-label">Giá thật</span><span class="aw-val-num">${item.trueValue}</span>`
+            : `<span class="aw-val-q">?</span><span class="aw-val-hint">Giá thật đang ẩn</span>`}
         </div>
-        <div class="aw-note">${item.text}</div>
+        <div class="aw-note">💡 ${item.text}</div>
         <div class="aw-bonus-note">
-          Bonus: 3 Đất +12 · mỗi Tài nguyên + Hợp đồng +8 · Đồ hiếm thứ 2 trở đi +9 · 2 Tin tức +10 · đủ 4/5 loại +14/+24
+          🎁 3 Đất +12 · Tài nguyên + Hợp đồng +8 · Đồ hiếm thứ 2+ +9 · 2 Tin tức +10 · đủ 4/5 loại +14/+24
         </div>
       `;
     }
@@ -433,7 +438,7 @@
               <span>${items.length} món · bonus ${computeBonus(items)}</span>
             </div>
             <div class="aw-type-row">
-              ${Object.entries(TYPE_INFO).map(([id, t]) => `<span><i class="aw-mini-icon aw-mini-${id}" aria-hidden="true"></i>${t.name}: ${counts[id] || 0}</span>`).join("")}
+              ${Object.entries(TYPE_INFO).map(([id, t]) => `<span><i class="aw-mini-emoji">${t.emoji}</i>${counts[id] || 0}</span>`).join("")}
             </div>
             <div class="aw-items">
               ${items.length ? items.map(renderOwnedItem).join("") : "<em>Chưa mua món nào</em>"}
@@ -447,8 +452,8 @@
       const type = TYPE_INFO[item.type];
       const diff = item.trueValue - item.paid;
       return `
-        <span class="aw-owned ${diff >= 0 ? "good" : "bad"}" title="${type.name}">
-          <i class="aw-mini-icon aw-mini-${item.type}" aria-hidden="true"></i>${item.name}
+        <span class="aw-owned ${diff >= 0 ? "good" : "bad"}" title="${type.name} · ${diff >= 0 ? "lời" : "hớ"} ${Math.abs(diff)}">
+          <i class="aw-mini-emoji">${item.emoji}</i>${item.name}
           <small>${item.trueValue}/${item.paid}</small>
         </span>
       `;
@@ -471,7 +476,7 @@
   window.GameRegistry.register({
     id: "auctionwar",
     name: "Auction War",
-    emoji: "AW",
+    emoji: "🔨",
     description: "Đấu giá kín tài sản, bluff giá, quản lý tiền và ăn bonus bộ sưu tập. Trả quá tay là mua hớ.",
     onlineReady: true,
     options: [

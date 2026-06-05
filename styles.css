@@ -3966,6 +3966,55 @@ body {
   gap: 14px;
   width: 100%;
 }
+/* --- giao diện món đấu giá nâng cấp (emoji) --- */
+.aw-lot-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.aw-type-tag {
+  font-size: 0.78rem; font-weight: 700;
+  padding: 3px 10px; border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+}
+.aw-tag-land { color: #6ee7b7; }
+.aw-tag-resource { color: #ffd166; }
+.aw-tag-relic { color: #c792ea; }
+.aw-tag-contract { color: #8be6f0; }
+.aw-tag-intel { color: #ff9f8a; }
+.aw-item-emoji {
+  width: 74px; height: 74px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.8rem;
+  border-radius: 16px;
+  background: radial-gradient(circle at 40% 30%, rgba(255,255,255,0.14), rgba(0,0,0,0.25));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), var(--shadow);
+}
+.aw-emoji-land { background: radial-gradient(circle at 40% 30%, rgba(110,231,183,0.25), rgba(0,0,0,0.25)); }
+.aw-emoji-resource { background: radial-gradient(circle at 40% 30%, rgba(255,209,102,0.25), rgba(0,0,0,0.25)); }
+.aw-emoji-relic { background: radial-gradient(circle at 40% 30%, rgba(199,146,234,0.28), rgba(0,0,0,0.25)); }
+.aw-emoji-contract { background: radial-gradient(circle at 40% 30%, rgba(139,230,240,0.25), rgba(0,0,0,0.25)); }
+.aw-emoji-intel { background: radial-gradient(circle at 40% 30%, rgba(255,159,138,0.25), rgba(0,0,0,0.25)); }
+.aw-estimate { color: var(--muted); }
+.aw-estimate b { color: var(--text); }
+.aw-value {
+  margin: 12px 0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-radius: 12px;
+}
+.aw-value.hidden-val { background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); }
+.aw-val-q { font-size: 1.8rem; font-weight: 900; color: var(--muted); }
+.aw-val-hint { color: var(--muted); font-size: 0.9rem; }
+.aw-value.revealed {
+  background: linear-gradient(90deg, rgba(255,209,102,0.25), rgba(110,231,183,0.18));
+  border: 1px solid var(--accent);
+  animation: awReveal 0.5s cubic-bezier(0.2,1.4,0.4,1);
+}
+@keyframes awReveal {
+  0% { transform: scale(0.7); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.aw-val-label { color: var(--muted); font-size: 0.9rem; }
+.aw-val-num { font-size: 1.8rem; font-weight: 900; color: var(--accent); }
+.aw-mini-emoji { font-style: normal; margin-right: 3px; }
+.aw-bonus-note { line-height: 1.5; }
 .aw-top {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
