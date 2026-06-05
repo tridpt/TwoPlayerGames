@@ -29,9 +29,9 @@
     const DURATION = o.duration || 60;
     const W = 580, H = 460;
     const WATER_TOP = 78;
-    const ANCHOR = { x: W / 2, y: 64 };
-    const MAXA = 1.28;          // biên độ đung đưa (rad)
-    const LMIN = 26;
+    const ANCHOR = { x: W / 2, y: 12 };  // đỉnh cần câu (dây buông xuống từ đây)
+    const MAXA = 1.2;           // biên độ đung đưa (rad)
+    const LMIN = 62;
     const HOOK_R = 9;
 
     let phase = ctx.isOnline ? "connect" : "countdown";
@@ -392,30 +392,34 @@
     }
 
     function drawBoat() {
-      const bx = ANCHOR.x, by = 50;
+      const bx = ANCHOR.x, by = 60;
       // thân thuyền
       g.fillStyle = "#7a4a22";
       g.beginPath();
-      g.moveTo(bx - 64, by);
-      g.quadraticCurveTo(bx, by + 26, bx + 64, by);
-      g.lineTo(bx + 52, by - 12);
-      g.lineTo(bx - 52, by - 12);
+      g.moveTo(bx - 66, by);
+      g.quadraticCurveTo(bx, by + 28, bx + 66, by);
+      g.lineTo(bx + 54, by - 12);
+      g.lineTo(bx - 54, by - 12);
       g.closePath(); g.fill();
       g.fillStyle = "#5e3717";
-      g.fillRect(bx - 52, by - 14, 104, 5);
+      g.fillRect(bx - 54, by - 14, 108, 5);
       // người câu (rõ ràng)
-      const px = bx - 22, py = by - 14;
+      const px = bx - 26, py = by - 14;
       g.fillStyle = "#e8804a"; // áo
-      g.beginPath(); g.moveTo(px - 9, py); g.quadraticCurveTo(px, py - 20, px + 9, py); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(px - 10, py); g.quadraticCurveTo(px, py - 22, px + 10, py); g.closePath(); g.fill();
       g.fillStyle = "#f1c27d"; // đầu
-      g.beginPath(); g.arc(px, py - 24, 7.5, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(px, py - 24, 8, 0, Math.PI * 2); g.fill();
       g.fillStyle = "#3a4a8b"; // mũ
-      g.beginPath(); g.arc(px, py - 26, 8, Math.PI, Math.PI * 2); g.fill();
-      g.fillRect(px - 11, py - 27, 22, 3);
-      // cần câu (tay phải vươn ra) tới điểm neo
-      g.strokeStyle = "#caa46a"; g.lineWidth = 2.5;
-      g.beginPath(); g.moveTo(px + 4, py - 8); g.lineTo(ANCHOR.x, ANCHOR.y + 2); g.stroke();
-      g.fillStyle = "#caa46a"; g.beginPath(); g.arc(ANCHOR.x, ANCHOR.y + 2, 2.4, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(px, py - 26, 8.5, Math.PI, Math.PI * 2); g.fill();
+      g.fillRect(px - 12, py - 27, 24, 3);
+      // cần câu: từ tay người cong LÊN tới đỉnh cần (ANCHOR), dây buông xuống từ đó
+      g.strokeStyle = "#caa46a"; g.lineWidth = 3; g.lineCap = "round";
+      g.beginPath();
+      g.moveTo(px + 8, py - 8);
+      g.quadraticCurveTo(bx - 26, 6, ANCHOR.x, ANCHOR.y);
+      g.stroke();
+      g.fillStyle = "#e8c98a";
+      g.beginPath(); g.arc(ANCHOR.x, ANCHOR.y, 2.6, 0, Math.PI * 2); g.fill();
     }
 
     function drawHook(tip, ang) {
