@@ -25,8 +25,10 @@
 
     // tiến độ đào: số kho đã tìm được của đối thủ
     const foundByMe = [0, 0];        // [foundByP0, foundByP1] kho tìm được
-    const myDigs = {};               // ô tôi đã đào trên lưới đối thủ: "r,c" -> {dist,hit}
-    const oppDigsOnMe = {};          // ô đối thủ đào trên lưới tôi
+    // lịch sử đào của từng người trên lưới đối thủ: attack[seat]["r,c"] = {dist,hit}
+    const attack = [{}, {}];
+    const myDigs = {};               // (online) = attack của chính mình; giữ để tương thích
+    const oppDigsOnMe = {};          // ô đối thủ đào trên lưới tôi (online)
 
     const root = document.createElement("div");
     root.className = "tr-root";
@@ -79,7 +81,7 @@
       }
       wrap.appendChild(h);
       wrap.appendChild(grid);
-      return { wrap, grid, cells };
+      return { wrap, grid, cells, title: h };
     }
 
     function dist(a, b) { return Math.abs(a.r - b.r) + Math.abs(a.c - b.c); }
@@ -103,12 +105,18 @@
     function activeTreasures() { return ctx.isOnline ? myTreasures : localTreasures[placingSeat]; }
 
     myWrap.grid.addEventListener("click", (e) => {
-      if (phase !== "hide") return;
-      const cell = e.target.closest(".tr-cell");
-      if (!cell) return;
-      const i = [...myWrap.grid.children].indexOf(cell);
-      const r = Math.floor(i / N), c = i % N;
-      toggleTreasure(r, c);
+      if (phase === "hide") {
+        const cell = e.target.closest(".tr-cell");
+        if (!cell) return;
+        const i = [...myWrap.grid.children].indexOf(cell);
+        const r = Math.floor(i / N), c = i % N;
+        toggleTreasure(r, c);
+        return;
+      }
+      // hot-seat khi chơi: bàn trái là bàn đào của P1
+      if (phase === "play" && !ctx.isOnline) {
+        attackGridClick(0, myWrap.grid, e);
+      }
     });
 
     function toggleTreasure(r, c) {
@@ -170,24 +178,41 @@
       phase = "play";
       controls.classList.add("tr-hidden");
       turn = 0;
+      // đổi tiêu đề 2 bàn cho chế độ chơi chung máy: mỗi người 1 bàn đào riêng
+      if (!ctx.isOnline) {
+        myWrap.title.textContent = "P1 đào (tìm kho P2)";
+        oppWrap.title.textContent = "P2 đào (tìm kho P1)";
+      }
       ctx.setTurn(0);
       renderAll();
       updateStatus();
     }
 
     // ====================== Đào ======================
-    oppWrap.grid.addEventListener("click", (e) => {
+    // Online: chỉ bàn phải (oppWrap) là bàn đào của mình.
+    // Hot-seat: bàn trái = P1 đào, bàn phải = P2 đào (mỗi người lịch sử riêng).
+    function attackGridClick(diggerSeat, gridEl, e) {
       if (phase !== "play" || awaiting) return;
       if (ctx.isOnline && turn !== ctx.mySeat) return;
+      if (!ctx.isOnline && turn !== diggerSeat) return; // hot-seat: đúng lượt mới đào bàn của mình
       const cell = e.target.closest(".tr-cell");
       if (!cell) return;
-      const i = [...oppWrap.grid.children].indexOf(cell);
+      const i = [...gridEl.children].indexOf(cell);
+      if (i < 0) return;
       const r = Math.floor(i / N), c = i % N;
-      if (myDigs[r + "," + c] !== undefined) return;
+      if (attack[diggerSeat][r + "," + c] !== undefined) return;
       dig(r, c);
+    }
+    oppWrap.grid.addEventListener("click", (e) => {
+      // online: người chơi đào trên oppWrap (= attack[mySeat])
+      // hot-seat: oppWrap là bàn của P2
+      const seat = ctx.isOnline ? ctx.mySeat : 1;
+      attackGridClick(seat, oppWrap.grid, e);
     });
 
     function dig(r, c) {
+      const seat = ctx.isOnline ? ctx.mySeat : turn;
+      if (attack[seat][r + "," + c] !== undefined) return; // đã đào ô này rồi
       if (ctx.isOnline) {
         awaiting = true;
         ctx.sendMove({ kind: "dig", r, c });
@@ -205,13 +230,12 @@
     }
 
     function applyDigResult(diggerSeat, r, c, d, hit, found, total, gameOver) {
-      myDigs[r + "," + c] = { dist: d, hit };
+      attack[diggerSeat][r + "," + c] = { dist: d, hit };
       if (hit) foundByMe[diggerSeat] = found;
       ctx.sound(hit ? "capture" : (d <= 2 ? "shot" : "miss"));
-      renderOpp();
       renderProgress();
 
-      if (gameOver) return endGame(diggerSeat, `tìm đủ ${total} kho báu`);
+      if (gameOver) { renderAll(); return endGame(diggerSeat, `tìm đủ ${total} kho báu`); }
 
       if (hit) {
         // trúng -> được đào tiếp (giữ lượt)
@@ -285,47 +309,57 @@
 
     // ====================== Render ======================
     function renderProgress() {
-      const me = ctx.isOnline ? ctx.mySeat : 0;
-      // foundByMe[seat] = số kho seat đã tìm được của đối thủ
       const p0 = foundByMe[0], p1 = foundByMe[1];
       info.innerHTML =
         `<span class="tr-prog tr-p1">P1: ${"💎".repeat(p0)}${"·".repeat(Math.max(0, NT - p0))}</span>` +
         `<span class="tr-prog tr-p2">P2: ${"💎".repeat(p1)}${"·".repeat(Math.max(0, NT - p1))}</span>`;
     }
 
-    function renderMine(reveal) {
-      const list = ctx.isOnline ? myTreasures : localTreasures[placingSeat];
-      myWrap.cells.forEach((cell, i) => {
+    // vẽ một lưới: showTreasures = danh sách kho để hiện (hoặc null);
+    // digs = lịch sử đào trên lưới đó; revealAll = lộ hết kho khi kết thúc
+    function paintGrid(boardEl, treasures, digs, revealAll) {
+      boardEl.cells.forEach((cell, i) => {
         const r = Math.floor(i / N), c = i % N;
         cell.className = "tr-cell";
         cell.textContent = "";
-        const isT = list.some((t) => t.r === r && t.c === c);
-        if (isT && (phase === "hide" || reveal)) { cell.classList.add("treasure"); cell.textContent = "💎"; }
-        const dug = oppDigsOnMe[r + "," + c];
-        if (dug) {
-          cell.classList.add("dug");
-          if (dug.hit) { cell.classList.add("hit"); cell.textContent = "💎"; }
-          else cell.textContent = dug.dist;
+        if (treasures) {
+          const isT = treasures.some((t) => t.r === r && t.c === c);
+          if (isT && revealAll) { cell.classList.add("treasure"); cell.textContent = "💎"; }
+          else if (isT && phase === "hide") { cell.classList.add("treasure"); cell.textContent = "💎"; }
         }
-      });
-    }
-
-    function renderOpp() {
-      oppWrap.cells.forEach((cell, i) => {
-        const r = Math.floor(i / N), c = i % N;
-        cell.className = "tr-cell";
-        cell.textContent = "";
-        const dug = myDigs[r + "," + c];
+        const dug = digs && digs[r + "," + c];
         if (dug) {
           if (dug.hit) { cell.classList.add("dug", "hit"); cell.textContent = "💎"; }
           else { cell.classList.add("dug", hintFor(dug.dist).cls); cell.textContent = dug.dist; }
         }
       });
-      const myMove = phase === "play" && (!ctx.isOnline || turn === ctx.mySeat) && !awaiting;
-      oppWrap.wrap.classList.toggle("tr-active", myMove);
     }
 
-    function renderAll() { renderMine(); renderOpp(); }
+    function renderAll(revealAll) {
+      if (ctx.isOnline) {
+        // bàn trái = lưới của tôi (kho mình + dấu đào của đối thủ)
+        paintGrid(myWrap, myTreasures, oppDigsOnMe, revealAll || phase === "over");
+        // bàn phải = lưới đối thủ (dấu đào của tôi)
+        paintGrid(oppWrap, null, attack[ctx.mySeat], false);
+        const myMove = phase === "play" && turn === ctx.mySeat && !awaiting;
+        oppWrap.wrap.classList.toggle("tr-active", myMove);
+        myWrap.wrap.classList.remove("tr-active");
+      } else if (phase === "hide") {
+        // đang giấu: chỉ hiện lưới người đang đặt ở bàn trái
+        paintGrid(myWrap, localTreasures[placingSeat], null, false);
+        paintGrid(oppWrap, null, null, false);
+      } else {
+        // hot-seat khi chơi: bàn trái P1 đào (kho P2 ẩn), bàn phải P2 đào (kho P1 ẩn)
+        paintGrid(myWrap, localTreasures[1], attack[0], revealAll || phase === "over");
+        paintGrid(oppWrap, localTreasures[0], attack[1], revealAll || phase === "over");
+        myWrap.wrap.classList.toggle("tr-active", phase === "play" && turn === 0);
+        oppWrap.wrap.classList.toggle("tr-active", phase === "play" && turn === 1);
+      }
+    }
+
+    // tương thích: vài chỗ cũ gọi renderMine()
+    function renderMine(reveal) { renderAll(reveal); }
+    function renderOpp() { renderAll(); }
 
     function updateStatus() {
       if (phase !== "play") return;
