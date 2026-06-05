@@ -13,11 +13,25 @@
     return arr;
   }
 
+  // chọn số cột để lưới gần vuông nhất (ưu tiên rộng hơn cao một chút)
+  function bestCols(total) {
+    let bestC = Math.round(Math.sqrt(total));
+    let bestScore = Infinity;
+    for (let c = 2; c <= total; c++) {
+      const rows = Math.ceil(total / c);
+      const empty = c * rows - total;          // số ô thừa
+      const aspect = Math.abs(c - rows);        // lệch vuông
+      const score = aspect + empty * 3 + (c < rows ? 0.5 : 0); // phạt ô thừa + thiên về rộng
+      if (score < bestScore) { bestScore = score; bestC = c; }
+    }
+    return bestC;
+  }
+
   function create(ctx) {
     const PAIRS = (ctx.options && ctx.options.pairs) || 8;
-    const cols = (ctx.options && ctx.options.cols) || 4;
     const EMOJIS = POOL.slice(0, PAIRS);
     const deck = shuffle([...EMOJIS, ...EMOJIS], ctx.rng);
+    const cols = bestCols(deck.length); // tự động cho gần vuông
     let turn = 0;
     let firstIdx = null;
     let lock = false;
@@ -26,7 +40,7 @@
 
     const boardEl = document.createElement("div");
     boardEl.className = "mem-board";
-    boardEl.style.gridTemplateColumns = `repeat(${cols}, auto)`;
+    boardEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     ctx.boardEl.appendChild(boardEl);
 
     const cards = deck.map((emoji, i) => {
@@ -124,13 +138,6 @@
           { value: 8, label: "8 cặp (vừa)" },
           { value: 12, label: "12 cặp (khó)" },
           { value: 18, label: "18 cặp (siêu khó)" },
-        ],
-      },
-      {
-        id: "cols", label: "Số cột", default: 4,
-        choices: [
-          { value: 4, label: "4 cột" },
-          { value: 6, label: "6 cột" },
         ],
       },
     ],
