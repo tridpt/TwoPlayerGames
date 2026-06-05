@@ -1,41 +1,51 @@
 /* Đoán Số (Bulls & Cows) — chơi chung máy & ONLINE
-   Mỗi người đặt một dãy số bí mật. Thay nhau đoán dãy của đối thủ.
-   Phản hồi: 🎯 (đúng số đúng chỗ) và 🐮 (đúng số sai chỗ).
-   Bí mật KHÔNG gửi qua mạng — chỉ gửi { kind:"ready" }, { kind:"guess", digits },
-   { kind:"result", digits, bulls, cows, win }. */
+   Mỗi người đặt dãy số bí mật. Hai người ĐOÁN SONG SONG (không chờ lượt nhau),
+   nhưng số lượt chênh nhau tối đa 1 (ai dẫn 1 lượt phải chờ đối thủ đuổi kịp).
+   Có quyền trợ giúp + chấm điểm theo số lượt & trợ giúp đã dùng.
+   Bí mật KHÔNG gửi qua mạng. Giao thức:
+     { kind:"ready" }
+     { kind:"guess", digits }                  -> đối thủ chấm dãy của TÔI
+     { kind:"result", digits, bulls, cows, win, round }
+     { kind:"hint", htype }                     -> xin trợ giúp (đối thủ trả lời)
+     { kind:"hintres", htype, payload, round }  -> kết quả trợ giúp
+*/
 (function () {
+  const MAX_HINTS = 2;
+
   function create(ctx) {
     const o = ctx.options || {};
-    const LEN = o.len || 4;          // độ dài dãy số
-    const UNIQUE = o.unique !== false; // mặc định: các chữ số khác nhau
+    const LEN = o.len || 4;
+    const UNIQUE = o.unique !== false;
 
-    let phase = "set";   // set | play | over
+    let phase = "set";
     let mySecret = null;
     let iReady = false, oppReady = false;
-    let turn = 0;        // seat được đoán
-    let awaiting = false;
+    // số lượt mỗi người ĐÃ đoán (để giới hạn chênh lệch ≤ 1)
+    const rounds = [0, 0];
+    const hintsLeft = [MAX_HINTS, MAX_HINTS];
+    const won = [false, false];       // ai đã đoán đúng (và ở lượt thứ mấy)
+    const wonAt = [0, 0];
+    let over = false;
+    let awaiting = false;             // đang chờ kết quả (online) cho phát đoán của mình
 
     const root = document.createElement("div");
     root.className = "bc-root";
     ctx.boardEl.appendChild(root);
 
-    // ----- giai đoạn đặt số bí mật -----
+    // ----- khu đặt số bí mật -----
     const setBox = document.createElement("div");
     setBox.className = "bc-setbox";
-    setBox.innerHTML =
-      `<h3>Đặt dãy số bí mật của bạn (${LEN} chữ số${UNIQUE ? ", không trùng nhau" : ""})</h3>` +
-      `<input class="bc-input" id="bcSecret" maxlength="${LEN}" inputmode="numeric" placeholder="${"•".repeat(LEN)}">` +
-      `<button class="btn primary" id="bcSetBtn">✓ Khóa dãy số</button>` +
-      `<p class="bc-err" id="bcSetErr"></p>`;
     root.appendChild(setBox);
 
     // ----- khu chơi -----
     const playBox = document.createElement("div");
     playBox.className = "bc-playbox hidden";
     playBox.innerHTML =
+      `<div class="bc-meters" id="bcMeters"></div>` +
       `<div class="bc-guessrow">` +
       `<input class="bc-input" id="bcGuess" maxlength="${LEN}" inputmode="numeric" placeholder="${"•".repeat(LEN)}">` +
       `<button class="btn primary" id="bcGuessBtn">Đoán</button></div>` +
+      `<div class="bc-hints" id="bcHints"></div>` +
       `<p class="bc-err" id="bcGuessErr"></p>` +
       `<div class="bc-cols">` +
       `<div class="bc-col"><h4>Bạn đoán</h4><div class="bc-log" id="bcMine"></div></div>` +
@@ -43,81 +53,23 @@
       `</div>`;
     root.appendChild(playBox);
 
-    const secretInput = setBox.querySelector("#bcSecret");
-    const setBtn = setBox.querySelector("#bcSetBtn");
-    const setErr = setBox.querySelector("#bcSetErr");
     const guessInput = playBox.querySelector("#bcGuess");
     const guessBtn = playBox.querySelector("#bcGuessBtn");
     const guessErr = playBox.querySelector("#bcGuessErr");
     const mineLog = playBox.querySelector("#bcMine");
     const oppLog = playBox.querySelector("#bcOpp");
+    const metersEl = playBox.querySelector("#bcMeters");
+    const hintsEl = playBox.querySelector("#bcHints");
 
-    [secretInput, guessInput].forEach((inp) =>
-      inp.addEventListener("input", () => { inp.value = inp.value.replace(/\D/g, "").slice(0, LEN); }));
+    guessInput.addEventListener("input", () => {
+      guessInput.value = guessInput.value.replace(/\D/g, "").slice(0, LEN);
+    });
 
     function validCode(s) {
       if (s.length !== LEN) return "Phải đủ " + LEN + " chữ số.";
       if (UNIQUE && new Set(s).size !== LEN) return "Các chữ số phải khác nhau.";
       return null;
     }
-
-    setBtn.addEventListener("click", () => {
-      const s = secretInput.value;
-      const err = validCode(s);
-      if (err) { setErr.textContent = err; return; }
-      mySecret = s;
-      iReady = true;
-      setBox.innerHTML = `<h3>✓ Đã khóa dãy số: <b>${"•".repeat(LEN)}</b></h3>` +
-        `<p class="bc-wait" id="bcWait">Đang chờ đối thủ...</p>`;
-      if (ctx.isOnline) ctx.sendMove({ kind: "ready" });
-      maybeStart();
-    });
-
-    function maybeStart() {
-      // chung máy: chỉ cần người này đặt xong sẽ tới người kia đặt — nhưng để đơn giản,
-      // chung máy ta cho cả hai đặt trên cùng máy lần lượt:
-      if (!ctx.isOnline) {
-        // hot-seat: đặt số cho người 2 ngay sau người 1
-        if (!secrets[0]) { secrets[0] = mySecret; promptLocalSecret(1); return; }
-        if (!secrets[1]) { secrets[1] = mySecret; beginPlay(); return; }
-      } else {
-        if (iReady && oppReady) beginPlay();
-      }
-    }
-
-    // hot-seat: lưu 2 bí mật
-    const secrets = [null, null];
-    function promptLocalSecret(seat) {
-      iReady = false;
-      mySecret = null;
-      setBox.innerHTML =
-        `<h3>Người chơi ${seat + 1}: đặt dãy số bí mật (${LEN} chữ số${UNIQUE ? ", không trùng" : ""})</h3>` +
-        `<input class="bc-input" id="bcSecret2" maxlength="${LEN}" inputmode="numeric" placeholder="${"•".repeat(LEN)}">` +
-        `<button class="btn primary" id="bcSetBtn2">✓ Khóa dãy số</button>` +
-        `<p class="bc-err" id="bcSetErr2"></p>`;
-      const inp = setBox.querySelector("#bcSecret2");
-      const btn = setBox.querySelector("#bcSetBtn2");
-      const err = setBox.querySelector("#bcSetErr2");
-      inp.addEventListener("input", () => { inp.value = inp.value.replace(/\D/g, "").slice(0, LEN); });
-      btn.addEventListener("click", () => {
-        const e = validCode(inp.value);
-        if (e) { err.textContent = e; return; }
-        secrets[seat] = inp.value;
-        beginPlay();
-      });
-    }
-
-    function beginPlay() {
-      phase = "play";
-      setBox.classList.add("hidden");
-      playBox.classList.remove("hidden");
-      turn = 0;
-      ctx.setTurn(0);
-      updateInput();
-      ctx.setStatus(`Lượt Người chơi 1 đoán dãy của đối thủ.`);
-    }
-
-    // tính bulls & cows giữa guess và secret
     function evaluate(guess, secret) {
       let bulls = 0, cows = 0;
       for (let i = 0; i < LEN; i++) {
@@ -127,107 +79,366 @@
       return { bulls, cows };
     }
 
-    function updateInput() {
-      const mine = !ctx.isOnline || turn === ctx.mySeat;
-      guessInput.disabled = !mine || awaiting;
-      guessBtn.disabled = !mine || awaiting;
+    // ====================== Giai đoạn đặt số ======================
+    const secrets = [null, null]; // dùng cho hot-seat
+    function showSetUI(seat, online) {
+      setBox.innerHTML =
+        `<h3>${online ? "Bạn" : "Người chơi " + (seat + 1)}: đặt dãy số bí mật (${LEN} chữ số${UNIQUE ? ", không trùng" : ""})</h3>` +
+        `<input class="bc-input" id="bcSecret" maxlength="${LEN}" inputmode="numeric" placeholder="${"•".repeat(LEN)}">` +
+        `<button class="btn primary" id="bcSetBtn">✓ Khóa dãy số</button>` +
+        `<p class="bc-err" id="bcSetErr"></p>` +
+        `<p class="bc-note">💡 Đối thủ sẽ đoán dãy này. Hai người đoán song song nhưng không ai được dẫn quá 1 lượt.</p>`;
+      const inp = setBox.querySelector("#bcSecret");
+      const btn = setBox.querySelector("#bcSetBtn");
+      const err = setBox.querySelector("#bcSetErr");
+      inp.addEventListener("input", () => { inp.value = inp.value.replace(/\D/g, "").slice(0, LEN); });
+      inp.focus();
+      btn.addEventListener("click", () => {
+        const e = validCode(inp.value);
+        if (e) { err.textContent = e; return; }
+        onSecretSet(seat, inp.value, online);
+      });
     }
 
-    guessBtn.addEventListener("click", () => {
+    function onSecretSet(seat, value, online) {
+      if (online) {
+        mySecret = value;
+        iReady = true;
+        setBox.innerHTML = `<h3>✓ Đã khóa dãy số bí mật</h3><p class="bc-wait">Đang chờ đối thủ...</p>`;
+        ctx.sendMove({ kind: "ready" });
+        if (oppReady) beginPlay();
+      } else {
+        secrets[seat] = value;
+        if (seat === 0) showSetUI(1, false);
+        else beginPlay();
+      }
+    }
+
+    function beginPlay() {
+      phase = "play";
+      setBox.classList.add("hidden");
+      playBox.classList.remove("hidden");
+      buildHintButtons();
+      renderMeters();
+      ctx.setTurn(0);
+      updateInput();
+      ctx.setStatus("Cùng đoán! Ai đoán đúng ở lượt sớm hơn (và ít trợ giúp hơn) sẽ thắng.");
+      guessInput.focus();
+    }
+
+    // ====================== Ai được phép đoán? ======================
+    // local seat của người đang thao tác (hot-seat: cả hai trên 1 máy)
+    function mySeat() { return ctx.isOnline ? ctx.mySeat : 0; }
+    // người chơi p được đoán nếu: chưa thắng, chưa over, và không dẫn đối thủ quá 1 lượt
+    function canGuess(p) {
+      if (over || won[p]) return false;
+      if (awaiting && ctx.isOnline) return false;
+      const opp = 1 - p;
+      // không được vượt: nếu mình đã đoán nhiều hơn đối thủ -> phải chờ
+      if (rounds[p] > rounds[opp]) return false;
+      return true;
+    }
+
+    // ====================== Đoán ======================
+    guessBtn.addEventListener("click", doGuess);
+    guessInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doGuess(); });
+
+    function doGuess() {
       if (phase !== "play") return;
-      const mine = !ctx.isOnline || turn === ctx.mySeat;
-      if (!mine || awaiting) return;
-      const gErr = validCode(guessInput.value);
-      if (gErr) { guessErr.textContent = gErr; return; }
+      const seat = ctx.isOnline ? ctx.mySeat : currentLocalSeat();
+      if (!canGuess(seat)) return;
+      const err = validCode(guessInput.value);
+      if (err) { guessErr.textContent = err; return; }
       guessErr.textContent = "";
       const digits = guessInput.value;
       guessInput.value = "";
+      submitGuess(seat, digits);
+    }
 
+    // hot-seat: người được đoán là người đang "đến lượt đuổi" (rounds ít hơn, hoặc seat 0 nếu bằng)
+    function currentLocalSeat() {
+      if (rounds[0] <= rounds[1] && !won[0]) return 0;
+      if (rounds[1] < rounds[0] && !won[1]) return 1;
+      return won[0] ? 1 : 0;
+    }
+
+    function submitGuess(seat, digits) {
       if (ctx.isOnline) {
         awaiting = true;
         updateInput();
         ctx.sendMove({ kind: "guess", digits });
-        ctx.setStatus("Đã đoán, chờ kết quả...");
+        ctx.setStatus("Đã gửi, chờ chấm...");
       } else {
-        // hot-seat: đối chiếu với secret của đối thủ ngay
-        const secret = secrets[1 - turn];
-        const { bulls, cows } = evaluate(digits, secret);
-        logGuess(turn === 0 ? mineLog : oppLog, digits, bulls, cows);
-        if (bulls === LEN) return endGame(turn);
-        turn = 1 - turn;
-        ctx.setTurn(turn);
-        updateInput();
-        ctx.setStatus(`Lượt Người chơi ${turn + 1} đoán.`);
+        const { bulls, cows } = evaluate(digits, secrets[1 - seat]);
+        applyGuessResult(seat, digits, bulls, cows);
       }
-    });
+    }
 
-    function logGuess(logEl, digits, bulls, cows) {
+    function applyGuessResult(seat, digits, bulls, cows) {
+      rounds[seat]++;
+      lastGuess[seat] = digits;
+      const log = (seat === mySeat()) ? mineLog : oppLog;
+      logGuess(log, digits, bulls, cows, rounds[seat]);
+      ctx.sound(bulls === LEN ? "capture" : bulls > 0 ? "shot" : "select");
+      if (bulls === LEN && !won[seat]) {
+        won[seat] = true;
+        wonAt[seat] = rounds[seat];
+      }
+      checkFinishAndContinue();
+    }
+
+    // ====================== Trợ giúp ======================
+    const HINTS = {
+      reveal: { label: "🔍 Lộ 1 vị trí", desc: "tiết lộ chữ số đúng tại 1 vị trí" },
+      count: { label: "🧮 Đếm số đúng", desc: "đếm bao nhiêu chữ số của dãy mình đoán gần nhất là 'có trong' đáp án" },
+    };
+    function buildHintButtons() {
+      hintsEl.innerHTML = "";
+      Object.entries(HINTS).forEach(([id, h]) => {
+        const b = document.createElement("button");
+        b.className = "btn small bc-hint-btn";
+        b.dataset.h = id;
+        b.title = h.desc;
+        b.textContent = h.label;
+        b.addEventListener("click", () => requestHint(id));
+        hintsEl.appendChild(b);
+      });
+    }
+
+    function requestHint(htype) {
+      const seat = ctx.isOnline ? ctx.mySeat : currentLocalSeat();
+      if (over || won[seat] || hintsLeft[seat] <= 0) return;
+      if (ctx.isOnline) {
+        ctx.sendMove({ kind: "hint", htype });
+        hintsLeft[seat]--;
+        renderMeters();
+        ctx.setStatus("Đang xin trợ giúp...");
+      } else {
+        const payload = computeHint(htype, seat, secrets[1 - seat]);
+        hintsLeft[seat]--;
+        showHintResult(seat, htype, payload);
+      }
+    }
+
+    // tính nội dung trợ giúp dựa trên secret đối thủ (secret = dãy người 'seat' đang phải đoán)
+    function computeHint(htype, seat, secret) {
+      if (htype === "reveal") {
+        // chọn 1 vị trí cố định (đầu tiên) — đơn giản & tất định
+        const pos = pickRevealPos(seat);
+        return { pos, digit: secret[pos] };
+      }
+      if (htype === "count") {
+        // đếm số chữ số (của lần đoán gần nhất của seat) có trong đáp án
+        const last = lastGuessOf(seat);
+        if (!last) return { none: true };
+        const inSecret = [...new Set(last.split(""))].filter((d) => secret.includes(d)).length;
+        return { guess: last, inSecret };
+      }
+      return {};
+    }
+
+    const revealedPos = [[], []];
+    function pickRevealPos(seat) {
+      for (let i = 0; i < LEN; i++) if (!revealedPos[seat].includes(i)) { revealedPos[seat].push(i); return i; }
+      return 0;
+    }
+    const lastGuess = [null, null];
+    function lastGuessOf(seat) { return lastGuess[seat]; }
+
+    function showHintResult(seat, htype, payload) {
+      let msg;
+      if (htype === "reveal") {
+        msg = payload.none ? "Không có gì để lộ." :
+          `🔍 Vị trí ${payload.pos + 1} của đáp án là số <b>${payload.digit}</b>.`;
+      } else {
+        msg = payload.none ? "Bạn cần đoán ít nhất 1 lần trước đã." :
+          `🧮 Trong dãy "${payload.guess}", có <b>${payload.inSecret}</b> chữ số xuất hiện trong đáp án.`;
+      }
+      const box = document.createElement("div");
+      box.className = "bc-hint-res";
+      box.innerHTML = msg;
+      (seat === mySeat() ? mineLog : oppLog).appendChild(box);
+      mineLog.scrollTop = mineLog.scrollHeight;
+      renderMeters();
+      ctx.sound("select");
+    }
+
+    // ====================== Theo dõi lần đoán gần nhất (cho hint count) ======================
+    function logGuess(logEl, digits, bulls, cows, roundNo) {
+      // lưu lần đoán gần nhất theo log
       const row = document.createElement("div");
       row.className = "bc-guess";
-      row.innerHTML = `<span class="bc-digits">${digits}</span>` +
-        `<span class="bc-fb">${"🎯".repeat(bulls)}${"🐮".repeat(cows)}` +
-        `${bulls === 0 && cows === 0 ? "—" : ""}</span>`;
+      row.innerHTML =
+        `<span class="bc-rd">#${roundNo}</span>` +
+        `<span class="bc-digits">${digits}</span>` +
+        `<span class="bc-fb">${"🎯".repeat(bulls)}${"🐮".repeat(cows)}${bulls === 0 && cows === 0 ? "—" : ""}</span>`;
       logEl.appendChild(row);
       logEl.scrollTop = logEl.scrollHeight;
     }
 
-    function endGame(winnerSeat) {
-      phase = "over";
-      ctx.setTurn(-1);
-      guessInput.disabled = true; guessBtn.disabled = true;
-      ctx.incScore(winnerSeat);
-      ctx.setStatus(`🎉 Người chơi ${winnerSeat + 1} đoán đúng — chiến thắng!`);
+    // ====================== Kết thúc khi cả hai đã xong lượt chênh ≤1 ======================
+    function checkFinishAndContinue() {
+      // ván kết thúc khi: cả hai đã thắng, HOẶC một người thắng và người kia đã đoán đủ tới lượt đó
+      const bothActedEqual = rounds[0] === rounds[1];
+      if (won[0] && won[1]) return finish();
+      // nếu một người thắng, cho người kia "gỡ" trong cùng số lượt để công bằng
+      if ((won[0] || won[1]) && bothActedEqual) return finish();
+      ctx.setTurn(currentTurnForBanner());
+      updateInput();
+      renderMeters();
+      updateStatusLine();
     }
 
-    // ----- online message -----
+    function currentTurnForBanner() {
+      if (won[0] && !won[1]) return 1;
+      if (won[1] && !won[0]) return 0;
+      return rounds[0] <= rounds[1] ? 0 : 1;
+    }
+
+    function finish() {
+      over = true;
+      ctx.setTurn(-1);
+      updateInput();
+      const s0 = score(0), s1 = score(1);
+      let winner = -1;
+      if (won[0] && won[1]) {
+        if (wonAt[0] !== wonAt[1]) winner = wonAt[0] < wonAt[1] ? 0 : 1;
+        else winner = s0 === s1 ? -1 : (s0 > s1 ? 0 : 1);
+      } else if (won[0]) winner = 0;
+      else if (won[1]) winner = 1;
+      renderMeters(true);
+      if (winner === -1) ctx.setStatus(`🤝 Hòa! Cả hai cùng giỏi (P1 ${s0}đ – P2 ${s1}đ).`);
+      else {
+        ctx.incScore(winner);
+        if (ctx.isOnline) {
+          ctx.setStatus(winner === ctx.mySeat
+            ? `🎉 Bạn thắng! (${winner === 0 ? s0 : s1} điểm)`
+            : `💀 Bạn thua. Đối thủ đoán ra trước.`);
+        } else {
+          ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng! (${winner === 0 ? s0 : s1} điểm)`);
+        }
+      }
+    }
+
+    // điểm: thắng ở lượt càng sớm + càng ít trợ giúp -> điểm càng cao
+    function score(seat) {
+      if (!won[seat]) return 0;
+      const base = 100;
+      const roundPenalty = (wonAt[seat] - 1) * 8;
+      const hintPenalty = (MAX_HINTS - hintsLeft[seat]) * 10;
+      return Math.max(10, base - roundPenalty - hintPenalty);
+    }
+
+    // ====================== UI ======================
+    function updateInput() {
+      const seat = ctx.isOnline ? ctx.mySeat : currentLocalSeat();
+      const can = phase === "play" && canGuess(seat);
+      guessInput.disabled = !can;
+      guessBtn.disabled = !can;
+      hintsEl.querySelectorAll(".bc-hint-btn").forEach((b) => {
+        b.disabled = !(phase === "play" && !over && !won[seat] && hintsLeft[seat] > 0 && (!awaiting || !ctx.isOnline));
+      });
+    }
+
+    function updateStatusLine() {
+      if (over) return;
+      if (ctx.isOnline) {
+        const me = ctx.mySeat;
+        if (won[me]) ctx.setStatus("Bạn đã đoán ra! Chờ đối thủ hết lượt gỡ...");
+        else if (rounds[me] > rounds[1 - me]) ctx.setStatus("⏳ Bạn đang dẫn 1 lượt — chờ đối thủ đoán cho công bằng.");
+        else ctx.setStatus("Tới lượt bạn — đoán đi!");
+      } else {
+        const seat = currentLocalSeat();
+        ctx.setStatus(`Lượt đoán của Người chơi ${seat + 1} (đoán song song, không ai dẫn quá 1 lượt).`);
+      }
+    }
+
+    function renderMeters(showScore) {
+      metersEl.innerHTML = [0, 1].map((p) => {
+        const sc = showScore ? `<b>${score(p)}đ</b>` : `<b>${rounds[p]} lượt</b>`;
+        const wonTag = won[p] ? "✅" : "";
+        return `<div class="bc-meter bc-p${p + 1}">
+          <span>Người chơi ${p + 1} ${wonTag}</span>
+          ${sc}
+          <small>💡 trợ giúp còn ${hintsLeft[p]}/${MAX_HINTS}</small>
+        </div>`;
+      }).join("");
+    }
+
+    // ====================== Online messages ======================
     function applyMove(move, fromRemote) {
       if (!fromRemote) return;
-      if (move.kind === "ready") {
-        oppReady = true;
-        maybeStart();
-        return;
-      }
+      const opp = ctx.isOnline ? 1 - ctx.mySeat : null;
+
+      if (move.kind === "ready") { oppReady = true; if (iReady) beginPlay(); return; }
+
       if (move.kind === "guess") {
-        // đối thủ đoán dãy của TÔI -> tôi tính kết quả rồi gửi lại
+        // đối thủ đoán dãy của TÔI -> tôi chấm rồi gửi lại
         const { bulls, cows } = evaluate(move.digits, mySecret);
         const win = bulls === LEN;
-        ctx.sendMove({ kind: "result", digits: move.digits, bulls, cows, win });
-        logGuess(oppLog, move.digits, bulls, cows);
-        if (win) { endGameOnline(1 - ctx.mySeat); return; }
-        turn = ctx.mySeat;
-        ctx.setTurn(turn);
-        updateInput();
-        ctx.setStatus("Lượt bạn đoán.");
+        rounds[opp]++;
+        if (win && !won[opp]) { won[opp] = true; wonAt[opp] = rounds[opp]; }
+        ctx.sendMove({ kind: "result", digits: move.digits, bulls, cows, win, round: rounds[opp] });
+        logGuess(oppLog, move.digits, bulls, cows, rounds[opp]);
+        ctx.sound(bulls === LEN ? "capture" : "select");
+        checkFinishAndContinue();
         return;
       }
+
       if (move.kind === "result") {
         // kết quả cho phát đoán của TÔI
         awaiting = false;
-        logGuess(mineLog, move.digits, move.bulls, move.cows);
-        ctx.sound(move.bulls > 0 ? "capture" : "select");
-        if (move.win) { endGameOnline(ctx.mySeat); return; }
-        turn = 1 - ctx.mySeat;
-        ctx.setTurn(turn);
+        const me = ctx.mySeat;
+        rounds[me] = move.round || rounds[me] + 1;
+        lastGuess[me] = move.digits;
+        logGuess(mineLog, move.digits, move.bulls, move.cows, rounds[me]);
+        ctx.sound(move.bulls === LEN ? "capture" : move.bulls > 0 ? "shot" : "select");
+        if (move.win && !won[me]) { won[me] = true; wonAt[me] = rounds[me]; }
+        checkFinishAndContinue();
+        return;
+      }
+
+      if (move.kind === "hint") {
+        // đối thủ xin trợ giúp về dãy của TÔI -> tôi tính và trả
+        const payload = computeHintForSecret(move.htype, opp, mySecret);
+        ctx.sendMove({ kind: "hintres", htype: move.htype, payload });
+        return;
+      }
+
+      if (move.kind === "hintres") {
+        showHintResult(ctx.mySeat, move.htype, move.payload);
         updateInput();
-        ctx.setStatus("Lượt đối thủ đoán...");
         return;
       }
     }
 
-    function endGameOnline(winnerSeat) {
-      phase = "over";
-      ctx.setTurn(-1);
-      guessInput.disabled = true; guessBtn.disabled = true;
-      if (winnerSeat === ctx.mySeat) { ctx.incScore(ctx.mySeat); ctx.setStatus("🎉 Bạn đoán đúng — chiến thắng!"); }
-      else ctx.setStatus("💀 Đối thủ đã đoán ra dãy số của bạn. Bạn thua!");
+    // online: tính hint dựa trên secret của mình (đối thủ 'opp' đang đoán)
+    function computeHintForSecret(htype, opp, secret) {
+      if (htype === "reveal") {
+        const pos = pickRevealPos(opp);
+        return { pos, digit: secret[pos] };
+      }
+      if (htype === "count") {
+        const last = lastGuess[opp];
+        if (!last) return { none: true };
+        const inSecret = [...new Set(last.split(""))].filter((d) => secret.includes(d)).length;
+        return { guess: last, inSecret };
+      }
+      return {};
     }
 
+    // hot-seat: cập nhật lastGuess khi đoán
+    // (đã xử lý trong applyGuessResult)
+
     // ----- khởi tạo -----
-    if (!ctx.isOnline) {
-      setBox.querySelector("h3").textContent =
-        `Người chơi 1: đặt dãy số bí mật (${LEN} chữ số${UNIQUE ? ", không trùng" : ""})`;
+    if (ctx.isOnline) {
+      showSetUI(ctx.mySeat, true);
+      ctx.setStatus("Đặt dãy số bí mật để bắt đầu.");
+    } else {
+      showSetUI(0, false);
+      ctx.setStatus("Người chơi 1: đặt dãy số bí mật.");
     }
-    ctx.setStatus("Đặt dãy số bí mật để bắt đầu.");
+
     return { applyMove };
   }
 
@@ -235,7 +446,7 @@
     id: "bullscows",
     name: "Đoán Số (Bulls & Cows)",
     emoji: "🔢",
-    description: "Đặt dãy số bí mật, thay nhau đoán dãy của đối thủ. Ai đoán đúng trước sẽ thắng.",
+    description: "Đặt dãy số bí mật, cùng đua nhau đoán dãy đối thủ. Có trợ giúp và chấm điểm theo số lượt.",
     onlineReady: true,
     options: [
       {
@@ -255,11 +466,12 @@
       },
     ],
     howTo: [
-      "Mỗi người đặt một dãy số bí mật (mặc định 4 chữ số khác nhau).",
-      "Thay nhau đoán dãy số của đối thủ. Sau mỗi lần đoán, bạn nhận phản hồi:",
-      "🎯 = một chữ số ĐÚNG và ĐÚNG vị trí. 🐮 = chữ số đúng nhưng SAI vị trí.",
-      "Ví dụ secret 1234, đoán 1325 → 🎯 (số 1) và 🐮🐮 (số 3 và 2 sai chỗ).",
-      "Dựa vào phản hồi để suy luận. Ai đoán ra đúng toàn bộ dãy của đối thủ trước sẽ thắng.",
+      "Mỗi người đặt một dãy số bí mật. Sau đó CẢ HAI cùng đoán dãy của đối thủ — không phải chờ lượt nhau.",
+      "Công bằng: không ai được dẫn quá 1 lượt. Nếu bạn đã đoán nhiều hơn đối thủ, phải chờ họ đoán cho bằng rồi mới đoán tiếp.",
+      "🎯 = chữ số đúng và đúng vị trí. 🐮 = đúng số nhưng sai vị trí. Ví dụ đáp án 1234, đoán 1325 → 🎯 (số 1) + 🐮🐮 (3 và 2).",
+      "Trợ giúp (mỗi người 2 lần): 🔍 Lộ 1 vị trí (cho biết chữ số đúng ở 1 ô), 🧮 Đếm số đúng (đếm chữ số của lần đoán gần nhất có trong đáp án).",
+      "Chấm điểm: thắng ở lượt càng sớm điểm càng cao (mỗi lượt −8đ, mỗi trợ giúp −10đ, tối đa 100đ).",
+      "Ai đoán đúng ở lượt sớm hơn sẽ thắng; cùng lượt thì so điểm (ít trợ giúp hơn thắng).",
     ],
     create,
   });
