@@ -25,6 +25,10 @@
     const hintsLeft = [MAX_HINTS, MAX_HINTS];
     const won = [false, false];       // ai đã đoán đúng (và ở lượt thứ mấy)
     const wonAt = [0, 0];
+    const timeUsed = [0, 0];          // tổng giây "suy nghĩ" mỗi người
+    let tickSeat = null;              // ghế đang được tính giờ
+    let tickStart = 0;                // mốc bắt đầu tính giờ (ms)
+    let clockTimer = null;
     let over = false;
     let awaiting = false;             // đang chờ kết quả (online) cho phát đoán của mình
 
@@ -79,6 +83,31 @@
       return { bulls, cows };
     }
 
+    // ====================== Đồng hồ suy nghĩ ======================
+    // Bắt đầu tính giờ cho ghế 'seat' (người đang được phép đoán).
+    function startClock(seat) {
+      stopClock();
+      if (over || seat == null || won[seat]) return;
+      tickSeat = seat;
+      tickStart = Date.now();
+      clockTimer = setInterval(renderMeters, 250);
+      renderMeters();
+    }
+    // Dừng tính giờ, cộng phần đã trôi vào timeUsed.
+    function stopClock() {
+      if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
+      if (tickSeat != null) {
+        timeUsed[tickSeat] += (Date.now() - tickStart) / 1000;
+        tickSeat = null;
+      }
+    }
+    // thời gian hiển thị hiện tại của 1 ghế (gồm phần đang trôi)
+    function liveTime(seat) {
+      let t = timeUsed[seat];
+      if (tickSeat === seat) t += (Date.now() - tickStart) / 1000;
+      return t;
+    }
+
     // ====================== Giai đoạn đặt số ======================
     const secrets = [null, null]; // dùng cho hot-seat
     function showSetUI(seat, online) {
@@ -122,8 +151,10 @@
       renderMeters();
       ctx.setTurn(0);
       updateInput();
-      ctx.setStatus("Cùng đoán! Ai đoán đúng ở lượt sớm hơn (và ít trợ giúp hơn) sẽ thắng.");
+      ctx.setStatus("Cùng đoán! Đoán nhanh & ít trợ giúp để được điểm cao.");
       guessInput.focus();
+      // bắt đầu tính giờ cho người được đoán đầu tiên
+      startClock(ctx.isOnline ? (canGuess(ctx.mySeat) ? ctx.mySeat : null) : currentLocalSeat());
     }
 
     // ====================== Ai được phép đoán? ======================
@@ -152,6 +183,7 @@
       guessErr.textContent = "";
       const digits = guessInput.value;
       guessInput.value = "";
+      stopClock(); // dừng tính giờ suy nghĩ của lượt này
       submitGuess(seat, digits);
     }
 
@@ -287,6 +319,10 @@
       updateInput();
       renderMeters();
       updateStatusLine();
+      // khởi động đồng hồ cho người đang được phép đoán (local)
+      const seat = ctx.isOnline ? ctx.mySeat : currentLocalSeat();
+      if (!ctx.isOnline) startClock(currentLocalSeat());
+      else if (canGuess(seat)) startClock(seat);
     }
 
     function currentTurnForBanner() {
@@ -297,6 +333,7 @@
 
     function finish() {
       over = true;
+      stopClock();
       ctx.setTurn(-1);
       updateInput();
       const s0 = score(0), s1 = score(1);
@@ -320,13 +357,14 @@
       }
     }
 
-    // điểm: thắng ở lượt càng sớm + càng ít trợ giúp -> điểm càng cao
+    // điểm: thắng nhanh (ít lượt + ít thời gian) + ít trợ giúp -> điểm càng cao
     function score(seat) {
       if (!won[seat]) return 0;
-      const base = 100;
-      const roundPenalty = (wonAt[seat] - 1) * 8;
-      const hintPenalty = (MAX_HINTS - hintsLeft[seat]) * 10;
-      return Math.max(10, base - roundPenalty - hintPenalty);
+      const base = 120;
+      const roundPenalty = (wonAt[seat] - 1) * 8;       // mỗi lượt sau lượt 1: −8
+      const hintPenalty = (MAX_HINTS - hintsLeft[seat]) * 10; // mỗi trợ giúp: −10
+      const timePenalty = Math.floor(timeUsed[seat] / 5) * 2; // mỗi 5s suy nghĩ: −2
+      return Math.max(10, base - roundPenalty - hintPenalty - timePenalty);
     }
 
     // ====================== UI ======================
@@ -353,14 +391,22 @@
       }
     }
 
+    function fmtTime(s) {
+      const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+      return (m > 0 ? m + ":" + String(sec).padStart(2, "0") : sec + "s");
+    }
+
     function renderMeters(showScore) {
+      const meSeat = ctx.isOnline ? ctx.mySeat : -1;
       metersEl.innerHTML = [0, 1].map((p) => {
-        const sc = showScore ? `<b>${score(p)}đ</b>` : `<b>${rounds[p]} lượt</b>`;
-        const wonTag = won[p] ? "✅" : "";
-        return `<div class="bc-meter bc-p${p + 1}">
-          <span>Người chơi ${p + 1} ${wonTag}</span>
-          ${sc}
-          <small>💡 trợ giúp còn ${hintsLeft[p]}/${MAX_HINTS}</small>
+        const ticking = tickSeat === p && !over;
+        const main = showScore ? `${score(p)}đ` : `⏱️ ${fmtTime(liveTime(p))}`;
+        const youTag = (meSeat === p) ? " (bạn)" : "";
+        const wonTag = won[p] ? " ✅" : "";
+        return `<div class="bc-meter bc-p${p + 1}${ticking ? " ticking" : ""}">
+          <span class="bc-meter-name">Người chơi ${p + 1}${youTag}${wonTag}</span>
+          <b class="bc-meter-main">${main}</b>
+          <small>Lượt ${rounds[p]} · 💡 ${hintsLeft[p]}/${MAX_HINTS}</small>
         </div>`;
       }).join("");
     }
@@ -446,7 +492,7 @@
     id: "bullscows",
     name: "Đoán Số (Bulls & Cows)",
     emoji: "🔢",
-    description: "Đặt dãy số bí mật, cùng đua nhau đoán dãy đối thủ. Có trợ giúp và chấm điểm theo số lượt.",
+    description: "Đặt dãy số bí mật, cùng đua nhau đoán dãy đối thủ. Có trợ giúp, đồng hồ và chấm điểm theo tốc độ.",
     onlineReady: true,
     options: [
       {
@@ -470,8 +516,8 @@
       "Công bằng: không ai được dẫn quá 1 lượt. Nếu bạn đã đoán nhiều hơn đối thủ, phải chờ họ đoán cho bằng rồi mới đoán tiếp.",
       "🎯 = chữ số đúng và đúng vị trí. 🐮 = đúng số nhưng sai vị trí. Ví dụ đáp án 1234, đoán 1325 → 🎯 (số 1) + 🐮🐮 (3 và 2).",
       "Trợ giúp (mỗi người 2 lần): 🔍 Lộ 1 vị trí (cho biết chữ số đúng ở 1 ô), 🧮 Đếm số đúng (đếm chữ số của lần đoán gần nhất có trong đáp án).",
-      "Chấm điểm: thắng ở lượt càng sớm điểm càng cao (mỗi lượt −8đ, mỗi trợ giúp −10đ, tối đa 100đ).",
-      "Ai đoán đúng ở lượt sớm hơn sẽ thắng; cùng lượt thì so điểm (ít trợ giúp hơn thắng).",
+      "Chấm điểm: thắng càng NHANH điểm càng cao — mỗi lượt thừa −8đ, mỗi 5 giây suy nghĩ −2đ, mỗi trợ giúp −10đ (tối đa 120đ).",
+      "Đồng hồ chỉ chạy khi tới lượt bạn nghĩ; đoán xong là dừng, lượt sau lại chạy tiếp và cộng dồn. Ai đoán đúng ở lượt sớm hơn sẽ thắng; cùng lượt thì so điểm.",
     ],
     create,
   });
