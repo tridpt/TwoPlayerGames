@@ -1036,6 +1036,19 @@ body {
 }
 .lobby-panel h3 { margin: 0; }
 .lobby-panel p { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.4; }
+.player-name-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px 12px;
+  font: inherit;
+}
+.player-name-input:focus {
+  outline: 2px solid var(--accent);
+  border-color: transparent;
+}
 .lobby-game-select {
   width: 100%;
 }
@@ -1088,6 +1101,39 @@ body {
 }
 .waiting { color: var(--muted); font-size: 0.85rem; margin: 4px 0 0; }
 .lobby-error { color: var(--p1); font-size: 0.9rem; min-height: 1.2em; }
+
+.room-state {
+  width: min(720px, 100%);
+  margin: 0 auto 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.room-state[data-state="waiting"] {
+  border-color: rgba(255, 209, 102, 0.32);
+  background: rgba(255, 209, 102, 0.1);
+  color: var(--accent);
+}
+.room-state[data-state="live"] {
+  border-color: rgba(110, 231, 183, 0.32);
+  background: rgba(110, 231, 183, 0.09);
+  color: var(--good);
+}
+.room-state[data-state="left"] {
+  border-color: rgba(255, 93, 115, 0.32);
+  background: rgba(255, 93, 115, 0.1);
+  color: var(--p1);
+}
+.online-room-state {
+  margin-top: -4px;
+  margin-bottom: 14px;
+}
 
 .online-badge {
   text-align: center;

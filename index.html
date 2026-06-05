@@ -52,10 +52,14 @@
     <section id="lobbyView" class="lobby-view hidden">
       <button class="btn back-btn" id="lobbyBackBtn">← Quay lại</button>
       <h2 class="mode-title" id="lobbyTitle"></h2>
+      <div class="room-state hidden" id="lobbyState"></div>
       <div class="lobby-cards">
         <div class="lobby-panel">
           <h3>Tạo phòng mới</h3>
           <p>Chọn game, chỉnh luật nếu có, rồi gửi mã phòng cho bạn bè.</p>
+          <label class="option-label" for="createNameInput">Tên của bạn</label>
+          <input class="player-name-input" id="createNameInput" maxlength="24"
+                 placeholder="Ví dụ: Nam" autocomplete="nickname" />
           <label class="option-label" for="lobbyGameSelect">Game tạo phòng</label>
           <select class="option-select lobby-game-select" id="lobbyGameSelect"></select>
           <div class="options-panel lobby-options hidden" id="lobbyOptionsPanel">
@@ -73,6 +77,9 @@
         <div class="lobby-panel">
           <h3>Vào phòng có sẵn</h3>
           <p>Nhập mã phòng (4 chữ số) mà bạn của bạn gửi cho.</p>
+          <label class="option-label" for="joinNameInput">Tên của bạn</label>
+          <input class="player-name-input" id="joinNameInput" maxlength="24"
+                 placeholder="Ví dụ: Linh" autocomplete="nickname" />
           <input class="code-input" id="joinCodeInput" maxlength="4" inputmode="numeric"
                  placeholder="0000" />
           <button class="btn primary" id="joinRoomBtn">Vào phòng</button>
@@ -105,6 +112,7 @@
       </div>
 
       <div class="online-badge hidden" id="onlineBadge"></div>
+      <div class="room-state online-room-state hidden" id="gameRoomState"></div>
 
       <div class="board-wrap" id="boardWrap"><!-- bàn chơi render bằng JS --></div>
 

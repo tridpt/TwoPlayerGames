@@ -21,6 +21,9 @@
     lobbyGameSelect: $("lobbyGameSelect"),
     lobbyOptionsPanel: $("lobbyOptionsPanel"),
     lobbyOptionsList: $("lobbyOptionsList"),
+    createNameInput: $("createNameInput"),
+    joinNameInput: $("joinNameInput"),
+    lobbyState: $("lobbyState"),
     createRoomBtn: $("createRoomBtn"),
     roomCodeBox: $("roomCodeBox"),
     roomCodeVal: $("roomCodeVal"),
@@ -35,6 +38,7 @@
     status: $("status"),
     turnBanner: $("turnBanner"),
     onlineBadge: $("onlineBadge"),
+    gameRoomState: $("gameRoomState"),
     p1Name: $("p1Name"),
     p2Name: $("p2Name"),
     p1Score: $("p1Score"),
@@ -79,6 +83,8 @@
   let roomExitTimer = null;
   let online = null; // null = chơi chung máy; {roomSeat, seat, seed} = online
   let currentOptions = {}; // giá trị tùy chỉnh ván chơi đang dùng
+
+  const PLAYER_NAME_KEY = "tpg_player_name";
 
   const GAME_GROUPS = [
     {
@@ -156,7 +162,10 @@
         el.scoreP1.classList.toggle("active", idx === 0);
         el.scoreP2.classList.toggle("active", idx === 1);
       },
-      setNames(n1, n2) { el.p1Name.textContent = n1; el.p2Name.textContent = n2; },
+      setNames(n1, n2) {
+        el.p1Name.textContent = labelWithPlayerName(0, n1);
+        el.p2Name.textContent = labelWithPlayerName(1, n2);
+      },
       incScore(idx) { scores[idx]++; renderScores(); },
       getScore(idx) { return scores[idx]; },
       sendMove(move) { if (online && !sessionLocked) Net.send("move", { move }); },
@@ -168,6 +177,113 @@
     el.p1Score.textContent = scores[0];
     el.p2Score.textContent = scores[1];
   }
+
+  function cleanName(value, fallback = "Người chơi") {
+    const name = String(value || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 24);
+    return name || fallback;
+  }
+
+  function loadSavedPlayerName() {
+    try { return cleanName(localStorage.getItem(PLAYER_NAME_KEY) || "", ""); }
+    catch { return ""; }
+  }
+
+  function savePlayerName(name) {
+    try { localStorage.setItem(PLAYER_NAME_KEY, name); } catch { /* ignore */ }
+  }
+
+  function syncNameInputs(value) {
+    if (el.createNameInput && document.activeElement !== el.createNameInput) el.createNameInput.value = value;
+    if (el.joinNameInput && document.activeElement !== el.joinNameInput) el.joinNameInput.value = value;
+  }
+
+  function readPlayerName(input, fallback = "Người chơi") {
+    const name = cleanName(input?.value, fallback);
+    if (input) input.value = name;
+    savePlayerName(name);
+    syncNameInputs(name);
+    return name;
+  }
+
+  function setLobbyState(text, kind = "info") {
+    if (!el.lobbyState) return;
+    el.lobbyState.textContent = text || "";
+    el.lobbyState.dataset.state = kind;
+    el.lobbyState.classList.toggle("hidden", !text);
+  }
+
+  function setGameRoomState(text, kind = "info") {
+    if (!el.gameRoomState) return;
+    el.gameRoomState.textContent = text || "";
+    el.gameRoomState.dataset.state = kind;
+    el.gameRoomState.classList.toggle("hidden", !text);
+  }
+
+  function defaultSeatName(seat) {
+    return `Người chơi ${seat + 1}`;
+  }
+
+  function seatName(seat) {
+    return online?.playerNames?.[seat] || defaultSeatName(seat);
+  }
+
+  function opponentName() {
+    return online ? seatName(1 - online.seat) : "Đối thủ";
+  }
+
+  function labelWithPlayerName(seat, label) {
+    const text = String(label || defaultSeatName(seat));
+    if (!online) return text;
+    const name = seatName(seat);
+    const playerNo = seat + 1;
+    const patterns = [
+      new RegExp(`Người chơi\\s*${playerNo}`, "i"),
+      new RegExp(`\\bP${playerNo}\\b`, "i"),
+    ];
+    if (patterns.some((pattern) => pattern.test(text))) {
+      return patterns.reduce((result, pattern) => result.replace(pattern, name), text);
+    }
+    return `${name} - ${text}`;
+  }
+
+  function applyScoreboardNames() {
+    if (online) {
+      el.p1Name.textContent = seatName(0);
+      el.p2Name.textContent = seatName(1);
+    } else {
+      el.p1Name.textContent = "Người chơi 1";
+      el.p2Name.textContent = "Người chơi 2";
+    }
+  }
+
+  function describeOnlineGameState(kind = "live") {
+    if (!online) {
+      setGameRoomState("", "info");
+      return;
+    }
+    const room = online.code ? `Mã phòng ${online.code}` : "Phòng online";
+    const text = kind === "waiting"
+      ? `${room}: đang chờ đối thủ.`
+      : `${room}: đang chơi với ${opponentName()}.`;
+    setGameRoomState(text, kind);
+  }
+
+  const savedPlayerName = loadSavedPlayerName();
+  if (savedPlayerName) syncNameInputs(savedPlayerName);
+  [el.createNameInput, el.joinNameInput].forEach((input) => {
+    input?.addEventListener("input", () => {
+      const compact = String(input.value || "").replace(/\s+/g, " ").slice(0, 24);
+      if (input.value !== compact) input.value = compact;
+      const name = cleanName(input.value, "");
+      if (name) {
+        savePlayerName(name);
+        syncNameInputs(name);
+      }
+    });
+  });
 
   function showToast(text) {
     const old = document.querySelector(".app-toast");
@@ -470,6 +586,15 @@
   function normalizeOnlineSession(m) {
     const roomSeat = typeof m.seat === "number" ? m.seat : 0;
     const firstSeat = typeof m.firstSeat === "number" ? m.firstSeat : 0;
+    const roomNames = Array.isArray(m.playerNames) ? m.playerNames : [];
+    const normalizedRoomNames = [
+      cleanName(roomNames[0], "Người chơi 1"),
+      cleanName(roomNames[1], "Người chơi 2"),
+    ];
+    const playerNames = [
+      normalizedRoomNames[firstSeat] || "Người chơi 1",
+      normalizedRoomNames[1 - firstSeat] || "Người chơi 2",
+    ];
     return {
       roomSeat,
       seat: roomSeat === firstSeat ? 0 : 1,
@@ -478,6 +603,8 @@
       gameId: m.gameId || selectedGame?.id,
       code: m.code || online?.code,
       round: m.round || online?.round || 1,
+      playerNames,
+      roomNames: normalizedRoomNames,
     };
   }
 
@@ -709,6 +836,7 @@
     el.roomCodeBox.classList.add("hidden");
     el.lobbyError.textContent = "";
     el.joinCodeInput.value = "";
+    setLobbyState("Sẵn sàng tạo phòng hoặc vào phòng bằng mã.", "info");
     show("lobbyView");
   }
 
@@ -747,7 +875,9 @@
     if (!(await ensureConnected())) return;
     selectedGame = lobbySelectedGame;
     currentOptions = readOptions(lobbySelectedGame, "lobby_opt_");
-    Net.send("create", { gameId: lobbySelectedGame.id, options: currentOptions });
+    const playerName = readPlayerName(el.createNameInput, "Người chơi 1");
+    setLobbyState("Đang tạo phòng...", "waiting");
+    Net.send("create", { gameId: lobbySelectedGame.id, options: currentOptions, playerName });
   });
 
   el.joinRoomBtn.addEventListener("click", async () => {
@@ -758,7 +888,9 @@
       return;
     }
     if (!(await ensureConnected())) return;
-    Net.send("join", { code });
+    const playerName = readPlayerName(el.joinNameInput, "Người chơi 2");
+    setLobbyState("Đang vào phòng...", "waiting");
+    Net.send("join", { code, playerName });
   });
 
   el.copyCodeBtn.addEventListener("click", () => {
@@ -780,9 +912,13 @@
     const game = getGameById(m.gameId);
     if (game) selectedGame = game;
     el.waitingMsg.textContent = `Đang chờ người chơi thứ hai vào ${game?.name || "phòng"}...`;
+    setLobbyState(`Đã tạo phòng ${m.code}. Đang chờ đối thủ vào.`, "waiting");
   });
 
-  Net.on("error", (m) => { el.lobbyError.textContent = "⚠️ " + m.message; });
+  Net.on("error", (m) => {
+    el.lobbyError.textContent = "⚠️ " + m.message;
+    setLobbyState("Không thể tiếp tục. Kiểm tra mã phòng hoặc kết nối rồi thử lại.", "left");
+  });
 
   Net.on("start", (m) => {
     const game = getGameById(m.gameId);
@@ -794,9 +930,10 @@
     pendingRoomCode = null;
     online = normalizeOnlineSession(m);
     if (m.options) currentOptions = m.options; // dùng tùy chỉnh của chủ phòng
+    setLobbyState(`Đối thủ ${opponentName()} đã vào phòng. Bắt đầu ván.`, "live");
     startGame(m.seed, { autoHelp: true });
     const joinedText = online.roomSeat === 0
-      ? "Đối thủ đã vào phòng. Bắt đầu ván."
+      ? `${opponentName()} đã vào phòng. Bắt đầu ván.`
       : "Bạn đã vào phòng. Bắt đầu ván.";
     addChatMessage(joinedText, "sys");
     showToast(joinedText);
@@ -816,6 +953,7 @@
     online = normalizeOnlineSession(m);
     if (m.options) currentOptions = m.options;
     clearSessionLock();
+    describeOnlineGameState("live");
     startGame(m.seed);
   });
 
@@ -823,13 +961,16 @@
 
   Net.on("opponent_left", () => {
     if (!online) return;
-    addChatMessage("Đối thủ đã rời phòng.", "sys");
-    stopOnlineSessionAndReturn("Đối thủ đã rời phòng. Ván online đã dừng.");
+    const name = opponentName();
+    addChatMessage(`${name} đã rời phòng.`, "sys");
+    setGameRoomState(`${name} đã rời phòng. Đang đưa bạn về menu.`, "left");
+    stopOnlineSessionAndReturn(`${name} đã rời phòng. Ván online đã dừng.`);
   });
 
   Net.on("disconnected", () => {
     if (online) {
       addChatMessage("Mất kết nối tới server.", "sys");
+      setGameRoomState("Mất kết nối tới server. Đang đưa bạn về menu.", "left");
       stopOnlineSessionAndReturn("Mất kết nối tới server. Ván online đã dừng.");
     }
   });
@@ -865,7 +1006,9 @@
     } else {
       const label = document.createElement("span");
       label.className = "chat-msg-who";
-      label.textContent = who === "me" ? "Bạn" : "Đối thủ";
+      label.textContent = who === "me"
+        ? `${seatName(online?.seat ?? 0)} (Bạn)`
+        : opponentName();
       const body = document.createElement("span");
       body.className = "chat-msg-text";
       body.textContent = text;
@@ -917,12 +1060,14 @@
     if (online) {
       el.onlineBadge.classList.remove("hidden");
       const orderText = online.seat === 0 ? "đi trước" : "đi sau";
-      el.onlineBadge.textContent = `Online — bạn là Người chơi ${online.seat + 1} ván này (${orderText})`;
+      el.onlineBadge.textContent = `Online — bạn là ${seatName(online.seat)} (${orderText})`;
+      describeOnlineGameState("live");
       el.chatPanel.classList.remove("hidden", "collapsed");
       el.chatToggle.textContent = "▾";
       if (el.chatMessages.childElementCount === 0) buildQuickButtons();
     } else {
       el.onlineBadge.classList.add("hidden");
+      setGameRoomState("", "info");
       el.restartBtn.textContent = "↻ Chơi lại";
       el.chatPanel.classList.add("hidden");
     }
@@ -930,7 +1075,7 @@
     updateRestartButtons();
 
     const ctx = makeContext(seed);
-    ctx.setNames("Người chơi 1", "Người chơi 2");
+    applyScoreboardNames();
     instance = selectedGame.create(ctx);
     show("gameView");
     if (opts.autoHelp) {
@@ -961,6 +1106,8 @@
     leavePendingRoom();
     if (online) { Net.send("leave"); online = null; }
     clearSessionLock();
+    setGameRoomState("", "info");
+    setLobbyState("", "info");
     restartReadySeats = [];
     el.chatMessages.innerHTML = "";
     el.chatPanel.classList.add("hidden");

@@ -221,15 +221,17 @@ async function runServerSmokeTest() {
     await Promise.all([waitOpen(a), waitOpen(b)]);
 
     const createdP = waitForMessage(a, "created");
-    a.send(JSON.stringify({ type: "create", gameId: "tictactoe", options: {} }));
+    a.send(JSON.stringify({ type: "create", gameId: "tictactoe", options: {}, playerName: "Alice" }));
     const created = await createdP;
     assert(/^\d{4}$/.test(created.code), `invalid room code: ${created.code}`);
+    assert(created.playerNames?.[0] === "Alice", "created message did not include host name");
 
     const startA = waitForMessage(a, "start");
     const startB = waitForMessage(b, "start");
-    b.send(JSON.stringify({ type: "join", code: created.code }));
+    b.send(JSON.stringify({ type: "join", code: created.code, playerName: "Bob" }));
     const starts = await Promise.all([startA, startB]);
     assert(starts.every((msg) => msg.gameId === "tictactoe"), "start messages used wrong gameId");
+    assert(starts.every((msg) => msg.playerNames?.[0] === "Alice" && msg.playerNames?.[1] === "Bob"), "start messages did not include both player names");
 
     const moveP = waitForMessage(b, "move");
     a.send(JSON.stringify({ type: "move", move: { cell: 0 } }));

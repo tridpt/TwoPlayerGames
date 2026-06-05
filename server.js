@@ -52,7 +52,7 @@ const server = http.createServer((req, res) => {
 // ---------- WebSocket: phòng chơi online ----------
 const wss = new WebSocketServer({ server });
 
-/** rooms: code -> { players: [ws, ws], gameId, seed, firstSeat, restartVotes } */
+/** rooms: code -> { players: [ws, ws], names: [string, string], gameId, seed, firstSeat, restartVotes } */
 const rooms = new Map();
 
 function makeCode() {
@@ -67,6 +67,14 @@ function send(ws, type, payload = {}) {
   if (ws && ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify({ type, ...payload }));
   }
+}
+
+function cleanPlayerName(value, fallback) {
+  const name = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 24);
+  return name || fallback;
 }
 
 function otherPlayer(room, ws) {
@@ -102,10 +110,11 @@ wss.on("connection", (ws) => {
         const seed = Math.floor(Math.random() * 1e9);
         const firstSeat = Math.random() < 0.5 ? 0 : 1;
         const options = msg.options || {};
-        rooms.set(code, { players: [ws, null], gameId: msg.gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options });
+        const playerName = cleanPlayerName(msg.playerName, "Người chơi 1");
+        rooms.set(code, { players: [ws, null], names: [playerName, null], gameId: msg.gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options });
         ws.roomCode = code;
         ws.seat = 0;
-        send(ws, "created", { code, seat: 0, gameId: msg.gameId, seed, firstSeat, round: 1, options });
+        send(ws, "created", { code, seat: 0, gameId: msg.gameId, seed, firstSeat, round: 1, options, playerNames: [playerName, null] });
         break;
       }
 
@@ -115,12 +124,13 @@ wss.on("connection", (ws) => {
         if (!room) return send(ws, "error", { message: "Mã phòng không tồn tại." });
         if (room.players[1]) return send(ws, "error", { message: "Phòng đã đủ người." });
         room.players[1] = ws;
+        room.names[1] = cleanPlayerName(msg.playerName, "Người chơi 2");
         ws.roomCode = msg.code;
         ws.seat = 1;
-        send(ws, "joined", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options });
+        send(ws, "joined", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names });
         // báo cho cả hai bắt đầu (kèm options của chủ phòng)
-        send(room.players[0], "start", { code: msg.code, seat: 0, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options });
-        send(room.players[1], "start", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options });
+        send(room.players[0], "start", { code: msg.code, seat: 0, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names });
+        send(room.players[1], "start", { code: msg.code, seat: 1, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names });
         break;
       }
 
@@ -148,7 +158,7 @@ wss.on("connection", (ws) => {
         room.round = (room.round || 1) + 1;
         room.firstSeat = typeof room.firstSeat === "number" ? 1 - room.firstSeat : (Math.random() < 0.5 ? 0 : 1);
         room.restartVotes.clear();
-        room.players.forEach((p, i) => send(p, "restart", { code: ws.roomCode, gameId: room.gameId, seed, seat: i, firstSeat: room.firstSeat, round: room.round, options: room.options }));
+        room.players.forEach((p, i) => send(p, "restart", { code: ws.roomCode, gameId: room.gameId, seed, seat: i, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names }));
         break;
       }
 
