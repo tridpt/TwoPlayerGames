@@ -43,8 +43,48 @@
     function localSeat() { return ctx.isOnline ? ctx.mySeat : turn; }
     function myTurn() { return !ctx.isOnline || turn === ctx.mySeat; }
 
-    function tileLabel(t) { return `${pips(t[0])}|${pips(t[1])}`; }
     function pips(n) { return ["0","1","2","3","4","5","6"][n]; }
+
+    // bố cục chấm chuẩn trên lưới 3x3 (vị trí 0..8)
+    const PIP_LAYOUT = {
+      0: [],
+      1: [4],
+      2: [0, 8],
+      3: [0, 4, 8],
+      4: [0, 2, 6, 8],
+      5: [0, 2, 4, 6, 8],
+      6: [0, 2, 3, 5, 6, 8],
+    };
+
+    // tạo một mặt quân (nửa domino) với các chấm tròn
+    function makeFace(n) {
+      const face = document.createElement("div");
+      face.className = "dom-face";
+      const set = new Set(PIP_LAYOUT[n] || []);
+      for (let i = 0; i < 9; i++) {
+        const slot = document.createElement("span");
+        slot.className = "dom-pip-slot";
+        if (set.has(i)) {
+          const dot = document.createElement("span");
+          dot.className = "dom-pip";
+          slot.appendChild(dot);
+        }
+        face.appendChild(slot);
+      }
+      return face;
+    }
+
+    // tạo một quân hoàn chỉnh gồm 2 mặt (placed=true cho quân nằm ngang trên bàn)
+    function makeTile(t, placed) {
+      const tile = document.createElement("div");
+      tile.className = "dom-tile" + (placed ? " placed" : "");
+      tile.appendChild(makeFace(t[0]));
+      const divider = document.createElement("span");
+      divider.className = "dom-divider";
+      tile.appendChild(divider);
+      tile.appendChild(makeFace(t[1]));
+      return tile;
+    }
 
     function canPlayTile(t) {
       if (line.length === 0) return true;
@@ -173,10 +213,7 @@
       // chuỗi quân đã đánh
       lineEl.innerHTML = "";
       line.forEach((t) => {
-        const d = document.createElement("div");
-        d.className = "dom-tile placed";
-        d.innerHTML = `<span>${pips(t[0])}</span><span>${pips(t[1])}</span>`;
-        lineEl.appendChild(d);
+        lineEl.appendChild(makeTile(t, true));
       });
       lineEl.scrollLeft = lineEl.scrollWidth;
 
@@ -184,11 +221,9 @@
       handEl.innerHTML = "";
       const seat = localSeat();
       hands[seat].forEach((t) => {
-        const d = document.createElement("div");
-        d.className = "dom-tile";
+        const d = makeTile(t, false);
         const playable = myTurn() && !over && canPlayTile(t);
         if (playable) d.classList.add("playable");
-        d.innerHTML = `<span>${pips(t[0])}</span><span>${pips(t[1])}</span>`;
         d.addEventListener("click", () => onTileClick(t));
         handEl.appendChild(d);
       });

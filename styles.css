@@ -5924,20 +5924,42 @@ body {
   justify-content: center; align-items: center; min-width: min-content;
 }
 .dom-hand-label { font-size: 0.85rem; color: var(--muted); align-self: flex-start; }
-.dom-hand { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.dom-hand { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* Quân domino dạng chấm tròn */
 .dom-tile {
-  display: flex; flex-direction: column;
-  width: 34px; min-height: 60px;
-  background: #f5f5f5; color: #1a1a1a;
-  border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-  font-weight: 800; font-size: 1.1rem;
-  align-items: center; justify-content: space-around;
-  padding: 4px 0; user-select: none;
+  --pip-cell: 9px;
+  display: flex;
+  flex-direction: column;       /* quân trên tay: dọc (2 mặt xếp trên-dưới) */
+  align-items: center;
+  background: #f7f5ee;
+  border-radius: 7px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(0,0,0,0.15);
+  padding: 5px;
+  gap: 3px;
+  user-select: none;
 }
-.dom-tile span { display: block; }
-.dom-tile span:first-child { border-bottom: 2px solid #1a1a1a; width: 70%; text-align: center; padding-bottom: 2px; }
-.dom-tile.placed { flex-direction: row; width: auto; min-height: 36px; gap: 6px; padding: 4px 8px; }
-.dom-tile.placed span:first-child { border-bottom: none; border-right: 2px solid #1a1a1a; width: auto; padding: 0 6px 0 0; }
+.dom-face {
+  display: grid;
+  grid-template-columns: repeat(3, var(--pip-cell));
+  grid-template-rows: repeat(3, var(--pip-cell));
+  gap: 1px;
+}
+.dom-pip-slot { display: flex; align-items: center; justify-content: center; }
+.dom-pip {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  box-shadow: inset 0 -1px 1px rgba(255,255,255,0.4);
+}
+.dom-divider {
+  width: 78%; height: 2px;
+  background: rgba(0,0,0,0.55);
+  border-radius: 2px;
+}
+/* quân nằm trên bàn: ngang (2 mặt cạnh nhau), vạch chia dọc */
+.dom-tile.placed { flex-direction: row; padding: 5px; gap: 4px; }
+.dom-tile.placed .dom-divider { width: 2px; height: 78%; }
 
 /* ---------- Submarine Hunt ---------- */
 .sh-root {
