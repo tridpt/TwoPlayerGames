@@ -96,7 +96,7 @@
 
     const hint = document.createElement("div");
     hint.className = "fh-hint";
-    hint.textContent = "Lưỡi câu tự đung đưa — bấm PHÍM CÁCH để thả câu xuống. Dính cá thì bấm liên tục phím chữ hiện ra để kéo lên.";
+    hint.textContent = "Lưỡi câu tự đung đưa — bấm PHÍM CÁCH để thả câu xuống. Vật phẩm 🪱⭐🧲💎 phát sáng vàng trong nước, câu lên để nhận hỗ trợ!";
     root.appendChild(hint);
 
     function rng() { return Math.random(); }
@@ -125,7 +125,7 @@
       fishes.push({ id: nextId++, kind: "fish", def: BOSS, isBoss: true, x, y, dir, vy: 3, t: rng() * 6 });
     }
     function spawnItem() {
-      if (items.length >= 2) return;
+      if (items.length >= 3) return;
       const def = pickWeighted(ITEMS);
       const dir = rng() < 0.5 ? 1 : -1;
       const x = dir === 1 ? -24 : W + 24;
@@ -257,7 +257,7 @@
       if (phase === "play") {
         spawnAcc += dt; itemAcc += dt;
         if (spawnAcc > 0.85) { spawnAcc = 0; if (rng() < 0.85) spawnFish(); }
-        if (itemAcc > 4.2) { itemAcc = 0; if (rng() < 0.7) spawnItem(); }
+        if (itemAcc > 2.8) { itemAcc = 0; if (rng() < 0.9) spawnItem(); }
         if (bossTimer > 0) { bossTimer -= dt; if (bossTimer <= 0) spawnBoss(); }
         else if (!fishes.some((f) => f.isBoss)) spawnBoss();
 
@@ -458,6 +458,21 @@
           g.save(); g.globalAlpha = 0.5; g.fillStyle = "#ff6b8a";
           g.beginPath(); g.arc(e.x, e.y, e.def.r + 6, 0, Math.PI * 2); g.fill(); g.restore();
         }
+        if (e.kind === "item") {
+          // vầng sáng nhấp nháy cho vật phẩm để dễ nhận ra
+          const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 240 + e.id);
+          g.save();
+          g.globalAlpha = 0.25 + pulse * 0.3;
+          const rg = g.createRadialGradient(e.x, e.y, 2, e.x, e.y, e.def.r + 10);
+          rg.addColorStop(0, "#ffe9a8");
+          rg.addColorStop(1, "rgba(255,209,102,0)");
+          g.fillStyle = rg;
+          g.beginPath(); g.arc(e.x, e.y, e.def.r + 10, 0, Math.PI * 2); g.fill();
+          g.globalAlpha = 0.55 + pulse * 0.4;
+          g.strokeStyle = "#ffd166"; g.lineWidth = 2;
+          g.beginPath(); g.arc(e.x, e.y, e.def.r + 4 + pulse * 2, 0, Math.PI * 2); g.stroke();
+          g.restore();
+        }
         const hookedNow = (attached === e || reeled === e);
         g.save();
         g.translate(e.x, e.y);
@@ -468,8 +483,10 @@
         g.fillText(e.def.emoji, 0, 0);
         g.restore();
         if (e.kind === "item") {
-          g.fillStyle = "rgba(255,209,102,0.9)";
-          g.beginPath(); g.arc(e.x, e.y - e.def.r - 3, 2.6, 0, Math.PI * 2); g.fill();
+          g.fillStyle = "#ffe9a8";
+          g.font = "11px 'Segoe UI Emoji', sans-serif";
+          g.textAlign = "center"; g.textBaseline = "middle";
+          g.fillText("✨", e.x, e.y - e.def.r - 6);
         }
       });
     }
@@ -545,6 +562,8 @@
       phase = "play";
       timeLeft = DURATION;
       spawnBoss();
+      spawnItem();
+      itemAcc = 1.6;
       ctx.setStatus("Câu nào! PHÍM CÁCH thả câu, bấm phím chữ hiện ra để kéo cá lên.");
       renderTop();
       timerInt = setInterval(() => {
