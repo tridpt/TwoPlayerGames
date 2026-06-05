@@ -1038,6 +1038,94 @@ body {
   box-shadow: inset 0 0 0 2px rgba(77, 208, 225, 0.26);
 }
 
+/* Hunter vs Swarm */
+.hs-wrap {
+  width: min(620px, 94vw);
+  display: grid;
+  gap: 10px;
+}
+.hs-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  color: var(--muted);
+  font-weight: 800;
+}
+.hs-info span {
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+}
+.hs-info b {
+  color: var(--accent);
+}
+.hs-board {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  width: min(560px, 92vw);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  padding: 10px;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 209, 102, 0.1), transparent 34%),
+    linear-gradient(135deg, #141c3a, #10152d);
+  box-shadow: var(--shadow);
+}
+.hs-cell {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--text);
+  font-size: clamp(1rem, 6vw, 2rem);
+  font-weight: 900;
+  line-height: 1;
+  cursor: default;
+  transition: transform 0.1s, background 0.15s, box-shadow 0.15s;
+}
+.hs-cell.alt {
+  background: rgba(255, 255, 255, 0.035);
+}
+.hs-cell:disabled { opacity: 1; }
+.hs-cell.hunter {
+  background: radial-gradient(circle at 35% 28%, #ffe29a, var(--p1));
+  color: #171021;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+.hs-cell.swarm {
+  background: radial-gradient(circle at 35% 28%, #91efff, var(--p2));
+  color: #071821;
+}
+.hs-cell.swarm.guarded {
+  background: radial-gradient(circle at 35% 28%, #b8f7ff, #4dd0e1 62%, #2a93a1);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.24);
+}
+.hs-cell.source {
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.44);
+}
+.hs-cell.selected {
+  transform: scale(1.04);
+  box-shadow: inset 0 0 0 3px var(--accent), 0 0 16px rgba(255, 209, 102, 0.35);
+}
+.hs-cell.legal {
+  cursor: pointer;
+  background: rgba(255, 209, 102, 0.17);
+  box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.52);
+}
+.hs-cell.legal.capture {
+  background: rgba(255, 93, 115, 0.2);
+  box-shadow: inset 0 0 0 2px rgba(255, 93, 115, 0.58);
+}
+.hs-cell.legal:hover,
+.hs-cell.source:hover {
+  transform: scale(1.04);
+}
+
 /* Reversi */
 .rv-board {
   display: grid;
