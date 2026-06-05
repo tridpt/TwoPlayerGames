@@ -96,7 +96,7 @@
 
     const hint = document.createElement("div");
     hint.className = "fh-hint";
-    hint.textContent = "Lưỡi câu tự đung đưa — bấm PHÍM CÁCH để thả câu xuống. Vật phẩm 🪱⭐🧲💎 phát sáng vàng trong nước, câu lên để nhận hỗ trợ!";
+    hint.textContent = "Lưỡi câu tự đung đưa — bấm PHÍM CÁCH để thả câu xuống. Hộp 🎁 phát sáng là vật phẩm bí ẩn, câu lên mới biết là gì!";
     root.appendChild(hint);
 
     function rng() { return Math.random(); }
@@ -384,6 +384,20 @@
         g.fillStyle = "#e9ecff"; g.font = "800 22px Segoe UI, sans-serif";
         g.textAlign = "center"; g.textBaseline = "middle";
         g.fillText("Đang chờ đối thủ...", W / 2, H / 2);
+      } else if (phase === "over") {
+        // banner HẾT GIỜ — không che kín để cá vẫn bơi phía sau
+        const bw = 280, bh = 64, cx = W / 2, cy = H / 2;
+        g.save();
+        g.fillStyle = "rgba(8,14,28,0.8)";
+        roundRect(g, cx - bw / 2, cy - bh / 2, bw, bh, 16); g.fill();
+        g.strokeStyle = "rgba(255,209,102,0.7)"; g.lineWidth = 2;
+        roundRect(g, cx - bw / 2, cy - bh / 2, bw, bh, 16); g.stroke();
+        g.fillStyle = "#ffd166"; g.font = "900 30px Segoe UI, sans-serif";
+        g.textAlign = "center"; g.textBaseline = "middle";
+        g.fillText("⏰ HẾT GIỜ!", cx, cy - 9);
+        g.fillStyle = "#e9ecff"; g.font = "700 15px Segoe UI, sans-serif";
+        g.fillText(`Bạn câu được ${myScore} điểm (${myCount} con)`, cx, cy + 16);
+        g.restore();
       }
 
       if (castMsgT > 0 && phase === "play") {
@@ -486,13 +500,14 @@
         if (hookedNow) g.scale(1 + Math.sin(performance.now() / 55) * 0.09, 1 + Math.sin(performance.now() / 55) * 0.09);
         g.font = (e.def.r * 1.8) + "px 'Segoe UI Emoji', sans-serif";
         g.textAlign = "center"; g.textBaseline = "middle";
-        g.fillText(e.def.emoji, 0, 0);
+        // vật phẩm là hộp bí ẩn — câu lên mới biết là gì
+        g.fillText(e.kind === "item" ? "🎁" : e.def.emoji, 0, 0);
         g.restore();
         if (e.kind === "item") {
           g.fillStyle = "#ffe9a8";
           g.font = "11px 'Segoe UI Emoji', sans-serif";
           g.textAlign = "center"; g.textBaseline = "middle";
-          g.fillText("✨", e.x, e.y - e.def.r - 6);
+          g.fillText("❓", e.x, e.y - e.def.r - 6);
         }
       });
     }
@@ -531,12 +546,14 @@
     function renderReel() {
       if (hookState !== "reel" || !attached) { reel.classList.add("fh-hidden"); return; }
       reel.classList.remove("fh-hidden");
-      const w = attached.kind === "item" ? 1 : attached.def.weight;
+      const isItem = attached.kind === "item";
+      const w = isItem ? 1 : attached.def.weight;
       const heavy = "🏋️".repeat(Math.min(w, 7)) || "nhẹ";
       const pct = Math.max(0, Math.min(100, progress));
       const col = pct > 66 ? "#6ee7b7" : pct > 33 ? "#ffd166" : "#ff5d73";
+      const headTxt = isItem ? "🎁 Vật phẩm bí ẩn" : `${attached.def.emoji} ${attached.def.name} <span class="fh-reel-w">${heavy}</span>`;
       reel.innerHTML = `
-        <div class="fh-reel-head">${attached.def.emoji} ${attached.def.name} <span class="fh-reel-w">${heavy}</span></div>
+        <div class="fh-reel-head">${headTxt}</div>
         <div class="fh-reel-key">Bấm liên tục phím <kbd>${reelLetter.toUpperCase()}</kbd></div>
         <div class="fh-reel-bar"><i style="width:${pct}%;background:${col}"></i></div>
       `;
