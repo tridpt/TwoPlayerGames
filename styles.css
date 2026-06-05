@@ -3196,9 +3196,50 @@ body {
 }
 
 /* ---------- Battleship (Bắn Tàu) ---------- */
-.bs-root { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
-.bs-controls { display: flex; gap: 10px; }
-.bs-controls.bs-hidden { display: none; }
+.bs-root { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.bs-controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.bs-controls.bs-hidden, .bs-place.bs-hidden, .bs-abilities.bs-hidden { display: none; }
+
+.bs-place {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  width: min(680px, 96vw);
+}
+.bs-place-hint {
+  font-size: 0.84rem;
+  color: var(--muted);
+  text-align: center;
+}
+.bs-place-hint b { color: var(--accent); }
+.bs-fleet {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.bs-ship-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 92px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent), var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.15s, box-shadow 0.15s;
+}
+.bs-ship-btn:hover { transform: translateY(-2px); }
+.bs-ship-btn .bs-ship-ic { font-size: 1.3rem; line-height: 1; }
+.bs-ship-btn b { font-size: 0.78rem; }
+.bs-ship-btn small { font-size: 0.66rem; color: var(--muted); letter-spacing: 1px; }
+.bs-ship-btn.sel { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255,209,102,0.25); }
+.bs-ship-btn.done { opacity: 0.62; }
+.bs-ship-btn.done small { color: var(--good); }
 
 .bs-boards {
   display: flex;
@@ -3212,29 +3253,109 @@ body {
   padding: 12px;
   box-shadow: var(--shadow);
   border: 2px solid transparent;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.bs-board-wrap.bs-active { border-color: var(--accent); }
+.bs-board-wrap.bs-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255,209,102,0.16), var(--shadow);
+}
 .bs-board-title { text-align: center; margin-bottom: 8px; font-size: 0.9rem; color: var(--muted); }
 .bs-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   gap: 2px;
-  width: min(320px, 80vw);
+  width: min(300px, 78vw);
   aspect-ratio: 1 / 1;
 }
 .bs-cell {
+  position: relative;
   background: #14306b;
   border-radius: 3px;
   cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 900;
+  color: #cfe;
   transition: background 0.12s;
 }
-.bs-active .bs-cell:hover { background: #1f4699; cursor: crosshair; }
-.bs-cell.ship { background: #6b7280; }
+.bs-active .bs-cell:hover { cursor: crosshair; }
+.bs-cell.ship {
+  background: linear-gradient(180deg, #7c8696, #5a6472);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+}
 .bs-cell.hit { background: var(--p1); }
+.bs-cell.hit::after { content: "✸"; color: #fff; font-size: 0.8rem; }
 .bs-cell.hit.sunk { background: #b91c3c; box-shadow: inset 0 0 0 2px #fff3; }
-.bs-cell.miss { background: #0c1a3a; box-shadow: inset 0 0 0 3px rgba(255,255,255,0.15); }
+.bs-cell.miss { background: #0c1a3a; }
+.bs-cell.miss::after { content: "•"; color: rgba(255,255,255,0.4); font-size: 0.9rem; }
 .bs-cell.pending { background: var(--accent); }
+.bs-cell.scan { background: #1b4a55; box-shadow: inset 0 0 0 1px rgba(110,231,183,0.4); }
+.bs-cell.badge { background: #135e52; color: #aef5dd; }
+.bs-cell.aim { box-shadow: inset 0 0 0 2px rgba(255,209,102,0.85); }
+.bs-cell.preview.ok { background: rgba(110,231,183,0.55); }
+.bs-cell.preview.bad { background: rgba(255,93,115,0.55); }
+
+.bs-abilities {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  width: min(680px, 96vw);
+}
+.bs-ability {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 96px;
+  padding: 8px 10px 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent), var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.15s, box-shadow 0.15s;
+}
+.bs-ability:hover:not(:disabled) { transform: translateY(-2px); }
+.bs-ability .bs-ab-ic { font-size: 1.35rem; line-height: 1; }
+.bs-ability b { font-size: 0.8rem; }
+.bs-ability small { font-size: 0.66rem; color: var(--muted); }
+.bs-ability.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255,209,102,0.25); }
+.bs-ability:disabled { opacity: 0.42; cursor: not-allowed; transform: none; }
+.bs-ab-left {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #16121d;
+  font-size: 0.66rem;
+  font-weight: 900;
+  font-style: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.bs-torp-axis {
+  align-self: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255,255,255,0.22);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.bs-torp-axis b { color: var(--accent); }
+.bs-torp-axis.dim { opacity: 0.45; }
+.bs-torp-axis:disabled { cursor: not-allowed; }
 
 /* ---------- Sea Battle Nang Cap ---------- */
 .sbx-root {

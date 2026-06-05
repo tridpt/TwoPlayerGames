@@ -1,55 +1,98 @@
-/* Battleship - Bắn Tàu (CHỈ chơi online) — giấu thông tin giữa 2 người
+/* Battleship - Bắn Tàu (CHỈ chơi online) — giấu thông tin + xếp tàu thủ công + vật phẩm
    Giao thức qua sendMove:
-     { kind:"ready" }                         -> báo đã sẵn sàng
-     { kind:"shot", r, c }                    -> bắn vào ô (r,c) trên bàn đối thủ
-     { kind:"result", r, c, hit, sunk,
-       sunkCells, gameOver }                  -> chủ bàn trả kết quả
+     { kind:"ready" }
+     { kind:"fire", ability, cells:[[r,c]...], center:[r,c]? }
+     { kind:"result", ability, results:[{r,c,state}], sunkCells, radarCount?, scanCells?, center?, gameOver }
    Quân tàu KHÔNG bao giờ gửi qua mạng — chỉ gửi phát bắn & kết quả. */
 (function () {
   const N = 10;
-  const FLEET = [5, 4, 3, 3, 2]; // kích thước các tàu
+  const FLEET = [
+    { size: 5, name: "Tàu sân bay", icon: "🛳️" },
+    { size: 4, name: "Thiết giáp", icon: "🚢" },
+    { size: 3, name: "Tuần dương", icon: "⛴️" },
+    { size: 3, name: "Tàu ngầm", icon: "🛥️" },
+    { size: 2, name: "Khu trục", icon: "🚤" },
+  ];
+  const ABILITIES = {
+    normal:  { icon: "🎯", name: "Bắn thường", hint: "1 ô", charges: Infinity },
+    radar:   { icon: "📡", name: "Radar", hint: "quét 3×3", charges: 3 },
+    bomb:    { icon: "💥", name: "Bom chùm", hint: "nổ 2×2", charges: 2 },
+    torpedo: { icon: "🚀", name: "Ngư lôi", hint: "xuyên hàng/cột", charges: 2 },
+  };
 
   function create(ctx) {
+    const o = ctx.options || {};
+    const usePowerups = o.powerups === undefined ? true : !!Number(o.powerups);
+
     // ----- trạng thái -----
     let phase = "placing";       // placing | playing | over
     let iReady = false, oppReady = false;
-    let turn = 0;                // seat nào được bắn
-    let awaiting = false;        // đang chờ kết quả phát bắn của mình
+    let turn = 0;
+    let awaiting = false;
 
-    // bàn của tôi: shipId hoặc null + dấu bắn của đối thủ
-    let myBoard = empty(null);
-    let ships = [];              // {id, cells:[[r,c]], size, hits}
-    let oppShotsOnMe = empty(0); // 0 chưa bắn, "hit", "miss"
-    // bàn đối thủ (theo dõi phát bắn của tôi)
-    let myShots = empty(0);      // 0 chưa bắn, "hit", "miss", "sunk"
+    let myBoard = empty(null);   // shipId | null
+    let ships = Array(FLEET.length).fill(null); // index theo id
+    let oppShotsOnMe = empty(0); // 0 | "hit" | "miss"
+    let myShots = empty(0);      // 0 | "hit" | "miss" | "sunk" | "pending"
+    let scanned = empty(false);  // radar đã quét (ô trống)
+    const radarBadges = {};      // "r,c" -> số ô tàu trong vùng quét
+
+    // xếp tàu
+    let selShip = null;          // id tàu đang cầm tay
+    let orient = "h";            // h | v
+    let placeHover = null;       // [r,c]
+
+    // chơi
+    let ability = "normal";
+    let torpedoAxis = "row";     // row | col
+    let aimHover = null;         // [r,c]
+    const charges = {};
+    Object.keys(ABILITIES).forEach((k) => { charges[k] = ABILITIES[k].charges; });
 
     function empty(v) { return Array.from({ length: N }, () => Array(N).fill(v)); }
+    function inBoard(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
+    function keyrc(r, c) { return r + "," + c; }
+    function clamp(v, a, b) { return Math.min(Math.max(v, a), b); }
 
     // ----- giao diện -----
     const root = document.createElement("div");
     root.className = "bs-root";
     ctx.boardEl.appendChild(root);
 
-    const controls = document.createElement("div");
-    controls.className = "bs-controls";
-    const shuffleBtn = document.createElement("button");
-    shuffleBtn.className = "btn";
-    shuffleBtn.textContent = "🔀 Xếp lại";
-    const readyBtn = document.createElement("button");
-    readyBtn.className = "btn primary";
-    readyBtn.textContent = "✓ Sẵn sàng";
-    controls.appendChild(shuffleBtn);
-    controls.appendChild(readyBtn);
-    root.appendChild(controls);
+    const place = document.createElement("div");
+    place.className = "bs-place";
+    root.appendChild(place);
+
+    const placeHint = document.createElement("div");
+    placeHint.className = "bs-place-hint";
+    place.appendChild(placeHint);
+
+    const fleet = document.createElement("div");
+    fleet.className = "bs-fleet";
+    place.appendChild(fleet);
+
+    const placeActions = document.createElement("div");
+    placeActions.className = "bs-controls";
+    placeActions.innerHTML = `
+      <button class="btn" data-act="rotate" type="button">↻ Xoay (R)</button>
+      <button class="btn" data-act="random" type="button">🔀 Ngẫu nhiên</button>
+      <button class="btn" data-act="clear" type="button">🗑️ Xóa hết</button>
+      <button class="btn primary" data-act="ready" type="button">✓ Sẵn sàng</button>
+    `;
+    place.appendChild(placeActions);
 
     const boards = document.createElement("div");
     boards.className = "bs-boards";
     root.appendChild(boards);
 
-    const myWrap = makeBoard("Bàn của bạn");
-    const oppWrap = makeBoard("Bàn đối thủ");
+    const myWrap = makeBoard("🛡️ Hạm đội của bạn");
+    const oppWrap = makeBoard("🎯 Vùng biển đối thủ");
     boards.appendChild(myWrap.wrap);
     boards.appendChild(oppWrap.wrap);
+
+    const abilityBar = document.createElement("div");
+    abilityBar.className = "bs-abilities bs-hidden";
+    root.appendChild(abilityBar);
 
     function makeBoard(title) {
       const wrap = document.createElement("div");
@@ -73,201 +116,479 @@
       return { wrap, grid, cells };
     }
 
-    // ----- xếp tàu ngẫu nhiên -----
-    function placeRandom() {
-      myBoard = empty(null);
-      ships = [];
-      FLEET.forEach((size, id) => {
-        let placed = false;
-        while (!placed) {
-          const horiz = Math.random() < 0.5;
-          const r = Math.floor(Math.random() * N);
-          const c = Math.floor(Math.random() * N);
-          const cells = [];
-          for (let k = 0; k < size; k++) {
-            const rr = horiz ? r : r + k;
-            const cc = horiz ? c + k : c;
-            if (rr >= N || cc >= N || myBoard[rr][cc] !== null) { cells.length = 0; break; }
-            cells.push([rr, cc]);
-          }
-          if (cells.length === size) {
-            cells.forEach(([rr, cc]) => { myBoard[rr][cc] = id; });
-            ships.push({ id, cells, size, hits: 0 });
-            placed = true;
-          }
-        }
-      });
+    // ====================== XẾP TÀU ======================
+    function shipCells(size, r, c, dir) {
+      const out = [];
+      for (let k = 0; k < size; k++) out.push(dir === "h" ? [r, c + k] : [r + k, c]);
+      return out;
     }
 
-    shuffleBtn.addEventListener("click", () => {
-      if (phase !== "placing" || iReady) return;
-      placeRandom();
+    function canPlace(size, r, c, dir) {
+      const cells = shipCells(size, r, c, dir);
+      return cells.every(([rr, cc]) => inBoard(rr, cc) && myBoard[rr][cc] === null);
+    }
+
+    function placeShip(id, r, c, dir) {
+      const cells = shipCells(FLEET[id].size, r, c, dir);
+      cells.forEach(([rr, cc]) => { myBoard[rr][cc] = id; });
+      ships[id] = { id, cells, size: FLEET[id].size, hits: 0, dir };
+    }
+
+    function pickUp(id) {
+      const s = ships[id];
+      if (!s) return;
+      s.cells.forEach(([rr, cc]) => { myBoard[rr][cc] = null; });
+      orient = s.dir || "h";
+      ships[id] = null;
+      selShip = id;
+    }
+
+    function clearAll() {
+      myBoard = empty(null);
+      ships = Array(FLEET.length).fill(null);
+      selShip = null;
+    }
+
+    function placeRandom() {
+      clearAll();
+      FLEET.forEach((ship, id) => {
+        let ok = false, guard = 0;
+        while (!ok && guard < 500) {
+          guard++;
+          const dir = Math.random() < 0.5 ? "h" : "v";
+          const r = Math.floor(Math.random() * N);
+          const c = Math.floor(Math.random() * N);
+          if (canPlace(ship.size, r, c, dir)) { placeShip(id, r, c, dir); ok = true; }
+        }
+      });
+      selShip = null;
+    }
+
+    function allPlaced() { return ships.every((s) => s !== null); }
+
+    function nextUnplaced() {
+      for (let i = 0; i < FLEET.length; i++) if (!ships[i]) return i;
+      return null;
+    }
+
+    fleet.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-ship]");
+      if (!btn || phase !== "placing") return;
+      const id = Number(btn.dataset.ship);
+      if (ships[id]) pickUp(id);          // đang trên bàn -> nhấc lên sửa
+      else selShip = (selShip === id ? null : id);
       render();
     });
 
-    readyBtn.addEventListener("click", () => {
-      if (phase !== "placing" || iReady) return;
-      iReady = true;
-      shuffleBtn.disabled = true;
-      readyBtn.disabled = true;
-      readyBtn.textContent = "✓ Đã sẵn sàng";
-      ctx.sendMove({ kind: "ready" });
-      if (oppReady) beginPlay();
-      else ctx.setStatus("Đã sẵn sàng. Đang chờ đối thủ xếp tàu...");
+    placeActions.addEventListener("click", (e) => {
+      const act = e.target.closest("[data-act]")?.dataset.act;
+      if (!act || phase !== "placing") return;
+      if (act === "rotate") { orient = orient === "h" ? "v" : "h"; }
+      else if (act === "random") { placeRandom(); }
+      else if (act === "clear") { clearAll(); }
+      else if (act === "ready") {
+        if (!allPlaced() || iReady) return;
+        iReady = true;
+        ctx.sendMove({ kind: "ready" });
+        if (oppReady) beginPlay();
+        else { ctx.setStatus("Đã sẵn sàng. Đang chờ đối thủ xếp tàu..."); render(); }
+        return;
+      }
+      render();
     });
+
+    document.addEventListener("keydown", onKey);
+    function onKey(e) {
+      if (!document.body.contains(root)) { document.removeEventListener("keydown", onKey); return; }
+      if (phase === "placing" && (e.key === "r" || e.key === "R")) { orient = orient === "h" ? "v" : "h"; render(); }
+    }
+
+    // di chuột trên bàn của mình -> preview xếp tàu
+    myWrap.grid.addEventListener("mousemove", (e) => {
+      if (phase !== "placing" || selShip === null) return;
+      const rc = cellOf(myWrap.grid, e.target);
+      if (!rc) return;
+      if (!placeHover || placeHover[0] !== rc[0] || placeHover[1] !== rc[1]) { placeHover = rc; render(); }
+    });
+    myWrap.grid.addEventListener("mouseleave", () => { if (placeHover) { placeHover = null; render(); } });
+
+    myWrap.grid.addEventListener("click", (e) => {
+      if (phase !== "placing") return;
+      const rc = cellOf(myWrap.grid, e.target);
+      if (!rc) return;
+      const [r, c] = rc;
+      if (selShip !== null) {
+        if (canPlace(FLEET[selShip].size, r, c, orient)) {
+          placeShip(selShip, r, c, orient);
+          selShip = nextUnplaced();
+          placeHover = null;
+        } else { ctx.sound("error"); }
+      } else if (myBoard[r][c] !== null) {
+        pickUp(myBoard[r][c]);
+      }
+      render();
+    });
+    myWrap.grid.addEventListener("contextmenu", (e) => {
+      if (phase === "placing") { e.preventDefault(); orient = orient === "h" ? "v" : "h"; render(); }
+    });
+
+    function cellOf(grid, target) {
+      const cell = target.closest(".bs-cell");
+      if (!cell) return null;
+      const idx = [...grid.children].indexOf(cell);
+      if (idx < 0) return null;
+      return [Math.floor(idx / N), idx % N];
+    }
 
     function beginPlay() {
       phase = "playing";
       turn = 0;
-      controls.classList.add("bs-hidden");
+      place.classList.add("bs-hidden");
+      if (usePowerups) abilityBar.classList.remove("bs-hidden");
       ctx.setTurn(turn);
       render();
       updateStatus();
     }
 
-    // ----- nhận message từ đối thủ -----
+    // ====================== VẬT PHẨM / NGẮM BẮN ======================
+    function targetCells(ab, r, c) {
+      if (ab === "bomb") {
+        const r0 = clamp(r, 0, N - 2), c0 = clamp(c, 0, N - 2);
+        return [[r0, c0], [r0, c0 + 1], [r0 + 1, c0], [r0 + 1, c0 + 1]];
+      }
+      if (ab === "radar") {
+        const [rc, cc] = radarCenter(r, c);
+        const out = [];
+        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) out.push([rc + dr, cc + dc]);
+        return out;
+      }
+      if (ab === "torpedo") {
+        const out = [];
+        if (torpedoAxis === "row") for (let cc = 0; cc < N; cc++) out.push([r, cc]);
+        else for (let rr = 0; rr < N; rr++) out.push([rr, c]);
+        return out;
+      }
+      return [[r, c]];
+    }
+    function radarCenter(r, c) { return [clamp(r, 1, N - 2), clamp(c, 1, N - 2)]; }
+
+    oppWrap.grid.addEventListener("mousemove", (e) => {
+      if (phase !== "playing" || turn !== ctx.mySeat || awaiting) return;
+      const rc = cellOf(oppWrap.grid, e.target);
+      if (!rc) return;
+      if (!aimHover || aimHover[0] !== rc[0] || aimHover[1] !== rc[1]) { aimHover = rc; render(); }
+    });
+    oppWrap.grid.addEventListener("mouseleave", () => { if (aimHover) { aimHover = null; render(); } });
+
+    oppWrap.grid.addEventListener("click", (e) => {
+      if (phase !== "playing" || awaiting || turn !== ctx.mySeat) return;
+      const rc = cellOf(oppWrap.grid, e.target);
+      if (!rc) return;
+      fireAt(rc[0], rc[1]);
+    });
+
+    function fireAt(r, c) {
+      if (ability !== "normal" && charges[ability] <= 0) return;
+      const cells = targetCells(ability, r, c);
+      if (ability === "normal" && myShots[r][c] !== 0) return;
+      if ((ability === "bomb" || ability === "torpedo") && !cells.some(([rr, cc]) => inBoard(rr, cc) && myShots[rr][cc] === 0)) return;
+
+      awaiting = true;
+      aimHover = null;
+      if (ability !== "radar") {
+        cells.forEach(([rr, cc]) => { if (inBoard(rr, cc) && myShots[rr][cc] === 0) myShots[rr][cc] = "pending"; });
+      }
+      if (ability !== "normal") charges[ability]--;
+      const payload = { kind: "fire", ability, cells };
+      if (ability === "radar") payload.center = radarCenter(r, c);
+      ctx.sendMove(payload);
+      const used = ability;
+      ability = "normal";
+      ctx.sound("select");
+      render();
+      ctx.setStatus(waitText(used));
+    }
+
+    function waitText(ab) {
+      if (ab === "radar") return "📡 Đang quét radar, chờ dữ liệu...";
+      if (ab === "bomb") return "💥 Đã thả bom chùm, chờ kết quả...";
+      if (ab === "torpedo") return "🚀 Ngư lôi đang lao đi...";
+      return "🎯 Đã bắn, chờ kết quả...";
+    }
+
+    function selectAbility(ab) {
+      if (phase !== "playing" || turn !== ctx.mySeat || awaiting) return;
+      if (ab !== "normal" && charges[ab] <= 0) return;
+      ability = ab;
+      render();
+      const tip = {
+        normal: "Bấm 1 ô để bắn.",
+        radar: "Bấm để quét vùng 3×3 — chỉ đếm số ô tàu, không gây sát thương.",
+        bomb: "Bấm để thả bom chùm phủ 2×2 (4 phát cùng lúc).",
+        torpedo: `Ngư lôi xuyên cả ${torpedoAxis === "row" ? "HÀNG" : "CỘT"} — bấm để phóng.`,
+      };
+      ctx.setStatus(tip[ab] || "");
+    }
+
+    // ====================== NHẬN MESSAGE ======================
     function applyMove(move, fromRemote) {
-      if (!fromRemote) return; // mọi nước local đã xử lý trực tiếp
+      if (!fromRemote) return;
       if (move.kind === "ready") {
         oppReady = true;
         if (iReady) beginPlay();
-        else ctx.setStatus("Đối thủ đã sẵn sàng. Hãy xếp tàu và bấm \"Sẵn sàng\".");
+        else { ctx.setStatus("Đối thủ đã sẵn sàng. Hãy xếp tàu và bấm \"Sẵn sàng\"."); }
         return;
       }
-      if (move.kind === "shot") {
-        // đối thủ bắn vào bàn của tôi
-        const { r, c } = move;
-        const result = receiveShot(r, c);
-        ctx.sound(result.hit ? "shot" : "miss");
-        ctx.sendMove({ kind: "result", r, c, ...result });
-        // sau phát bắn, đến lượt tôi
-        if (!result.gameOver) {
-          turn = ctx.mySeat;
-          ctx.setTurn(turn);
-          updateStatus();
-        } else {
-          endGame(false); // tôi thua (tàu tôi đã chìm hết)
-        }
+      if (move.kind === "fire") {
+        const res = receiveFire(move);
+        ctx.sendMove({ kind: "result", ...res });
+        const hitAny = res.results.some((x) => x.state === "hit");
+        ctx.sound(move.ability === "radar" ? "notify" : hitAny ? "shot" : "miss");
+        if (res.gameOver) { render(); return endGame(false); }
+        turn = ctx.mySeat;
+        ctx.setTurn(turn);
         render();
+        updateStatus();
+        if (move.ability === "radar") ctx.setStatus("📡 Đối thủ vừa quét radar. Tới lượt bạn!");
         return;
       }
-      if (move.kind === "result") {
-        // kết quả phát bắn của tôi lên bàn đối thủ
-        const { r, c, hit, sunk, sunkCells, gameOver } = move;
-        myShots[r][c] = hit ? "hit" : "miss";
-        if (sunk && sunkCells) sunkCells.forEach(([rr, cc]) => { myShots[rr][cc] = "sunk"; });
-        awaiting = false;
-        if (gameOver) { render(); return endGame(true); } // tôi thắng
+      if (move.kind === "result") { handleResult(move); return; }
+    }
+
+    function receiveFire(move) {
+      const ab = move.ability;
+      const cells = move.cells || [];
+      if (ab === "radar") {
+        let count = 0;
+        cells.forEach(([r, c]) => { if (inBoard(r, c) && myBoard[r][c] !== null) count++; });
+        return { ability: "radar", results: [], sunkCells: null, radarCount: count, scanCells: cells, center: move.center, gameOver: false };
+      }
+      let order = cells;
+      if (ab === "torpedo") {
+        const idx = cells.findIndex(([r, c]) => inBoard(r, c) && myBoard[r][c] !== null);
+        order = cells.slice(0, idx === -1 ? cells.length : idx + 1);
+      }
+      const results = [];
+      const sunkCells = [];
+      order.forEach(([r, c]) => {
+        if (!inBoard(r, c)) return;
+        if (oppShotsOnMe[r][c] === "hit" || oppShotsOnMe[r][c] === "miss") {
+          results.push({ r, c, state: oppShotsOnMe[r][c] });
+          return;
+        }
+        const id = myBoard[r][c];
+        if (id === null) { oppShotsOnMe[r][c] = "miss"; results.push({ r, c, state: "miss" }); }
+        else {
+          oppShotsOnMe[r][c] = "hit";
+          const ship = ships[id];
+          ship.hits++;
+          results.push({ r, c, state: "hit" });
+          if (ship.hits >= ship.size) sunkCells.push(...ship.cells);
+        }
+      });
+      const gameOver = ships.every((s) => s && s.hits >= s.size);
+      return { ability: ab, results, sunkCells: sunkCells.length ? sunkCells : null, gameOver };
+    }
+
+    function handleResult(move) {
+      awaiting = false;
+      if (move.ability === "radar") {
+        (move.scanCells || []).forEach(([r, c]) => { if (inBoard(r, c) && myShots[r][c] === 0) scanned[r][c] = true; });
+        if (move.center) radarBadges[keyrc(move.center[0], move.center[1])] = move.radarCount;
         turn = 1 - ctx.mySeat;
         ctx.setTurn(turn);
         render();
-        if (hit) { ctx.sound("shot"); ctx.setStatus(sunk ? "💥 Trúng và đánh chìm! Đến lượt đối thủ." : "💥 Bắn trúng! Đến lượt đối thủ."); }
-        else { ctx.sound("miss"); ctx.setStatus("🌊 Trượt. Đến lượt đối thủ."); }
+        ctx.sound("notify");
+        ctx.setStatus(`📡 Radar phát hiện ${move.radarCount} ô tàu trong vùng quét. Tới lượt đối thủ.`);
         return;
       }
-    }
-
-    // tính kết quả khi tôi bị bắn tại (r,c)
-    function receiveShot(r, c) {
-      const id = myBoard[r][c];
-      if (id === null) {
-        oppShotsOnMe[r][c] = "miss";
-        return { hit: false, sunk: false, gameOver: false };
-      }
-      oppShotsOnMe[r][c] = "hit";
-      const ship = ships[id];
-      ship.hits++;
-      const sunk = ship.hits >= ship.size;
-      const allSunk = ships.every((s) => s.hits >= s.size);
-      return {
-        hit: true,
-        sunk,
-        sunkCells: sunk ? ship.cells : null,
-        gameOver: allSunk,
-      };
-    }
-
-    // ----- tôi bắn (click bàn đối thủ) -----
-    oppWrap.grid.addEventListener("click", (e) => {
-      if (phase !== "playing" || awaiting) return;
-      if (turn !== ctx.mySeat) return;
-      const idx = [...oppWrap.grid.children].indexOf(e.target.closest(".bs-cell"));
-      if (idx < 0) return;
-      const r = Math.floor(idx / N), c = idx % N;
-      if (myShots[r][c] !== 0) return; // đã bắn rồi
-      awaiting = true;
-      myShots[r][c] = "pending";
+      // dọn pending
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (myShots[r][c] === "pending") myShots[r][c] = 0;
+      let hitAny = false, sunkAny = false;
+      (move.results || []).forEach(({ r, c, state }) => {
+        if (myShots[r][c] === "sunk") return;
+        myShots[r][c] = state;
+        if (state === "hit") hitAny = true;
+      });
+      if (move.sunkCells) { move.sunkCells.forEach(([r, c]) => { myShots[r][c] = "sunk"; }); sunkAny = true; }
+      if (move.gameOver) { render(); return endGame(true); }
+      turn = 1 - ctx.mySeat;
+      ctx.setTurn(turn);
       render();
-      ctx.sendMove({ kind: "shot", r, c });
-      ctx.setStatus("Đã bắn, chờ kết quả...");
-    });
+      ctx.sound(hitAny ? "shot" : "miss");
+      const label = move.ability === "bomb" ? "💥 Bom chùm: " : move.ability === "torpedo" ? "🚀 Ngư lôi: " : "";
+      if (sunkAny) ctx.setStatus(`${label}💥 Trúng và ĐÁNH CHÌM tàu địch! Tới lượt đối thủ.`);
+      else if (hitAny) ctx.setStatus(`${label}Bắn trúng! Tới lượt đối thủ.`);
+      else ctx.setStatus(`${label}🌊 Trượt cả. Tới lượt đối thủ.`);
+    }
 
     function endGame(iWon) {
       phase = "over";
       ctx.setTurn(-1);
+      abilityBar.classList.add("bs-hidden");
       if (iWon) { ctx.incScore(ctx.mySeat); ctx.setStatus("🎉 Bạn thắng — đã đánh chìm toàn bộ hạm đội đối thủ!"); }
       else { ctx.incScore(1 - ctx.mySeat); ctx.setStatus("💀 Bạn thua — hạm đội của bạn đã bị đánh chìm."); }
+      render();
     }
 
+    // ====================== RENDER ======================
     function render() {
-      // bàn của tôi: hiện tàu + dấu bắn của đối thủ
+      renderPlace();
+      renderBoards();
+      renderAbilities();
+    }
+
+    function renderPlace() {
+      if (phase !== "placing") return;
+      placeHint.innerHTML = iReady
+        ? "✓ Đã sẵn sàng — đang chờ đối thủ..."
+        : `Hướng đặt: <b>${orient === "h" ? "Ngang ↔" : "Dọc ↕"}</b> · Bấm tàu để chọn, bấm bàn để đặt, bấm tàu đã đặt để chỉnh lại.`;
+      fleet.innerHTML = FLEET.map((s, id) => {
+        const done = !!ships[id];
+        const sel = selShip === id;
+        const blocks = "▪".repeat(s.size);
+        return `<button class="bs-ship-btn ${done ? "done" : ""} ${sel ? "sel" : ""}" data-ship="${id}" type="button">
+          <span class="bs-ship-ic">${s.icon}</span>
+          <b>${s.name}</b>
+          <small>${blocks} ${done ? "✓" : "(" + s.size + ")"}</small>
+        </button>`;
+      }).join("");
+      const readyBtn = placeActions.querySelector('[data-act="ready"]');
+      if (readyBtn) readyBtn.disabled = !allPlaced() || iReady;
+    }
+
+    function previewSet() {
+      const set = {};
+      if (phase === "placing" && selShip !== null && placeHover) {
+        const cells = shipCells(FLEET[selShip].size, placeHover[0], placeHover[1], orient);
+        const ok = canPlace(FLEET[selShip].size, placeHover[0], placeHover[1], orient);
+        cells.forEach(([r, c]) => { if (inBoard(r, c)) set[keyrc(r, c)] = ok ? "ok" : "bad"; });
+      }
+      return set;
+    }
+
+    function aimSet() {
+      const set = {};
+      if (phase === "playing" && turn === ctx.mySeat && !awaiting && aimHover) {
+        targetCells(ability, aimHover[0], aimHover[1]).forEach(([r, c]) => {
+          if (inBoard(r, c)) set[keyrc(r, c)] = true;
+        });
+      }
+      return set;
+    }
+
+    function renderBoards() {
+      const prev = previewSet();
+      // bàn của tôi: tàu + dấu bắn của đối thủ + preview xếp tàu
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
           const cell = myWrap.cells[r][c];
           cell.className = "bs-cell";
+          cell.textContent = "";
           if (myBoard[r][c] !== null) cell.classList.add("ship");
           if (oppShotsOnMe[r][c] === "hit") cell.classList.add("hit");
           else if (oppShotsOnMe[r][c] === "miss") cell.classList.add("miss");
+          const pv = prev[keyrc(r, c)];
+          if (pv) cell.classList.add("preview", pv);
         }
       }
-      // bàn đối thủ: chỉ hiện dấu bắn của tôi
+      // bàn đối thủ: dấu bắn của tôi + radar + ngắm
+      const aim = aimSet();
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
           const cell = oppWrap.cells[r][c];
           cell.className = "bs-cell";
+          cell.textContent = "";
           const s = myShots[r][c];
           if (s === "hit") cell.classList.add("hit");
           else if (s === "sunk") cell.classList.add("hit", "sunk");
           else if (s === "miss") cell.classList.add("miss");
           else if (s === "pending") cell.classList.add("pending");
+          else if (scanned[r][c]) cell.classList.add("scan");
+          const b = radarBadges[keyrc(r, c)];
+          if (b !== undefined && s === 0) { cell.classList.add("badge"); cell.textContent = b; }
+          if (aim[keyrc(r, c)]) cell.classList.add("aim");
         }
       }
       const myTurn = phase === "playing" && turn === ctx.mySeat && !awaiting;
       oppWrap.wrap.classList.toggle("bs-active", myTurn);
+      myWrap.wrap.classList.toggle("bs-active", phase === "placing" && !iReady);
+    }
+
+    function renderAbilities() {
+      if (!usePowerups || phase !== "playing") { abilityBar.innerHTML = ""; return; }
+      const myTurn = turn === ctx.mySeat && !awaiting;
+      const keys = ["normal", "radar", "bomb", "torpedo"];
+      let html = keys.map((k) => {
+        const a = ABILITIES[k];
+        const left = a.charges === Infinity ? "∞" : charges[k];
+        const off = !myTurn || (k !== "normal" && charges[k] <= 0);
+        return `<button class="bs-ability ${ability === k ? "active" : ""}" data-ab="${k}" type="button" ${off ? "disabled" : ""}>
+          <span class="bs-ab-ic">${a.icon}</span>
+          <b>${a.name}</b>
+          <small>${a.hint}</small>
+          <i class="bs-ab-left">${left}</i>
+        </button>`;
+      }).join("");
+      html += `<button class="bs-torp-axis ${ability === "torpedo" ? "" : "dim"}" data-axis="1" type="button" ${ability === "torpedo" && myTurn ? "" : "disabled"}>
+        Ngư lôi: <b>${torpedoAxis === "row" ? "Hàng ↔" : "Cột ↕"}</b></button>`;
+      abilityBar.innerHTML = html;
+      abilityBar.querySelectorAll("[data-ab]").forEach((btn) => {
+        btn.addEventListener("click", () => selectAbility(btn.dataset.ab));
+      });
+      const axisBtn = abilityBar.querySelector("[data-axis]");
+      if (axisBtn) axisBtn.addEventListener("click", () => {
+        torpedoAxis = torpedoAxis === "row" ? "col" : "row";
+        render();
+        ctx.setStatus(`Ngư lôi xuyên cả ${torpedoAxis === "row" ? "HÀNG" : "CỘT"} — bấm để phóng.`);
+      });
     }
 
     function updateStatus() {
       if (phase !== "playing") return;
       ctx.setStatus(turn === ctx.mySeat
-        ? "🎯 Lượt bạn — bấm vào bàn đối thủ để bắn!"
+        ? "🎯 Lượt bạn — chọn vật phẩm rồi bấm bàn đối thủ để bắn!"
         : "⏳ Đối thủ đang ngắm bắn...");
     }
 
     // ----- khởi tạo -----
     if (!ctx.isOnline) {
+      place.classList.add("bs-hidden");
       ctx.setStatus("⚠️ Bắn Tàu chỉ chơi được ở chế độ online.");
-      return { applyMove: () => {} };
+      return { applyMove: () => {}, destroy: () => document.removeEventListener("keydown", onKey) };
     }
     placeRandom();
     render();
-    ctx.setStatus("Xếp tàu (bấm \"Xếp lại\" để đổi vị trí), rồi bấm \"Sẵn sàng\".");
-    return { applyMove };
+    ctx.setStatus("Xếp hạm đội: chọn tàu, xoay (R / chuột phải) rồi đặt. Hoặc bấm 🔀 Ngẫu nhiên. Xong thì Sẵn sàng.");
+    return { applyMove, destroy: () => document.removeEventListener("keydown", onKey) };
   }
 
   window.GameRegistry.register({
     id: "battleship",
     name: "Bắn Tàu (Battleship)",
     emoji: "🚢",
-    description: "Giấu hạm đội và bắn tọa độ vào bàn đối thủ. Ai bắn chìm hết tàu địch trước sẽ thắng. (Chỉ online)",
+    description: "Tự xếp hạm đội, dùng radar/bom chùm/ngư lôi và bắn tọa độ vào bàn đối thủ. Ai bắn chìm hết tàu địch trước sẽ thắng. (Chỉ online)",
     onlineReady: true,
     localReady: false,
+    options: [
+      {
+        id: "powerups",
+        label: "Vật phẩm đặc biệt",
+        default: 1,
+        choices: [
+          { value: 1, label: "Bật (radar, bom, ngư lôi)" },
+          { value: 0, label: "Tắt (cổ điển)" },
+        ],
+      },
+    ],
     howTo: [
       "Đây là game CHỈ chơi online — vì mỗi người có hạm đội giấu kín với đối thủ.",
-      "Đầu ván, hệ thống tự xếp 5 tàu (cỡ 5, 4, 3, 3, 2) lên bàn của bạn. Bấm \"Xếp lại\" để đổi vị trí ngẫu nhiên, ưng ý thì bấm \"Sẵn sàng\".",
-      "Khi cả hai sẵn sàng, hai bên luân phiên bắn. Đến lượt mình, bấm một ô trên 'Bàn đối thủ' để bắn vào tọa độ đó.",
-      "Ô đỏ = bắn trúng tàu, ô trắng = trượt. Bắn trúng hết các ô của một tàu là đánh chìm tàu đó.",
-      "Bàn bên trái là của bạn — bạn sẽ thấy đối thủ bắn trúng/trượt tàu mình ở đâu.",
-      "Ai đánh chìm toàn bộ hạm đội đối thủ trước sẽ thắng.",
+      "XẾP TÀU: bấm một tàu trong danh sách để chọn, bấm 'Xoay' (hoặc phím R / chuột phải) để đổi ngang–dọc, rồi bấm lên bàn của bạn để đặt. Bấm lại tàu đã đặt để nhấc lên chỉnh. Hoặc bấm '🔀 Ngẫu nhiên'. Đủ 5 tàu thì bấm 'Sẵn sàng'.",
+      "Khi cả hai sẵn sàng, hai bên luân phiên bắn vào 'Vùng biển đối thủ'. Ô đỏ = trúng, ô trắng = trượt, bắn hết các ô của một tàu là đánh chìm.",
+      "📡 Radar: quét vùng 3×3, chỉ cho biết SỐ ô tàu trong vùng (không gây sát thương) — dùng để khoanh vùng. Có 3 lần.",
+      "💥 Bom chùm: nổ phủ khối 2×2, bắn 4 ô cùng lúc. Có 2 lần.",
+      "🚀 Ngư lôi: lao xuyên cả một hàng hoặc cột (đổi hướng bằng nút bên cạnh), trúng tàu đầu tiên trên đường đi và lộ phần nước đã đi qua. Có 2 lần.",
+      "Mỗi lượt chỉ được một hành động (bắn thường hoặc một vật phẩm). Ai đánh chìm toàn bộ hạm đội đối thủ trước sẽ thắng.",
     ],
     create,
   });
