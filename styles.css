@@ -3383,6 +3383,107 @@ body {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(110, 231, 183, 0.18);
 }
+.sbx-setup { gap: 10px 16px; }
+.sbx-modes, .sbx-setup-btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.sbx-mode.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.22);
+}
+.sbx-tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: min(880px, 96vw);
+}
+.sbx-tray-hint {
+  width: 100%;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.sbx-tray-hint b { color: var(--accent); }
+.sbx-ship-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 96px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent), var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.15s, box-shadow 0.15s;
+}
+.sbx-ship-btn:hover { transform: translateY(-2px); }
+.sbx-ship-btn .sbx-ship-ic { font-size: 1.3rem; line-height: 1; }
+.sbx-ship-btn b { font-size: 0.76rem; }
+.sbx-ship-btn small { font-size: 0.64rem; color: var(--muted); letter-spacing: 1px; }
+.sbx-ship-btn.sel { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255,209,102,0.25); }
+.sbx-ship-btn.done { opacity: 0.6; }
+.sbx-ship-btn.done small { color: var(--good); }
+
+.sbx-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 8px;
+  width: min(880px, 96vw);
+}
+.sbx-ability {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 92px;
+  padding: 7px 10px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent), var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.15s, box-shadow 0.15s;
+}
+.sbx-ability:hover:not(:disabled) { transform: translateY(-2px); }
+.sbx-ability .sbx-ab-ic { font-size: 1.3rem; line-height: 1; }
+.sbx-ability b { font-size: 0.78rem; }
+.sbx-ability small { font-size: 0.64rem; color: var(--muted); }
+.sbx-ability.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255,209,102,0.25); }
+.sbx-ability:disabled { opacity: 0.42; cursor: not-allowed; transform: none; }
+.sbx-ab-left {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #16121d;
+  font-size: 0.64rem;
+  font-weight: 900;
+  font-style: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sbx-torp-axis {
+  align-self: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255,255,255,0.22);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.sbx-torp-axis b { color: var(--accent); }
+.sbx-torp-axis.dim { opacity: 0.45; }
+.sbx-torp-axis:disabled { cursor: not-allowed; }
 .sbx-info {
   width: min(880px, 96vw);
   background: rgba(26, 30, 58, 0.88);
@@ -3478,6 +3579,7 @@ body {
 .sbx-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr);
   gap: 2px;
   width: min(340px, 86vw);
   aspect-ratio: 1 / 1;
@@ -3488,6 +3590,8 @@ body {
   align-items: center;
   justify-content: center;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   aspect-ratio: 1 / 1;
   border-radius: 3px;
   background: #16396d;
@@ -3557,6 +3661,9 @@ body {
   outline: 2px solid rgba(110, 231, 183, 0.65);
   outline-offset: -3px;
 }
+.sbx-cell.preview.ok { background: rgba(110, 231, 183, 0.55); }
+.sbx-cell.preview.bad { background: rgba(255, 93, 115, 0.55); }
+.sbx-cell.aim { box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.85); }
 @media (max-width: 760px) {
   .sbx-info { padding: 10px; }
   .sbx-fleet { grid-template-columns: 1fr; }
