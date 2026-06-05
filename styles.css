@@ -6696,8 +6696,12 @@ body {
 
 /* ---------- Trộm Kho Báu ---------- */
 .tr-root { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
-.tr-info { color: var(--muted); font-size: 0.9rem; text-align: center; min-height: 1.2em; }
-.tr-controls { display: flex; gap: 10px; }
+.tr-info { color: var(--muted); font-size: 0.9rem; text-align: center; min-height: 1.2em; display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+.tr-prog { font-weight: 700; letter-spacing: 0.08em; }
+.tr-prog.tr-p1 { color: var(--p1); }
+.tr-prog.tr-p2 { color: var(--p2); }
+.tr-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.tr-place-info { color: var(--accent); font-weight: 700; font-size: 0.9rem; }
 .tr-controls.tr-hidden { display: none; }
 .tr-boards { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
 .tr-board-wrap {
