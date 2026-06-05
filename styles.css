@@ -3263,12 +3263,16 @@ body {
 .bs-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr);
   gap: 2px;
   width: min(300px, 78vw);
   aspect-ratio: 1 / 1;
 }
 .bs-cell {
   position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background: #14306b;
   border-radius: 3px;
   cursor: default;
