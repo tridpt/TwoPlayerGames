@@ -24,7 +24,8 @@
       `<div class="pig-p p1"><span>Người chơi 1</span><b id="pigT0">0</b></div>` +
       `<div class="pig-p p2"><span>Người chơi 2</span><b id="pigT1">0</b></div>` +
       `</div>` +
-      `<div class="pig-die" id="pigDie">🎲</div>` +
+      `<div class="pig-die-stage"><div class="pig-die" id="pigDie">` +
+      `<div class="pig-die-face" id="pigDieFace"></div></div></div>` +
       `<div class="pig-temp">Điểm tạm lượt này: <b id="pigTemp">0</b></div>` +
       `<div class="pig-actions">` +
       `<button class="btn primary" id="pigRoll">🎲 Gieo</button>` +
@@ -33,11 +34,26 @@
     ctx.boardEl.appendChild(root);
 
     const dieEl = root.querySelector("#pigDie");
+    const dieFace = root.querySelector("#pigDieFace");
     const tempEl = root.querySelector("#pigTemp");
     const rollBtn = root.querySelector("#pigRoll");
     const holdBtn = root.querySelector("#pigHold");
     const tEls = [root.querySelector("#pigT0"), root.querySelector("#pigT1")];
-    const DICE = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+
+    // bố cục chấm trên lưới 3x3
+    const PIP_LAYOUT = {
+      1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
+    };
+    function paintDie(value) {
+      const set = new Set(PIP_LAYOUT[value] || []);
+      dieFace.innerHTML = "";
+      for (let k = 0; k < 9; k++) {
+        const slot = document.createElement("span");
+        slot.className = "pig-pip-slot" + (set.has(k) ? " on" : "");
+        dieFace.appendChild(slot);
+      }
+    }
+    paintDie(1);
 
     function myTurn() { return !ctx.isOnline || turn === ctx.mySeat; }
 
@@ -63,15 +79,20 @@
       if (move.kind === "roll") {
         if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
         lastDie = move.die;
-        // hoạt ảnh lăn ngắn
+        // hoạt ảnh lăn: viên xúc xắc xoay + đổi mặt ngẫu nhiên rồi dừng
         rolling = true;
         updateButtons();
+        dieEl.classList.add("rolling");
+        ctx.sound("shot");
         let ticks = 0;
         const anim = setInterval(() => {
-          dieEl.textContent = DICE[1 + Math.floor(Math.random() * 6)];
-          if (++ticks >= 6) {
+          paintDie(1 + Math.floor(Math.random() * 6));
+          if (++ticks >= 9) {
             clearInterval(anim);
-            dieEl.textContent = DICE[move.die];
+            dieEl.classList.remove("rolling");
+            paintDie(move.die);
+            dieEl.classList.add("landed");
+            setTimeout(() => dieEl.classList.remove("landed"), 350);
             rolling = false;
             resolveRoll(move.die);
           }
@@ -91,6 +112,8 @@
 
     function resolveRoll(die) {
       if (die === 1) {
+        dieEl.classList.add("bust");
+        setTimeout(() => dieEl.classList.remove("bust"), 700);
         const opp = 1 - turn;
         const moved = temp;
         if (moved > 0) {

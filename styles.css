@@ -5872,12 +5872,59 @@ body {
 .pig-p b { font-size: 2rem; }
 .pig-p.p1 b { color: var(--p1); }
 .pig-p.p2 b { color: var(--p2); }
+
+/* viên xúc xắc 3D dạng chấm */
+.pig-die-stage { perspective: 700px; padding: 10px; }
 .pig-die {
-  font-size: 5rem; line-height: 1;
   width: 120px; height: 120px;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--panel); border-radius: 20px; box-shadow: var(--shadow);
+  border-radius: 24px;
+  background: linear-gradient(150deg, #ffffff 0%, #e2e6f2 55%, #c4cae0 100%);
+  box-shadow: 0 10px 0 #9aa0c0, 0 16px 26px rgba(0,0,0,0.45), inset 0 2px 4px rgba(255,255,255,0.7);
+  padding: 16px;
+  transition: transform 0.18s ease;
+  transform-style: preserve-3d;
 }
+.pig-die-face {
+  width: 100%; height: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 4px;
+}
+.pig-pip-slot { display: flex; align-items: center; justify-content: center; }
+.pig-pip-slot.on::after {
+  content: "";
+  width: 20px; height: 20px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #565b7d, #11142a 75%);
+  box-shadow: inset 0 -2px 3px rgba(255,255,255,0.25), 0 1px 1px rgba(0,0,0,0.3);
+}
+.pig-die.rolling { animation: pigRoll 0.45s linear infinite; }
+@keyframes pigRoll {
+  0%   { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  25%  { transform: rotateX(180deg) rotateY(90deg) rotateZ(45deg); }
+  50%  { transform: rotateX(360deg) rotateY(180deg) rotateZ(90deg); }
+  75%  { transform: rotateX(540deg) rotateY(270deg) rotateZ(135deg); }
+  100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(180deg); }
+}
+.pig-die.landed { animation: pigLand 0.35s cubic-bezier(0.2,1.4,0.4,1); }
+@keyframes pigLand {
+  0% { transform: scale(1.25) rotate(-6deg); }
+  60% { transform: scale(0.92) rotate(3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.pig-die.bust {
+  animation: pigBust 0.6s ease;
+  background: linear-gradient(150deg, #ffd6dc 0%, #ff9aa8 55%, #ff5d73 100%);
+  box-shadow: 0 10px 0 #b73347, 0 0 26px rgba(255,93,115,0.8);
+}
+@keyframes pigBust {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px) rotate(-4deg); }
+  40% { transform: translateX(8px) rotate(4deg); }
+  60% { transform: translateX(-6px) rotate(-3deg); }
+  80% { transform: translateX(6px) rotate(3deg); }
+}
+
 .pig-temp { font-size: 1.1rem; color: var(--muted); }
 .pig-temp b { color: var(--accent); font-size: 1.4rem; }
 .pig-actions { display: flex; gap: 12px; }
