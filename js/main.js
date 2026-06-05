@@ -613,6 +613,7 @@
     const roomSeat = online?.roomSeat;
     const mineReady = onlineMode && restartReadySeats.includes(roomSeat);
     const otherReady = onlineMode && restartReadySeats.includes(1 - roomSeat);
+    const oppName = onlineMode ? opponentName() : "đối thủ";
 
     if (sessionLocked) {
       el.restartBtn.disabled = true;
@@ -632,14 +633,14 @@
       el.restartBtn.textContent = "Đang tạo ván...";
       el.winAgain.textContent = "Đang tạo ván...";
     } else if (mineReady) {
-      el.restartBtn.textContent = "✓ Chờ đối thủ";
+      el.restartBtn.textContent = `✓ Đang chờ ${oppName}`;
       el.winAgain.textContent = "✓ Đã sẵn sàng";
     } else if (otherReady) {
-      el.restartBtn.textContent = "✓ Đồng ý ván mới";
-      el.winAgain.textContent = "✓ Đồng ý ván mới";
+      el.restartBtn.textContent = `✓ Đồng ý với ${oppName}`;
+      el.winAgain.textContent = `✓ Đồng ý với ${oppName}`;
     } else {
-      el.restartBtn.textContent = "↻ Ván mới";
-      el.winAgain.textContent = "↻ Chơi lại";
+      el.restartBtn.textContent = `↻ Chơi lại với ${oppName}`;
+      el.winAgain.textContent = `↻ Chơi lại với ${oppName}`;
     }
   }
 
@@ -650,14 +651,21 @@
 
     const mineReady = restartReadySeats.includes(online.roomSeat);
     const otherReady = restartReadySeats.includes(1 - online.roomSeat);
+    const mineName = seatName(online.seat);
+    const oppName = opponentName();
     if (mineReady && !otherReady) {
-      el.status.textContent = "Bạn đã đồng ý chơi lại. Đang chờ đối thủ đồng ý.";
-      if (!el.winOverlay.classList.contains("hidden")) el.winSub.textContent = "Bạn đã sẵn sàng. Chờ đối thủ đồng ý để bắt đầu ván mới.";
+      const text = `Bạn đã sẵn sàng. Đang chờ ${oppName} đồng ý chơi lại.`;
+      el.status.textContent = text;
+      setGameRoomState(`Bạn đã sẵn sàng. Đang chờ ${oppName}.`, "waiting");
+      if (!el.winOverlay.classList.contains("hidden")) el.winSub.textContent = text;
     } else if (!mineReady && otherReady) {
-      el.status.textContent = "Đối thủ muốn chơi lại. Bấm Ván mới để đồng ý.";
-      if (!el.winOverlay.classList.contains("hidden")) el.winSub.textContent = "Đối thủ muốn chơi lại. Bấm Chơi lại để đồng ý.";
+      const text = `${oppName} muốn chơi lại. Bấm nút để đồng ý.`;
+      el.status.textContent = text;
+      setGameRoomState(`${oppName} muốn chơi lại với ${mineName}.`, "waiting");
+      if (!el.winOverlay.classList.contains("hidden")) el.winSub.textContent = text;
     } else if (mineReady && otherReady) {
       el.status.textContent = "Cả hai đã đồng ý. Đang tạo ván mới...";
+      setGameRoomState(`Cả ${mineName} và ${oppName} đã đồng ý. Đang tạo ván mới...`, "waiting");
     }
   }
 
@@ -916,7 +924,13 @@
   });
 
   Net.on("error", (m) => {
-    el.lobbyError.textContent = "⚠️ " + m.message;
+    const text = "⚠️ " + (m.message || "Có lỗi kết nối.");
+    if (online) {
+      showToast(text);
+      el.status.textContent = text;
+      return;
+    }
+    el.lobbyError.textContent = text;
     setLobbyState("Không thể tiếp tục. Kiểm tra mã phòng hoặc kết nối rồi thử lại.", "left");
   });
 
@@ -1092,9 +1106,11 @@
       Net.send("restart");
       restartReadySeats = Array.from(new Set([...restartReadySeats, online.roomSeat]));
       updateRestartButtons();
-      el.status.textContent = "Bạn đã đồng ý chơi lại. Đang chờ đối thủ đồng ý.";
+      const text = `Bạn đã sẵn sàng. Đang chờ ${opponentName()} đồng ý chơi lại.`;
+      el.status.textContent = text;
+      setGameRoomState(`Bạn đã sẵn sàng. Đang chờ ${opponentName()}.`, "waiting");
       if (!el.winOverlay.classList.contains("hidden")) {
-        el.winSub.textContent = "Bạn đã sẵn sàng. Chờ đối thủ đồng ý để bắt đầu ván mới.";
+        el.winSub.textContent = text;
       }
       return;
     }

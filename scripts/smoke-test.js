@@ -218,7 +218,13 @@ async function runServerSmokeTest() {
 
     const a = new WebSocket(`ws://127.0.0.1:${port}`);
     const b = new WebSocket(`ws://127.0.0.1:${port}`);
-    await Promise.all([waitOpen(a), waitOpen(b)]);
+    const c = new WebSocket(`ws://127.0.0.1:${port}`);
+    await Promise.all([waitOpen(a), waitOpen(b), waitOpen(c)]);
+
+    const invalidJoinP = waitForMessage(c, "error");
+    c.send(JSON.stringify({ type: "join", code: "abcd" }));
+    const invalidJoin = await invalidJoinP;
+    assert(invalidJoin.message.includes("4 chữ số"), "invalid room code did not return validation error");
 
     const createdP = waitForMessage(a, "created");
     a.send(JSON.stringify({ type: "create", gameId: "tictactoe", options: {}, playerName: "Alice" }));
@@ -238,8 +244,20 @@ async function runServerSmokeTest() {
     const move = await moveP;
     assert(move.move.cell === 0, "move relay payload mismatch");
 
+    const chatP = waitForMessage(a, "chat");
+    b.send(JSON.stringify({ type: "chat", text: "hello" }));
+    const chat = await chatP;
+    assert(chat.text === "hello", "chat relay payload mismatch");
+
+    const restartA = waitForMessage(a, "restart_pending");
+    const restartB = waitForMessage(b, "restart_pending");
+    a.send(JSON.stringify({ type: "restart" }));
+    const pending = await Promise.all([restartA, restartB]);
+    assert(pending.every((msg) => msg.ready?.includes(0) && msg.requester === 0), "restart_pending payload mismatch");
+
     a.close();
     b.close();
+    c.close();
   } catch (error) {
     error.message += `\nserver logs:\n${logs.join("").trim() || "(none)"}`;
     throw error;
