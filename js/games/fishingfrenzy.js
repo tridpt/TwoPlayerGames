@@ -14,7 +14,7 @@
     { emoji: "🐬", name: "Cá heo", weight: 3, pts: 6, rate: 5, speed: 130, r: 24 },
     { emoji: "🦈", name: "Cá mập", weight: 5, pts: 10, rate: 3, speed: 90, r: 30 },
   ];
-  const BOSS = { emoji: "🐋", name: "Cá Voi Boss", weight: 7, pts: 25, speed: 38, r: 42, boss: true };
+  const BOSS = { emoji: "🐋", name: "Cá Voi Boss", weight: 6, pts: 25, speed: 38, r: 42, boss: true };
   const ITEMS = [
     { emoji: "🪱", name: "Mồi xịn", kind: "bait", rate: 7, r: 14, speed: 55 },
     { emoji: "⭐", name: "Sao x2", kind: "star", rate: 5, r: 15, speed: 60 },
