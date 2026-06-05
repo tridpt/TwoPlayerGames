@@ -6490,6 +6490,17 @@ body {
 .nt-input:focus { outline: 2px solid var(--accent); }
 .nt-err { color: var(--p1); font-size: 0.9rem; min-height: 1.2em; margin: 0; }
 .nt-give { font-size: 0.85rem; }
+.nt-challenge { font-size: 0.85rem; background: rgba(255,209,102,0.18); color: var(--accent); }
+.nt-challenge:hover:not(:disabled) { background: var(--accent); color: #1a1a1a; }
+.nt-challenge:disabled { opacity: 0.4; }
+.nt-judge-bad {
+  color: #1a1a1a !important; background: var(--p1); font-weight: 700;
+  padding: 8px 12px; border-radius: 8px;
+}
+.nt-judge-warn {
+  color: #1a1a1a !important; background: var(--accent); font-weight: 700;
+  padding: 8px 12px; border-radius: 8px;
+}
 .nt-chain {
   display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
   background: var(--panel); border-radius: 12px; padding: 12px;
@@ -6498,6 +6509,7 @@ body {
 .nt-word { padding: 4px 10px; border-radius: 999px; font-size: 0.9rem; }
 .nt-word.p1 { background: rgba(255,93,115,0.25); }
 .nt-word.p2 { background: rgba(77,208,225,0.25); }
+.nt-word.sys { background: rgba(255,255,255,0.12); color: var(--muted); font-style: italic; }
 
 /* ---------- Đoán Chữ (Hangman) ---------- */
 .hm-root { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(560px, 96vw); }
