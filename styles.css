@@ -715,6 +715,58 @@ body {
   transform: translate(-50%, 0);
 }
 
+.room-exit-notice {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 10, 24, 0.68);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: all;
+  transition: opacity 0.18s ease;
+}
+
+.room-exit-notice.show {
+  opacity: 1;
+}
+
+.room-exit-card {
+  width: min(420px, 100%);
+  padding: 26px 24px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  text-align: center;
+  transform: translateY(8px) scale(0.98);
+  transition: transform 0.18s ease;
+}
+
+.room-exit-notice.show .room-exit-card {
+  transform: translateY(0) scale(1);
+}
+
+.room-exit-card h2 {
+  margin: 0 0 10px;
+  font-size: 1.45rem;
+  color: var(--accent);
+}
+
+.room-exit-card p {
+  margin: 0 0 12px;
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.room-exit-card span {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 .status {
   text-align: center;
   min-height: 1.5em;

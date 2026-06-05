@@ -76,6 +76,7 @@
   let scores = [0, 0];
   let restartReadySeats = [];
   let sessionLocked = false;
+  let roomExitTimer = null;
   let online = null; // null = chơi chung máy; {roomSeat, seat, seed} = online
   let currentOptions = {}; // giá trị tùy chỉnh ván chơi đang dùng
 
@@ -182,6 +183,32 @@
     }, 2800);
   }
 
+  function clearRoomExitNotice() {
+    if (roomExitTimer) {
+      clearTimeout(roomExitTimer);
+      roomExitTimer = null;
+    }
+    const notice = document.querySelector(".room-exit-notice");
+    if (notice) notice.remove();
+  }
+
+  function showRoomExitNotice(message) {
+    const old = document.querySelector(".room-exit-notice");
+    if (old) old.remove();
+
+    const notice = document.createElement("div");
+    notice.className = "room-exit-notice";
+    notice.innerHTML = `
+      <div class="room-exit-card" role="alert" aria-live="assertive">
+        <h2>Thông báo</h2>
+        <p>${escapeHtml(message)}</p>
+        <span>Đang đưa bạn về menu...</span>
+      </div>
+    `;
+    document.body.appendChild(notice);
+    setTimeout(() => notice.classList.add("show"), 10);
+  }
+
   function clearSessionLock() {
     sessionLocked = false;
     el.boardWrap.classList.remove("session-locked");
@@ -212,6 +239,18 @@
     lock.textContent = message;
     showToast(message);
     window.Sound && Sound.play("notify");
+  }
+
+  function stopOnlineSessionAndReturn(message) {
+    if (!online) return;
+    lockOnlineSession(message);
+    showRoomExitNotice(message);
+    if (roomExitTimer) clearTimeout(roomExitTimer);
+    roomExitTimer = setTimeout(() => {
+      roomExitTimer = null;
+      clearRoomExitNotice();
+      goHome();
+    }, 1700);
   }
 
   function getGameById(id) {
@@ -784,14 +823,14 @@
 
   Net.on("opponent_left", () => {
     if (!online) return;
-    lockOnlineSession("Đối thủ đã rời phòng. Ván online đã dừng.");
     addChatMessage("Đối thủ đã rời phòng.", "sys");
+    stopOnlineSessionAndReturn("Đối thủ đã rời phòng. Ván online đã dừng.");
   });
 
   Net.on("disconnected", () => {
     if (online) {
-      lockOnlineSession("Mất kết nối tới server. Ván online đã dừng.");
       addChatMessage("Mất kết nối tới server.", "sys");
+      stopOnlineSessionAndReturn("Mất kết nối tới server. Ván online đã dừng.");
     }
   });
 
@@ -861,6 +900,7 @@
 
   // ====================== Vòng chơi ======================
   function startGame(seed, opts = {}) {
+    clearRoomExitNotice();
     clearSessionLock();
     el.boardWrap.innerHTML = "";
     el.status.textContent = "";
@@ -917,6 +957,7 @@
   }
 
   function goHome() {
+    clearRoomExitNotice();
     leavePendingRoom();
     if (online) { Net.send("leave"); online = null; }
     clearSessionLock();
