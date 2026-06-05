@@ -90,7 +90,7 @@
     {
       title: "Cờ & chiến thuật bàn",
       hint: "Caro, cờ lật, kết nối, đặt tường và các game bàn cờ kinh điển.",
-      games: ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
+      games: ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "pathlockduel", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
     },
     {
       title: "Chiến thuật trên bản đồ",
@@ -400,6 +400,7 @@
     nim: "NM",
     noitu: "NT",
     orderchaos: "OC",
+    pathlockduel: "PD",
     pentago: "PG",
     pig: "P",
     pong: "PN",
@@ -470,7 +471,7 @@
   }
 
   function avatarPalette(id) {
-    const board = ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"];
+    const board = ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "pathlockduel", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"];
     const map = ["tankarena", "dicebattle", "territorywar", "crystalconquest"];
     const action = ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery"];
     const long = ["basedefenseduel", "robotfactorywar", "dungeonrival"];
@@ -508,6 +509,8 @@
         return `<g transform="translate(80 22)"><rect width="120" height="88" rx="10" fill="#121a36"/><path d="M20 12v64M40 12v64M60 12v64M80 12v64M100 12v64M10 24h100M10 44h100M10 64h100" ${line}/><rect x="42" y="24" width="18" height="18" rx="4" fill="#ffffff" opacity=".1"/><rect x="62" y="44" width="18" height="18" rx="4" fill="#ffffff" opacity=".1"/><rect x="82" y="24" width="18" height="18" rx="4" fill="#ffffff" opacity=".1"/><circle cx="20" cy="24" r="11" fill="${p.c}"/><circle cx="100" cy="64" r="11" fill="${p.b}"/><path d="M20 24L40 44L60 64" fill="none" stroke="${p.a}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M40 44l-9 0l5 8" fill="${p.a}"/></g>`;
       case "laserchess":
         return `<g transform="translate(76 22)"><rect width="128" height="88" rx="10" fill="#111936"/><path d="M18 14v60M42 14v60M66 14v60M90 14v60M114 14v60M8 26h112M8 50h112M8 74h112" ${line}/><path d="M18 74H66L90 50H114" fill="none" stroke="${p.a}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="54" y="37" width="26" height="8" rx="4" fill="${p.b}" transform="rotate(-45 67 41)"/><rect x="82" y="18" width="26" height="8" rx="4" fill="${p.c}" transform="rotate(45 95 22)"/><circle cx="18" cy="74" r="11" fill="${p.c}"/><path d="M14 66h8l-4-12z" fill="#12152e"/><path d="M107 43l14 14l-14 14l-14-14z" fill="${p.b}"/></g>`;
+      case "pathlockduel":
+        return `<g transform="translate(76 22)"><rect width="128" height="88" rx="10" fill="#101a34"/><path d="M18 14v60M42 14v60M66 14v60M90 14v60M114 14v60M8 26h112M8 50h112M8 74h112" ${line}/><path d="M18 50H42V26H66V50H90V74H114" fill="none" stroke="${p.a}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 74V50H66H90V26H114" fill="none" stroke="${p.b}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/><rect x="52" y="36" width="28" height="28" rx="5" fill="${p.c}" opacity=".9"/><path d="M58 50h16M66 42v16" stroke="#11142b" stroke-width="5" stroke-linecap="round"/><circle cx="18" cy="50" r="8" fill="${p.c}"/><circle cx="114" cy="74" r="8" fill="${p.a}"/></g>`;
       case "hex":
         return `<g transform="translate(84 22)" fill="none" stroke-width="3">${[0,1,2].map((r)=>[0,1,2,3].map((c)=>`<path d="M${18+c*25+r*12} ${20+r*21}l10 6v12l-10 6l-10-6v-12z" fill="${(r+c)%2?p.a:p.b}" opacity=".85"/>`).join("")).join("")}<path d="M16 85h90" stroke="${p.a}"/><path d="M118 15v78" stroke="${p.b}"/></g>`;
       case "quoridor":
