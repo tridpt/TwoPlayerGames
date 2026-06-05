@@ -1,37 +1,40 @@
-/* Câu Cá Đối Đầu (Fishing Frenzy) — ONLINE song song.
-   Hai người câu trên hồ riêng trong thời gian định sẵn, ai nhiều điểm cá hơn thì thắng.
-   Cơ chế: bấm chuột nhắm vào cá để móc, rồi BẤM PHÍM CÁCH liên tục để kéo lên
-   (cá càng nặng tụt càng nhanh, phải bấm nhanh hơn). Có vật phẩm phải câu mới nhận.
-   Chỉ relay điểm — không cần đồng bộ từng con cá. Giao thức:
-     { kind:"ready" }
-     { kind:"score", score, count }
-     { kind:"final", score, count } */
+/* Câu Cá Đối Đầu (Fishing Frenzy) — ONLINE song song, điều khiển bằng BÀN PHÍM.
+   Lưỡi câu đung đưa trái–phải. Bấm PHÍM CÁCH để thả câu xuống (như game Đào Vàng).
+   Khi lưỡi câu chạm cá/vật phẩm, hiện một PHÍM CHỮ ngẫu nhiên (A–Z) — bấm phím đó
+   liên tục để kéo lên (cá càng nặng tụt càng nhanh). Có cá BOSS dưới đáy hồ.
+   Chỉ relay điểm. Giao thức:
+     { kind:"ready" } / { kind:"score", score, count } / { kind:"final", score, count } */
 (function () {
   const FISH = [
-    { emoji: "🐟", name: "Cá rô", weight: 1, pts: 1, rate: 30, speed: 60, r: 15 },
-    { emoji: "🐠", name: "Cá nhiệt đới", weight: 1, pts: 2, rate: 22, speed: 85, r: 15 },
-    { emoji: "🐡", name: "Cá nóc", weight: 2, pts: 3, rate: 14, speed: 50, r: 17 },
-    { emoji: "🦑", name: "Mực", weight: 2, pts: 3, rate: 11, speed: 95, r: 17 },
-    { emoji: "🐙", name: "Bạch tuộc", weight: 3, pts: 4, rate: 8, speed: 55, r: 19 },
-    { emoji: "🐬", name: "Cá heo", weight: 3, pts: 5, rate: 5, speed: 120, r: 22 },
-    { emoji: "🦈", name: "Cá mập", weight: 5, pts: 9, rate: 3, speed: 80, r: 26 },
+    { emoji: "🐟", name: "Cá rô", weight: 1, pts: 1, rate: 30, speed: 60, r: 16 },
+    { emoji: "🐠", name: "Cá nhiệt đới", weight: 1, pts: 2, rate: 22, speed: 90, r: 16 },
+    { emoji: "🐡", name: "Cá nóc", weight: 2, pts: 3, rate: 14, speed: 52, r: 18 },
+    { emoji: "🦑", name: "Mực", weight: 2, pts: 4, rate: 11, speed: 100, r: 18 },
+    { emoji: "🐙", name: "Bạch tuộc", weight: 3, pts: 5, rate: 8, speed: 58, r: 20 },
+    { emoji: "🐬", name: "Cá heo", weight: 3, pts: 6, rate: 5, speed: 130, r: 24 },
+    { emoji: "🦈", name: "Cá mập", weight: 5, pts: 10, rate: 3, speed: 90, r: 30 },
   ];
+  const BOSS = { emoji: "🐋", name: "Cá Voi Boss", weight: 7, pts: 25, speed: 38, r: 42, boss: true };
   const ITEMS = [
-    { emoji: "🪱", name: "Mồi xịn", kind: "bait", rate: 7, r: 13 },
-    { emoji: "⭐", name: "Sao x2", kind: "star", rate: 5, r: 14 },
-    { emoji: "🧲", name: "Nam châm", kind: "magnet", rate: 4, r: 14 },
-    { emoji: "💎", name: "Ngọc biển", kind: "gem", rate: 3, r: 14 },
-    { emoji: "🥾", name: "Giày rách", kind: "junk", rate: 5, r: 14 },
+    { emoji: "🪱", name: "Mồi xịn", kind: "bait", rate: 7, r: 14 },
+    { emoji: "⭐", name: "Sao x2", kind: "star", rate: 5, r: 15 },
+    { emoji: "🧲", name: "Nam châm", kind: "magnet", rate: 4, r: 15 },
+    { emoji: "💎", name: "Ngọc biển", kind: "gem", rate: 3, r: 15 },
+    { emoji: "🥾", name: "Giày rách", kind: "junk", rate: 5, r: 15 },
   ];
-  const REEL_KEY_LABEL = "PHÍM CÁCH";
+  const ALPHA = "abcdefghijklmnopqrstuvwxyz";
 
   function create(ctx) {
     const o = ctx.options || {};
     const DURATION = o.duration || 60;
-    const W = 460, H = 320;
-    const WATER_TOP = 40;
+    const W = 580, H = 460;
+    const WATER_TOP = 78;
+    const ANCHOR = { x: W / 2, y: 64 };
+    const MAXA = 1.28;          // biên độ đung đưa (rad)
+    const LMIN = 26;
+    const HOOK_R = 9;
 
-    let phase = ctx.isOnline ? "connect" : "countdown"; // connect|countdown|play|over
+    let phase = ctx.isOnline ? "connect" : "countdown";
     let iReady = false, oppReady = false;
     let countdown = 3;
     let timeLeft = DURATION;
@@ -42,16 +45,24 @@
     const fishes = [];
     const items = [];
     let nextId = 1;
-    let hooked = null;       // entity đang kéo
-    let progress = 0;        // 0..100
-    let reelTimeLeft = 0;
-    let baitNext = false;    // mồi xịn: kéo dễ hơn
-    let starNext = false;    // sao: x2 điểm con cá kế
-    let magnetNext = false;  // nam châm: tự kéo con cá kế
-    let castMsg = "";
-    let castMsgT = 0;
+    let bossTimer = 0;
 
+    // ----- trạng thái lưỡi câu -----
+    let hookState = "swing";    // swing | extend | reel | retract
+    let swingT = 0;
+    let angle = 0;              // góc hiện tại (0 = thẳng xuống)
+    let angleLock = 0;
+    let L = LMIN;
+    let attached = null;        // entity đang dính câu
+    let reeled = null;          // entity đang được kéo lên (đã tính điểm)
+    let reelLetter = "f";
+    let progress = 0;
+    let reelTimeLeft = 0;
+
+    let baitNext = false, starNext = false, magnetNext = false;
+    let castMsg = "", castMsgT = 0;
     let raf = null, lastT = 0, timerInt = null, cdInt = null, spawnAcc = 0, itemAcc = 0;
+    const bubbles = [];
 
     // ----- UI -----
     const root = document.createElement("div");
@@ -85,7 +96,7 @@
 
     const hint = document.createElement("div");
     hint.className = "fh-hint";
-    hint.textContent = "Bấm vào con cá để móc, rồi bấm " + REEL_KEY_LABEL + " liên tục để kéo lên.";
+    hint.textContent = "Lưỡi câu tự đung đưa — bấm PHÍM CÁCH để thả câu xuống. Dính cá thì bấm liên tục phím chữ hiện ra để kéo lên.";
     root.appendChild(hint);
 
     function rng() { return Math.random(); }
@@ -95,98 +106,129 @@
       for (const it of list) { if ((r -= it.rate) <= 0) return it; }
       return list[0];
     }
+    for (let i = 0; i < 18; i++) bubbles.push({ x: rng() * W, y: WATER_TOP + rng() * (H - WATER_TOP), v: 8 + rng() * 22, r: 1 + rng() * 2.5 });
 
     // ====================== SPAWN & MOVE ======================
     function spawnFish() {
-      if (fishes.length >= 8) return;
+      if (fishes.filter((f) => !f.isBoss).length >= 8) return;
       const def = pickWeighted(FISH);
       const dir = rng() < 0.5 ? 1 : -1;
-      const x = dir === 1 ? -20 : W + 20;
-      const y = WATER_TOP + 20 + rng() * (H - WATER_TOP - 50);
+      const x = dir === 1 ? -24 : W + 24;
+      const y = WATER_TOP + 24 + rng() * (H - WATER_TOP - 120);
       fishes.push({ id: nextId++, kind: "fish", def, x, y, dir, vy: (rng() - 0.5) * 12, t: rng() * 6 });
+    }
+    function spawnBoss() {
+      if (fishes.some((f) => f.isBoss)) return;
+      const dir = rng() < 0.5 ? 1 : -1;
+      const x = dir === 1 ? -40 : W + 40;
+      const y = H - 56;
+      fishes.push({ id: nextId++, kind: "fish", def: BOSS, isBoss: true, x, y, dir, vy: 3, t: rng() * 6 });
     }
     function spawnItem() {
       if (items.length >= 2) return;
       const def = pickWeighted(ITEMS);
       const dir = rng() < 0.5 ? 1 : -1;
-      const x = dir === 1 ? -20 : W + 20;
-      const y = WATER_TOP + 20 + rng() * (H - WATER_TOP - 50);
+      const x = dir === 1 ? -24 : W + 24;
+      const y = WATER_TOP + 28 + rng() * (H - WATER_TOP - 110);
       items.push({ id: nextId++, kind: "item", def, x, y, dir, vy: (rng() - 0.5) * 8, t: rng() * 6 });
     }
 
     function moveEntity(e, dt) {
-      if (hooked && hooked.id === e.id) return; // đang bị kéo thì không tự bơi
+      if (attached === e || reeled === e) return;
       e.x += e.dir * e.def.speed * dt;
       e.t += dt;
-      e.y += Math.sin(e.t * 1.6) * e.vy * dt;
-      e.y = Math.max(WATER_TOP + 14, Math.min(H - 18, e.y));
+      const wob = e.isBoss ? 6 : e.vy;
+      e.y += Math.sin(e.t * 1.5) * wob * dt;
+      const top = e.isBoss ? H - 90 : WATER_TOP + 12;
+      const bot = H - 16;
+      e.y = Math.max(top, Math.min(bot, e.y));
     }
-    function offscreen(e) { return e.x < -40 || e.x > W + 40; }
+    function offscreen(e) { return e.x < -50 || e.x > W + 50; }
+
+    function tipPos(len, ang) {
+      return { x: ANCHOR.x + Math.sin(ang) * len, y: ANCHOR.y + Math.cos(ang) * len };
+    }
 
     // ====================== INPUT ======================
-    canvas.addEventListener("click", (e) => {
-      if (phase !== "play" || hooked) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (W / rect.width);
-      const y = (e.clientY - rect.top) * (H / rect.height);
-      const all = [...fishes, ...items];
-      let best = null, bestD = Infinity;
-      for (const ent of all) {
-        const d = Math.hypot(ent.x - x, ent.y - y);
-        if (d < ent.def.r + 16 && d < bestD) { best = ent; bestD = d; }
-      }
-      if (!best) { flash("Trượt! Nhắm vào con cá."); ctx.sound("miss"); return; }
-      startReel(best);
-    });
-
-    function startReel(ent) {
-      hooked = ent;
-      ctx.sound("select");
-      if (ent.kind === "fish" && magnetNext) {
-        magnetNext = false;
-        flash("🧲 Nam châm kéo dính!");
-        return catchEntity(ent);
-      }
-      const w = ent.kind === "item" ? 1 : ent.def.weight;
-      progress = 36 - w * 2;
-      reelTimeLeft = 11;
-      reel.classList.remove("fh-hidden");
-      renderReel();
-    }
-
     function onKey(e) {
       if (!document.body.contains(root)) { teardown(); return; }
-      if ((e.key === " " || e.code === "Space" || e.key === "Spacebar")) {
-        if (phase === "play" && hooked) e.preventDefault();
-        if (e.repeat) return; // chống giữ phím — phải bấm liên tục
-        if (phase !== "play" || !hooked) return;
-        const w = hooked.kind === "item" ? 1 : hooked.def.weight;
+      const k = (e.key || "").toLowerCase();
+      if (k === " " || e.code === "Space" || k === "spacebar") {
+        if (phase === "play") e.preventDefault();
+        if (e.repeat) return;
+        if (phase === "play" && hookState === "swing") dropHook();
+        return;
+      }
+      if (phase === "play" && hookState === "reel" && k === reelLetter) {
+        if (e.repeat) return;
+        const w = attached.kind === "item" ? 1 : attached.def.weight;
         const gain = (baitNext ? 16 : 10) - (w >= 5 ? 1 : 0);
         progress = Math.min(100, progress + gain);
         ctx.sound("place");
         renderReel();
-        if (progress >= 100) catchEntity(hooked);
+        if (progress >= 100) reelSuccess();
       }
     }
     document.addEventListener("keydown", onKey);
 
-    function catchEntity(ent) {
-      removeEntity(ent);
-      hooked = null;
+    function dropHook() {
+      hookState = "extend";
+      angleLock = angle;
+      L = LMIN;
+      ctx.sound("select");
+    }
+
+    function grab(ent) {
+      attached = ent;
+      const tip = tipPos(L, angleLock);
+      ent.x = tip.x; ent.y = tip.y;
+      if (ent.kind === "fish" && magnetNext) {
+        magnetNext = false;
+        flash("🧲 Nam châm kéo dính!");
+        return reelSuccess();
+      }
+      hookState = "reel";
+      reelLetter = ALPHA[Math.floor(rng() * ALPHA.length)];
+      const w = ent.kind === "item" ? 1 : ent.def.weight;
+      progress = 32 - w * 2;
+      reelTimeLeft = 8 + w * 0.7;
+      ctx.sound("select");
+      renderReel();
+    }
+
+    function reelSuccess() {
+      const ent = attached;
+      attached = null;
       reel.classList.add("fh-hidden");
-      if (baitNext) baitNext = false;
-      if (ent.kind === "item") {
-        applyItem(ent.def);
-      } else {
+      hookState = "retract";
+      if (ent && ent.kind === "fish") {
         let pts = ent.def.pts;
         if (starNext) { pts *= 2; starNext = false; flash(`⭐ x2 ${ent.def.name}! +${pts}`); }
-        else flash(`Bắt được ${ent.def.emoji} ${ent.def.name}! +${pts}`);
-        myScore += pts;
-        myCount += 1;
+        else flash(`${ent.isBoss ? "👑 HẠ BOSS! " : ""}Bắt được ${ent.def.emoji} ${ent.def.name}! +${pts}`);
+        myScore += pts; myCount += 1;
         ctx.sound("capture");
+        relayScore(); renderTop();
+        removeEntity(ent);
+        if (ent.isBoss) bossTimer = 6;
+        baitNext = false; // mồi xịn chỉ giúp một con
+        reeled = null;
+      } else if (ent && ent.kind === "item") {
+        applyItem(ent.def);
+        removeEntity(ent);
+        relayScore(); renderTop();
       }
-      relayScore();
-      renderTop();
+      renderBoosts();
+    }
+
+    function reelFail() {
+      const ent = attached;
+      attached = null;
+      reel.classList.add("fh-hidden");
+      hookState = "retract";
+      flash(ent && ent.kind === "item" ? "Vuột mất vật phẩm!" : `${ent ? ent.def.emoji : "Cá"} sổng mất rồi!`);
+      ctx.sound("miss");
+      if (ent) ent.dir = rng() < 0.5 ? 1 : -1;
+      if (baitNext) baitNext = false;
       renderBoosts();
     }
 
@@ -199,23 +241,12 @@
       ctx.sound(def.kind === "junk" ? "miss" : "capture");
     }
 
-    function escapeHooked() {
-      if (!hooked) return;
-      flash(hooked.kind === "item" ? "Vuột mất vật phẩm!" : `${hooked.def.emoji} sổng mất rồi!`);
-      ctx.sound("miss");
-      if (hooked.dir) hooked.dir = rng() < 0.5 ? 1 : -1;
-      hooked = null;
-      reel.classList.add("fh-hidden");
-      if (baitNext) baitNext = false;
-    }
-
     function removeEntity(ent) {
       const arr = ent.kind === "fish" ? fishes : items;
       const i = arr.indexOf(ent);
       if (i >= 0) arr.splice(i, 1);
     }
-
-    function flash(msg) { castMsg = msg; castMsgT = 1.6; }
+    function flash(msg) { castMsg = msg; castMsgT = 1.7; }
 
     // ====================== VÒNG LẶP ======================
     function loop(now) {
@@ -225,102 +256,202 @@
 
       if (phase === "play") {
         spawnAcc += dt; itemAcc += dt;
-        if (spawnAcc > 0.9) { spawnAcc = 0; if (rng() < 0.85) spawnFish(); }
-        if (itemAcc > 4.5) { itemAcc = 0; if (rng() < 0.7) spawnItem(); }
+        if (spawnAcc > 0.85) { spawnAcc = 0; if (rng() < 0.85) spawnFish(); }
+        if (itemAcc > 4.2) { itemAcc = 0; if (rng() < 0.7) spawnItem(); }
+        if (bossTimer > 0) { bossTimer -= dt; if (bossTimer <= 0) spawnBoss(); }
+        else if (!fishes.some((f) => f.isBoss)) spawnBoss();
+
         fishes.forEach((f) => moveEntity(f, dt));
         items.forEach((f) => moveEntity(f, dt));
-        for (let i = fishes.length - 1; i >= 0; i--) if (offscreen(fishes[i]) && fishes[i] !== hooked) fishes.splice(i, 1);
-        for (let i = items.length - 1; i >= 0; i--) if (offscreen(items[i]) && items[i] !== hooked) items.splice(i, 1);
+        for (let i = fishes.length - 1; i >= 0; i--) if (offscreen(fishes[i]) && fishes[i] !== attached) { if (fishes[i].isBoss) bossTimer = 4; fishes.splice(i, 1); }
+        for (let i = items.length - 1; i >= 0; i--) if (offscreen(items[i]) && items[i] !== attached) items.splice(i, 1);
 
-        if (hooked) {
-          const w = hooked.kind === "item" ? 1 : hooked.def.weight;
-          const decay = (baitNext ? 4 : 6) + w * 5;
-          progress -= decay * dt;
-          reelTimeLeft -= dt;
-          if (progress <= 0 || reelTimeLeft <= 0) escapeHooked();
-          else renderReel();
-        }
+        updateHook(dt);
       }
+      // bong bóng
+      bubbles.forEach((b) => { b.y -= b.v * dt; if (b.y < WATER_TOP) { b.y = H; b.x = rng() * W; } });
       if (castMsgT > 0) castMsgT -= dt;
       draw();
       raf = requestAnimationFrame(loop);
     }
 
+    function updateHook(dt) {
+      if (hookState === "swing") {
+        swingT += dt;
+        angle = MAXA * Math.sin(swingT * 1.9);
+        L = LMIN;
+      } else if (hookState === "extend") {
+        L += 360 * dt;
+        const tip = tipPos(L, angleLock);
+        if (tip.x < 6 || tip.x > W - 6 || tip.y > H - 6) { hookState = "retract"; return; }
+        const all = [...fishes, ...items];
+        let best = null, bd = Infinity;
+        for (const e of all) {
+          const d = Math.hypot(e.x - tip.x, e.y - tip.y);
+          if (d < e.def.r + HOOK_R && d < bd) { best = e; bd = d; }
+        }
+        if (best) grab(best);
+      } else if (hookState === "reel") {
+        const w = attached.kind === "item" ? 1 : attached.def.weight;
+        const decay = (baitNext ? 4 : 6) + w * 5;
+        progress -= decay * dt;
+        reelTimeLeft -= dt;
+        const tip = tipPos(L, angleLock);
+        attached.x = tip.x; attached.y = tip.y;
+        if (progress <= 0 || reelTimeLeft <= 0) reelFail();
+        else renderReel();
+      } else if (hookState === "retract") {
+        L -= 480 * dt;
+        if (reeled) { const t = tipPos(L, angleLock); reeled.x = t.x; reeled.y = t.y; }
+        if (L <= LMIN) { L = LMIN; reeled = null; hookState = "swing"; }
+      }
+    }
+
     // ====================== VẼ ======================
     function draw() {
+      // nền nước
       const grad = g.createLinearGradient(0, 0, 0, H);
-      grad.addColorStop(0, "#0a2a4a");
-      grad.addColorStop(0.18, "#0e3e63");
-      grad.addColorStop(1, "#06223b");
+      grad.addColorStop(0, "#0a3056");
+      grad.addColorStop(0.16, "#0e466e");
+      grad.addColorStop(0.6, "#0a3357");
+      grad.addColorStop(1, "#05213a");
       g.fillStyle = grad;
       g.fillRect(0, 0, W, H);
-      // mặt nước
-      g.fillStyle = "rgba(120,200,255,0.10)";
-      g.fillRect(0, WATER_TOP - 6, W, 6);
-      // thuyền + cần ở trên
-      g.font = "26px 'Segoe UI Emoji', sans-serif";
-      g.textAlign = "center";
-      g.textBaseline = "middle";
-      g.fillText("🛶", W / 2, 18);
 
-      // dây câu
-      if (hooked) {
-        g.strokeStyle = "rgba(255,255,255,0.5)";
-        g.lineWidth = 1.5;
+      // tia sáng
+      g.save();
+      g.globalAlpha = 0.06;
+      g.fillStyle = "#bfe9ff";
+      for (let i = 0; i < 4; i++) {
+        const x = 60 + i * 150;
         g.beginPath();
-        g.moveTo(W / 2, 28);
-        g.lineTo(hooked.x, hooked.y);
-        g.stroke();
+        g.moveTo(x, WATER_TOP); g.lineTo(x + 40, WATER_TOP); g.lineTo(x + 130, H); g.lineTo(x + 40, H);
+        g.closePath(); g.fill();
       }
+      g.restore();
+
+      // đáy hồ
+      g.fillStyle = "#08263f";
+      g.beginPath();
+      g.moveTo(0, H);
+      g.lineTo(0, H - 26);
+      for (let x = 0; x <= W; x += 40) g.lineTo(x, H - 26 + Math.sin(x * 0.05) * 6);
+      g.lineTo(W, H);
+      g.closePath(); g.fill();
+      g.font = "16px 'Segoe UI Emoji', sans-serif";
+      g.textAlign = "center"; g.textBaseline = "alphabetic";
+      g.globalAlpha = 0.8;
+      g.fillText("🌿", 50, H - 8); g.fillText("🪸", W - 60, H - 6); g.fillText("🌿", W * 0.4, H - 7);
+      g.globalAlpha = 1;
+
+      // bong bóng
+      g.fillStyle = "rgba(190,230,255,0.25)";
+      bubbles.forEach((b) => { g.beginPath(); g.arc(b.x, b.y, b.r, 0, Math.PI * 2); g.fill(); });
+
+      // mặt nước
+      g.fillStyle = "rgba(150,215,255,0.16)";
+      g.fillRect(0, WATER_TOP - 8, W, 8);
+
+      drawBoat();
+
+      // dây + lưỡi câu
+      const tip = tipPos(L, hookState === "swing" ? angle : angleLock);
+      g.strokeStyle = "rgba(235,245,255,0.7)";
+      g.lineWidth = 1.6;
+      g.beginPath();
+      g.moveTo(ANCHOR.x, ANCHOR.y);
+      g.lineTo(tip.x, tip.y);
+      g.stroke();
+      drawHook(tip, hookState === "swing" ? angle : angleLock);
 
       drawEntities(items);
       drawEntities(fishes);
 
+      // overlay countdown / connect
       if (phase === "countdown") {
-        g.fillStyle = "rgba(0,0,0,0.45)";
-        g.fillRect(0, 0, W, H);
-        g.fillStyle = "#ffd166";
-        g.font = "900 64px Segoe UI, sans-serif";
+        g.fillStyle = "rgba(0,0,0,0.42)"; g.fillRect(0, 0, W, H);
+        g.fillStyle = "#ffd166"; g.font = "900 76px Segoe UI, sans-serif";
+        g.textAlign = "center"; g.textBaseline = "middle";
         g.fillText(countdown > 0 ? String(countdown) : "CÂU!", W / 2, H / 2);
       } else if (phase === "connect") {
-        g.fillStyle = "rgba(0,0,0,0.45)";
-        g.fillRect(0, 0, W, H);
-        g.fillStyle = "#e9ecff";
-        g.font = "800 20px Segoe UI, sans-serif";
+        g.fillStyle = "rgba(0,0,0,0.42)"; g.fillRect(0, 0, W, H);
+        g.fillStyle = "#e9ecff"; g.font = "800 22px Segoe UI, sans-serif";
+        g.textAlign = "center"; g.textBaseline = "middle";
         g.fillText("Đang chờ đối thủ...", W / 2, H / 2);
       }
 
       if (castMsgT > 0 && phase === "play") {
-        g.fillStyle = "rgba(8,14,28,0.78)";
-        const tw = g.measureText(castMsg).width;
-        g.font = "800 14px Segoe UI, sans-serif";
-        const w2 = g.measureText(castMsg).width + 20;
-        roundRect(g, W / 2 - w2 / 2, H - 30, w2, 22, 8);
-        g.fill();
+        g.font = "800 15px Segoe UI, sans-serif";
+        g.textAlign = "center"; g.textBaseline = "middle";
+        const w2 = g.measureText(castMsg).width + 22;
+        g.fillStyle = "rgba(8,14,28,0.82)";
+        roundRect(g, W / 2 - w2 / 2, H - 34, w2, 24, 9); g.fill();
         g.fillStyle = "#ffe9a8";
-        g.fillText(castMsg, W / 2, H - 19);
+        g.fillText(castMsg, W / 2, H - 22);
       }
+    }
+
+    function drawBoat() {
+      const bx = ANCHOR.x, by = 50;
+      // thân thuyền
+      g.fillStyle = "#7a4a22";
+      g.beginPath();
+      g.moveTo(bx - 64, by);
+      g.quadraticCurveTo(bx, by + 26, bx + 64, by);
+      g.lineTo(bx + 52, by - 12);
+      g.lineTo(bx - 52, by - 12);
+      g.closePath(); g.fill();
+      g.fillStyle = "#5e3717";
+      g.fillRect(bx - 52, by - 14, 104, 5);
+      // người câu (rõ ràng)
+      const px = bx - 22, py = by - 14;
+      g.fillStyle = "#e8804a"; // áo
+      g.beginPath(); g.moveTo(px - 9, py); g.quadraticCurveTo(px, py - 20, px + 9, py); g.closePath(); g.fill();
+      g.fillStyle = "#f1c27d"; // đầu
+      g.beginPath(); g.arc(px, py - 24, 7.5, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#3a4a8b"; // mũ
+      g.beginPath(); g.arc(px, py - 26, 8, Math.PI, Math.PI * 2); g.fill();
+      g.fillRect(px - 11, py - 27, 22, 3);
+      // cần câu (tay phải vươn ra) tới điểm neo
+      g.strokeStyle = "#caa46a"; g.lineWidth = 2.5;
+      g.beginPath(); g.moveTo(px + 4, py - 8); g.lineTo(ANCHOR.x, ANCHOR.y + 2); g.stroke();
+      g.fillStyle = "#caa46a"; g.beginPath(); g.arc(ANCHOR.x, ANCHOR.y + 2, 2.4, 0, Math.PI * 2); g.fill();
+    }
+
+    function drawHook(tip, ang) {
+      g.save();
+      g.translate(tip.x, tip.y);
+      g.rotate(ang);
+      g.strokeStyle = "#dfe7f2"; g.lineWidth = 2.4; g.lineCap = "round";
+      g.beginPath();
+      g.moveTo(0, -2);
+      g.lineTo(0, 6);
+      g.arc(0, 6, 5, -Math.PI / 2, Math.PI, false);
+      g.stroke();
+      g.restore();
     }
 
     function drawEntities(arr) {
       arr.forEach((e) => {
+        // bóng
+        g.fillStyle = "rgba(0,0,0,0.18)";
+        g.beginPath(); g.ellipse(e.x, e.y + e.def.r * 0.7, e.def.r * 0.8, e.def.r * 0.3, 0, 0, Math.PI * 2); g.fill();
+        if (e.isBoss) {
+          g.save(); g.globalAlpha = 0.5; g.fillStyle = "#ff6b8a";
+          g.beginPath(); g.arc(e.x, e.y, e.def.r + 6, 0, Math.PI * 2); g.fill(); g.restore();
+        }
+        const hookedNow = (attached === e || reeled === e);
         g.save();
         g.translate(e.x, e.y);
-        if (e.dir === 1) g.scale(-1, 1); // emoji cá mặc định nhìn trái
-        if (hooked && hooked.id === e.id) {
-          const s = 1 + Math.sin(performance.now() / 60) * 0.08;
-          g.scale(s, s);
-        }
-        g.font = (e.def.r * 1.7) + "px 'Segoe UI Emoji', sans-serif";
-        g.textAlign = "center";
-        g.textBaseline = "middle";
+        if (e.dir === 1) g.scale(-1, 1);
+        if (hookedNow) g.scale(1 + Math.sin(performance.now() / 55) * 0.09, 1 + Math.sin(performance.now() / 55) * 0.09);
+        g.font = (e.def.r * 1.8) + "px 'Segoe UI Emoji', sans-serif";
+        g.textAlign = "center"; g.textBaseline = "middle";
         g.fillText(e.def.emoji, 0, 0);
         g.restore();
         if (e.kind === "item") {
-          g.fillStyle = "rgba(255,209,102,0.85)";
-          g.beginPath();
-          g.arc(e.x, e.y - e.def.r - 2, 2.5, 0, Math.PI * 2);
-          g.fill();
+          g.fillStyle = "rgba(255,209,102,0.9)";
+          g.beginPath(); g.arc(e.x, e.y - e.def.r - 3, 2.6, 0, Math.PI * 2); g.fill();
         }
       });
     }
@@ -336,8 +467,8 @@
       gc.closePath();
     }
 
+    // ====================== RENDER UI ======================
     function renderTop() {
-      const meSelf = ctx.isOnline ? (ctx.mySeat === 0 ? 0 : 1) : 0;
       top.innerHTML = `
         <div class="fh-score me">
           <span>🎣 Bạn</span>
@@ -357,14 +488,15 @@
     }
 
     function renderReel() {
-      if (!hooked) { reel.classList.add("fh-hidden"); return; }
+      if (hookState !== "reel" || !attached) { reel.classList.add("fh-hidden"); return; }
       reel.classList.remove("fh-hidden");
-      const w = hooked.kind === "item" ? 1 : hooked.def.weight;
-      const stars = "🏋️".repeat(w);
+      const w = attached.kind === "item" ? 1 : attached.def.weight;
+      const heavy = "🏋️".repeat(Math.min(w, 7)) || "nhẹ";
       const pct = Math.max(0, Math.min(100, progress));
       const col = pct > 66 ? "#6ee7b7" : pct > 33 ? "#ffd166" : "#ff5d73";
       reel.innerHTML = `
-        <div class="fh-reel-head">${hooked.def.emoji} ${hooked.def.name} <span class="fh-reel-w">${stars || "nhẹ"}</span> — BẤM ${REEL_KEY_LABEL}!</div>
+        <div class="fh-reel-head">${attached.def.emoji} ${attached.def.name} <span class="fh-reel-w">${heavy}</span></div>
+        <div class="fh-reel-key">Bấm liên tục phím <kbd>${reelLetter.toUpperCase()}</kbd></div>
         <div class="fh-reel-bar"><i style="width:${pct}%;background:${col}"></i></div>
       `;
     }
@@ -394,7 +526,8 @@
     function startPlay() {
       phase = "play";
       timeLeft = DURATION;
-      ctx.setStatus("Câu nhanh nào! Nhắm chuột + bấm " + REEL_KEY_LABEL + " liên tục.");
+      spawnBoss();
+      ctx.setStatus("Câu nào! PHÍM CÁCH thả câu, bấm phím chữ hiện ra để kéo cá lên.");
       renderTop();
       timerInt = setInterval(() => {
         timeLeft -= 1;
@@ -407,7 +540,7 @@
       if (timerInt) { clearInterval(timerInt); timerInt = null; }
       if (phase === "over") return;
       phase = "over";
-      if (hooked) { hooked = null; reel.classList.add("fh-hidden"); }
+      attached = null; reeled = null; reel.classList.add("fh-hidden");
       myDone = true;
       if (ctx.isOnline) ctx.sendMove({ kind: "final", score: myScore, count: myCount });
       ctx.setStatus("Hết giờ! Đang tổng kết...");
@@ -451,17 +584,13 @@
         return;
       }
       if (move.kind === "score") {
-        oppScore = Number(move.score) || 0;
-        oppCount = Number(move.count) || 0;
+        oppScore = Number(move.score) || 0; oppCount = Number(move.count) || 0;
         renderTop();
         return;
       }
       if (move.kind === "final") {
-        oppDone = true;
-        oppScore = Number(move.score) || 0;
-        oppCount = Number(move.count) || 0;
-        renderTop();
-        tryDecide();
+        oppDone = true; oppScore = Number(move.score) || 0; oppCount = Number(move.count) || 0;
+        renderTop(); tryDecide();
         return;
       }
     }
@@ -474,18 +603,16 @@
     }
 
     // ----- khởi tạo -----
-    renderTop();
-    renderBoosts();
-    draw();
+    renderTop(); renderBoosts(); draw();
     if (ctx.isOnline) {
-      ctx.setNames(`🎣 Bạn${ctx.mySeat === 0 ? "" : ""}`, "👤 Đối thủ");
+      ctx.setNames("🎣 Bạn", "👤 Đối thủ");
       ctx.setTurn(-1);
       iReady = true;
       ctx.sendMove({ kind: "ready" });
       if (oppReady) startCountdown();
       else ctx.setStatus("Đang chờ đối thủ vào hồ câu...");
     } else {
-      ctx.setStatus("Chế độ luyện tập 1 người. Bấm cá để móc, bấm " + REEL_KEY_LABEL + " để kéo.");
+      ctx.setStatus("Chế độ luyện tập 1 người. PHÍM CÁCH thả câu, bấm phím chữ để kéo cá.");
       startCountdown();
     }
     return { applyMove, destroy: teardown };
@@ -495,7 +622,7 @@
     id: "fishingfrenzy",
     name: "Câu Cá Đối Đầu",
     emoji: "🎣",
-    description: "Đua câu cá trong thời gian giới hạn: nhắm chuột vào cá rồi bấm phím Cách liên tục để kéo lên. Cá càng nặng càng khó, có vật phẩm hỗ trợ. Ai nhiều điểm hơn thắng.",
+    description: "Đua câu cá bằng bàn phím: lưỡi câu đung đưa, bấm Cách thả câu, dính cá thì bấm phím chữ hiện ra liên tục để kéo lên. Có cá boss, vật phẩm hỗ trợ. Ai nhiều điểm hơn thắng.",
     onlineReady: true,
     localReady: true,
     options: [
@@ -511,12 +638,13 @@
       },
     ],
     howTo: [
-      "Mỗi người câu trên hồ riêng của mình; cùng đua trong thời gian định sẵn.",
-      "Nhắm bằng chuột: bấm vào con cá đang bơi để móc câu (bấm trúng gần con cá là được).",
-      "Sau khi móc, BẤM PHÍM CÁCH liên tục để kéo cá lên. Thanh kéo sẽ tụt dần — cá càng nặng tụt càng nhanh, phải bấm nhanh hơn.",
-      "Nếu thanh kéo về 0 hoặc quá lâu thì cá sổng mất. Kéo đầy thanh là bắt được.",
-      "Có vật phẩm trôi nổi, phải câu lên mới nhận: 🪱 mồi xịn (con cá kế dễ kéo), ⭐ sao (x2 điểm con kế), 🧲 nam châm (con cá kế tự dính), 💎 ngọc (+6 điểm), 🥾 giày rách (chẳng được gì).",
-      "Cá lớn/hiếm cho nhiều điểm hơn. Hết giờ, ai nhiều điểm hơn sẽ thắng.",
+      "Mỗi người câu trên hồ riêng; cùng đua trong thời gian định sẵn. Điều khiển hoàn toàn bằng BÀN PHÍM.",
+      "Lưỡi câu treo trên thuyền tự đung đưa trái–phải. Bấm PHÍM CÁCH để thả lưỡi câu xuống theo hướng đang nhắm (giống game Đào Vàng).",
+      "Khi lưỡi câu chạm trúng cá/vật phẩm, màn hình hiện một PHÍM CHỮ ngẫu nhiên (A–Z). Bấm phím đó thật nhanh, liên tục để kéo con cá lên.",
+      "Cá càng nặng thì thanh kéo tụt càng nhanh — phải bấm nhanh hơn. Nếu thanh về 0 hoặc quá lâu thì cá sổng mất.",
+      "Vật phẩm phải câu lên mới nhận: 🪱 mồi xịn (con kế dễ kéo), ⭐ sao (x2 điểm con kế), 🧲 nam châm (con kế tự dính), 💎 ngọc (+6 điểm), 🥾 giày rách (chẳng được gì).",
+      "🐋 Cá BOSS bơi dưới đáy hồ: rất nặng và khó kéo nhưng được tới 25 điểm — phải thả câu xuống sâu mới tới.",
+      "Cá lớn/hiếm cho nhiều điểm hơn. Hết giờ ai nhiều điểm hơn sẽ thắng.",
     ],
     create,
   });
