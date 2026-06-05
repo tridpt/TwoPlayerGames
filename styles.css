@@ -4015,6 +4015,16 @@ body {
 .aw-val-num { font-size: 1.8rem; font-weight: 900; color: var(--accent); }
 .aw-mini-emoji { font-style: normal; margin-right: 3px; }
 .aw-bonus-note { line-height: 1.5; }
+.aw-clue {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent);
+  background: rgba(255,209,102,0.1);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.aw-clue i { color: var(--text); font-style: italic; }
 .aw-top {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

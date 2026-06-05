@@ -36,6 +36,34 @@
     { name: "Mật báo ngân hàng", emoji: "🔐", type: "intel", base: 25, swing: 17, text: "Món cuối ván dễ tạo cú lật điểm." },
   ];
 
+  // Câu chuyện gợi ý giá thật: cao / thấp / trung bình so với ước tính.
+  // Người chơi đọc kỹ sẽ định giá tốt hơn (nhưng vẫn chừa chút mơ hồ để bluff).
+  const CLUES = {
+    high: [
+      "🔥 Một tay buôn lớn vừa lùng mua món y hệt với giá hời.",
+      "✨ Tình trạng gần như hoàn hảo, giấy tờ gốc còn đủ.",
+      "👑 Tương truyền món này từng thuộc về một gia tộc quyền quý.",
+      "📈 Giá loại này đang lên từng ngày trên chợ đen.",
+      "💯 Chuyên gia thẩm định gật gù: 'hàng thật, hàng tốt'.",
+      "🏆 Vừa có người trả hụt món tương tự ở phiên trước.",
+    ],
+    low: [
+      "🩹 Có vết hư hỏng kín đáo mà người bán cố giấu.",
+      "🕳️ Món này đã ế nhiều phiên, chẳng ai mặn mà.",
+      "🎭 Vài chuyên gia nghi đây chỉ là bản sao khéo léo.",
+      "📉 Giá loại này vừa rớt mạnh sau một vụ bê bối.",
+      "⚠️ Chủ cũ vội vã tống đi với giá rẻ — có gì đó không ổn.",
+      "🐀 Nghe đồn món này 'có dớp', qua tay ai cũng lỗ.",
+    ],
+    mid: [
+      "🤷 Thị trường còn lưỡng lự, kẻ khen người chê.",
+      "📊 Tình trạng tạm ổn, không có gì quá nổi bật.",
+      "🌫️ Thông tin về món này khá mập mờ.",
+      "⚖️ Giá trị có thể nhỉnh hơn hoặc kém chút so với ước tính.",
+      "🔍 Cần xem tận nơi mới rõ, nhìn xa thì khó nói.",
+    ],
+  };
+
   function create(ctx) {
     const options = ctx.options || {};
     const ROUNDS = options.rounds || 10;
@@ -75,13 +103,17 @@
       const cards = CATALOG.map((base, idx) => {
         const raw = base.base - base.swing + Math.floor(rng() * (base.swing * 2 + 1));
         const trueValue = Math.max(4, raw);
-        return {
-          ...base,
-          id: idx,
-          trueValue,
-          low: Math.max(1, base.base - base.swing),
-          high: base.base + base.swing,
-        };
+        const low = Math.max(1, base.base - base.swing);
+        const high = base.base + base.swing;
+        // chọn câu chuyện gợi ý theo vị trí giá thật trong khoảng [low, high]
+        const ratio = (trueValue - low) / Math.max(1, high - low);
+        let bucket;
+        if (ratio >= 0.62) bucket = "high";
+        else if (ratio <= 0.38) bucket = "low";
+        else bucket = "mid";
+        const pool = CLUES[bucket];
+        const clue = pool[Math.floor(rng() * pool.length)];
+        return { ...base, id: idx, trueValue, low, high, clue };
       });
       for (let i = cards.length - 1; i > 0; i--) {
         const j = Math.floor(rng() * (i + 1));
@@ -335,6 +367,7 @@
             : `<span class="aw-val-q">?</span><span class="aw-val-hint">Giá thật đang ẩn</span>`}
         </div>
         <div class="aw-note">💡 ${item.text}</div>
+        <div class="aw-clue">📣 Tin đồn: <i>${item.clue}</i></div>
         <div class="aw-bonus-note">
           🎁 3 Đất +12 · Tài nguyên + Hợp đồng +8 · Đồ hiếm thứ 2+ +9 · 2 Tin tức +10 · đủ 4/5 loại +14/+24
         </div>
@@ -499,6 +532,7 @@
     ],
     howTo: [
       "Mỗi phiên lật một tài sản có khoảng giá ước tính. Giá thật bị ẩn cho tới khi chốt phiên.",
+      "📣 Đọc kỹ 'Tin đồn' của món hàng — nó GỢI Ý giá thật cao hay thấp so với ước tính. Ai định giá khéo sẽ trả đúng hơn (nhưng tin đồn cũng có thể gây nhiễu, đừng tin tuyệt đối).",
       "Cả hai người chọn giá thầu kín. Online thì mỗi người tự khóa giá; chơi chung máy thì lần lượt nhập giá và không nhìn giá của nhau.",
       "Giá cao hơn mua tài sản và trả đúng số vàng đã thầu. Nếu trả cao hơn giá thật và bonus sau này không bù được, bạn đã mua hớ.",
       "Nếu hai bên trả bằng nhau, phiên hỏng và cả hai mất một khoản phí nhỏ. Nếu cả hai trả 0 thì bỏ qua tài sản.",
