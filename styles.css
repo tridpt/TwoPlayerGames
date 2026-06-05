@@ -5920,16 +5920,17 @@ body {
 .dom-line-wrap { width: 100%; display: flex; justify-content: center; }
 .dom-line {
   display: flex; flex-direction: column; gap: 8px;
-  padding: 16px; min-height: 140px; max-height: 360px; overflow: auto;
+  padding: 16px; min-height: 120px; max-height: 360px; overflow: auto;
   background: #14532d;
   background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
   background-size: 16px 16px;
   border: 3px solid #0d3b20;
   border-radius: 14px; box-shadow: var(--shadow);
-  width: fit-content; max-width: 96vw;
+  width: fit-content; min-width: min(640px, 92vw); max-width: 96vw;
   align-items: stretch;
+  justify-content: center;
 }
-.dom-row { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; justify-content: flex-start; }
+.dom-row { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; justify-content: flex-start; min-height: 64px; }
 /* hàng ngược: rẽ xuống ở mép phải rồi chạy sang trái -> căn về bên phải */
 .dom-row.reverse { flex-direction: row-reverse; }
 

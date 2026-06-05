@@ -75,14 +75,16 @@
     }
 
     // tạo một quân hoàn chỉnh gồm 2 mặt. orient: "h" (ngang) | "v" (dọc)
-    function makeTile(t, orient) {
+    function makeTile(t, orient, flip) {
       const tile = document.createElement("div");
       tile.className = "dom-tile dom-" + orient;
-      tile.appendChild(makeFace(t[0]));
+      const a = flip ? t[1] : t[0];
+      const b = flip ? t[0] : t[1];
+      tile.appendChild(makeFace(a));
       const divider = document.createElement("span");
       divider.className = "dom-divider";
       tile.appendChild(divider);
-      tile.appendChild(makeFace(t[1]));
+      tile.appendChild(makeFace(b));
       return tile;
     }
 
@@ -216,14 +218,16 @@
       const perRow = 9; // số quân tối đa mỗi hàng trước khi rẽ xuống
       let i = 0, rowIndex = 0;
       while (i < line.length) {
+        const reverse = rowIndex % 2 === 1;
         const row = document.createElement("div");
-        row.className = "dom-row" + (rowIndex % 2 ? " reverse" : "");
+        row.className = "dom-row" + (reverse ? " reverse" : "");
         const count = Math.min(perRow, line.length - i);
         for (let k = 0; k < count; k++) {
           const t = line[i + k];
           // quân cuối hàng (trừ quân cuối cùng toàn chuỗi) là chỗ rẽ -> để dọc
           const isTurn = (k === count - 1) && (i + k < line.length - 1);
-          row.appendChild(makeTile(t, isTurn ? "v" : "h"));
+          // hàng đi ngược: đảo 2 mặt để số chấm ở chỗ nối khớp nhau
+          row.appendChild(makeTile(t, isTurn ? "v" : "h", reverse));
         }
         lineEl.appendChild(row);
         i += count;
