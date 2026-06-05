@@ -421,13 +421,27 @@
     function drawHook(tip, ang) {
       g.save();
       g.translate(tip.x, tip.y);
-      g.rotate(ang);
-      g.strokeStyle = "#dfe7f2"; g.lineWidth = 2.4; g.lineCap = "round";
+      g.rotate(ang); // ang = 0 -> hướng thẳng xuống
+      g.strokeStyle = "#e8eef7";
+      g.lineWidth = 2.2;
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      // cán lưỡi câu
       g.beginPath();
-      g.moveTo(0, -2);
-      g.lineTo(0, 6);
-      g.arc(0, 6, 5, -Math.PI / 2, Math.PI, false);
+      g.moveTo(0, -3);
+      g.lineTo(0, 5);
       g.stroke();
+      // phần móc cong (chữ J liền mạch)
+      g.beginPath();
+      g.arc(0, 9, 4, -Math.PI / 2, Math.PI * 0.95, false);
+      g.stroke();
+      // mũi ngạnh
+      g.fillStyle = "#e8eef7";
+      const bx = Math.cos(Math.PI * 0.95) * 4;
+      const by = 9 + Math.sin(Math.PI * 0.95) * 4;
+      g.beginPath();
+      g.arc(bx, by, 1.4, 0, Math.PI * 2);
+      g.fill();
       g.restore();
     }
 
