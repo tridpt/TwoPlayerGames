@@ -100,7 +100,7 @@
     {
       title: "Đối kháng hành động & vật lý",
       hint: "Canh lực, bắn, kéo thả, va chạm và phản xạ.",
-      games: ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery"],
+      games: ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery", "fishingfrenzy"],
     },
     {
       title: "Ván dài & xây dựng",
@@ -387,6 +387,7 @@
     domino: "DM",
     dotsandboxes: "DX",
     dungeonrival: "DR",
+    fishingfrenzy: "🎣",
     gomoku: "5",
     hangman: "HM",
     hex: "HX",
@@ -474,7 +475,7 @@
   function avatarPalette(id) {
     const board = ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "pathlockduel", "hunterswarm", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"];
     const map = ["tankarena", "dicebattle", "territorywar", "crystalconquest"];
-    const action = ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery"];
+    const action = ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery", "fishingfrenzy"];
     const long = ["basedefenseduel", "robotfactorywar", "dungeonrival"];
     const hidden = ["battleship", "seabattleplus", "submarinehunt", "hiddenassassin", "trapmansion", "minesweeper", "treasure", "bullscows", "hangman", "noitu"];
     if (id === "auctionwar") return { a: "#ffd166", b: "#6ee7b7", c: "#ff5d73", bg1: "#202747", bg2: "#12162f" };
