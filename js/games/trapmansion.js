@@ -1,23 +1,23 @@
 /* Trap Mansion - biet thu an phong, bay bi mat giua hai nguoi choi online. */
 (function () {
-  const ROOM_SIZE = 92;
-  const GAP = 14;
-  const PAD = 58;
-  const HUD_H = 56;
+  const ROOM_SIZE = 74;
+  const GAP = 9;
+  const PAD = 20;
+  const HUD_H = 28;
   const TYPES = {
-    start: { label: "Sảnh vào", icon: "ST", color: "#4dd0e1" },
-    vault: { label: "Kho trung tâm", icon: "VA", color: "#ffd166" },
-    seal: { label: "Ấn cổ", icon: "SIG", color: "#c9a8ff" },
-    med: { label: "Phòng y tế", icon: "HP", color: "#6ee7b7" },
-    kit: { label: "Kho dụng cụ", icon: "KIT", color: "#ffd166" },
-    map: { label: "Phòng bản đồ", icon: "MAP", color: "#8be6f0" },
-    curse: { label: "Phòng nguyền", icon: "HEX", color: "#ff5d73" },
-    empty: { label: "Phòng trống", icon: "··", color: "#9aa0d0" },
+    start: { label: "Sảnh vào", icon: "🚪", color: "#4dd0e1" },
+    vault: { label: "Kho trung tâm", icon: "🏆", color: "#ffd166" },
+    seal: { label: "Ấn cổ", icon: "📜", color: "#c9a8ff" },
+    med: { label: "Phòng y tế", icon: "💊", color: "#6ee7b7" },
+    kit: { label: "Kho dụng cụ", icon: "🧰", color: "#ffd166" },
+    map: { label: "Phòng bản đồ", icon: "🗺️", color: "#8be6f0" },
+    curse: { label: "Phòng nguyền", icon: "☠️", color: "#ff5d73" },
+    empty: { label: "Phòng trống", icon: "·", color: "#9aa0d0" },
   };
   const TRAPS = {
-    snare: { label: "Dây khóa", icon: "SN", damage: 6, stun: 1 },
-    spike: { label: "Gai sàn", icon: "SP", damage: 14, stun: 0 },
-    alarm: { label: "Chuông báo", icon: "AL", damage: 4, stun: 1 },
+    snare: { label: "Dây khóa", icon: "🪤", damage: 6, stun: 1 },
+    spike: { label: "Gai sàn", icon: "🔺", damage: 14, stun: 0 },
+    alarm: { label: "Chuông báo", icon: "🔔", damage: 4, stun: 1 },
   };
 
   function create(ctx) {
@@ -50,6 +50,9 @@
     let awaiting = false;
     let over = false;
     let selectedRoom = null;
+    let hoverRoom = null;
+    let pulse = 0;
+    let rafId = null;
 
     const root = document.createElement("div");
     root.className = "tm-root";
@@ -62,12 +65,29 @@
     const stageWrap = document.createElement("div");
     stageWrap.className = "tm-stage-wrap";
     const canvas = document.createElement("canvas");
-    canvas.width = W;
-    canvas.height = H;
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    canvas.style.width = W + "px";
     canvas.className = "tm-canvas";
     stageWrap.appendChild(canvas);
     root.appendChild(stageWrap);
     const g = canvas.getContext("2d");
+    g.scale(DPR, DPR);
+
+    const legend = document.createElement("div");
+    legend.className = "tm-legend";
+    legend.innerHTML = [
+      ["🏆", "Kho trung tâm"],
+      ["📜", "Ấn cổ"],
+      ["💊", "Hồi máu"],
+      ["🧰", "Thêm bẫy"],
+      ["🗺️", "Thêm quét"],
+      ["☠️", "Phòng nguyền"],
+      ["🪤", "Bẫy của bạn"],
+      ["❓", "Chưa khám phá"],
+    ].map(([i, l]) => `<span><b>${i}</b>${l}</span>`).join("");
+    root.appendChild(legend);
 
     const actions = document.createElement("div");
     actions.className = "tm-actions";
@@ -495,6 +515,23 @@
       renderActions();
       renderInfo();
       draw();
+      startPulse();
+    }
+
+    function startPulse() {
+      if (rafId == null && isMyTurn() && !over) rafId = requestAnimationFrame(animate);
+    }
+
+    function animate() {
+      if (!document.body.contains(canvas)) { rafId = null; return; }
+      pulse = (Math.sin(performance.now() / 360) + 1) / 2;
+      if (isMyTurn() && !over) {
+        draw();
+        rafId = requestAnimationFrame(animate);
+      } else {
+        rafId = null;
+        draw();
+      }
     }
 
     function renderHud() {
@@ -531,10 +568,10 @@
         return;
       }
       const defs = [
-        ["move", "MOVE", "Di chuyển", "sang phòng kề"],
-        ["search", "LOOK", "Lục phòng", "lấy ấn/vật phẩm"],
-        ["trap", "TRAP", "Gài bẫy", "bí mật phòng kề"],
-        ["scan", "SCAN", "Quét bẫy", "dò phòng kề"],
+        ["move", "🚶", "Di chuyển", "sang phòng kề"],
+        ["search", "🔍", "Lục phòng", "lấy ấn/vật phẩm"],
+        ["trap", "🪤", "Gài bẫy", "bí mật phòng kề"],
+        ["scan", "📡", "Quét bẫy", "dò phòng kề"],
       ];
       actions.innerHTML = defs.map(([id, icon, label, hint]) => {
         const isSearch = id === "search";
@@ -593,12 +630,19 @@
       drawLegend();
     }
 
+    function tint(hex, a) {
+      const h = hex.replace("#", "");
+      const full = h.length === 3 ? h.split("").map((x) => x + x).join("") : h;
+      const n = parseInt(full, 16);
+      return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+    }
+
     function drawMansion() {
       const bg = g.createLinearGradient(0, 0, 0, H);
       bg.addColorStop(0, "#171d39");
       bg.addColorStop(1, "#080c19");
       g.fillStyle = bg;
-      roundRect(g, 0, 0, W, H, 18);
+      roundRect(g, 0, 0, W, H, 16);
       g.fill();
 
       g.strokeStyle = "rgba(255,255,255,0.07)";
@@ -624,55 +668,92 @@
 
     function drawRooms() {
       const side = ctx.isOnline ? ctx.mySeat : 0;
+      const me = actor(side);
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
           const pos = roomPos(r, c);
           const k = key(r, c);
           const seen = discovered[side]?.has(k) || same(r, c, starts[0]) || same(r, c, starts[1]) || same(r, c, vault);
           const selected = selectedRoom === k;
-          const selectable = isMyTurn() && actor(ctx.mySeat).stun <= 0 && selectableRoom(r, c);
+          const hovered = hoverRoom === k;
+          const selectable = isMyTurn() && me.stun <= 0 && selectableRoom(r, c);
+          const standingHere = same(r, c, me);
           const room = roomAt(r, c);
           const type = seen ? room.type : "unknown";
-          const def = TYPES[type] || { label: "Phòng ẩn", icon: "?", color: "#9aa0d0" };
+          const def = TYPES[type] || { label: "Phòng ẩn", icon: "❓", color: "#9aa0d0" };
 
-          g.fillStyle = seen
-            ? "rgba(255,255,255,0.075)"
-            : "rgba(255,255,255,0.035)";
-          if (same(r, c, vault)) g.fillStyle = "rgba(255,209,102,0.11)";
-          roundRect(g, pos.x, pos.y, ROOM_SIZE, ROOM_SIZE, 9);
+          // nền ô — pha màu nhạt theo loại phòng
+          if (!seen) g.fillStyle = "rgba(255,255,255,0.03)";
+          else if (same(r, c, vault)) g.fillStyle = "rgba(255,209,102,0.16)";
+          else g.fillStyle = tint(def.color, 0.12);
+          roundRect(g, pos.x, pos.y, ROOM_SIZE, ROOM_SIZE, 10);
           g.fill();
-          g.strokeStyle = selectable ? "#6ee7b7" : selected ? "#ffd166" : "rgba(255,255,255,0.13)";
-          g.lineWidth = selectable || selected ? 3 : 1;
-          g.stroke();
 
+          if (hovered && selectable) {
+            g.fillStyle = "rgba(255,255,255,0.09)";
+            roundRect(g, pos.x, pos.y, ROOM_SIZE, ROOM_SIZE, 10);
+            g.fill();
+          }
+
+          // viền — ô chọn được thì phát sáng nhấp nháy
+          if (selectable) {
+            const a = 0.55 + pulse * 0.45;
+            g.save();
+            g.shadowColor = `rgba(110,231,183,${a})`;
+            g.shadowBlur = 8 + pulse * 9;
+            g.strokeStyle = `rgba(110,231,183,${0.7 + pulse * 0.3})`;
+            g.lineWidth = 2.5;
+            roundRect(g, pos.x + 1.5, pos.y + 1.5, ROOM_SIZE - 3, ROOM_SIZE - 3, 9);
+            g.stroke();
+            g.restore();
+          } else {
+            g.strokeStyle = selected ? "#ffd166" : "rgba(255,255,255,0.13)";
+            g.lineWidth = selected ? 2.5 : 1;
+            roundRect(g, pos.x, pos.y, ROOM_SIZE, ROOM_SIZE, 10);
+            g.stroke();
+          }
+
+          // vòng đánh dấu phòng người chơi đang đứng
+          if (standingHere) {
+            g.save();
+            g.strokeStyle = side === 0 ? "rgba(255,93,115,0.85)" : "rgba(77,208,225,0.85)";
+            g.setLineDash([5, 4]);
+            g.lineWidth = 2;
+            roundRect(g, pos.x + 3.5, pos.y + 3.5, ROOM_SIZE - 7, ROOM_SIZE - 7, 8);
+            g.stroke();
+            g.restore();
+          }
+
+          // nội dung
           if (!seen) {
-            g.fillStyle = "rgba(255,255,255,0.26)";
-            g.font = "900 26px Segoe UI, sans-serif";
+            g.fillStyle = "rgba(255,255,255,0.28)";
+            g.font = "900 24px Segoe UI, sans-serif";
             g.textAlign = "center";
             g.textBaseline = "middle";
             g.fillText("?", pos.x + ROOM_SIZE / 2, pos.y + ROOM_SIZE / 2);
           } else {
-            g.fillStyle = def.color;
-            g.font = "900 16px Segoe UI, sans-serif";
+            g.font = "24px 'Segoe UI Emoji', 'Segoe UI', sans-serif";
             g.textAlign = "center";
             g.textBaseline = "middle";
-            g.fillText(def.icon, pos.x + ROOM_SIZE / 2, pos.y + 31);
+            g.fillText(def.icon, pos.x + ROOM_SIZE / 2, pos.y + 27);
             g.fillStyle = "#e9ecff";
-            g.font = "800 10px Segoe UI, sans-serif";
-            wrapText(def.label, pos.x + ROOM_SIZE / 2, pos.y + 55, ROOM_SIZE - 12, 12);
+            g.font = "800 9px Segoe UI, sans-serif";
+            wrapText(def.label, pos.x + ROOM_SIZE / 2, pos.y + 50, ROOM_SIZE - 8, 11);
           }
 
           const ownTrap = myTraps.find((t) => t.k === k);
-          if (ownTrap) drawTrapIcon(pos.x + 12, pos.y + 12, ownTrap.type, true);
+          if (ownTrap) drawTrapIcon(pos.x + 5, pos.y + 5, ownTrap.type, true);
           const revealed = revealedTraps.find((t) => key(t.r, t.c) === k);
-          if (revealed) drawTrapIcon(pos.x + ROOM_SIZE - 24, pos.y + 12, revealed.type, false);
+          if (revealed) drawTrapIcon(pos.x + ROOM_SIZE - 25, pos.y + 5, revealed.type, false);
 
           const scan = knownDanger[side]?.[k];
           if (scan) {
+            g.save();
             g.fillStyle = scan === "danger" ? "#ff5d73" : "#6ee7b7";
             g.beginPath();
-            g.arc(pos.x + ROOM_SIZE - 13, pos.y + ROOM_SIZE - 13, 7, 0, Math.PI * 2);
+            g.arc(pos.x + ROOM_SIZE - 11, pos.y + ROOM_SIZE - 11, 6, 0, Math.PI * 2);
             g.fill();
+            g.restore();
           }
         }
       }
@@ -680,53 +761,64 @@
 
     function drawTrapIcon(x, y, type, own) {
       const def = TRAPS[type] || TRAPS.snare;
-      g.fillStyle = own ? "rgba(255,209,102,0.92)" : "rgba(255,93,115,0.88)";
-      roundRect(g, x, y, 26, 18, 5);
+      g.save();
+      g.fillStyle = own ? "rgba(255,209,102,0.95)" : "rgba(255,93,115,0.92)";
+      roundRect(g, x, y, 20, 18, 5);
       g.fill();
-      g.fillStyle = "#16121d";
-      g.font = "900 8px Segoe UI, sans-serif";
+      g.font = "12px 'Segoe UI Emoji', sans-serif";
       g.textAlign = "center";
       g.textBaseline = "middle";
-      g.fillText(def.icon, x + 13, y + 9);
+      g.fillText(def.icon, x + 10, y + 10);
+      g.restore();
     }
 
     function drawPlayers() {
       players.forEach((p, side) => {
         const pos = roomPos(p.r, p.c);
-        const x = pos.x + ROOM_SIZE / 2 + (side === 0 ? -17 : 17);
-        const y = pos.y + ROOM_SIZE - 18;
+        const both = same(players[0].r, players[0].c, players[1]);
+        const dx = both ? (side === 0 ? -13 : 13) : 0;
+        const x = pos.x + ROOM_SIZE / 2 + dx;
+        const y = pos.y + ROOM_SIZE - 15;
         const color = side === 0 ? "#ff5d73" : "#4dd0e1";
         g.save();
         g.translate(x, y);
-        g.fillStyle = color;
+        g.fillStyle = "rgba(0,0,0,0.32)";
         g.beginPath();
-        g.arc(0, -12, 10, 0, Math.PI * 2);
+        g.ellipse(0, 8, 10, 3.5, 0, 0, Math.PI * 2);
         g.fill();
         g.fillStyle = side === 0 ? "#6d2136" : "#15566a";
-        roundRect(g, -14, -2, 28, 27, 9);
+        roundRect(g, -10, -3, 20, 20, 7);
+        g.fill();
+        g.fillStyle = color;
+        g.beginPath();
+        g.arc(0, -9, 7.5, 0, Math.PI * 2);
         g.fill();
         if (p.stun > 0) {
           g.fillStyle = "#ffd166";
-          g.font = "900 9px Segoe UI, sans-serif";
+          g.font = "900 8px Segoe UI, sans-serif";
           g.textAlign = "center";
-          g.fillText("KẸT", 0, -27);
+          g.fillText("KẸT", 0, -21);
         }
         g.fillStyle = "#fff";
-        g.font = "900 10px Segoe UI, sans-serif";
+        g.font = "900 9px Segoe UI, sans-serif";
         g.textAlign = "center";
-        g.fillText("P" + (side + 1), 0, 14);
+        g.textBaseline = "middle";
+        g.fillText("P" + (side + 1), 0, 8);
         g.restore();
       });
     }
 
     function drawLegend() {
-      g.fillStyle = "rgba(10,12,24,0.45)";
-      roundRect(g, PAD, 20, W - PAD * 2, 34, 999);
+      g.save();
+      g.fillStyle = "rgba(10,12,24,0.5)";
+      roundRect(g, PAD, 7, W - PAD * 2, 18, 999);
       g.fill();
       g.fillStyle = "#ffd166";
-      g.font = "900 12px Segoe UI, sans-serif";
+      g.font = "900 11px Segoe UI, sans-serif";
       g.textAlign = "center";
-      g.fillText("TRAP MANSION", W / 2, 38);
+      g.textBaseline = "middle";
+      g.fillText("🏚️ TRAP MANSION", W / 2, 17);
+      g.restore();
     }
 
     function wrapText(text, x, y, maxWidth, lineHeight) {
@@ -762,6 +854,23 @@
     }
 
     canvas.addEventListener("click", clickCanvas);
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (!isMyTurn() || actor(ctx.mySeat).stun > 0) {
+        if (hoverRoom !== null) { hoverRoom = null; canvas.style.cursor = "default"; draw(); }
+        return;
+      }
+      const pt = canvasPoint(e);
+      const room = findRoomAt(pt.x, pt.y);
+      const k = room ? key(room.r, room.c) : null;
+      const sel = room && selectableRoom(room.r, room.c);
+      canvas.style.cursor = sel ? "pointer" : "default";
+      if (k !== hoverRoom) { hoverRoom = k; draw(); }
+    });
+
+    canvas.addEventListener("mouseleave", () => {
+      if (hoverRoom !== null) { hoverRoom = null; canvas.style.cursor = "default"; draw(); }
+    });
 
     if (!ctx.isOnline) {
       render();
