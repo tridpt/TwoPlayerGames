@@ -43,7 +43,7 @@
       const w = document.createElement("div");
       w.className = cls;
       const val = document.createElement("div");
-      val.className = "mnc-store-val";
+      val.className = "mnc-stones mnc-store-stones";
       w.appendChild(val);
       return { wrap: w, val };
     }
@@ -54,7 +54,7 @@
       pit.dataset.idx = i;
       pit.addEventListener("click", () => onClick(i));
       const val = document.createElement("span");
-      val.className = "mnc-pit-val";
+      val.className = "mnc-stones mnc-pit-stones";
       pit.appendChild(val);
       pitEls[i] = { pit, val };
       return pit;
@@ -139,15 +139,29 @@
     function render() {
       for (let i = 0; i < 14; i++) {
         if (pitEls[i]) {
-          pitEls[i].val.textContent = pits[i];
+          renderStones(pitEls[i].val, pits[i]);
+          pitEls[i].pit.title = `${pits[i]} sỏi`;
           pitEls[i].pit.classList.toggle("empty", pits[i] === 0);
           const playable = !over && ownsPit(turn, i) && pits[i] > 0 &&
             (!ctx.isOnline || turn === ctx.mySeat);
           pitEls[i].pit.classList.toggle("playable", playable);
         }
       }
-      store0El.val.textContent = pits[STORE0];
-      store1El.val.textContent = pits[STORE1];
+      renderStones(store0El.val, pits[STORE0], true);
+      renderStones(store1El.val, pits[STORE1], true);
+      store0El.wrap.title = `${pits[STORE0]} sỏi trong kho`;
+      store1El.wrap.title = `${pits[STORE1]} sỏi trong kho`;
+    }
+
+    function renderStones(el, count, store = false) {
+      el.innerHTML = "";
+      el.dataset.count = String(count);
+      el.classList.toggle("many", count > (store ? 22 : 8));
+      for (let n = 0; n < count; n++) {
+        const stone = document.createElement("i");
+        stone.className = `mnc-stone s${n % 6}`;
+        el.appendChild(stone);
+      }
     }
 
     function updateStatus() {

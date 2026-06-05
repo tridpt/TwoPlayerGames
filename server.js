@@ -7,7 +7,7 @@ const path = require("path");
 const { WebSocketServer } = require("ws");
 
 const PORT = process.env.PORT || 8777;
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname);
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -21,12 +21,19 @@ const MIME = {
 
 // ---------- HTTP: phục vụ file tĩnh ----------
 const server = http.createServer((req, res) => {
-  let urlPath = decodeURIComponent(req.url.split("?")[0]);
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent(req.url.split("?")[0]);
+  } catch {
+    res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+    return res.end("Bad Request");
+  }
   if (urlPath === "/") urlPath = "/index.html";
 
   // chặn path traversal
-  const filePath = path.normalize(path.join(ROOT, urlPath));
-  if (!filePath.startsWith(ROOT)) {
+  const filePath = path.resolve(ROOT, "." + urlPath);
+  const relPath = path.relative(ROOT, filePath);
+  if (relPath.startsWith("..") || path.isAbsolute(relPath)) {
     res.writeHead(403);
     return res.end("Forbidden");
   }

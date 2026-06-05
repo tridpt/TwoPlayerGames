@@ -189,7 +189,6 @@
     controls.className = "bd-controls bd-center-controls";
     controls.innerHTML = `
       <div class="bd-sidebox"></div>
-      <div class="bd-lanes"></div>
     `;
     centerCol.appendChild(controls);
 
@@ -208,7 +207,6 @@
     arena.appendChild(defensePanel);
 
     const sideBox = controls.querySelector(".bd-sidebox");
-    const laneBox = controls.querySelector(".bd-lanes");
     const attackBox = attackPanel.querySelector(".bd-attack-actions");
     const defenseBox = defensePanel.querySelector(".bd-defense-actions");
     const upgradeBox = defensePanel.querySelector(".bd-upgrade-actions");
@@ -249,21 +247,6 @@
           sideBox.appendChild(btn);
         });
       }
-
-      laneBox.innerHTML = "";
-      LANES.forEach((_, lane) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "btn small bd-lane-btn";
-        btn.dataset.lane = String(lane);
-        btn.innerHTML = `<b>Lane ${lane + 1}</b><small>${lane === 0 ? "trên" : lane === 1 ? "giữa" : "dưới"}</small>`;
-        btn.addEventListener("click", () => {
-          selectedLane[controlSide] = lane;
-          syncControls();
-          draw();
-        });
-        laneBox.appendChild(btn);
-      });
 
       attackBox.innerHTML = "";
       defenseBox.innerHTML = "";
@@ -628,9 +611,6 @@
           btn.classList.toggle("active", Number(btn.dataset.side) === controlSide);
         });
       }
-      laneBox.querySelectorAll(".bd-lane-btn").forEach((btn) => {
-        btn.classList.toggle("active", Number(btn.dataset.lane) === selectedLane[side]);
-      });
       root.querySelectorAll(".bd-action").forEach((btn) => {
         const id = btn.dataset.action;
         const cost = actionCost(side, id, selectedLane[side]);
@@ -644,9 +624,9 @@
       if (over) return;
       const side = ctx.isOnline ? ctx.mySeat : controlSide;
       if (ctx.isOnline) {
-        ctx.setStatus(`Bạn là Người chơi ${ctx.mySeat + 1}. Chọn lane, gửi lính, xây tháp và nâng cấp để phá nhà đối thủ.`);
+        ctx.setStatus(`Bạn là Người chơi ${ctx.mySeat + 1}. Click lane trên map để chọn đường, rồi gửi lính, xây tháp và nâng cấp.`);
       } else {
-        ctx.setStatus(`Đang điều khiển Người chơi ${side + 1}. Click nửa sân để đổi phe, chọn lane rồi mua quân/tháp.`);
+        ctx.setStatus(`Đang điều khiển Người chơi ${side + 1}. Click lane trên map để chọn đường, click nửa sân để đổi phe.`);
       }
       ctx.setTurn(side);
     }
