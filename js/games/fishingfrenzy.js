@@ -16,11 +16,11 @@
   ];
   const BOSS = { emoji: "🐋", name: "Cá Voi Boss", weight: 7, pts: 25, speed: 38, r: 42, boss: true };
   const ITEMS = [
-    { emoji: "🪱", name: "Mồi xịn", kind: "bait", rate: 7, r: 14 },
-    { emoji: "⭐", name: "Sao x2", kind: "star", rate: 5, r: 15 },
-    { emoji: "🧲", name: "Nam châm", kind: "magnet", rate: 4, r: 15 },
-    { emoji: "💎", name: "Ngọc biển", kind: "gem", rate: 3, r: 15 },
-    { emoji: "🥾", name: "Giày rách", kind: "junk", rate: 5, r: 15 },
+    { emoji: "🪱", name: "Mồi xịn", kind: "bait", rate: 7, r: 14, speed: 55 },
+    { emoji: "⭐", name: "Sao x2", kind: "star", rate: 5, r: 15, speed: 60 },
+    { emoji: "🧲", name: "Nam châm", kind: "magnet", rate: 4, r: 15, speed: 50 },
+    { emoji: "💎", name: "Ngọc biển", kind: "gem", rate: 3, r: 15, speed: 45 },
+    { emoji: "🥾", name: "Giày rách", kind: "junk", rate: 5, r: 15, speed: 70 },
   ];
   const ALPHA = "abcdefghijklmnopqrstuvwxyz";
 
@@ -135,7 +135,7 @@
 
     function moveEntity(e, dt) {
       if (attached === e || reeled === e) return;
-      e.x += e.dir * e.def.speed * dt;
+      e.x += e.dir * (e.def.speed || 60) * dt;
       e.t += dt;
       const wob = e.isBoss ? 6 : e.vy;
       e.y += Math.sin(e.t * 1.5) * wob * dt;
