@@ -5,9 +5,9 @@
   const LEAK_LIMIT = 1;
   const MAX_WAVE = 10;
   const BASE_HP = 20;          // máu căn cứ — quái lọt sẽ trừ máu thay vì thua ngay
-  const STRIKE_COST = 70;      // chi phí Không kích
-  const STRIKE_CD = 80;        // hồi chiêu (số tick ~8s)
-  const STRIKE_DMG = 55;       // sát thương Không kích (xuyên giáp)
+  const STRIKE_COST = 90;      // chi phí Không kích
+  const STRIKE_CD = 130;       // hồi chiêu (số tick ~13s)
+  const STRIKE_DMG = 28;       // sát thương Không kích (xuyên giáp)
 
   const MAPS = [
     {
