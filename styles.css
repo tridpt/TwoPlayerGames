@@ -1934,73 +1934,76 @@ body {
   box-shadow: var(--shadow);
 }
 .mnc-store {
+  position: relative;
   width: 74px;
   min-height: 144px;
   background:
     radial-gradient(circle at 35% 28%, rgba(255,255,255,0.1), transparent 34%),
     #4a2e16;
   border-radius: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 6px 14px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 0.2s, transform 0.2s;
 }
+.mnc-store.grab { box-shadow: inset 0 6px 14px rgba(0,0,0,0.45), 0 0 0 3px var(--accent), 0 0 18px rgba(255,209,102,0.6); transform: scale(1.04); }
 .mnc-mid { display: flex; flex-direction: column; gap: 12px; justify-content: center; }
 .mnc-row { display: flex; gap: 12px; }
 .mnc-pit {
+  position: relative;
   width: 68px;
   height: 68px;
   border-radius: 50%;
   background:
     radial-gradient(circle at 38% 32%, rgba(255,255,255,0.12), transparent 30%),
     #8a5a2b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: default;
-  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 5px 10px rgba(0, 0, 0, 0.45);
   transition: transform 0.1s, box-shadow 0.15s;
 }
-.mnc-pit.playable { cursor: pointer; box-shadow: inset 0 4px 8px rgba(0,0,0,0.4), 0 0 0 3px var(--accent); }
-.mnc-pit.playable:hover { transform: scale(1.08); }
-.mnc-pit.empty { opacity: 0.75; }
+.mnc-pit.playable { cursor: pointer; box-shadow: inset 0 5px 10px rgba(0,0,0,0.45), 0 0 0 3px var(--accent); }
+.mnc-pit.playable:hover { transform: scale(1.07); }
+.mnc-pit.empty { opacity: 0.85; }
 .mnc-stones {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  gap: 3px;
-  width: 100%;
-  height: 100%;
-  padding: 8px;
+  position: absolute;
+  inset: 0;
 }
-.mnc-store-stones {
-  gap: 2px;
-  padding: 10px 7px;
+.mnc-pit-num, .mnc-store-num {
+  position: absolute;
+  z-index: 3;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  pointer-events: none;
 }
+.mnc-pit-num { right: 3px; bottom: 1px; }
+.mnc-store-num { left: 0; right: 0; bottom: 4px; text-align: center; font-size: 0.9rem; }
 .mnc-stone {
-  display: block;
-  width: 10px;
-  height: 9px;
-  border-radius: 50%;
+  position: absolute;
+  width: 13px;
+  height: 12px;
+  border-radius: 48% 52% 50% 50%;
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg));
   background:
-    radial-gradient(circle at 32% 28%, rgba(255,255,255,0.8), transparent 28%),
+    radial-gradient(circle at 33% 27%, rgba(255,255,255,0.92), rgba(255,255,255,0) 42%),
+    radial-gradient(circle at 65% 75%, rgba(0,0,0,0.35), transparent 50%),
     #d8d1bd;
-  box-shadow: inset -1px -2px 2px rgba(0,0,0,0.28), 0 1px 1px rgba(0,0,0,0.22);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.4), inset -1px -2px 3px rgba(0,0,0,0.3);
 }
-.mnc-stone.s1 { width: 9px; height: 10px; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.78), transparent 28%), #bfc7ce; }
-.mnc-stone.s2 { width: 11px; height: 8px; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.78), transparent 28%), #d9c29a; }
-.mnc-stone.s3 { width: 8px; height: 9px; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.78), transparent 28%), #aeb4a4; }
-.mnc-stone.s4 { width: 10px; height: 10px; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.78), transparent 28%), #c8b7a7; }
-.mnc-stone.s5 { width: 9px; height: 8px; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.78), transparent 28%), #e0d9c8; }
-.mnc-pit-stones.many .mnc-stone,
-.mnc-store-stones .mnc-stone {
-  width: 8px;
-  height: 7px;
+.mnc-stone.s1 { background: radial-gradient(circle at 33% 27%, rgba(255,255,255,0.9), transparent 42%), radial-gradient(circle at 65% 75%, rgba(0,0,0,0.35), transparent 50%), #b7c0c8; }
+.mnc-stone.s2 { background: radial-gradient(circle at 33% 27%, rgba(255,255,255,0.9), transparent 42%), radial-gradient(circle at 65% 75%, rgba(0,0,0,0.35), transparent 50%), #d9c29a; border-radius: 52% 48% 54% 46%; }
+.mnc-stone.s3 { background: radial-gradient(circle at 33% 27%, rgba(255,255,255,0.9), transparent 42%), radial-gradient(circle at 65% 75%, rgba(0,0,0,0.35), transparent 50%), #a9b0a0; }
+.mnc-stone.s4 { background: radial-gradient(circle at 33% 27%, rgba(255,255,255,0.9), transparent 42%), radial-gradient(circle at 65% 75%, rgba(0,0,0,0.35), transparent 50%), #c8b7a7; border-radius: 50% 50% 46% 54%; }
+.mnc-stone.s5 { background: radial-gradient(circle at 33% 27%, rgba(255,255,255,0.9), transparent 42%), radial-gradient(circle at 65% 75%, rgba(0,0,0,0.35), transparent 50%), #e6dfce; }
+.mnc-stone.st { width: 11px; height: 10px; }
+.mnc-pit-stones.many .mnc-stone { width: 10px; height: 9px; }
+.mnc-store-stones.many .mnc-stone { width: 8px; height: 7px; }
+.mnc-stone.drop {
+  animation: mnc-drop 0.32s cubic-bezier(0.34, 1.4, 0.5, 1) both;
 }
-.mnc-store-stones.many .mnc-stone {
-  width: 6px;
-  height: 6px;
+@keyframes mnc-drop {
+  0% { transform: translate(-50%, -240%) rotate(var(--rot, 0deg)) scale(1.35); opacity: 0; }
+  55% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(1); opacity: 1; }
 }
 
 /* ---------- Order & Chaos ---------- */
