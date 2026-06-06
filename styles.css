@@ -10197,3 +10197,102 @@ body {
   box-shadow: 0 0 16px rgba(127,231,255,0.8);
   border: 1px solid rgba(200,245,255,0.7);
 }
+
+
+/* ---------- Co-op Defense: ụ súng chân thật, nòng xoay theo quái ---------- */
+.cd-slot.has-tower { overflow: visible; }
+.cd-gun-base {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #6b7280, #353b47 70%);
+  box-shadow: inset 0 -4px 6px rgba(0,0,0,0.45), inset 0 2px 3px rgba(255,255,255,0.18);
+  border: 2px solid rgba(0,0,0,0.3);
+  z-index: 3;
+}
+.cd-gun-turret {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 0;
+  height: 0;
+  z-index: 5;
+  transform-origin: center;
+  transition: transform 0.08s linear;
+}
+.cd-gun-barrel {
+  position: absolute;
+  left: 2px;
+  top: -4px;
+  width: 24px;
+  height: 8px;
+  border-radius: 3px 5px 5px 3px;
+  background: linear-gradient(90deg, #2b2f3a 0%, currentColor 55%, #11141d 100%);
+  box-shadow: 0 0 7px currentColor, inset 0 -2px 0 rgba(0,0,0,0.35);
+}
+.cd-gun-barrel::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: 50%;
+  width: 5px;
+  height: 11px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: #11141d;
+}
+.cd-gun-dome {
+  position: absolute;
+  left: -11px;
+  top: -11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 30%, #fff7, currentColor 58%, rgba(0,0,0,0.35) 100%);
+  box-shadow: inset 0 -3px 4px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.4);
+  border: 2px solid rgba(0,0,0,0.28);
+}
+/* nòng theo từng loại súng */
+.tower-cannon .cd-gun-barrel,
+.tower-mortar .cd-gun-barrel { width: 20px; height: 11px; border-radius: 4px 7px 7px 4px; }
+.tower-sniper .cd-gun-barrel,
+.tower-laser .cd-gun-barrel { width: 30px; height: 5px; }
+.tower-frost .cd-gun-barrel,
+.tower-tesla .cd-gun-barrel { box-shadow: 0 0 12px currentColor; }
+.tower-flame .cd-gun-barrel { width: 18px; height: 12px; }
+/* chớp lửa đầu nòng khi vừa bắn */
+.cd-gun-turret.firing .cd-gun-barrel { transform: translateX(-2px); }
+.cd-gun-turret.firing .cd-gun-barrel::before {
+  content: "";
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, currentColor 45%, transparent 75%);
+  box-shadow: 0 0 12px currentColor;
+}
+.cd-gun-lv {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  z-index: 7;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #16121d;
+  color: #ffd166;
+  font-size: 0.62rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}

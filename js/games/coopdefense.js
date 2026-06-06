@@ -435,11 +435,16 @@
         for (let slot = 0; slot < SLOTS; slot++) {
           const tower = towers[lane][slot];
           if (!tower) continue;
+          const from = slotPoint(lane, slot);
+          const target = pickTarget(lane, from, TOWERS[tower.type].range * 100);
+          if (target) {
+            const tp = routePoint(lane, target.x);
+            tower.tx = tp.x; tower.ty = tp.y; // hướng nòng ngắm theo quái
+          }
           if (tower.cooldown > 0) {
             tower.cooldown--;
             continue;
           }
-          const target = pickTarget(lane, slotPoint(lane, slot), TOWERS[tower.type].range * 100);
           if (!target) continue;
           shoot(tower, lane, slot, target);
         }
@@ -654,11 +659,24 @@
         return `<button class="cd-slot ${over ? "disabled" : ""}" data-lane="${lane}" data-slot="${slot}" style="left:${pt.x}%;top:${pt.y}%" title="Xây súng"></button>`;
       }
       const def = TOWERS[tower.type];
+      // góc ngắm theo quái (chỉnh theo tỉ lệ pixel thật của map), mặc định hướng trái
+      let aim = 180;
+      if (typeof tower.tx === "number") {
+        const mw = mapEl.clientWidth || 900;
+        const mh = mapEl.clientHeight || 660;
+        const dx = (tower.tx - pt.x) / 100 * mw;
+        const dy = (tower.ty - pt.y) / 100 * mh;
+        aim = Math.atan2(dy, dx) * 180 / Math.PI;
+      }
+      const firing = tower.cooldown > 0 && tower.cooldown >= TOWERS[tower.type].rate - 2;
       return `
         <button class="cd-slot has-tower tower-${tower.type} ${selected ? "selected" : ""}" data-lane="${lane}" data-slot="${slot}" style="left:${pt.x}%;top:${pt.y}%;color:${def.color}" title="${def.name} cấp ${tower.level}">
-          <span class="tower-model tower-${tower.type}"><i></i><em></em></span>
-          <span class="tower-code">${def.short}</span>
-          <small>${tower.level}</small>
+          <span class="cd-gun-base"></span>
+          <span class="cd-gun-turret ${firing ? "firing" : ""}" style="transform:translate(-50%,-50%) rotate(${aim.toFixed(1)}deg)">
+            <span class="cd-gun-barrel"></span>
+            <span class="cd-gun-dome"></span>
+          </span>
+          <span class="cd-gun-lv">${tower.level}</span>
         </button>
       `;
     }
