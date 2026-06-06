@@ -3779,7 +3779,7 @@ body {
 
 /* ---------- Bắn Tăng (Artillery) ---------- */
 .art-canvas {
-  width: min(720px, 96vw);
+  width: min(880px, 96vw);
   height: auto;
   border-radius: 12px;
   box-shadow: var(--shadow);
@@ -3811,6 +3811,25 @@ body {
 .art-controls input:disabled { opacity: 0.4; cursor: not-allowed; }
 .art-move button { min-width: 38px; padding: 6px 10px; }
 .art-move button:disabled { opacity: 0.4; cursor: not-allowed; }
+.art-weapon-row { display: flex; gap: 6px; }
+.art-weapon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-width: 62px;
+  padding: 5px 7px;
+  line-height: 1.1;
+}
+.art-weapon-btn span { font-size: 1rem; }
+.art-weapon-btn b { font-size: 0.66rem; font-weight: 700; white-space: nowrap; }
+.art-weapon-btn .art-ammo { font-size: 0.66rem; color: var(--muted); font-weight: 800; }
+.art-weapon-btn.active {
+  background: var(--accent);
+  color: #1a1a1a;
+}
+.art-weapon-btn.active .art-ammo { color: rgba(26,26,26,0.7); }
+.art-weapon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ---------- Dò Mìn Đối Kháng ---------- */
 .ms-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
