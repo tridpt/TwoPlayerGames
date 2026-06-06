@@ -54,7 +54,7 @@
       { x: W - 152, y: H / 2, fx: -1, fy: 0 },
     ];
     const obstacles = makeObstacles();
-    let last = "Chọn chuỗi hành động, khóa kế hoạch rồi xem cả hai dòng thời gian va vào nhau.";
+    let last = "Chọn vài hành động (xem đường đi xem trước), khóa kế hoạch — nhịp trống sẽ tự thành Đợi.";
 
     const root = document.createElement("div");
     root.className = "tl-root";
@@ -149,8 +149,10 @@
     }
 
     function lockPlan(side) {
-      if (!canEditSide(side) || plans[side].length !== BEATS) return;
-      applyMove({ t: "plan", side, plan: plans[side].slice() }, false);
+      if (!canEditSide(side) || plans[side].length < 1) return;
+      const full = plans[side].slice();
+      while (full.length < BEATS) full.push("wait"); // tự bù "Đợi" cho nhịp trống
+      applyMove({ t: "plan", side, plan: full }, false);
     }
 
     function applyMove(move, fromRemote) {
@@ -564,7 +566,7 @@
       controls.innerHTML = `
         <button class="btn small" type="button" data-cmd="undo" ${can && planLength ? "" : "disabled"}>↶ Lùi 1</button>
         <button class="btn small" type="button" data-cmd="clear" ${can && planLength ? "" : "disabled"}>Xóa plan</button>
-        <button class="btn primary" type="button" data-cmd="lock" ${can && planLength === BEATS ? "" : "disabled"}>Khóa kế hoạch</button>
+        <button class="btn primary" type="button" data-cmd="lock" ${can && planLength >= 1 ? "" : "disabled"}>🔒 Khóa (bù Đợi)</button>
       `;
       controls.querySelector('[data-cmd="undo"]').addEventListener("click", () => undoPlan(side));
       controls.querySelector('[data-cmd="clear"]').addEventListener("click", () => clearPlan(side));
@@ -579,7 +581,7 @@
         if (!locked[ctx.mySeat]) ctx.setStatus("Chọn đủ kế hoạch cho lượt của bạn rồi khóa. Đối thủ sẽ gửi plan riêng.");
         else ctx.setStatus("Bạn đã khóa kế hoạch. Đang chờ đối thủ...");
       } else {
-        ctx.setStatus(`Người chơi ${activePlanner + 1}: chọn ${BEATS} hành động rồi khóa kế hoạch.`);
+        ctx.setStatus(`Người chơi ${activePlanner + 1}: xếp hành động (xem đường đi xem trước) rồi 🔒 Khóa — không cần đủ ${BEATS} nhịp.`);
       }
       if (!sim && !over) ctx.setTurn(ctx.isOnline ? ctx.mySeat : activePlanner);
     }
@@ -598,6 +600,7 @@
         drawTimeline();
       } else {
         drawPreviewActors();
+        drawPlanPreview();
       }
     }
 
@@ -665,6 +668,84 @@
         g.fillText("CORE", 0, 0);
         g.restore();
       });
+    }
+
+    // mô phỏng đường đi của một kế hoạch (không tính chiến đấu) để xem trước
+    function planPath(owner, plan) {
+      const s = spawns[owner];
+      const a = { owner, x: s.x, y: s.y, fx: s.fx, fy: s.fy, current: true };
+      const pts = [{ x: a.x, y: a.y }];
+      const markers = [];
+      for (let beat = 0; beat < plan.length; beat++) {
+        const action = plan[beat] || "wait";
+        if (MOVE[action]) { a.fx = MOVE[action][0]; a.fy = MOVE[action][1]; }
+        if (action === "shoot" || action === "mine") {
+          markers.push({ x: a.x, y: a.y, type: action, fx: a.fx, fy: a.fy });
+        }
+        for (let t = 0; t < TICKS_PER_BEAT; t++) {
+          moveActorForAction(a, action);
+          if (t % 4 === 0) pts.push({ x: a.x, y: a.y });
+        }
+        pts.push({ x: a.x, y: a.y });
+        markers.push({ x: a.x, y: a.y, type: "beatend" });
+      }
+      return { pts, markers, end: { x: a.x, y: a.y, fx: a.fx, fy: a.fy } };
+    }
+
+    function drawPlanPreview() {
+      const side = editableSide();
+      if (side !== 0 && side !== 1) return;
+      if (!canEditSide(side) || !plans[side].length) return;
+      const color = side === 0 ? "#ff5d73" : "#4dd0e1";
+      const { pts, markers } = planPath(side, plans[side]);
+      g.save();
+      // tuyến đường chấm
+      g.setLineDash([5, 6]);
+      g.strokeStyle = color;
+      g.globalAlpha = 0.7;
+      g.lineWidth = 2;
+      g.beginPath();
+      pts.forEach((p, i) => (i === 0 ? g.moveTo(p.x, p.y) : g.lineTo(p.x, p.y)));
+      g.stroke();
+      g.setLineDash([]);
+      g.globalAlpha = 1;
+      // hướng bắn / mìn
+      markers.forEach((m) => {
+        if (m.type === "shoot") {
+          const len = Math.hypot(m.fx, m.fy) || 1;
+          g.strokeStyle = "rgba(255,255,255,0.55)";
+          g.setLineDash([3, 5]);
+          g.lineWidth = 1.5;
+          g.beginPath();
+          g.moveTo(m.x, m.y);
+          g.lineTo(m.x + m.fx / len * 140, m.y + m.fy / len * 140);
+          g.stroke();
+          g.setLineDash([]);
+        } else if (m.type === "mine") {
+          g.fillStyle = "#ffd166";
+          g.font = "14px serif";
+          g.textAlign = "center";
+          g.textBaseline = "middle";
+          g.fillText("◈", m.x, m.y);
+        }
+      });
+      // số thứ tự nhịp tại điểm dừng mỗi nhịp
+      let bn = 0;
+      markers.forEach((m) => {
+        if (m.type !== "beatend") return;
+        bn++;
+        g.fillStyle = color;
+        g.beginPath();
+        g.arc(m.x, m.y, 8, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "#0b1020";
+        g.font = "900 10px Segoe UI, sans-serif";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillText(String(bn), m.x, m.y);
+      });
+      g.textBaseline = "alphabetic";
+      g.restore();
     }
 
     function drawPreviewActors() {
@@ -832,10 +913,27 @@
     const observer = new MutationObserver(() => {
       if (!document.body.contains(root)) {
         cancelAnimationFrame(raf);
+        window.removeEventListener("keydown", onKey);
         observer.disconnect();
       }
     });
     observer.observe(ctx.boardEl.parentNode || document.body, { childList: true, subtree: true });
+
+    // phím tắt: mũi tên thêm bước đi, S bắn, D lướt, H khiên, M mìn, E nạp, Enter khóa, Backspace lùi
+    function onKey(e) {
+      const side = editableSide();
+      if (!canEditSide(side)) return;
+      const map = {
+        ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+        s: "shoot", S: "shoot", d: "dash", D: "dash", h: "shield", H: "shield",
+        m: "mine", M: "mine", e: "charge", E: "charge", w: "wait", W: "wait",
+      };
+      if (e.key === "Enter") { lockPlan(side); e.preventDefault(); return; }
+      if (e.key === "Backspace") { undoPlan(side); e.preventDefault(); return; }
+      const action = map[e.key];
+      if (action) { addAction(action); e.preventDefault(); }
+    }
+    window.addEventListener("keydown", onKey);
 
     ctx.setTurn(0);
     render();
@@ -850,7 +948,7 @@
     id: "timeloopduel",
     name: "Time Loop Duel",
     emoji: "⏱️",
-    description: "Lập trình chuỗi hành động, replay đồng thời và dùng bóng ma các vòng trước để phá lõi đối thủ.",
+    description: "Lập trình chuỗi hành động, xem trước đường đi, khóa kế hoạch rồi replay đồng thời. Bóng ma các vòng trước lặp lại để cùng phá lõi đối thủ.",
     onlineReady: true,
     options: [
       {
@@ -895,10 +993,12 @@
       },
     ],
     howTo: [
-      "Mỗi vòng, mỗi người chọn đủ chuỗi hành động rồi khóa kế hoạch.",
-      "Khi cả hai khóa xong, game replay hai kế hoạch cùng lúc trên arena.",
-      "Sau mỗi vòng, kế hoạch vừa chạy trở thành bóng ma và sẽ tiếp tục lặp lại ở các vòng sau.",
-      "Bắn và mìn gây sát thương lõi đối thủ. Khiên giảm sát thương, lướt giúp đổi vị trí nhanh, nạp giúp lấy thêm năng lượng.",
+      "Mỗi vòng bạn xếp một chuỗi hành động cho nhân vật. KHÔNG cần điền đủ — bấm 🔒 Khóa là các nhịp trống tự thành 'Đợi'.",
+      "Khi đang xếp, ĐƯỜNG ĐI XEM TRƯỚC (chấm + số nhịp) hiện ngay trên sân để bạn biết mình sẽ chạy tới đâu; nhịp 'Bắn' có vạch chỉ hướng đạn, 'Mìn' có dấu ◈.",
+      "Phím tắt cho nhanh: mũi tên ←↑↓→ thêm bước đi, S = Bắn, D = Lướt, H = Khiên, M = Mìn, E = Nạp năng lượng, Enter = Khóa, Backspace = Lùi 1.",
+      "Hướng nhìn theo bước đi gần nhất — muốn bắn trúng lõi đối thủ, hãy đi về hướng đó trước rồi mới Bắn.",
+      "Khi cả hai khóa xong, game replay hai kế hoạch cùng lúc. Kế hoạch vừa chạy biến thành 'bóng ma' và sẽ lặp lại ở các vòng sau, nên đội hình ngày càng đông.",
+      "Bắn và mìn gây sát thương lõi đối thủ. Khiên giảm sát thương, Lướt đổi vị trí nhanh, Nạp lấy thêm năng lượng cho kỹ năng.",
       "Phá lõi đối thủ trước để thắng. Nếu hai lõi cùng vỡ trong một replay thì hòa.",
     ],
     create,
