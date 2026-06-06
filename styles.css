@@ -1954,15 +1954,60 @@ body {
 }
 
 /* ---------- Order & Chaos ---------- */
+.oc-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.oc-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(460px, 92vw);
+}
+.oc-role {
+  font-size: 1rem;
+  font-weight: 900;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+}
+.oc-role.order { color: #ffd166; box-shadow: inset 0 0 0 1px rgba(255,209,102,0.5); }
+.oc-role.chaos { color: #c792ea; box-shadow: inset 0 0 0 1px rgba(199,146,234,0.5); }
+.oc-meters {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+.oc-meter {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.oc-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+.oc-bar i { display: block; height: 100%; border-radius: inherit; transition: width 0.2s; }
+.oc-bar.order i { background: linear-gradient(90deg, #ffd166, #ff8a5d); }
+.oc-bar.chaos i { background: linear-gradient(90deg, #c792ea, #6e8bff); }
 .oc-picker {
   display: flex;
   align-items: center;
   gap: 10px;
   justify-content: center;
-  margin-bottom: 14px;
 }
 .oc-picker.disabled { opacity: 0.5; pointer-events: none; }
 .oc-picker-label { color: var(--muted); font-size: 0.9rem; }
+.oc-picker-hint { color: var(--muted); font-size: 0.74rem; }
 .oc-sym-btn {
   width: 44px;
   height: 44px;
@@ -1975,7 +2020,8 @@ body {
   cursor: pointer;
   transition: all 0.15s;
 }
-.oc-sym-btn.active { border-color: var(--accent); background: var(--accent); color: #1a1a1a; }
+.oc-sym-btn.x.active { border-color: var(--p1); background: var(--p1); color: #1a1a1a; }
+.oc-sym-btn.o.active { border-color: var(--p2); background: var(--p2); color: #1a1a1a; }
 
 .oc-board {
   display: grid;
@@ -1984,8 +2030,9 @@ body {
   padding: 8px;
   border-radius: 12px;
   box-shadow: var(--shadow);
-  width: min(420px, 92vw);
+  width: min(460px, 92vw);
 }
+.oc-board.big { gap: 4px; padding: 6px; }
 .oc-cell {
   background: var(--panel);
   border-radius: 8px;
@@ -1993,15 +2040,23 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
+  font-size: clamp(1rem, 5vw, 1.8rem);
   font-weight: 800;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background 0.12s, box-shadow 0.12s;
 }
+.oc-board.big .oc-cell { border-radius: 6px; }
 .oc-cell:hover { background: var(--panel-2); }
 .oc-cell.x { color: var(--p1); }
 .oc-cell.o { color: var(--p2); }
-.oc-cell.win { background: var(--good); color: #0f1226; }
+.oc-cell.ghost { opacity: 0.42; }
+.oc-cell.last { box-shadow: inset 0 0 0 2px rgba(255,209,102,0.7); }
+.oc-cell.win {
+  background: var(--good);
+  color: #0f1226;
+  animation: oc-pulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes oc-pulse { from { filter: brightness(1); } to { filter: brightness(1.3); } }
 
 /* ---------- Cờ Đam (Checkers) ---------- */
 .chk-board {
