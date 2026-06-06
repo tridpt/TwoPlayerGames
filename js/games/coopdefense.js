@@ -1,7 +1,7 @@
 /* Thủ Thành Hợp Tác - co-op tower defense nhiều đường. */
 (function () {
   const LANES = 3;
-  const SLOTS = 8;
+  const SLOTS = 6;
   const LEAK_LIMIT = 1;
   const MAX_WAVE = 10;
   const BASE_HP = 20;          // máu căn cứ — quái lọt sẽ trừ máu thay vì thua ngay
@@ -114,7 +114,7 @@
     const segLen = [];
     let total = 0;
     for (let i = 1; i < route.length; i++) { const d = _dist(route[i - 1], route[i]); segLen.push(d); total += d; }
-    const OFF = 10;
+    const OFF = 12;
     const out = [];
     for (let k = 0; k < count; k++) {
       const target = (k + 0.5) / count * total;
@@ -138,7 +138,22 @@
     }
     return out;
   }
+  // 3 đường KHÔNG cắt nhau, mỗi đường một dải ngang riêng -> bãi súng nằm gọn trong khoảng trống.
+  function genRoute(centerY, amp, waves, phase) {
+    const pts = 9;
+    const r = [];
+    for (let i = 0; i < pts; i++) {
+      const x = 4 + 93 * i / (pts - 1);
+      let y = centerY + amp * Math.sin(i / (pts - 1) * Math.PI * waves + phase);
+      y = Math.max(8, Math.min(92, y));
+      r.push({ x: Math.round(x), y: Math.round(y) });
+    }
+    return r;
+  }
+  const ROUTE_WAVES = { forest: 2.2, coast: 1.4, canyon: 2.8, ruins: 2.4 };
   MAPS.forEach((m) => {
+    const waves = ROUTE_WAVES[m.id] || 2;
+    m.routes = [16, 50, 84].map((cy, lane) => genRoute(cy, 6, waves, lane * 0.7 * Math.PI));
     m.slots = m.routes.map((r) => genSlots(r, SLOTS));
     relaxSlots(m);
   });
@@ -160,10 +175,10 @@
 
   // Đẩy các bãi tách nhau (không đè), giữ cách đường của lane (off-path) và trong tầm bắn.
   function relaxSlots(map) {
-    const MINSEP = 11, PATH_CLEAR = 8, MAX_OFF = 14;
+    const MINSEP = 11, PATH_CLEAR = 11, MAX_OFF = 14;
     const all = [];
     map.slots.forEach((arr, lane) => arr.forEach((p) => all.push({ p, lane })));
-    for (let iter = 0; iter < 70; iter++) {
+    for (let iter = 0; iter < 120; iter++) {
       for (const s of all) {
         let mx = 0, my = 0;
         for (const o of all) {
@@ -172,13 +187,27 @@
           const d = Math.hypot(dx, dy) || 0.01;
           if (d < MINSEP) { const f = (MINSEP - d) / d * 0.5; mx += dx * f; my += dy * f; }
         }
+        // đẩy khỏi MỌI đường (kể cả lane khác) nếu quá gần
+        for (let ln = 0; ln < map.routes.length; ln++) {
+          const nro = nearestOnRoute(s.p, map.routes[ln]);
+          const rdo = nro.d || 0.01;
+          if (rdo < PATH_CLEAR) {
+            const f = (PATH_CLEAR - rdo) / rdo * 0.6;
+            mx += (s.p.x - nro.q.x) * f;
+            my += (s.p.y - nro.q.y) * f;
+          }
+        }
+        s.p.x = Math.max(6, Math.min(94, s.p.x + mx));
+        s.p.y = Math.max(8, Math.min(92, s.p.y + my));
+        // ÉP CỨNG vòng quanh đường của lane mình để vẫn trong tầm bắn
         const nr = nearestOnRoute(s.p, map.routes[s.lane]);
         const rd = nr.d || 0.01;
         const dirx = (s.p.x - nr.q.x) / rd, diry = (s.p.y - nr.q.y) / rd;
-        if (rd < PATH_CLEAR) { const f = (PATH_CLEAR - rd) * 0.6; mx += dirx * f; my += diry * f; }
-        if (rd > MAX_OFF) { const f = (rd - MAX_OFF) * 0.6; mx -= dirx * f; my -= diry * f; }
-        s.p.x = Math.max(6, Math.min(94, s.p.x + mx));
-        s.p.y = Math.max(8, Math.min(92, s.p.y + my));
+        const want = rd < PATH_CLEAR ? PATH_CLEAR : (rd > MAX_OFF ? MAX_OFF : rd);
+        if (want !== rd) {
+          s.p.x = Math.max(6, Math.min(94, nr.q.x + dirx * want));
+          s.p.y = Math.max(8, Math.min(92, nr.q.y + diry * want));
+        }
       }
     }
     all.forEach((s) => { s.p.x = +s.p.x.toFixed(1); s.p.y = +s.p.y.toFixed(1); });

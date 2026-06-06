@@ -5648,15 +5648,15 @@ body {
 }
 .cd-path-shadow {
   stroke: var(--cd-path-shadow);
-  stroke-width: 15;
+  stroke-width: 10;
 }
 .cd-path-main {
   stroke: var(--cd-path);
-  stroke-width: 10.4;
+  stroke-width: 7;
 }
 .cd-path-edge {
   stroke: var(--cd-path-edge);
-  stroke-width: 12;
+  stroke-width: 8.4;
   stroke-dasharray: 0.1 7.2;
 }
 .cd-exit,
