@@ -1,7 +1,5 @@
-/* Me Cung Ghep Duong - puzzle doi khang dat tile, xoay tile va khoa o */
+/* Me Cung Ghep Duong - puzzle doi khang dat tile, xoay tile, khoa o va pha tile */
 (function () {
-  const N = 7;
-  const MID = Math.floor(N / 2);
   const DIRS = [
     { r: -1, c: 0, bit: 1, opp: 4 },
     { r: 0, c: 1, bit: 2, opp: 8 },
@@ -12,30 +10,36 @@
     straight: { label: "Thẳng", base: 1 | 4 },
     corner: { label: "Góc", base: 1 | 2 },
     tee: { label: "Ngã ba", base: 1 | 2 | 4 },
+    cross: { label: "Ngã tư", base: 1 | 2 | 4 | 8 },
   };
-  const GLYPHS = {
-    3: "└", 5: "│", 6: "┌", 9: "┘", 10: "─", 12: "┐",
-    7: "├", 11: "┴", 13: "┤", 14: "┬", 15: "┼",
-  };
+  const GLYPHS = { 3: "└", 5: "│", 6: "┌", 9: "┘", 10: "─", 12: "┐", 7: "├", 11: "┴", 13: "┤", 14: "┬", 15: "┼" };
 
   function create(ctx) {
+    const o = ctx.options || {};
+    const N = [5, 7, 9].includes(Number(o.size)) ? Number(o.size) : 7;
+    const LOCKS = o.tools === "few" ? 2 : o.tools === "many" ? 5 : 3;
+    const BOMBS = o.tools === "few" ? 1 : o.tools === "many" ? 3 : 2;
+
     const cells = Array(N * N).fill(null);
-    const locks = [3, 3];
+    const locks = [LOCKS, LOCKS];
+    const bombs = [BOMBS, BOMBS];
     let selectedShape = "straight";
-    let selectedRot = 1;
+    let selectedRot = 0;
     let mode = "tile";
     let turn = 0;
     let over = false;
+    let lastIdx = -1;
 
     const root = document.createElement("div");
     root.className = "pld-wrap";
     root.innerHTML = `
       <div class="pld-toolbar">
         <div class="pld-tools"></div>
-        <button class="btn small pld-rotate" type="button">Xoay mẫu</button>
-        <button class="btn small pld-lock" type="button">Khóa ô</button>
+        <button class="btn small pld-rotate" type="button">↻ Xoay</button>
+        <button class="btn small pld-lock" type="button">🔒 Khóa</button>
+        <button class="btn small pld-bomb" type="button">💥 Phá</button>
       </div>
-      <div class="pld-locks"></div>
+      <div class="pld-info"></div>
       <div class="pld-board"></div>
     `;
     ctx.boardEl.appendChild(root);
@@ -43,8 +47,10 @@
     const toolsEl = root.querySelector(".pld-tools");
     const rotateBtn = root.querySelector(".pld-rotate");
     const lockBtn = root.querySelector(".pld-lock");
-    const locksEl = root.querySelector(".pld-locks");
+    const bombBtn = root.querySelector(".pld-bomb");
+    const infoEl = root.querySelector(".pld-info");
     const board = root.querySelector(".pld-board");
+    board.style.setProperty("--pld-n", N);
     const buttons = {};
     const cellEls = [];
 
@@ -53,24 +59,14 @@
       btn.type = "button";
       btn.className = "btn small pld-shape";
       btn.dataset.shape = shape;
-      btn.addEventListener("click", () => {
-        selectedShape = shape;
-        mode = "tile";
-        render();
-      });
+      btn.addEventListener("click", () => { selectedShape = shape; mode = "tile"; render(); });
       toolsEl.appendChild(btn);
       buttons[shape] = btn;
     });
 
-    rotateBtn.addEventListener("click", () => {
-      selectedRot = (selectedRot + 1) % 4;
-      mode = "tile";
-      render();
-    });
-    lockBtn.addEventListener("click", () => {
-      mode = mode === "lock" ? "tile" : "lock";
-      render();
-    });
+    rotateBtn.addEventListener("click", () => { selectedRot = (selectedRot + 1) % 4; mode = "tile"; render(); });
+    lockBtn.addEventListener("click", () => { mode = mode === "lock" ? "tile" : "lock"; render(); });
+    bombBtn.addEventListener("click", () => { mode = mode === "bomb" ? "tile" : "bomb"; render(); });
 
     for (let i = 0; i < N * N; i++) {
       const cell = document.createElement("button");
@@ -98,13 +94,18 @@
       }
       return out;
     }
+    function currentBits() { return rotateBits(SHAPES[selectedShape].base, selectedRot); }
+    function glyph(bits) { return GLYPHS[bits] || "┼"; }
 
-    function currentBits() {
-      return rotateBits(SHAPES[selectedShape].base, selectedRot);
-    }
-
-    function glyph(bits) {
-      return GLYPHS[bits] || "┼";
+    function svgTile(bits, extra) {
+      const segs = [];
+      if (bits & 1) segs.push('<line x1="50" y1="50" x2="50" y2="3"/>');
+      if (bits & 2) segs.push('<line x1="50" y1="50" x2="97" y2="50"/>');
+      if (bits & 4) segs.push('<line x1="50" y1="50" x2="50" y2="97"/>');
+      if (bits & 8) segs.push('<line x1="50" y1="50" x2="3" y2="50"/>');
+      return `<svg viewBox="0 0 100 100" class="pld-svg ${extra || ""}">`
+        + `<g stroke="currentColor" stroke-width="17" stroke-linecap="round" fill="none">${segs.join("")}</g>`
+        + `<circle cx="50" cy="50" r="11" fill="currentColor"/></svg>`;
     }
 
     function onCell(i) {
@@ -115,13 +116,13 @@
         applyMove({ t: "lock", i }, false);
         return;
       }
-      if (current && current.type === "tile") {
-        applyMove({ t: "rotate", i }, false);
+      if (mode === "bomb") {
+        if (!current || current.type !== "tile" || bombs[turn] <= 0) return;
+        applyMove({ t: "bomb", i }, false);
         return;
       }
-      if (!current) {
-        applyMove({ t: "place", i, shape: selectedShape, rot: selectedRot }, false);
-      }
+      if (current && current.type === "tile") { applyMove({ t: "rotate", i }, false); return; }
+      if (!current) applyMove({ t: "place", i, shape: selectedShape, rot: selectedRot }, false);
     }
 
     function applyMove(move, fromRemote) {
@@ -144,9 +145,15 @@
         cells[i] = { type: "lock", owner: turn };
         locks[turn]--;
         ctx.sound("capture");
+      } else if (move.t === "bomb") {
+        if (!cells[i] || cells[i].type !== "tile" || bombs[turn] <= 0) return;
+        cells[i] = null;
+        bombs[turn]--;
+        ctx.sound("miss");
       } else {
         return;
       }
+      lastIdx = i;
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
 
@@ -157,8 +164,8 @@
         over = true;
         ctx.incScore(winner);
         ctx.setTurn(-1);
-        ctx.setStatus(`🎉 Người chơi ${winner + 1} nối được đường hoàn chỉnh!`);
         render();
+        ctx.setStatus(`🎉 Người chơi ${winner + 1} nối được đường hoàn chỉnh!`);
         return;
       }
 
@@ -174,36 +181,27 @@
       return rotateBits(SHAPES[cell.shape].base, cell.rot);
     }
 
-    function hasRoute(player) {
+    // BFS từ cạnh nhà; trả về { reached: bool, net: Set } để vừa kiểm thắng vừa phát sáng mạng đường
+    function network(player) {
       const queue = [];
       const seen = new Set();
       for (let i = 0; i < cells.length; i++) {
-        const r = row(i);
-        const c = col(i);
+        const r = row(i), c = col(i);
         const bits = tileBits(i);
         if (!bits) continue;
-        if (player === 0 && c === 0 && (bits & 8)) {
-          queue.push(i);
-          seen.add(i);
-        }
-        if (player === 1 && r === 0 && (bits & 1)) {
-          queue.push(i);
-          seen.add(i);
-        }
+        if (player === 0 && c === 0 && (bits & 8)) { queue.push(i); seen.add(i); }
+        if (player === 1 && r === 0 && (bits & 1)) { queue.push(i); seen.add(i); }
       }
-
+      let reached = false;
       while (queue.length) {
         const cur = queue.shift();
-        const r = row(cur);
-        const c = col(cur);
+        const r = row(cur), c = col(cur);
         const bits = tileBits(cur);
-        if (player === 0 && c === N - 1 && (bits & 2)) return true;
-        if (player === 1 && r === N - 1 && (bits & 4)) return true;
-
+        if (player === 0 && c === N - 1 && (bits & 2)) reached = true;
+        if (player === 1 && r === N - 1 && (bits & 4)) reached = true;
         DIRS.forEach((dir) => {
           if (!(bits & dir.bit)) return;
-          const nr = r + dir.r;
-          const nc = c + dir.c;
+          const nr = r + dir.r, nc = c + dir.c;
           if (nr < 0 || nr >= N || nc < 0 || nc >= N) return;
           const ni = idx(nr, nc);
           if (seen.has(ni)) return;
@@ -213,46 +211,67 @@
           queue.push(ni);
         });
       }
-      return false;
+      return { reached, net: seen };
     }
+    function hasRoute(player) { return network(player).reached; }
 
     function updateStatus() {
       if (over) return;
-      const goal = turn === 0 ? "nối trái sang phải" : "nối trên xuống dưới";
-      ctx.setStatus(`Người chơi ${turn + 1}: đặt tile, xoay tile có sẵn hoặc khóa ô để ${goal}.`);
+      if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus("Đối thủ đang ghép đường..."); return; }
+      const goal = turn === 0 ? "nối TRÁI → PHẢI" : "nối TRÊN → DƯỚI";
+      const m = mode === "lock" ? "🔒 đang chọn ô để KHÓA" : mode === "bomb" ? "💥 đang chọn tile để PHÁ" : "đặt/xoay tile";
+      ctx.setStatus(`Người chơi ${turn + 1} (${goal}) — ${m}.`);
     }
 
     function render() {
       const sample = glyph(currentBits());
       Object.entries(buttons).forEach(([shape, btn]) => {
         btn.classList.toggle("active", mode === "tile" && shape === selectedShape);
-        btn.textContent = `${SHAPES[shape].label} ${shape === selectedShape ? sample : glyph(SHAPES[shape].base)}`;
+        btn.innerHTML = `${SHAPES[shape].label} <b class="pld-gly">${shape === selectedShape ? sample : glyph(SHAPES[shape].base)}</b>`;
       });
-      rotateBtn.textContent = `Xoay mẫu ${sample}`;
-      lockBtn.textContent = `Khóa ô (${locks[turn]})`;
+      rotateBtn.innerHTML = `↻ Xoay <b class="pld-gly">${sample}</b>`;
+      lockBtn.textContent = `🔒 Khóa (${locks[turn]})`;
       lockBtn.classList.toggle("active", mode === "lock");
       lockBtn.disabled = !canAct() || locks[turn] <= 0;
-      locksEl.textContent = `Khóa còn lại: Người chơi 1 = ${locks[0]}, Người chơi 2 = ${locks[1]}`;
+      bombBtn.textContent = `💥 Phá (${bombs[turn]})`;
+      bombBtn.classList.toggle("active", mode === "bomb");
+      bombBtn.disabled = !canAct() || bombs[turn] <= 0;
+
+      const net0 = network(0).net;
+      const net1 = network(1).net;
+      infoEl.innerHTML = `
+        <span class="pld-side p1 ${turn === 0 && !over ? "active" : ""}">🟥 P1 ↔ ${net0.size} đoạn · 🔒${locks[0]} 💥${bombs[0]}</span>
+        <span class="pld-side p2 ${turn === 1 && !over ? "active" : ""}">🟦 P2 ↕ ${net1.size} đoạn · 🔒${locks[1]} 💥${bombs[1]}</span>
+      `;
 
       cellEls.forEach((el, i) => {
         const cell = cells[i];
-        el.className = "pld-cell";
-        el.textContent = "";
+        const r = row(i), c = col(i);
+        let cls = "pld-cell";
+        if (c === 0 || c === N - 1) cls += " edge-p1";
+        if (r === 0 || r === N - 1) cls += " edge-p2";
+        el.innerHTML = "";
         el.disabled = !canAct();
         if (!cell) {
-          if (canAct()) el.classList.add(mode === "lock" ? "lockable" : "placeable");
+          if (canAct()) cls += mode === "lock" ? " lockable" : mode === "bomb" ? "" : " placeable";
+          el.className = cls;
           return;
         }
         if (cell.type === "lock") {
-          el.classList.add("locked", `p${cell.owner + 1}`);
-          el.textContent = "×";
+          cls += " locked p" + (cell.owner + 1);
+          el.className = cls;
+          el.innerHTML = "✕";
           el.disabled = true;
           return;
         }
         const bits = tileBits(i);
-        el.classList.add("tile", `p${cell.owner + 1}`);
-        el.textContent = glyph(bits);
-        el.disabled = !canAct();
+        cls += " tile p" + (cell.owner + 1);
+        const inNet0 = net0.has(i), inNet1 = net1.has(i);
+        if (inNet0) cls += " net1";
+        if (inNet1) cls += " net2";
+        if (i === lastIdx) cls += " lastmove";
+        el.className = cls;
+        el.innerHTML = svgTile(bits);
       });
     }
 
@@ -267,14 +286,33 @@
     id: "pathlockduel",
     name: "Mê Cung Ghép Đường",
     emoji: "🧩",
-    description: "Đặt tile đường, xoay tile và khóa ô để nối tuyến của mình trước khi đối thủ phá.",
+    description: "Đặt & xoay tile đường, khóa ô, phá tile để nối tuyến của mình trước. Mạng đường phát sáng cho thấy tuyến đang lớn dần.",
     onlineReady: true,
+    options: [
+      {
+        id: "size", label: "Kích thước bàn", default: 7,
+        choices: [
+          { value: 5, label: "5×5 (nhanh)" },
+          { value: 7, label: "7×7 (chuẩn)" },
+          { value: 9, label: "9×9 (lớn)" },
+        ],
+      },
+      {
+        id: "tools", label: "Khóa & Phá", default: "normal",
+        choices: [
+          { value: "few", label: "Ít (🔒2 💥1)" },
+          { value: "normal", label: "Vừa (🔒3 💥2)" },
+          { value: "many", label: "Nhiều (🔒5 💥3)" },
+        ],
+      },
+    ],
     howTo: [
-      "Người chơi 1 cố nối một đường từ cạnh trái sang cạnh phải.",
-      "Người chơi 2 cố nối một đường từ cạnh trên xuống cạnh dưới.",
-      "Đến lượt, bạn có thể đặt một tile đường vào ô trống, xoay một tile đã có, hoặc dùng khóa để chặn một ô trống.",
-      "Mỗi người chỉ có 3 khóa trong một ván, nên dùng để cắt đường đối thủ hoặc bảo vệ tuyến của mình.",
-      "Đường chỉ nối khi hai tile kề nhau có đầu mở chạm nhau. Ai hoàn thành tuyến trước sẽ thắng.",
+      "Người chơi 1 (🟥) nối một đường từ cạnh TRÁI sang cạnh PHẢI; Người chơi 2 (🟦) nối từ cạnh TRÊN xuống cạnh DƯỚI. Các cạnh đích được tô màu nhẹ.",
+      "Đến lượt: đặt một tile đường vào ô trống (Thẳng/Góc/Ngã ba/Ngã tư), bấm ↻ Xoay để chọn hướng; hoặc bấm vào tile đã có để xoay nó.",
+      "🔒 Khóa: chặn một ô trống vĩnh viễn (không ai đặt được). 💥 Phá: gỡ bỏ một tile bất kỳ trên bàn (kể cả của đối thủ) — dùng để cắt tuyến địch.",
+      "Đường chỉ nối khi hai tile kề nhau có ĐẦU MỞ chạm nhau. Tuyến của bạn nối được tới cạnh nhà sẽ PHÁT SÁNG — nhìn vào đó để biết mình còn thiếu đoạn nào.",
+      "Lưu ý: tuyến có thể đi qua cả tile của đối thủ (đường là chung), nên hãy tính kỹ trước khi đặt. Ai hoàn thành tuyến của mình trước sẽ thắng.",
+      "Chọn cỡ bàn và số Khóa/Phá ở phần tùy chọn để đổi nhịp độ và độ gắt của ván đấu.",
     ],
     create,
   });
