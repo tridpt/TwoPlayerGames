@@ -150,9 +150,12 @@
     shootBtn.addEventListener("click", () => shoot());
 
     let aimingPointer = false;
+    let pullPoint = null;
+    let didPull = false;
     canvas.addEventListener("pointerdown", (e) => {
       if (!canControl()) return;
       aimingPointer = true;
+      didPull = false;
       canvas.setPointerCapture(e.pointerId);
       aimFromPointer(e);
     });
@@ -161,15 +164,19 @@
       aimFromPointer(e);
     });
     canvas.addEventListener("pointerup", (e) => {
-      aimingPointer = false;
       if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+      const wasAiming = aimingPointer;
+      aimingPointer = false;
+      pullPoint = null;
+      // thả chuột là bắn nếu đã kéo đủ lực
+      if (wasAiming && canControl() && didPull && players[turn].power >= 22) shoot();
+      else draw();
     });
-    canvas.addEventListener("pointercancel", () => { aimingPointer = false; });
+    canvas.addEventListener("pointercancel", () => { aimingPointer = false; pullPoint = null; draw(); });
 
     function makeBalls(count) {
       const out = [
-        { id: "cue0", kind: "cue", player: 0, x: LEFT + 118, y: H / 2, vx: 0, vy: 0, r: CUE_R, color: "#ff5d73", active: true },
-        { id: "cue1", kind: "cue", player: 1, x: RIGHT - 118, y: H / 2, vx: 0, vy: 0, r: CUE_R, color: "#4dd0e1", active: true },
+        { id: "cue", kind: "cue", x: LEFT + 150, y: H / 2, vx: 0, vy: 0, r: CUE_R, color: "#f7f7ff", active: true },
       ];
       const spots = [
         [0, 0],
@@ -218,14 +225,17 @@
 
     function aimFromPointer(e) {
       const p = pointerPos(e);
-      const cue = cueBall(turn);
+      const cue = cueBall();
       if (!cue || !cue.active) return;
-      const dx = p.x - cue.x;
-      const dy = p.y - cue.y;
+      pullPoint = p;
+      // kéo giàn thun: hướng bắn = từ con trỏ về phía bi cái, kéo càng xa lực càng mạnh
+      const dx = cue.x - p.x;
+      const dy = cue.y - p.y;
       const d = Math.hypot(dx, dy);
       if (d < 6) return;
+      didPull = true;
       players[turn].angle = normalizeDeg(Math.atan2(dy, dx) * 180 / Math.PI);
-      players[turn].power = clamp(Math.round(d / 2.4), 20, 100);
+      players[turn].power = clamp(Math.round(d / 2.2), 20, 100);
       syncControls();
       draw();
     }
@@ -261,8 +271,8 @@
     }
 
     function startShot(mode) {
-      const cue = cueBall(turn);
-      if (!cue.active) respawnCue(turn);
+      const cue = cueBall();
+      if (!cue.active) respawnCue();
       const pl = players[turn];
       const rad = pl.angle * Math.PI / 180;
       const speed = pl.power * POWER_SCALE;
@@ -392,14 +402,8 @@
         addFloater(b.x, b.y, "+1", turn === 0 ? "#ff91a2" : "#8be6f0");
         ctx.sound("capture");
       } else if (b.kind === "cue") {
-        if (b.player === turn) {
-          shot.foul = true;
-          addFloater(b.x, b.y, "LỖI", "#ff5d73");
-        } else {
-          scores[turn] += 1;
-          shot.opponentCue = true;
-          addFloater(b.x, b.y, "+1", "#ffd166");
-        }
+        shot.foul = true;
+        addFloater(b.x, b.y, "LỖI", "#ff5d73");
         ctx.sound("miss");
       }
       renderHud();
@@ -492,20 +496,18 @@
     function endShot() {
       balls.forEach((b) => { b.vx = 0; b.vy = 0; });
       if (shot && shot.foul) scores[1 - turn] += 1;
-      respawnCue(0);
-      respawnCue(1);
+      respawnCue();
 
       if (shot) {
         const bits = [];
         if (shot.scored >= 2) {
           scores[turn] += 1; // thưởng combo
-          const cue = cueBall(turn);
+          const cue = cueBall();
           addFloater(cue ? cue.x : W / 2, cue ? cue.y - 30 : H / 2, `COMBO x${shot.scored} +1`, "#ffd166");
           bits.push(`COMBO x${shot.scored} (+1 thưởng)`);
         }
         if (shot.pocketed.length) bits.push(`ăn ${shot.pocketed.length} bi`);
-        if (shot.opponentCue) bits.push("đẩy bi chủ đối thủ xuống hố");
-        if (shot.foul) bits.push("lỗi bi chủ, đối thủ +1");
+        if (shot.foul) bits.push("lỗi bi cái, đối thủ +1");
         if (shot.gained.length) bits.push(`nhặt ${shot.gained.length} power-up`);
         last = bits.length ? `Người chơi ${turn + 1} ${bits.join(", ")}.` : `Người chơi ${turn + 1} chưa ăn được bi.`;
       }
@@ -543,12 +545,10 @@
       return true;
     }
 
-    function respawnCue(player) {
-      const cue = cueBall(player);
+    function respawnCue() {
+      const cue = cueBall();
       if (!cue || cue.active) return;
-      const home = player === 0
-        ? { x: LEFT + 118, y: H / 2 }
-        : { x: RIGHT - 118, y: H / 2 };
+      const home = { x: LEFT + 150, y: H / 2 };
       const offsets = [
         [0, 0], [0, -32], [0, 32], [32, 0], [-32, 0],
         [42, -30], [-42, 30], [42, 30], [-42, -30],
@@ -567,8 +567,8 @@
       cue.active = true;
     }
 
-    function cueBall(player) {
-      return balls.find((b) => b.kind === "cue" && b.player === player);
+    function cueBall() {
+      return balls.find((b) => b.kind === "cue");
     }
 
     function allStopped() {
@@ -785,14 +785,13 @@
       g.shadowBlur = 0;
 
       if (b.kind === "cue") {
-        g.strokeStyle = b.color;
-        g.lineWidth = 3;
+        g.strokeStyle = "rgba(255,255,255,0.55)";
+        g.lineWidth = 2;
         g.stroke();
-        g.fillStyle = "#101422";
-        g.font = "900 10px Segoe UI, sans-serif";
-        g.textAlign = "center";
-        g.textBaseline = "middle";
-        g.fillText("P" + (b.player + 1), b.x, b.y + 0.5);
+        g.fillStyle = "rgba(255,93,115,0.9)";
+        g.beginPath();
+        g.arc(b.x, b.y, 2.6, 0, Math.PI * 2);
+        g.fill();
       } else {
         g.fillStyle = "rgba(255,255,255,0.92)";
         g.beginPath();
@@ -850,6 +849,29 @@
       const rad = pl.angle * Math.PI / 180;
 
       g.save();
+      // dây kéo (giàn thun) khi đang canh bằng chuột
+      if (aimingPointer && pullPoint) {
+        g.strokeStyle = "rgba(255,255,255,0.4)";
+        g.lineWidth = 2;
+        g.setLineDash([4, 5]);
+        g.beginPath();
+        g.moveTo(cue.x, cue.y);
+        g.lineTo(pullPoint.x, pullPoint.y);
+        g.stroke();
+        g.setLineDash([]);
+        // chấm tay kéo
+        g.fillStyle = pl.color;
+        g.beginPath();
+        g.arc(pullPoint.x, pullPoint.y, 6, 0, Math.PI * 2);
+        g.fill();
+        // thanh lực
+        g.fillStyle = "rgba(0,0,0,0.5)";
+        roundedRect(g, cue.x - 26, cue.y - 40, 52, 7, 3);
+        g.fill();
+        g.fillStyle = pl.power > 75 ? "#ff5d73" : pl.power > 45 ? "#ffd166" : "#6ee7b7";
+        roundedRect(g, cue.x - 26, cue.y - 40, 52 * (pl.power / 100), 7, 3);
+        g.fill();
+      }
       // gậy chọc phía sau bi
       g.strokeStyle = "rgba(255,255,255,0.72)";
       g.lineWidth = 5;
@@ -1007,7 +1029,7 @@
     id: "poolbattle",
     name: "Pool Battle",
     emoji: "🎱",
-    description: "Bi-a đối kháng mini: ngắm có đường dự đoán nảy băng + bi bóng ma, ăn điểm qua hố, thưởng combo và dùng bóng nổ, nam châm, đổi trọng lực.",
+    description: "Bi-a đối kháng: hai người luân phiên chọc CHUNG một bi cái trắng. Kéo chuột để canh hướng và tụ lực rồi thả để bắn. Có đường ngắm dự đoán, thưởng combo và power-up.",
     onlineReady: true,
     options: [
       {
@@ -1052,12 +1074,13 @@
       },
     ],
     howTo: [
-      "Mỗi người có một bi chủ riêng: Người chơi 1 màu đỏ, Người chơi 2 màu xanh. Đến lượt thì chọc bi chủ của mình.",
-      "Kéo trực tiếp trên bàn để ngắm nhanh, hoặc dùng thanh Hướng và Lực. Đường chấm dự đoán cho thấy bi chủ sẽ đi đâu (kể cả nảy băng); bi bóng ma trắng là điểm chạm và vạch vàng là hướng bi mục tiêu sẽ lăn.",
-      "Bi màu rơi vào hố sẽ cộng 1 điểm cho người vừa chọc. Lọt từ 2 bi trong một cú đánh được thưởng COMBO +1 điểm. Đủ điểm mục tiêu thì thắng.",
-      "Nếu làm rơi bi chủ của mình, đó là lỗi và đối thủ được 1 điểm. Nếu làm rơi bi chủ đối thủ, bạn được 1 điểm.",
-      "Power-up Bóng nổ tạo lực nổ ở va chạm đầu tiên của bi chủ. Nam châm hút bi màu gần bi chủ trong cú đánh. Đổi trọng lực nghiêng bàn theo hướng đang ngắm.",
-      "Các ô B, M, G trên bàn là power-up có thể nhặt khi bi chạm vào. Chơi online: mỗi lượt chỉ gửi hướng, lực và power-up, hai máy tự mô phỏng cùng kết quả.",
+      "Hai người luân phiên chọc CHUNG một bi cái trắng. Đến lượt mình, bạn điều khiển cú đánh của bi cái đó.",
+      "Canh & tụ lực bằng CHUỘT: nhấn giữ và kéo trên bàn như giàn thun — kéo càng xa lực càng mạnh, hướng bắn ngược với hướng kéo. Thả chuột ra là bắn. (Vẫn có thanh Hướng/Lực và nút Chọc bi để dùng thay thế.)",
+      "Đường chấm dự đoán cho thấy bi cái sẽ đi đâu (kể cả nảy băng); bi bóng ma trắng là điểm chạm và vạch vàng là hướng bi mục tiêu sẽ lăn.",
+      "Bi màu rơi vào hố cộng 1 điểm cho người vừa chọc. Lọt từ 2 bi trong một cú được thưởng COMBO +1. Đủ điểm mục tiêu thì thắng.",
+      "Làm rơi bi cái xuống hố là LỖI: đối thủ được 1 điểm và bi cái được đặt lại. Vụ nổ càng gần thì đẩy bi càng mạnh.",
+      "Power-up Bóng nổ tạo lực nổ ở va chạm đầu tiên của bi cái. Nam châm hút bi màu gần bi cái. Đổi trọng lực nghiêng bàn theo hướng đang ngắm. Các ô B/M/G trên bàn nhặt được khi bi chạm vào.",
+      "Chơi online: mỗi lượt chỉ gửi hướng, lực và power-up, hai máy tự mô phỏng cùng kết quả.",
     ],
     create,
   });
