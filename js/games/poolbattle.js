@@ -47,7 +47,7 @@
     const o = ctx.options || {};
     const TARGET = o.target || 7;
     const OBJECTS = o.balls || 9;
-    const TOKEN_COUNT = o.powerups == null ? 6 : o.powerups;
+    const TOKEN_COUNT = o.powerups == null ? 2 : o.powerups;
     const friction = o.cloth === "fast" ? 0.989 : o.cloth === "heavy" ? 0.974 : 0.982;
 
     const players = [
@@ -61,7 +61,8 @@
     ];
 
     const balls = makeBalls(OBJECTS);
-    const tokens = makeTokens(TOKEN_COUNT, balls);
+    const tokens = [];
+    spawnRoundTokens(); // vật phẩm xuất hiện ngẫu nhiên mỗi vòng
 
     let turn = 0;
     let selectedMode = "normal";
@@ -97,7 +98,7 @@
     const legend = document.createElement("div");
     legend.className = "pool-legend";
     legend.innerHTML =
-      `<b>Power-up trên bàn (nhặt khi bi chạm):</b>` +
+      `<b>Power-up (đổi mới mỗi vòng — nhặt khi bi chạm):</b>` +
       Object.keys(TOKEN_DEFS).map((id) => {
         const d = TOKEN_DEFS[id];
         return `<span class="pool-legend-item"><i class="pool-mini" style="background:${d.color}">${d.letter}</i>${d.label}</span>`;
@@ -214,19 +215,18 @@
       return out;
     }
 
-    function makeTokens(count, placedBalls) {
-      const out = [];
+    function spawnRoundTokens() {
+      tokens.length = 0;
       let guard = 0;
-      while (out.length < count && guard++ < 500) {
+      while (tokens.length < TOKEN_COUNT && guard++ < 600) {
         const x = LEFT + 86 + ctx.rng() * (RIGHT - LEFT - 172);
         const y = TOP + 70 + ctx.rng() * (BOTTOM - TOP - 140);
-        if (POCKETS.some((p) => dist(x, y, p.x, p.y) < 78)) continue;
-        if (placedBalls.some((b) => dist(x, y, b.x, b.y) < 54)) continue;
-        if (out.some((t) => dist(x, y, t.x, t.y) < 62)) continue;
         const type = TOKEN_KEYS[Math.floor(ctx.rng() * TOKEN_KEYS.length)];
-        out.push({ id: out.length, x, y, type, active: true, r: 14 });
+        if (POCKETS.some((p) => dist(x, y, p.x, p.y) < 70)) continue;
+        if (balls.some((b) => b.active && dist(x, y, b.x, b.y) < 54)) continue;
+        if (tokens.some((t) => dist(x, y, t.x, t.y) < 70)) continue;
+        tokens.push({ id: tokens.length, x, y, type, active: true, r: 14 });
       }
-      return out;
     }
 
     function canControl() {
@@ -533,6 +533,10 @@
       }
 
       turn = 1 - turn;
+      if (turn === 0 && TOKEN_COUNT > 0) {
+        spawnRoundTokens(); // hết một vòng (cả 2 đã bắn) -> vật phẩm mới ở vị trí khác
+        last += " ✨ Vật phẩm mới xuất hiện!";
+      }
       normalizeSelectedMode();
       ctx.setTurn(turn);
       updateStatus();
@@ -1092,12 +1096,12 @@
       },
       {
         id: "powerups",
-        label: "Power-up trên bàn",
-        default: 6,
+        label: "Power-up mỗi vòng",
+        default: 2,
         choices: [
           { value: 0, label: "Tắt" },
-          { value: 6, label: "Vừa" },
-          { value: 10, label: "Nhiều" },
+          { value: 2, label: "2 (ít)" },
+          { value: 3, label: "3 (nhiều)" },
         ],
       },
       {
@@ -1117,7 +1121,7 @@
       "Đường chấm dự đoán cho thấy bi cái sẽ đi đâu (kể cả nảy băng); bi bóng ma trắng là điểm chạm và vạch vàng là hướng bi mục tiêu sẽ lăn.",
       "Bi màu rơi vào hố cộng 1 điểm cho người vừa chọc. Lọt từ 2 bi trong một cú được thưởng COMBO +1. Đủ điểm mục tiêu thì thắng.",
       "Làm rơi bi cái xuống hố là LỖI: đối thủ được 1 điểm và bi cái được đặt lại. Vụ nổ càng gần thì đẩy bi càng mạnh.",
-      "Power-up Bóng nổ tạo lực nổ ở va chạm đầu tiên của bi cái. Nam châm hút bi màu gần bi cái. Đổi trọng lực nghiêng bàn theo hướng đang ngắm. Các ô B/M/G trên bàn nhặt được khi bi chạm vào.",
+      "Power-up Bóng nổ tạo lực nổ ở va chạm đầu tiên của bi cái. Nam châm hút bi màu gần bi cái. Đổi trọng lực nghiêng bàn theo hướng đang ngắm. Các ô B/M/G xuất hiện NGẪU NHIÊN trên bàn và sau mỗi vòng (cả hai đã bắn) sẽ đổi sang vị trí & loại khác — nhặt khi bi chạm vào.",
       "Chơi online: mỗi lượt chỉ gửi hướng, lực và power-up, hai máy tự mô phỏng cùng kết quả.",
     ],
     create,
