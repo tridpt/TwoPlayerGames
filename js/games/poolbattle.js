@@ -8,7 +8,7 @@
   const BOTTOM = H - 46;
   const BALL_R = 10;
   const CUE_R = 11;
-  const POCKET_R = 24;
+  const POCKET_R = 17;
   const CUSHION = 0.86;
   const STOP_SPEED = 0.045;
   const SUBSTEPS = 2;
@@ -93,6 +93,16 @@
     tableWrap.appendChild(canvas);
     root.appendChild(tableWrap);
     const g = canvas.getContext("2d");
+
+    const legend = document.createElement("div");
+    legend.className = "pool-legend";
+    legend.innerHTML =
+      `<b>Power-up trên bàn (nhặt khi bi chạm):</b>` +
+      Object.keys(TOKEN_DEFS).map((id) => {
+        const d = TOKEN_DEFS[id];
+        return `<span class="pool-legend-item"><i class="pool-mini" style="background:${d.color}">${d.letter}</i>${d.label}</span>`;
+      }).join("");
+    root.appendChild(legend);
 
     const controls = document.createElement("div");
     controls.className = "pool-controls";
@@ -692,11 +702,28 @@
       g.fillStyle = bg;
       g.fillRect(-24, -24, W + 48, H + 48);
 
-      roundedRect(g, LEFT - 32, TOP - 32, RIGHT - LEFT + 64, BOTTOM - TOP + 64, 26);
-      const rail = g.createLinearGradient(LEFT, TOP - 32, RIGHT, BOTTOM + 32);
-      rail.addColorStop(0, "#6f3f2a");
-      rail.addColorStop(0.48, "#2f5d5a");
-      rail.addColorStop(1, "#2b2537");
+      roundedRect(g, LEFT - 44, TOP - 44, RIGHT - LEFT + 88, BOTTOM - TOP + 88, 30);
+      const wood = g.createLinearGradient(0, TOP - 44, 0, BOTTOM + 44);
+      wood.addColorStop(0, "#7a4a2b");
+      wood.addColorStop(0.5, "#4e2c18");
+      wood.addColorStop(1, "#37200f");
+      g.fillStyle = wood;
+      g.fill();
+      g.strokeStyle = "rgba(255,205,150,0.28)";
+      g.lineWidth = 2;
+      roundedRect(g, LEFT - 44, TOP - 44, RIGHT - LEFT + 88, BOTTOM - TOP + 88, 30);
+      g.stroke();
+      g.strokeStyle = "rgba(0,0,0,0.45)";
+      g.lineWidth = 2;
+      roundedRect(g, LEFT - 16, TOP - 16, RIGHT - LEFT + 32, BOTTOM - TOP + 32, 20);
+      g.stroke();
+
+      // đệm băng (cushion) xanh đậm quanh mặt nỉ
+      roundedRect(g, LEFT - 14, TOP - 14, RIGHT - LEFT + 28, BOTTOM - TOP + 28, 18);
+      const rail = g.createLinearGradient(LEFT, TOP - 14, RIGHT, BOTTOM + 14);
+      rail.addColorStop(0, "#125c44");
+      rail.addColorStop(0.5, "#0d4636");
+      rail.addColorStop(1, "#0f3f44");
       g.fillStyle = rail;
       g.fill();
 
@@ -716,27 +743,33 @@
       roundedRect(g, LEFT, TOP, RIGHT - LEFT, BOTTOM - TOP, 16);
       g.fill();
 
-      // nút định vị trên thành (diamonds)
-      g.fillStyle = "rgba(245,238,210,0.85)";
+      // nút định vị trên thành (diamonds) - nằm trên khung gỗ
+      g.fillStyle = "rgba(245,238,210,0.9)";
       const dx4 = (RIGHT - LEFT) / 4;
       for (let i = 1; i < 4; i++) {
         if (i === 2) continue; // giữa là hố
-        diamond(LEFT + dx4 * i, TOP - 16);
-        diamond(LEFT + dx4 * i, BOTTOM + 16);
+        diamond(LEFT + dx4 * i, TOP - 30);
+        diamond(LEFT + dx4 * i, BOTTOM + 30);
       }
       const dy2 = (BOTTOM - TOP) / 2;
-      diamond(LEFT - 16, TOP + dy2);
-      diamond(RIGHT + 16, TOP + dy2);
+      diamond(LEFT - 30, TOP + dy2);
+      diamond(RIGHT + 30, TOP + dy2);
 
       POCKETS.forEach((p) => {
-        const pocket = g.createRadialGradient(p.x - 4, p.y - 5, 2, p.x, p.y, POCKET_R + 8);
-        pocket.addColorStop(0, "#04050a");
-        pocket.addColorStop(1, "#10172a");
+        // viền da quanh lỗ
+        g.fillStyle = "#241a12";
+        g.beginPath();
+        g.arc(p.x, p.y, POCKET_R + 5, 0, Math.PI * 2);
+        g.fill();
+        const pocket = g.createRadialGradient(p.x - 3, p.y - 4, 1, p.x, p.y, POCKET_R + 2);
+        pocket.addColorStop(0, "#000000");
+        pocket.addColorStop(1, "#0b1018");
         g.fillStyle = pocket;
         g.beginPath();
-        g.arc(p.x, p.y, POCKET_R + 4, 0, Math.PI * 2);
+        g.arc(p.x, p.y, POCKET_R, 0, Math.PI * 2);
         g.fill();
-        g.strokeStyle = "rgba(255,255,255,0.12)";
+        g.strokeStyle = "rgba(255,255,255,0.1)";
+        g.lineWidth = 1;
         g.stroke();
       });
 
@@ -766,6 +799,11 @@
       g.textBaseline = "middle";
       g.fillText(def.letter, t.x, t.y + 1);
       g.textBaseline = "alphabetic";
+      // tên ngắn dưới ô để dễ hiểu
+      g.fillStyle = "rgba(255,255,255,0.92)";
+      g.font = "700 9px Segoe UI, sans-serif";
+      g.fillText(def.label, t.x, t.y + 26);
+      g.textAlign = "left";
     }
 
     function drawBall(b) {

@@ -2084,6 +2084,29 @@ body {
 .pool-mini.bomb { background: #ff9f5d; }
 .pool-mini.magnet { background: #8be6f0; }
 .pool-mini.gravity { background: #ffd166; }
+.pool-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 16px;
+  width: 100%;
+  max-width: 820px;
+  margin: 10px auto 0;
+  padding: 8px 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.pool-legend b { color: var(--text); font-size: 0.82rem; }
+.pool-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
 .pool-mid {
   display: flex;
   flex-direction: column;
