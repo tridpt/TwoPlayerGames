@@ -251,6 +251,11 @@
     const mapEl = root.querySelector("#cdMap");
     const panelEl = root.querySelector("#cdPanel");
     const logEl = root.querySelector("#cdLog");
+    // lớp popup riêng, KHÔNG bị dựng lại mỗi tick -> nút bấm ổn định
+    const popupEl = document.createElement("div");
+    popupEl.className = "cd-popup-layer";
+    (root.querySelector(".cd-map-scroll") || mapEl.parentNode).appendChild(popupEl);
+    let lastPopSig = "";
 
     function applyMove(move, fromRemote) {
       if (over || !move) return;
@@ -688,6 +693,7 @@
     function render() {
       renderHud();
       renderMap();
+      renderPopup();
       renderPanel();
       renderLog();
     }
@@ -733,7 +739,6 @@
         ${Array.from({ length: LANES }, (_, lane) => Array.from({ length: SLOTS }, (_, slot) => renderSlot(lane, slot)).join("")).join("")}
         ${monsters.map(renderMonster).join("")}
         ${shots.map(renderShot).join("")}
-        ${renderTowerPopup()}
       `;
 
       mapEl.querySelectorAll("[data-slot]").forEach((btn) => {
@@ -743,37 +748,43 @@
           if (over) return;
           if (towers[lane][slot]) {
             selectedSlot = { lane, slot };
-            render();
+            renderPopup();
           } else {
             applyMove({ t: "build", lane, slot, type: selectedType }, false);
           }
         });
       });
-
-      const upBtn = mapEl.querySelector('[data-pop="up"]');
-      upBtn && upBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (selectedSlot) applyMove({ t: "upgrade", lane: selectedSlot.lane, slot: selectedSlot.slot }, false);
-      });
-      const sellBtn = mapEl.querySelector('[data-pop="sell"]');
-      sellBtn && sellBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (selectedSlot) applyMove({ t: "sell", lane: selectedSlot.lane, slot: selectedSlot.slot }, false);
-      });
-      const closeBtn = mapEl.querySelector('[data-pop="close"]');
-      closeBtn && closeBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        selectedSlot = null;
-        render();
-      });
     }
 
-    function renderTowerPopup() {
-      if (over || !selectedSlot) return "";
-      const tower = towers[selectedSlot.lane][selectedSlot.slot];
-      if (!tower) return "";
+    // Popup nâng cấp/bán: chỉ dựng lại khi đổi lựa chọn (không mỗi tick) -> bấm nút ổn định.
+    function renderPopup() {
+      let sig = "none";
+      let tower = null, pt = null;
+      if (!over && selectedSlot) {
+        tower = towers[selectedSlot.lane][selectedSlot.slot];
+        if (tower) { pt = slotPoint(selectedSlot.lane, selectedSlot.slot); sig = `${selectedSlot.lane},${selectedSlot.slot},${tower.type},${tower.level}`; }
+      }
+      if (sig !== lastPopSig) {
+        lastPopSig = sig;
+        popupEl.innerHTML = tower ? popupHtml(tower, pt) : "";
+        if (tower) {
+          const upBtn = popupEl.querySelector('[data-pop="up"]');
+          upBtn && upBtn.addEventListener("click", (e) => { e.stopPropagation(); if (selectedSlot) applyMove({ t: "upgrade", lane: selectedSlot.lane, slot: selectedSlot.slot }, false); });
+          const sellBtn = popupEl.querySelector('[data-pop="sell"]');
+          sellBtn && sellBtn.addEventListener("click", (e) => { e.stopPropagation(); if (selectedSlot) applyMove({ t: "sell", lane: selectedSlot.lane, slot: selectedSlot.slot }, false); });
+          const closeBtn = popupEl.querySelector('[data-pop="close"]');
+          closeBtn && closeBtn.addEventListener("click", (e) => { e.stopPropagation(); selectedSlot = null; renderPopup(); });
+        }
+      }
+      // cập nhật trạng thái nút Nâng theo vàng mà KHÔNG dựng lại (giữ click ổn định)
+      if (tower) {
+        const upBtn = popupEl.querySelector('[data-pop="up"]');
+        if (upBtn) { const cost = upgradeCost(tower); upBtn.disabled = tower.level >= 5 || coins < cost; }
+      }
+    }
+
+    function popupHtml(tower, pt) {
       const def = TOWERS[tower.type];
-      const pt = slotPoint(selectedSlot.lane, selectedSlot.slot);
       const cost = upgradeCost(tower);
       const refund = Math.floor(towerValue(tower) * 0.5);
       const side = pt.x > 55 ? "left" : "right";

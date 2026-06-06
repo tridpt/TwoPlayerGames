@@ -10305,9 +10305,15 @@ body {
 
 
 /* ---------- Co-op Defense: popup nâng cấp/bán cạnh cây súng ---------- */
+.cd-map-scroll { position: relative; }
+.cd-popup-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
 .cd-tower-popup {
   position: absolute;
-  z-index: 20;
   width: 134px;
   padding: 8px 10px 9px;
   border-radius: 10px;
