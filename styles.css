@@ -2506,12 +2506,18 @@ body {
 }
 .bd-arena {
   display: grid;
-  grid-template-columns: minmax(190px, 0.72fr) minmax(620px, 2.4fr) minmax(210px, 0.8fr);
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "center center"
+    "attack defense";
   gap: 12px;
   align-items: start;
   width: 100%;
-  max-width: 1520px;
+  max-width: 1280px;
 }
+.bd-center-col { grid-area: center; }
+.bd-attack-panel { grid-area: attack; }
+.bd-defense-panel { grid-area: defense; }
 .bd-center-col {
   display: flex;
   flex-direction: column;
@@ -2556,7 +2562,7 @@ body {
 }
 .bd-action-group {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 8px;
 }
 .bd-hud {
@@ -2564,7 +2570,7 @@ body {
   grid-template-columns: minmax(210px, 1fr) minmax(260px, 1.15fr) minmax(210px, 1fr);
   gap: 10px;
   width: 100%;
-  max-width: 1520px;
+  max-width: 1280px;
 }
 .bd-player,
 .bd-mid {
@@ -2644,7 +2650,7 @@ body {
 }
 .bd-stage-wrap {
   width: 100%;
-  max-width: 1240px;
+  max-width: 1280px;
   min-width: 0;
   overflow: hidden;
   border-radius: 10px;
@@ -2665,7 +2671,7 @@ body {
   justify-content: center;
   gap: 10px;
   width: 100%;
-  max-width: 1240px;
+  max-width: 1280px;
 }
 .bd-sidebox {
   display: flex;
@@ -2714,12 +2720,18 @@ body {
 }
 .bd-action span {
   grid-row: 1 / 4;
-  min-width: 38px;
-  padding: 5px 6px;
-  border-radius: 7px;
-  background: rgba(255,255,255,0.09);
+  min-width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background:
+    radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--ac, #ffd166) 38%, transparent), transparent 70%),
+    rgba(255,255,255,0.08);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac, #ffffff) 35%, transparent);
   color: var(--accent);
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   font-weight: 900;
   text-align: center;
 }
@@ -2752,12 +2764,6 @@ body {
     width: calc(100vw - 32px);
     max-width: calc(100vw - 32px);
   }
-  .bd-arena {
-    grid-template-columns: 1fr;
-  }
-  .bd-center-col { order: 1; }
-  .bd-attack-panel { order: 2; }
-  .bd-defense-panel { order: 3; }
   .bd-hud {
     grid-template-columns: 1fr 1fr;
   }
@@ -2765,12 +2771,18 @@ body {
     grid-column: 1 / -1;
     order: -1;
   }
-  .bd-action-group {
-    grid-template-columns: 1fr 1fr;
-  }
   .bd-side-btn,
   .bd-action {
     min-width: 0;
+  }
+}
+@media (max-width: 620px) {
+  .bd-arena {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "center"
+      "attack"
+      "defense";
   }
 }
 @media (max-width: 560px) {

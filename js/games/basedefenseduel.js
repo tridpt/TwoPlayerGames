@@ -12,8 +12,8 @@
 
   const UNIT_DEFS = {
     grunt: {
-      label: "Lính nhỏ",
-      icon: "🗡️",
+      label: "Tân binh",
+      icon: "🪖",
       cost: 22,
       hp: 62,
       dmg: 10,
@@ -25,7 +25,7 @@
       hint: "rẻ, đẩy lane",
     },
     runner: {
-      label: "Kẻ chạy",
+      label: "Trinh sát",
       icon: "🏃",
       cost: 36,
       hp: 48,
@@ -38,7 +38,7 @@
       hint: "nhanh",
     },
     shield: {
-      label: "Khiên chắn",
+      label: "Vệ binh",
       icon: "🛡️",
       cost: 46,
       hp: 116,
@@ -65,8 +65,8 @@
       hint: "bắn xa",
     },
     brute: {
-      label: "Đấu sĩ trâu",
-      icon: "🐂",
+      label: "Chiến binh",
+      icon: "🪓",
       cost: 64,
       hp: 142,
       dmg: 23,
@@ -78,7 +78,7 @@
       hint: "nhiều máu",
     },
     bomber: {
-      label: "Nổ giáp",
+      label: "Công binh",
       icon: "💣",
       cost: 74,
       hp: 72,
@@ -93,7 +93,7 @@
     },
     warlock: {
       label: "Pháp sư",
-      icon: "🔮",
+      icon: "🧙",
       cost: 88,
       hp: 82,
       dmg: 19,
@@ -266,6 +266,7 @@
           const label = a.def ? a.def.label : a.label;
           const icon = a.def ? a.def.icon : a.icon;
           const hint = a.def ? a.def.hint : a.hint;
+          if (a.def && a.def.color) btn.style.setProperty("--ac", a.def.color);
           btn.innerHTML = `<span>${icon}</span><b>${label}</b><small>${hint}</small><em></em>`;
           btn.addEventListener("click", () => submitAction(a.id));
           box.appendChild(btn);
