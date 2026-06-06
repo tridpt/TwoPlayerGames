@@ -163,15 +163,21 @@
     let aimingPointer = false;
     let pullPoint = null;
     let didPull = false;
+    let ballInHand = false;   // được quyền đặt bi cái ở bất kỳ đâu
+    let pendingBIH = false;   // lượt sau (đối thủ) sẽ được đặt bi
+    let placePoint = null;    // vị trí con trỏ khi đang đặt bi
     canvas.addEventListener("pointerdown", (e) => {
       if (!canControl()) return;
+      if (ballInHand) { placeCue(pointerPos(e)); return; }
       aimingPointer = true;
       didPull = false;
       canvas.setPointerCapture(e.pointerId);
       aimFromPointer(e);
     });
     canvas.addEventListener("pointermove", (e) => {
-      if (!aimingPointer || !canControl()) return;
+      if (!canControl()) return;
+      if (ballInHand) { placePoint = pointerPos(e); draw(); return; }
+      if (!aimingPointer) return;
       aimFromPointer(e);
     });
     canvas.addEventListener("pointerup", (e) => {
@@ -179,11 +185,30 @@
       const wasAiming = aimingPointer;
       aimingPointer = false;
       pullPoint = null;
-      // thả chuột là bắn nếu đã kéo đủ lực
-      if (wasAiming && canControl() && didPull && players[turn].power >= 22) shoot();
+      if (wasAiming && canControl() && !ballInHand && didPull && players[turn].power >= 22) shoot();
       else draw();
     });
     canvas.addEventListener("pointercancel", () => { aimingPointer = false; pullPoint = null; draw(); });
+
+    // đặt bi cái vào vị trí hợp lệ (ball-in-hand)
+    function placeCue(p) {
+      const cue = cueBall();
+      if (!cue) return;
+      const x = clamp(p.x, LEFT + cue.r, RIGHT - cue.r);
+      const y = clamp(p.y, TOP + cue.r, BOTTOM - cue.r);
+      const ok = !POCKETS.some((pk) => dist(x, y, pk.x, pk.y) < POCKET_R + cue.r) &&
+        !balls.some((b) => b !== cue && b.active && dist(x, y, b.x, b.y) < b.r + cue.r + 1);
+      if (!ok) { ctx.sound("miss"); return; }
+      cue.x = x;
+      cue.y = y;
+      cue.active = true;
+      ballInHand = false;
+      placePoint = null;
+      ctx.sound("place");
+      updateStatus();
+      syncControls();
+      draw();
+    }
 
     function makeBalls(count) {
       const out = [
@@ -275,16 +300,26 @@
       pl.angle = normalizeDeg(Number(move.angle || 0));
       pl.power = clamp(Number(move.power || 60), 20, 100);
 
+      // đồng bộ vị trí bi cái (trường hợp đối thủ đặt bi sau khi mình phạm lỗi)
+      const cue = cueBall();
+      if (fromRemote && cue && typeof move.cx === "number" && typeof move.cy === "number") {
+        cue.x = clamp(move.cx, LEFT + cue.r, RIGHT - cue.r);
+        cue.y = clamp(move.cy, TOP + cue.r, BOTTOM - cue.r);
+        cue.active = true;
+        ballInHand = false;
+      }
+
       let mode = MODE_DEFS[move.mode] ? move.mode : "normal";
       if (mode !== "normal") {
         if (!fromRemote && inventory[turn][mode] <= 0) mode = "normal";
         else inventory[turn][mode] = Math.max(0, inventory[turn][mode] - 1);
       }
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ angle: pl.angle, power: pl.power, mode });
+      if (!fromRemote && ctx.isOnline) ctx.sendMove({ angle: pl.angle, power: pl.power, mode, cx: cue ? cue.x : 0, cy: cue ? cue.y : 0 });
       startShot(mode);
     }
 
     function startShot(mode) {
+      ballInHand = false;
       const cue = cueBall();
       if (!cue.active) respawnCue();
       const pl = players[turn];
@@ -483,7 +518,7 @@
 
     function endShot() {
       balls.forEach((b) => { b.vx = 0; b.vy = 0; });
-      if (shot && shot.foul) scores[1 - turn] += 1;
+      if (shot && shot.foul) { scores[1 - turn] += 1; pendingBIH = true; }
       respawnCue();
 
       if (shot) {
@@ -511,6 +546,8 @@
       }
 
       turn = 1 - turn;
+      ballInHand = pendingBIH; // đối thủ được đặt bi nếu vừa có lỗi bi cái
+      pendingBIH = false;
       if (turn === 0 && TOKEN_COUNT > 0) {
         spawnRoundTokens(); // hết một vòng (cả 2 đã bắn) -> vật phẩm mới ở vị trí khác
         last += " ✨ Vật phẩm mới xuất hiện!";
@@ -629,6 +666,8 @@
       if (over) return;
       if (busy) {
         ctx.setStatus("Bi đang lăn, chờ bàn dừng lại.");
+      } else if (ballInHand && (!ctx.isOnline || turn === ctx.mySeat)) {
+        ctx.setStatus("🖐️ Bi trong tay: đối thủ đã làm rớt bi cái! Bấm lên bàn để đặt bi ở vị trí bất kỳ, rồi kéo để bắn.");
       } else if (ctx.isOnline && turn !== ctx.mySeat) {
         ctx.setStatus(`Đối thủ đang ngắm. ${last}`);
       } else {
@@ -648,10 +687,37 @@
       tokens.forEach(drawToken);
       balls.forEach(drawBall);
       drawAim();
+      drawPlacement();
       drawShotEffects();
       drawParticles();
       drawFloaters();
       g.restore();
+    }
+
+    function drawPlacement() {
+      if (!ballInHand || !canControl()) return;
+      const cue = cueBall();
+      g.fillStyle = "rgba(255,209,102,0.95)";
+      g.font = "900 14px Segoe UI, sans-serif";
+      g.textAlign = "center";
+      g.fillText("🖐️ Đặt bi cái: bấm vào bàn ở vị trí bất kỳ", W / 2, TOP + 18);
+      g.textAlign = "left";
+      const p = placePoint;
+      if (p && cue) {
+        const x = clamp(p.x, LEFT + cue.r, RIGHT - cue.r);
+        const y = clamp(p.y, TOP + cue.r, BOTTOM - cue.r);
+        const ok = !POCKETS.some((pk) => dist(x, y, pk.x, pk.y) < POCKET_R + cue.r) &&
+          !balls.some((b) => b !== cue && b.active && dist(x, y, b.x, b.y) < b.r + cue.r + 1);
+        g.save();
+        g.globalAlpha = 0.6;
+        g.fillStyle = ok ? "#f7f7ff" : "#ff5d73";
+        g.beginPath(); g.arc(x, y, cue.r, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = 1;
+        g.strokeStyle = ok ? "rgba(110,231,183,0.95)" : "rgba(255,93,115,0.95)";
+        g.lineWidth = 2;
+        g.beginPath(); g.arc(x, y, cue.r + 4, 0, Math.PI * 2); g.stroke();
+        g.restore();
+      }
     }
 
     function drawParticles() {
@@ -862,7 +928,7 @@
     }
 
     function drawAim() {
-      if (busy || over) return;
+      if (busy || over || ballInHand) return;
       const cue = cueBall(turn);
       if (!cue || !cue.active) return;
       const pl = players[turn];
@@ -1099,7 +1165,7 @@
       "Canh & tụ lực bằng CHUỘT: nhấn giữ và kéo trên bàn như giàn thun — kéo càng xa lực càng mạnh, hướng bắn ngược với hướng kéo. Thả chuột ra là bắn. (Vẫn có thanh Hướng/Lực và nút Chọc bi để dùng thay thế.)",
       "Đường chấm dự đoán cho thấy bi cái sẽ đi đâu (kể cả nảy băng); bi bóng ma trắng là điểm chạm và vạch vàng là hướng bi mục tiêu sẽ lăn.",
       "Bi màu rơi vào hố cộng 1 điểm cho người vừa chọc. Lọt từ 2 bi trong một cú được thưởng COMBO +1. Đủ điểm mục tiêu thì thắng.",
-      "Làm rơi bi cái xuống hố là LỖI: đối thủ được 1 điểm và bi cái được đặt lại. Vụ nổ càng gần thì đẩy bi càng mạnh.",
+      "Làm rơi bi cái xuống hố là LỖI: đối thủ được 1 điểm VÀ được 'bi trong tay' — bấm lên bàn để đặt lại bi cái ở vị trí bất kỳ trước khi bắn. Vụ nổ càng gần thì đẩy bi càng mạnh.",
       "Power-up: 🟠 Bóng nổ (B) tạo lực nổ ở va chạm đầu tiên của bi cái; 🟡 Siêu lực (P) cho cú bắn cực mạnh; 🔵 Lỗ to (O) nới rộng tất cả lỗ trong đúng cú đó để dễ vào bi. Các ô B/P/O xuất hiện NGẪU NHIÊN trên bàn và sau mỗi vòng (cả hai đã bắn) sẽ đổi sang vị trí & loại khác — nhặt khi bi chạm vào.",
       "Chơi online: mỗi lượt chỉ gửi hướng, lực và power-up, hai máy tự mô phỏng cùng kết quả.",
     ],
