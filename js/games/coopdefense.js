@@ -733,6 +733,7 @@
         ${Array.from({ length: LANES }, (_, lane) => Array.from({ length: SLOTS }, (_, slot) => renderSlot(lane, slot)).join("")).join("")}
         ${monsters.map(renderMonster).join("")}
         ${shots.map(renderShot).join("")}
+        ${renderTowerPopup()}
       `;
 
       mapEl.querySelectorAll("[data-slot]").forEach((btn) => {
@@ -748,6 +749,47 @@
           }
         });
       });
+
+      const upBtn = mapEl.querySelector('[data-pop="up"]');
+      upBtn && upBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (selectedSlot) applyMove({ t: "upgrade", lane: selectedSlot.lane, slot: selectedSlot.slot }, false);
+      });
+      const sellBtn = mapEl.querySelector('[data-pop="sell"]');
+      sellBtn && sellBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (selectedSlot) applyMove({ t: "sell", lane: selectedSlot.lane, slot: selectedSlot.slot }, false);
+      });
+      const closeBtn = mapEl.querySelector('[data-pop="close"]');
+      closeBtn && closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectedSlot = null;
+        render();
+      });
+    }
+
+    function renderTowerPopup() {
+      if (over || !selectedSlot) return "";
+      const tower = towers[selectedSlot.lane][selectedSlot.slot];
+      if (!tower) return "";
+      const def = TOWERS[tower.type];
+      const pt = slotPoint(selectedSlot.lane, selectedSlot.slot);
+      const cost = upgradeCost(tower);
+      const refund = Math.floor(towerValue(tower) * 0.5);
+      const side = pt.x > 55 ? "left" : "right";
+      const upLabel = tower.level >= 5 ? "MAX" : `⬆️ ${cost}`;
+      const upOff = tower.level >= 5 || coins < cost;
+      return `
+        <div class="cd-tower-popup pop-${side}" style="left:${pt.x}%;top:${pt.y}%">
+          <button class="cd-pop-close" data-pop="close" type="button">✕</button>
+          <b style="color:${def.color}">${def.name}</b>
+          <span>Cấp ${tower.level}/5 · ${def.note}</span>
+          <div class="cd-pop-row">
+            <button class="cd-pop-btn up" data-pop="up" type="button" ${upOff ? "disabled" : ""}>${upLabel}</button>
+            <button class="cd-pop-btn sell" data-pop="sell" type="button">🪙 ${refund}</button>
+          </div>
+        </div>
+      `;
     }
 
     function renderScenery() {
@@ -874,21 +916,10 @@
     }
 
     function renderSelectedActions(tower) {
-      if (!selectedSlot || !tower) {
-        return `<div class="cd-empty-select">Chọn súng rồi bấm bãi xây trống trên map. Wave chạy vẫn xây và nâng cấp được.</div>`;
+      if (selectedSlot && tower) {
+        return `<div class="cd-empty-select">Bảng nâng cấp/bán hiện ngay cạnh cây súng trên bản đồ. Chọn súng rồi bấm bãi trống để xây thêm.</div>`;
       }
-      const def = TOWERS[tower.type];
-      const cost = upgradeCost(tower);
-      return `
-        <div class="cd-selected">
-          <b>${def.name} đường ${selectedSlot.lane + 1}</b>
-          <span>Cấp ${tower.level}/5 · ${def.note}</span>
-          <div class="cd-action-row">
-            <button class="btn" id="cdUpgrade" ${tower.level >= 5 || coins < cost || over ? "disabled" : ""}>Nâng (${tower.level >= 5 ? "max" : cost + " vàng"})</button>
-            <button class="btn" id="cdSell" ${over ? "disabled" : ""}>Bán</button>
-          </div>
-        </div>
-      `;
+      return `<div class="cd-empty-select">Chọn loại súng rồi bấm bãi xây trống trên map. Bấm vào súng đã xây để nâng cấp/bán ngay cạnh nó.</div>`;
     }
 
     function renderLog() {
