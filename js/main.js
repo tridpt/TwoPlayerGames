@@ -833,9 +833,7 @@
 
   el.modeLocal.addEventListener("click", () => {
     if (selectedGame.localReady === false) return;
-    online = null;
-    currentOptions = readOptions(selectedGame);
-    startGame(null, { autoHelp: true });
+    startLocalGame(selectedGame, readOptions(selectedGame));
   });
 
   el.modeOnline.addEventListener("click", () => {
@@ -1130,7 +1128,63 @@
     startGame();
   }
 
-  function goHome() {
+  function teardownInstance() {
+    if (instance && typeof instance.destroy === "function") {
+      try { instance.destroy(); } catch (e) { /* ignore */ }
+    }
+    instance = null;
+    // Gỡ canvas/DOM của game khỏi màn -> dừng vòng lặp requestAnimationFrame
+    // và mọi âm thanh lặp lại mà game đang phát.
+    el.boardWrap.innerHTML = "";
+  }
+
+  // ====================== Định tuyến URL (mỗi game một link) ======================
+  let suppressHash = false;
+
+  function navTo(target) {
+    target = String(target || "");
+    const cur = location.hash.replace(/^#/, "");
+    if (cur === target) return;
+    if (target) {
+      suppressHash = true;
+      location.hash = target;
+    } else if (location.hash) {
+      // về trang chủ: xóa hash cho gọn, replaceState không bắn hashchange
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+  }
+
+  function defaultOptions(game) {
+    const result = {};
+    (game.options || []).forEach((o) => { result[o.id] = o.default; });
+    return result;
+  }
+
+  function startLocalGame(game, options) {
+    if (!game || game.localReady === false) return;
+    online = null;
+    selectedGame = game;
+    currentOptions = options || defaultOptions(game);
+    startGame(null, { autoHelp: true });
+    navTo("play/" + game.id);
+  }
+
+  function handleRoute() {
+    const h = location.hash.replace(/^#/, "");
+    const m = h.match(/^play\/([a-z0-9_-]+)$/i);
+    if (m) {
+      const game = getGameById(m[1]);
+      if (game && game.localReady !== false) { startLocalGame(game, defaultOptions(game)); return; }
+    }
+    resetToMenu();
+  }
+
+  window.addEventListener("hashchange", () => {
+    if (suppressHash) { suppressHash = false; return; }
+    handleRoute();
+  });
+
+  function resetToMenu() {
     clearRoomExitNotice();
     hideWinScreen();
     leavePendingRoom();
@@ -1143,8 +1197,13 @@
     el.chatPanel.classList.add("hidden");
     selectedGame = null;
     lobbySelectedGame = null;
-    instance = null;
+    teardownInstance();
     show("menu");
+  }
+
+  function goHome() {
+    resetToMenu();
+    navTo("");
   }
 
   function closeLobby() {
@@ -1279,4 +1338,5 @@
   el.winMenu.addEventListener("click", () => { hideWinScreen(); goHome(); });
 
   renderMenu();
+  handleRoute();
 })();
