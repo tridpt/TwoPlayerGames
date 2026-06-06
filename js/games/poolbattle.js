@@ -13,7 +13,7 @@
   const STOP_SPEED = 0.045;
   const SUBSTEPS = 2;
   const MAX_FRAMES = 1500;
-  const POWER_SCALE = 0.16;
+  const POWER_SCALE = 0.26;
   const TOKEN_KEYS = ["bomb", "magnet", "gravity"];
 
   const MODE_DEFS = {
