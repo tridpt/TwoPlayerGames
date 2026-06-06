@@ -256,6 +256,7 @@
     popupEl.className = "cd-popup-layer";
     (root.querySelector(".cd-map-scroll") || mapEl.parentNode).appendChild(popupEl);
     let lastPopSig = "";
+    let lastPanelSig = "";
 
     function applyMove(move, fromRemote) {
       if (over || !move) return;
@@ -874,6 +875,16 @@
     }
 
     function renderPanel() {
+      // Chỉ dựng lại panel khi cần (không mỗi tick) -> nút không nhấp nháy & bấm ổn định.
+      const sig = [phase, over ? 1 : 0, activeMap, selectedType, canChangeMap() ? 1 : 0, selectedSlot ? 1 : 0].join("|");
+      if (sig !== lastPanelSig) {
+        lastPanelSig = sig;
+        buildPanel();
+      }
+      updatePanelDynamic();
+    }
+
+    function buildPanel() {
       const sel = selectedSlot ? towers[selectedSlot.lane][selectedSlot.slot] : null;
       panelEl.innerHTML = `
         <div class="cd-panel-section">
@@ -902,8 +913,8 @@
         <div class="cd-panel-section">
           <h3>Điều khiển</h3>
           ${renderSelectedActions(sel)}
-          <button class="btn primary cd-start" id="cdStart" ${phase !== "prep" || over ? "disabled" : ""}>${phase === "wave" ? "Wave đang chạy" : wave === 0 ? "Gọi wave 1" : "Gọi wave " + (wave + 1)}</button>
-          <button class="btn cd-strike" id="cdStrike" ${phase !== "wave" || over || strikeCd > 0 || coins < STRIKE_COST ? "disabled" : ""}>💥 Không kích (${STRIKE_COST} vàng${strikeCd > 0 ? " · hồi " + Math.ceil(strikeCd / 10) + "s" : ""})</button>
+          <button class="btn primary cd-start" id="cdStart"></button>
+          <button class="btn cd-strike" id="cdStrike"></button>
         </div>
       `;
 
@@ -920,11 +931,22 @@
       startBtn && startBtn.addEventListener("click", () => applyMove({ t: "start" }, false));
       const strikeBtn = panelEl.querySelector("#cdStrike");
       strikeBtn && strikeBtn.addEventListener("click", () => applyMove({ t: "airstrike" }, false));
-      const upgradeBtn = panelEl.querySelector("#cdUpgrade");
-      upgradeBtn && upgradeBtn.addEventListener("click", () => applyMove({ t: "upgrade", lane: selectedSlot.lane, slot: selectedSlot.slot }, false));
-      const sellBtn = panelEl.querySelector("#cdSell");
-      sellBtn && sellBtn.addEventListener("click", () => applyMove({ t: "sell", lane: selectedSlot.lane, slot: selectedSlot.slot }, false));
     }
+
+    // Cập nhật nhãn/trạng thái nút Gọi wave & Không kích MỖI TICK mà không dựng lại phần tử.
+    function updatePanelDynamic() {
+      const startBtn = panelEl.querySelector("#cdStart");
+      if (startBtn) {
+        startBtn.disabled = phase !== "prep" || over;
+        startBtn.textContent = phase === "wave" ? "Wave đang chạy" : wave === 0 ? "Gọi wave 1" : "Gọi wave " + (wave + 1);
+      }
+      const strikeBtn = panelEl.querySelector("#cdStrike");
+      if (strikeBtn) {
+        strikeBtn.disabled = phase !== "wave" || over || strikeCd > 0 || coins < STRIKE_COST;
+        strikeBtn.textContent = `💥 Không kích (${STRIKE_COST} vàng${strikeCd > 0 ? " · hồi " + Math.ceil(strikeCd / 10) + "s" : ""})`;
+      }
+    }
+
 
     function renderSelectedActions(tower) {
       if (selectedSlot && tower) {
