@@ -1892,10 +1892,41 @@ body {
 .nim-actions .nim-clear:disabled { opacity: 0.4; }
 
 /* ---------- Hex ---------- */
+.hex-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.hex-header {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  width: min(460px, 94vw);
+}
+.hex-side {
+  flex: 1;
+  text-align: center;
+  padding: 7px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid transparent;
+}
+.hex-side.p1 { color: #ff8c9c; }
+.hex-side.p2 { color: #7fe2f0; }
+.hex-side.p1.active { border-color: var(--p1); box-shadow: 0 0 10px rgba(255,93,115,0.4); }
+.hex-side.p2.active { border-color: var(--p2); box-shadow: 0 0 10px rgba(77,208,225,0.4); }
+.hex-vs { display: flex; align-items: center; font-weight: 900; color: var(--muted); font-size: 0.85rem; }
 .hex-wrap {
   overflow-x: auto;
-  padding: 12px;
-  background: var(--panel);
+  padding: 16px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,93,115,0.1), transparent 45%),
+    radial-gradient(circle at 0% 50%, rgba(77,208,225,0.1), transparent 45%),
+    var(--panel);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   max-width: 100%;
@@ -1903,23 +1934,38 @@ body {
 .hex-grid {
   display: inline-flex;
   flex-direction: column;
-  gap: 3px;
-  font-size: 26px; /* điều khiển kích thước ô qua em */
+  font-size: 25px; /* điều khiển kích thước ô qua em (set lại bằng JS) */
 }
-.hex-row { display: flex; gap: 3px; }
+.hex-row {
+  display: flex;
+  align-items: flex-start;
+  height: 1.62em;        /* < chiều cao ô để các hàng chồng khít */
+}
 .hex-cell {
-  width: 1.7em;
-  height: 1.7em;
+  width: 1.9em;
+  height: 2.14em;
+  flex-shrink: 0;
   background: #2a3060;
   cursor: pointer;
-  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  transition: background 0.12s;
-  flex-shrink: 0;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  transition: background 0.12s, filter 0.15s, transform 0.08s;
 }
-.hex-cell:hover { background: #3a4180; }
-.hex-cell.p1 { background: var(--p1); }
-.hex-cell.p2 { background: var(--p2); }
-.hex-cell.win { background: var(--good); }
+.hex-cell.edge-red { background: #4a2740; }
+.hex-cell.edge-blue { background: #1f3a4a; }
+.hex-cell.edge-red.edge-blue { background: #3a3048; }
+.hex-cell:hover { filter: brightness(1.25); }
+.hex-grid.turn-p1 .hex-cell:not(.p1):not(.p2):hover { background: rgba(255,93,115,0.5); }
+.hex-grid.turn-p2 .hex-cell:not(.p1):not(.p2):hover { background: rgba(77,208,225,0.5); }
+.hex-cell.p1 { background: radial-gradient(circle at 38% 30%, #ff9aa8, #d33049); }
+.hex-cell.p2 { background: radial-gradient(circle at 38% 30%, #9af0fb, #1aa7bd); }
+.hex-cell.p1.linked { filter: drop-shadow(0 0 4px rgba(255,93,115,0.95)); }
+.hex-cell.p2.linked { filter: drop-shadow(0 0 4px rgba(77,208,225,0.95)); }
+.hex-cell.last { filter: brightness(1.45) drop-shadow(0 0 5px rgba(255,209,102,0.9)); }
+.hex-cell.win {
+  background: radial-gradient(circle at 38% 30%, #d6ffe9, #2fd08a);
+  animation: hex-win 0.7s ease-in-out infinite alternate;
+}
+@keyframes hex-win { from { filter: brightness(1); } to { filter: brightness(1.5) drop-shadow(0 0 6px rgba(110,231,183,0.9)); } }
 
 /* ---------- Mancala ---------- */
 .mnc-board {
