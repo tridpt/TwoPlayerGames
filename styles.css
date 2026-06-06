@@ -1491,6 +1491,47 @@ body {
 .gmk-cell.win { background: rgba(110, 231, 183, 0.7); }
 
 /* ---------- Dots and Boxes ---------- */
+.dnb-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+.dnb-header {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  width: min(460px, 94vw);
+}
+.dnb-score {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid transparent;
+}
+.dnb-score span { font-size: 0.78rem; color: var(--muted); }
+.dnb-score b { font-size: 1.5rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.dnb-score.p1 b { color: var(--p1); }
+.dnb-score.p2 b { color: var(--p2); }
+.dnb-score.p1.active { border-color: var(--p1); box-shadow: 0 0 10px rgba(255,93,115,0.4); }
+.dnb-score.p2.active { border-color: var(--p2); box-shadow: 0 0 10px rgba(77,208,225,0.4); }
+.dnb-mid {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  min-width: 110px;
+  text-align: center;
+}
+.dnb-mid span { font-size: 0.82rem; color: var(--text); }
+.dnb-mid small { font-size: 0.72rem; color: var(--accent); }
 .dnb-board {
   display: grid;
   align-items: center;
@@ -1499,22 +1540,31 @@ body {
   padding: 16px;
   border-radius: 12px;
   box-shadow: var(--shadow);
+  max-width: 96vw;
+  overflow: auto;
+  --dnb-u: 46px;
+  --dnb-t: 10px;
 }
-.dnb-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--muted); }
-.dnb-h { width: 46px; height: 10px; border-radius: 5px; background: rgba(255,255,255,0.08); cursor: pointer; }
-.dnb-v { width: 10px; height: 46px; border-radius: 5px; background: rgba(255,255,255,0.08); cursor: pointer; }
+.dnb-dot { width: calc(var(--dnb-t) + 4px); height: calc(var(--dnb-t) + 4px); border-radius: 50%; background: var(--muted); }
+.dnb-h { width: var(--dnb-u); height: var(--dnb-t); border-radius: 5px; background: rgba(255,255,255,0.08); cursor: pointer; transition: background 0.12s; }
+.dnb-v { width: var(--dnb-t); height: var(--dnb-u); border-radius: 5px; background: rgba(255,255,255,0.08); cursor: pointer; transition: background 0.12s; }
 .dnb-h:hover, .dnb-v:hover { background: var(--accent); }
 .dnb-h.on, .dnb-v.on { cursor: default; }
 .dnb-h.on:hover, .dnb-v.on:hover { background: inherit; }
 .dnb-h.p1, .dnb-v.p1 { background: var(--p1); }
 .dnb-h.p2, .dnb-v.p2 { background: var(--p2); }
+.dnb-h.last, .dnb-v.last { box-shadow: 0 0 0 2px var(--accent); }
 .dnb-box {
-  width: 46px; height: 46px;
+  width: var(--dnb-u); height: var(--dnb-u);
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; color: rgba(255,255,255,0.85);
+  font-weight: 800; color: rgba(255,255,255,0.85);
+  font-size: clamp(0.7rem, 2.4vw, 1rem);
 }
-.dnb-box.own-p1 { background: rgba(255, 93, 115, 0.35); }
-.dnb-box.own-p2 { background: rgba(77, 208, 225, 0.35); }
+.dnb-box.star { color: rgba(255,209,102,0.55); }
+.dnb-box.own-p1 { background: rgba(255, 93, 115, 0.35); color: #fff; }
+.dnb-box.own-p2 { background: rgba(77, 208, 225, 0.35); color: #fff; }
+.dnb-box.claimed { animation: dnb-pop 0.25s ease-out; }
+@keyframes dnb-pop { from { transform: scale(0.4); } to { transform: scale(1); } }
 
 /* ---------- Ultimate Tic-Tac-Toe ---------- */
 .utt-board {
