@@ -15,6 +15,7 @@
     const conf = SIZES[o.size] || SIZES[8];
     const N = conf.n;
     const NEED = conf.need;
+    const CONFIRM = o.confirm !== "off"; // xác nhận 2 lần để tránh bấm nhầm
 
     let board = Array.from({ length: N }, () => Array(N).fill(null));
     let turn = 0; // 0 = Order, 1 = Chaos
@@ -22,6 +23,7 @@
     let over = false;
     let count = 0;
     let lastMove = null;
+    let pending = null; // [r,c] ô đang chờ xác nhận
 
     const root = document.createElement("div");
     root.className = "oc-root";
@@ -79,10 +81,39 @@
       chosen = s;
       xBtn.classList.toggle("active", s === "X");
       oBtn.classList.toggle("active", s === "O");
+      if (pending) { // cập nhật xem trước ô đang chờ xác nhận
+        const el = cellEls[pending[0]][pending[1]];
+        el.classList.remove("x", "o");
+        el.classList.add(s === "X" ? "x" : "o");
+        el.textContent = s;
+        ctx.setStatus(`Bấm LẦN NỮA vào ô đã chọn để xác nhận đặt "${s}". Hoặc chọn ô khác.`);
+      }
+    }
+
+    function clearPending() {
+      if (!pending) return;
+      const [r, c] = pending;
+      pending = null;
+      if (board[r][c] === null) {
+        const el = cellEls[r][c];
+        el.classList.remove("pending", "x", "o", "ghost");
+        el.textContent = "";
+      }
+    }
+
+    function setPending(r, c) {
+      clearPending();
+      pending = [r, c];
+      const el = cellEls[r][c];
+      el.classList.remove("ghost");
+      el.classList.add("pending", chosen === "X" ? "x" : "o");
+      el.textContent = chosen;
+      ctx.setStatus(`Bấm LẦN NỮA vào ô đó để xác nhận đặt "${chosen}". (chống bấm nhầm)`);
     }
 
     function onHover(r, c, on) {
       if (!canPlay() || board[r][c] !== null) return;
+      if (pending && pending[0] === r && pending[1] === c) return; // đừng ghi đè ô đang chờ xác nhận
       const el = cellEls[r][c];
       if (on) {
         el.classList.add("ghost", chosen === "X" ? "x" : "o");
@@ -95,19 +126,27 @@
 
     function onClick(r, c) {
       if (!canPlay() || board[r][c] !== null) return;
-      applyMove({ r, c, sym: chosen }, false);
+      if (!CONFIRM) { applyMove({ r, c, sym: chosen }, false); return; }
+      if (pending && pending[0] === r && pending[1] === c) {
+        pending = null;
+        applyMove({ r, c, sym: chosen }, false);
+        return;
+      }
+      setPending(r, c);
+      ctx.sound("select");
     }
 
     function applyMove(move, fromRemote) {
       const r = Number(move.r), c = Number(move.c);
       const sym = move.sym === "O" ? "O" : "X";
       if (over || !inB(r, c) || board[r][c] !== null) return;
+      clearPending();
       board[r][c] = sym;
       count++;
       if (lastMove) cellEls[lastMove[0]][lastMove[1]].classList.remove("last");
       lastMove = [r, c];
       const el = cellEls[r][c];
-      el.classList.remove("ghost");
+      el.classList.remove("ghost", "pending");
       el.textContent = sym;
       el.classList.add(sym === "X" ? "x" : "o", "last");
       ctx.sound("place");
@@ -243,6 +282,13 @@
           { value: 10, label: "10×10 · chuỗi 6 (lớn)" },
         ],
       },
+      {
+        id: "confirm", label: "Xác nhận nước đi", default: "on",
+        choices: [
+          { value: "on", label: "Bật (bấm 2 lần)" },
+          { value: "off", label: "Tắt (bấm 1 lần)" },
+        ],
+      },
     ],
     howTo: [
       "Cả hai người đều được đặt ký hiệu X HOẶC O vào ô trống (chọn bằng nút trên bàn hoặc phím X / O).",
@@ -250,6 +296,7 @@
       "Người chơi 2 là 'Chaos': thắng nếu lấp đầy cả bàn mà KHÔNG xuất hiện chuỗi đủ dài nào.",
       "Bất kỳ chuỗi đủ dài nào (dù do ai đặt) cũng tính Order thắng — nên Chaos phải khéo phá thế bằng cách xen ký hiệu khác.",
       "Thanh 'Chuỗi dài nhất' cho biết Order đang gần thắng đến đâu; thanh 'Bàn đầy' cho biết Chaos sắp về đích chưa. Di chuột lên ô trống để xem trước ký hiệu sắp đặt.",
+      "Chống bấm nhầm: mặc định cần bấm 2 LẦN vào cùng một ô để xác nhận (lần 1 chọn & xem trước, lần 2 đặt thật). Có thể tắt ở tùy chọn 'Xác nhận nước đi'.",
       "Chọn bàn lớn hơn ở phần tùy chọn để ván dài và nhiều thế trận hơn.",
     ],
     create,
