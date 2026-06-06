@@ -217,8 +217,12 @@
 
     function spawnRoundTokens() {
       tokens.length = 0;
+      if (TOKEN_COUNT <= 0) return;
+      // tỉ lệ xuất hiện thấp: mỗi suất chỉ ~35% có item, nhiều vòng sẽ trống
+      let want = 0;
+      for (let i = 0; i < TOKEN_COUNT; i++) if (ctx.rng() < 0.35) want++;
       let guard = 0;
-      while (tokens.length < TOKEN_COUNT && guard++ < 600) {
+      while (tokens.length < want && guard++ < 600) {
         const x = LEFT + 86 + ctx.rng() * (RIGHT - LEFT - 172);
         const y = TOP + 70 + ctx.rng() * (BOTTOM - TOP - 140);
         const type = TOKEN_KEYS[Math.floor(ctx.rng() * TOKEN_KEYS.length)];
@@ -245,7 +249,7 @@
       if (d < 6) return;
       didPull = true;
       players[turn].angle = normalizeDeg(Math.atan2(dy, dx) * 180 / Math.PI);
-      players[turn].power = clamp(Math.round(d / 2.2), 20, 100);
+      players[turn].power = clamp(Math.round(d / 1.4), 20, 100);
       syncControls();
       draw();
     }
