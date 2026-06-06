@@ -1,4 +1,4 @@
-/* Base Defense Duel - tower defense doi khang realtime nhe. */
+﻿/* Base Defense Duel - tower defense doi khang realtime nhe. */
 (function () {
   const W = 1040;
   const H = 600;
@@ -17,7 +17,7 @@
       cost: 22,
       hp: 62,
       dmg: 10,
-      speed: 31,
+      speed: 40,
       cd: 0.72,
       range: 20,
       reward: 7,
@@ -30,7 +30,7 @@
       cost: 36,
       hp: 48,
       dmg: 12,
-      speed: 52,
+      speed: 66,
       cd: 0.58,
       range: 18,
       reward: 9,
@@ -43,7 +43,7 @@
       cost: 46,
       hp: 116,
       dmg: 8,
-      speed: 24,
+      speed: 32,
       cd: 0.92,
       range: 22,
       reward: 12,
@@ -57,7 +57,7 @@
       cost: 52,
       hp: 56,
       dmg: 18,
-      speed: 30,
+      speed: 40,
       cd: 1.04,
       range: 96,
       reward: 12,
@@ -70,7 +70,7 @@
       cost: 64,
       hp: 142,
       dmg: 23,
-      speed: 21,
+      speed: 28,
       cd: 1.05,
       range: 24,
       reward: 14,
@@ -83,7 +83,7 @@
       cost: 74,
       hp: 72,
       dmg: 31,
-      speed: 23,
+      speed: 30,
       cd: 1.28,
       range: 28,
       reward: 16,
@@ -97,7 +97,7 @@
       cost: 88,
       hp: 82,
       dmg: 19,
-      speed: 28,
+      speed: 37,
       cd: 0.9,
       range: 74,
       reward: 18,
@@ -110,7 +110,7 @@
       cost: 112,
       hp: 235,
       dmg: 32,
-      speed: 16,
+      speed: 22,
       cd: 1.34,
       range: 28,
       reward: 25,
@@ -122,11 +122,11 @@
 
   function create(ctx) {
     const o = ctx.options || {};
-    const BASE_HP = o.hp || 700;
-    const START_GOLD = o.gold || 130;
+    const BASE_HP = o.hp || 560;
+    const START_GOLD = o.gold || 155;
     const pace = o.pace || "normal";
-    const INCOME_BASE = pace === "fast" ? 12 : pace === "slow" ? 7 : 9;
-    const SCALING = o.scaling === "hard" ? 0.34 : o.scaling === "soft" ? 0.16 : 0.24;
+    const INCOME_BASE = pace === "fast" ? 16 : pace === "slow" ? 10 : 13;
+    const SCALING = o.scaling === "hard" ? 0.4 : o.scaling === "soft" ? 0.22 : 0.3;
 
     const baseHp = [BASE_HP, BASE_HP];
     const gold = [START_GOLD, START_GOLD];
@@ -668,11 +668,11 @@
     }
 
     function incomeRate(side) {
-      return INCOME_BASE + incomeLvl[side] * 2.8 + elapsed / 180;
+      return INCOME_BASE + incomeLvl[side] * 3.4 + elapsed / 120;
     }
 
     function unitScale(side) {
-      return 1 + armoryLvl[side] * 0.12 + elapsed / 260 * SCALING;
+      return 1 + armoryLvl[side] * 0.12 + elapsed / 200 * SCALING;
     }
 
     function towerX(side) {
