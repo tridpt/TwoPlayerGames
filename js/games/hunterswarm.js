@@ -1,8 +1,6 @@
 /* Hunter vs Swarm - co chien thuat bat doi xung */
 (function () {
   const N = 7;
-  const CAPTURE_TARGET = 8;
-  const SURVIVE_TURNS = 20;
   const DIRS = [
     [-1, -1], [-1, 0], [-1, 1],
     [0, -1],           [0, 1],
@@ -14,22 +12,41 @@
     [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
     [2, 0], [4, 6],
   ];
+  const DIFF = {
+    easy: { target: 6, survive: 24 },
+    normal: { target: 8, survive: 20 },
+    hard: { target: 10, survive: 16 },
+  };
 
   function create(ctx) {
+    const o = ctx.options || {};
+    const conf = DIFF[o.mode] || DIFF.normal;
+    const CAPTURE_TARGET = conf.target;
+    const SURVIVE_TURNS = conf.survive;
+
     const cells = Array(N * N).fill(null);
     let turn = 0;
     let over = false;
     let selected = -1;
     let captured = 0;
     let swarmTurns = 0;
+    let lastMove = null;
 
     const root = document.createElement("div");
     root.className = "hs-wrap";
     root.innerHTML = `
       <div class="hs-info">
-        <span>Thợ săn bắt <b class="hs-captured">0/${CAPTURE_TARGET}</b></span>
-        <span>Bầy còn <b class="hs-left">${SWARM.length}</b></span>
-        <span>Sống sót <b class="hs-survive">0/${SURVIVE_TURNS}</b></span>
+        <div class="hs-stat hs-st-cap">
+          <span>🏹 Bắt <b class="hs-captured">0/${CAPTURE_TARGET}</b></span>
+          <i class="hs-bar cap"><i></i></i>
+        </div>
+        <div class="hs-stat hs-st-left">
+          <span>🐗 Bầy còn <b class="hs-left">${SWARM.length}</b></span>
+        </div>
+        <div class="hs-stat hs-st-surv">
+          <span>⏳ Sống sót <b class="hs-survive">0/${SURVIVE_TURNS}</b></span>
+          <i class="hs-bar surv"><i></i></i>
+        </div>
       </div>
       <div class="hs-board"></div>
     `;
@@ -39,14 +56,12 @@
     const capturedEl = root.querySelector(".hs-captured");
     const leftEl = root.querySelector(".hs-left");
     const surviveEl = root.querySelector(".hs-survive");
+    const capBar = root.querySelector(".hs-bar.cap > i");
+    const survBar = root.querySelector(".hs-bar.surv > i");
     const cellEls = [];
 
-    HUNTERS.forEach(([r, c], id) => {
-      cells[idx(r, c)] = { side: 0, kind: "hunter", id };
-    });
-    SWARM.forEach(([r, c], id) => {
-      cells[idx(r, c)] = { side: 1, kind: "swarm", id };
-    });
+    HUNTERS.forEach(([r, c], id) => { cells[idx(r, c)] = { side: 0, kind: "hunter", id }; });
+    SWARM.forEach(([r, c], id) => { cells[idx(r, c)] = { side: 1, kind: "swarm", id }; });
 
     for (let i = 0; i < N * N; i++) {
       const cell = document.createElement("button");
@@ -62,28 +77,35 @@
     function col(i) { return i % N; }
     function inside(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
     function canAct() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
-
-    function swarmLeft() {
-      return cells.filter((cell) => cell && cell.side === 1).length;
-    }
+    function swarmLeft() { return cells.filter((cell) => cell && cell.side === 1).length; }
 
     function alliedSwarmAround(i) {
-      const r = row(i);
-      const c = col(i);
+      const r = row(i), c = col(i);
       let count = 0;
       DIRS.forEach(([dr, dc]) => {
-        const nr = r + dr;
-        const nc = c + dc;
+        const nr = r + dr, nc = c + dc;
         if (!inside(nr, nc)) return;
-        const neighbor = cells[idx(nr, nc)];
-        if (neighbor && neighbor.side === 1) count++;
+        const nb = cells[idx(nr, nc)];
+        if (nb && nb.side === 1) count++;
       });
       return count;
     }
-
     function isGuardedSwarm(i) {
       const piece = cells[i];
       return !!piece && piece.side === 1 && alliedSwarmAround(i) >= 2;
+    }
+
+    // quân bầy đang bị đe doạ: chưa được bảo vệ và kề một thợ săn (có thể bị bắt ngay)
+    function isThreatened(i) {
+      const piece = cells[i];
+      if (!piece || piece.side !== 1 || isGuardedSwarm(i)) return false;
+      const r = row(i), c = col(i);
+      return DIRS.some(([dr, dc]) => {
+        const nr = r + dr, nc = c + dc;
+        if (!inside(nr, nc)) return false;
+        const nb = cells[idx(nr, nc)];
+        return nb && nb.side === 0;
+      });
     }
 
     function legalMovesFrom(from) {
@@ -91,21 +113,17 @@
       if (!piece || piece.side !== turn) return [];
       return piece.side === 0 ? legalHunterMoves(from) : legalSwarmMoves(from);
     }
-
     function legalHunterMoves(from) {
       const moves = [];
-      const sr = row(from);
-      const sc = col(from);
+      const sr = row(from), sc = col(from);
       DIRS.forEach(([dr, dc]) => {
-        const r1 = sr + dr;
-        const c1 = sc + dc;
+        const r1 = sr + dr, c1 = sc + dc;
         if (!inside(r1, c1)) return;
         const first = idx(r1, c1);
         const firstPiece = cells[first];
         if (!firstPiece) {
           moves.push(first);
-          const r2 = r1 + dr;
-          const c2 = c1 + dc;
+          const r2 = r1 + dr, c2 = c1 + dc;
           if (!inside(r2, c2)) return;
           const second = idx(r2, c2);
           if (!cells[second]) moves.push(second);
@@ -115,21 +133,17 @@
       });
       return moves;
     }
-
     function legalSwarmMoves(from) {
       const moves = [];
-      const sr = row(from);
-      const sc = col(from);
+      const sr = row(from), sc = col(from);
       DIRS.forEach(([dr, dc]) => {
-        const nr = sr + dr;
-        const nc = sc + dc;
+        const nr = sr + dr, nc = sc + dc;
         if (!inside(nr, nc)) return;
         const target = idx(nr, nc);
         if (!cells[target]) moves.push(target);
       });
       return moves;
     }
-
     function allLegalMoves(player) {
       const oldTurn = turn;
       turn = player;
@@ -162,27 +176,23 @@
       const to = Number(move?.to);
       if (!Number.isInteger(from) || !Number.isInteger(to)) return;
       if (from < 0 || from >= cells.length || to < 0 || to >= cells.length) return;
-
       const piece = cells[from];
       if (!piece || piece.side !== turn) return;
-      const legal = legalMovesFrom(from);
-      if (!legal.includes(to)) return;
+      if (!legalMovesFrom(from).includes(to)) return;
 
       const target = cells[to];
       const didCapture = piece.side === 0 && target && target.side === 1;
       if (didCapture) captured++;
       cells[to] = piece;
       cells[from] = null;
+      lastMove = { from, to };
       selected = -1;
       ctx.sound(didCapture ? "capture" : "place");
 
       if (piece.side === 1) swarmTurns++;
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ from, to });
 
-      if (checkEnd(piece.side)) {
-        render();
-        return;
-      }
+      if (checkEnd(piece.side)) { render(); return; }
 
       turn = 1 - turn;
       ctx.setTurn(turn);
@@ -214,22 +224,24 @@
       over = true;
       ctx.incScore(winner);
       ctx.setTurn(-1);
+      render();
       ctx.setStatus(text);
     }
 
     function updateStatus() {
       if (over) return;
-      if (selected >= 0) {
-        const moves = legalMovesFrom(selected).length;
-        const action = turn === 0 ? "di chuyển hoặc bắt quân lẻ" : "di chuyển để bao vây";
-        ctx.setStatus(`${turn === 0 ? "Thợ săn" : "Bầy đàn"}: chọn ô đến để ${action}. Có ${moves} nước.`);
+      if (ctx.isOnline && turn !== ctx.mySeat) {
+        ctx.setStatus(`Đối thủ đang đi (${turn === 0 ? "Thợ săn" : "Bầy đàn"})...`);
         return;
       }
-      if (turn === 0) {
-        ctx.setStatus(`Thợ săn: chọn 1 trong 2 quân. Bắt ${captured}/${CAPTURE_TARGET}, Bầy còn ${swarmLeft()}.`);
-      } else {
-        ctx.setStatus(`Bầy đàn: chọn một quân để áp sát, bảo vệ nhau và khóa đường. Sống sót ${swarmTurns}/${SURVIVE_TURNS} lượt.`);
+      if (selected >= 0) {
+        const moves = legalMovesFrom(selected).length;
+        const action = turn === 0 ? "đi (tối đa 2 ô) hoặc bắt quân lẻ" : "áp sát để bao vây/bảo vệ nhau";
+        ctx.setStatus(`${turn === 0 ? "🏹 Thợ săn" : "🐗 Bầy đàn"}: chọn ô đến để ${action}. Có ${moves} nước.`);
+        return;
       }
+      if (turn === 0) ctx.setStatus(`🏹 Thợ săn: chọn 1 trong 2 quân để săn. Bắt ${captured}/${CAPTURE_TARGET}.`);
+      else ctx.setStatus(`🐗 Bầy đàn: chọn quân để áp sát, bảo vệ nhau (🛡️) và khóa đường. Sống sót ${swarmTurns}/${SURVIVE_TURNS}.`);
     }
 
     function render() {
@@ -238,8 +250,7 @@
       if (canAct()) {
         cells.forEach((piece, i) => {
           if (!piece || piece.side !== turn) return;
-          const moves = legalMovesFrom(i);
-          if (moves.length) activeSources.add(i);
+          if (legalMovesFrom(i).length) activeSources.add(i);
         });
         if (selected >= 0) legalMovesFrom(selected).forEach((to) => legalTargets.add(to));
       }
@@ -247,11 +258,13 @@
       capturedEl.textContent = `${captured}/${CAPTURE_TARGET}`;
       leftEl.textContent = String(swarmLeft());
       surviveEl.textContent = `${swarmTurns}/${SURVIVE_TURNS}`;
+      if (capBar) capBar.style.width = Math.min(100, captured / CAPTURE_TARGET * 100) + "%";
+      if (survBar) survBar.style.width = Math.min(100, swarmTurns / SURVIVE_TURNS * 100) + "%";
 
       cellEls.forEach((el, i) => {
         const piece = cells[i];
         el.className = "hs-cell";
-        el.textContent = "";
+        el.innerHTML = "";
         const interactive = canAct() && (activeSources.has(i) || legalTargets.has(i));
         el.disabled = !interactive;
 
@@ -259,13 +272,18 @@
         if (piece) {
           el.classList.add(piece.kind, `p${piece.side + 1}`);
           if (piece.side === 0) {
-            el.textContent = "H";
+            el.innerHTML = `<span class="hs-pc">🏹</span>`;
           } else {
             const guarded = isGuardedSwarm(i);
-            el.textContent = guarded ? "S" : "s";
+            const threat = !guarded && isThreatened(i);
+            el.innerHTML = `<span class="hs-pc">🐗</span>` +
+              (guarded ? `<i class="hs-badge shield">🛡️</i>` : "") +
+              (threat ? `<i class="hs-badge danger">❗</i>` : "");
             if (guarded) el.classList.add("guarded");
+            if (threat) el.classList.add("threat");
           }
         }
+        if (lastMove && (lastMove.from === i || lastMove.to === i)) el.classList.add("lastmove");
         if (activeSources.has(i)) el.classList.add("source");
         if (selected === i) el.classList.add("selected");
         if (legalTargets.has(i)) {
@@ -275,7 +293,7 @@
       });
     }
 
-    ctx.setNames("Thợ săn", "Bầy đàn");
+    ctx.setNames("Thợ săn 🏹", "Bầy đàn 🐗");
     ctx.setTurn(0);
     updateStatus();
     render();
@@ -285,15 +303,25 @@
   window.GameRegistry.register({
     id: "hunterswarm",
     name: "Thợ Săn & Bầy Đàn",
-    emoji: "⚔️",
-    description: "Cờ chiến thuật bất đối xứng: 2 thợ săn mạnh đối đầu 12 quân bầy yếu biết bảo vệ nhau và khóa đường.",
+    emoji: "🏹",
+    description: "Cờ chiến thuật bất đối xứng: 2 thợ săn mạnh săn đuổi 12 quân bầy yếu biết bảo vệ nhau (🛡️) và khóa đường. Có cảnh báo quân bị đe doạ.",
     onlineReady: true,
+    options: [
+      {
+        id: "mode", label: "Độ khó (cho Thợ săn)", default: "normal",
+        choices: [
+          { value: "easy", label: "Dễ (bắt 6, bầy phải sống 24)" },
+          { value: "normal", label: "Chuẩn (bắt 8, sống 20)" },
+          { value: "hard", label: "Khó (bắt 10, sống 16)" },
+        ],
+      },
+    ],
     howTo: [
-      "Người chơi 1 điều khiển 2 Thợ săn. Người chơi 2 điều khiển 12 quân Bầy đàn.",
-      "Thợ săn đi tối đa 2 ô theo ngang, dọc hoặc chéo nếu đường trống. Nếu ô kề bên có quân Bầy không được bảo vệ, Thợ săn có thể đi vào đó để bắt.",
-      "Bầy đàn mỗi lượt di chuyển 1 quân sang ô trống kề bên theo ngang, dọc hoặc chéo.",
-      "Một quân Bầy đứng cạnh ít nhất 2 đồng minh sẽ được bảo vệ, Thợ săn không thể bắt trực tiếp quân đó.",
-      "Thợ săn thắng khi bắt đủ 8 quân Bầy. Bầy đàn thắng nếu khóa cả hai Thợ săn hoặc sống sót qua 20 lượt Bầy.",
+      "Người chơi 1 điều khiển 2 quân 🏹 Thợ săn. Người chơi 2 điều khiển 12 quân 🐗 Bầy đàn.",
+      "Thợ săn đi tối đa 2 ô theo ngang/dọc/chéo nếu đường trống. Nếu ô KỀ có quân Bầy chưa được bảo vệ, Thợ săn đi vào đó để BẮT.",
+      "Bầy đàn mỗi lượt di chuyển 1 quân sang ô trống kề bên (ngang/dọc/chéo).",
+      "Quân Bầy đứng cạnh ít nhất 2 đồng minh sẽ được BẢO VỆ (hiện 🛡️) — Thợ săn không bắt trực tiếp được. Quân Bầy chưa được bảo vệ mà đang kề Thợ săn sẽ bị cảnh báo ❗ (sắp bị bắt).",
+      "Thợ săn thắng khi bắt đủ số quân mục tiêu. Bầy đàn thắng nếu khóa cả hai Thợ săn hoặc sống sót đủ số lượt. Chọn Độ khó để cân bằng cho hai bên.",
     ],
     create,
   });
