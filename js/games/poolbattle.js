@@ -11,9 +11,9 @@
   const POCKET_R = 17;
   const CUSHION = 0.86;
   const STOP_SPEED = 0.045;
-  const SUBSTEPS = 2;
+  const SUBSTEPS = 4;
   const MAX_FRAMES = 1500;
-  const POWER_SCALE = 0.26;
+  const POWER_SCALE = 0.42;
   const TOKEN_KEYS = ["bomb", "magnet", "gravity"];
 
   const MODE_DEFS = {
@@ -48,7 +48,7 @@
     const TARGET = o.target || 7;
     const OBJECTS = o.balls || 9;
     const TOKEN_COUNT = o.powerups == null ? 2 : o.powerups;
-    const friction = o.cloth === "fast" ? 0.989 : o.cloth === "heavy" ? 0.974 : 0.982;
+    const friction = o.cloth === "fast" ? 0.992 : o.cloth === "heavy" ? 0.983 : 0.988;
 
     const players = [
       { angle: 0, power: 64, color: "#ff5d73", name: "Đỏ" },
