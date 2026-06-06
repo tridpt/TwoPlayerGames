@@ -4,18 +4,20 @@
    Tường không được bịt kín hoàn toàn đường về đích của bất kỳ ai.
    Nước đi: { t:"move", r, c } hoặc { t:"wall", o:"h"|"v", r, c }. */
 (function () {
-  const N = 9;
-  const WALL_SLOTS = N - 1; // 0..N-2
-
   function create(ctx) {
     const o = ctx.options || {};
+    const N = [5, 7, 9].includes(Number(o.size)) ? Number(o.size) : 9;
+    const WALL_SLOTS = N - 1; // 0..N-2
+    const CC = (N - 1) / 2;   // cột giữa
     const WALLS_EACH = o.walls || 10;
 
     // ----- trạng thái -----
     const pawns = [
-      { r: N - 1, c: 4, goalRow: 0 },     // P1 đi lên
-      { r: 0, c: 4, goalRow: N - 1 },     // P2 đi xuống
+      { r: N - 1, c: CC, goalRow: 0 },     // P1 đi lên
+      { r: 0, c: CC, goalRow: N - 1 },     // P2 đi xuống
     ];
+    let lastCell = null;   // [r,c] quân vừa đi
+    let lastWall = null;   // {o,r,c} tường vừa đặt
     const wallsLeft = [WALLS_EACH, WALLS_EACH];
     const hWalls = new Set(); // "r,c": tường ngang tại giao điểm (r,c), phủ cột c & c+1
     const vWalls = new Set(); // "r,c": tường dọc tại giao điểm (r,c), phủ hàng r & r+1
@@ -26,6 +28,13 @@
     // ----- giao diện -----
     const wrap = document.createElement("div");
     wrap.className = "qd-wrap";
+    const unit = N <= 5 ? 54 : N <= 7 ? 46 : 40;
+    wrap.style.setProperty("--qd-unit", unit + "px");
+    wrap.style.setProperty("--qd-wall", Math.round(unit * 0.22) + "px");
+
+    const info = document.createElement("div");
+    info.className = "qd-info";
+    wrap.appendChild(info);
 
     const bar = document.createElement("div");
     bar.className = "qd-bar";
@@ -170,7 +179,42 @@
       return false;
     }
 
-    // ---------- đặt tường ----------
+    // khoảng cách ngắn nhất tới hàng đích (bỏ qua quân đối thủ) — cho HUD
+    function distToGoal(pawn) {
+      const seen = new Set([pawn.r + "," + pawn.c]);
+      const queue = [[pawn.r, pawn.c, 0]];
+      while (queue.length) {
+        const [r, c, d] = queue.shift();
+        if (r === pawn.goalRow) return d;
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+          const nr = r + dr, nc = c + dc;
+          if (!onBoard(nr, nc) || blockedBetween(r, c, nr, nc)) continue;
+          const key = nr + "," + nc;
+          if (!seen.has(key)) { seen.add(key); queue.push([nr, nc, d + 1]); }
+        }
+      }
+      return Infinity;
+    }
+
+    function renderInfo() {
+      const me = ctx.isOnline ? ctx.mySeat : -1;
+      const d0 = distToGoal(pawns[0]);
+      const d1 = distToGoal(pawns[1]);
+      const pips = (n) => "🧱".repeat(Math.min(n, 14));
+      info.innerHTML = `
+        <div class="qd-player p1 ${turn === 0 && !over ? "active" : ""}">
+          <span>🔴 Người chơi 1${me === 0 ? " (bạn)" : ""}</span>
+          <b>còn ${Number.isFinite(d0) ? d0 : "?"} bước</b>
+          <small>${wallsLeft[0]} tường ${pips(wallsLeft[0])}</small>
+        </div>
+        <div class="qd-vs">${over ? "Kết thúc" : "VS"}</div>
+        <div class="qd-player p2 ${turn === 1 && !over ? "active" : ""}">
+          <span>🔵 Người chơi 2${me === 1 ? " (bạn)" : ""}</span>
+          <b>còn ${Number.isFinite(d1) ? d1 : "?"} bước</b>
+          <small>${wallsLeft[1]} tường ${pips(wallsLeft[1])}</small>
+        </div>
+      `;
+    }
     function wallConflict(orient, r, c) {
       if (r < 0 || r > WALL_SLOTS - 1 || c < 0 || c > WALL_SLOTS - 1) return true;
       if (orient === "h") {
@@ -226,6 +270,7 @@
         const moves = legalPawnMoves(pawns[turn], pawns[1 - turn]);
         if (!moves.some(([mr, mc]) => mr === move.r && mc === move.c)) return;
         pawns[turn].r = move.r; pawns[turn].c = move.c;
+        lastCell = [move.r, move.c]; lastWall = null;
         ctx.sound("place");
         if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
         if (pawns[turn].r === pawns[turn].goalRow) return endGame(turn);
@@ -233,6 +278,7 @@
         if (!wallLegal(move.o, move.r, move.c) || wallsLeft[turn] <= 0) return;
         (move.o === "h" ? hWalls : vWalls).add(move.r + "," + move.c);
         wallsLeft[turn]--;
+        lastWall = { o: move.o, r: move.r, c: move.c }; lastCell = null;
         ctx.sound("capture");
         if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
       }
@@ -267,6 +313,9 @@
           const el = cellEls[r + "," + c];
           el.className = "qd-cell";
           el.innerHTML = "";
+          if (r === pawns[0].goalRow) el.classList.add("goal-p1");
+          if (r === pawns[1].goalRow) el.classList.add("goal-p2");
+          if (lastCell && lastCell[0] === r && lastCell[1] === c) el.classList.add("qd-lastcell");
           if (pawns[0].r === r && pawns[0].c === c) addPawn(el, 0);
           else if (pawns[1].r === r && pawns[1].c === c) addPawn(el, 1);
           else if (moveSet.has(r + "," + c)) el.classList.add("qd-hint");
@@ -298,11 +347,21 @@
       }
       // bật chế độ đặt tường gợi ý khe bấm được
       boardEl.classList.toggle("qd-wallmode", mode === "wall" && canPlay() && wallsLeft[turn] > 0);
+
+      // tô tường vừa đặt
+      if (lastWall) {
+        const els = lastWall.o === "h"
+          ? [hSlotEls[lastWall.r + "," + lastWall.c], hSlotEls[lastWall.r + "," + (lastWall.c + 1)]]
+          : [vSlotEls[lastWall.r + "," + lastWall.c], vSlotEls[(lastWall.r + 1) + "," + lastWall.c]];
+        els.forEach((e) => e && e.classList.add("wall-last"));
+      }
+      renderInfo();
     }
 
     function addPawn(el, p) {
       const pawn = document.createElement("div");
-      pawn.className = "qd-pawn " + (p === 0 ? "p1" : "p2");
+      pawn.className = "qd-pawn " + (p === 0 ? "p1" : "p2") + (p === turn && !over ? " active" : "");
+      pawn.innerHTML = `<i>${p === 0 ? "▲" : "▼"}</i>`;
       el.appendChild(pawn);
     }
 
@@ -320,9 +379,17 @@
     id: "quoridor",
     name: "Quoridor (Đặt Tường)",
     emoji: "🧱",
-    description: "Đua quân sang bờ đối diện, đặt tường chặn đường đối thủ. Cờ chiến thuật chiều sâu lớn.",
+    description: "Đua quân sang bờ đối diện, đặt tường chặn đường đối thủ. Có bảng đo khoảng cách tới đích, chọn cỡ bàn 5/7/9. Cờ chiến thuật chiều sâu lớn.",
     onlineReady: true,
     options: [
+      {
+        id: "size", label: "Kích thước bàn", default: 9,
+        choices: [
+          { value: 5, label: "5×5 (nhanh)" },
+          { value: 7, label: "7×7" },
+          { value: 9, label: "9×9 (chuẩn)" },
+        ],
+      },
       {
         id: "walls", label: "Số tường mỗi người", default: 10,
         choices: [
@@ -333,12 +400,12 @@
       },
     ],
     howTo: [
-      "Bàn 9×9. Người chơi 1 (đỏ) ở hàng dưới cần lên tới hàng TRÊN cùng; Người chơi 2 (xanh) ở hàng trên cần xuống hàng DƯỚI cùng.",
+      "Người chơi 1 (🔴 đỏ) ở hàng dưới cần lên tới hàng TRÊN cùng; Người chơi 2 (🔵 xanh) ở hàng trên cần xuống hàng DƯỚI cùng. Hàng đích được tô màu nhẹ ở mép bàn.",
       "Mỗi lượt chọn một trong hai: DI CHUYỂN quân (sang ô kề) HOẶC ĐẶT TƯỜNG.",
       "Chế độ 🏃 Di chuyển: bấm vào ô sáng để đi. Nếu hai quân đứng kề nhau, bạn được nhảy qua đối thủ.",
-      "Chế độ 🧱 Đặt tường: bấm vào khe giữa các ô để đặt một bức tường. Mỗi bức tường dài 2 ô (chặn 2 lối đi liền nhau) và chỉ tốn 1 tường trong kho. Rê chuột vào khe để xem trước tường sẽ phủ chỗ nào (xanh = đặt được, đỏ = không).",
-      "Luật quan trọng: KHÔNG được đặt tường bịt kín hoàn toàn đường về đích của bất kỳ ai — luôn phải chừa ít nhất một lối.",
-      "Ai đưa quân của mình về tới hàng đích trước sẽ thắng.",
+      "Chế độ 🧱 Đặt tường: bấm vào khe giữa các ô để đặt tường dài 2 ô (chặn 2 lối liền nhau), tốn 1 tường. Rê chuột để xem trước (xanh = đặt được, đỏ = không).",
+      "Bảng phía trên cho biết mỗi người CÒN BAO NHIÊU BƯỚC tới đích (đường ngắn nhất hiện tại) và số tường còn lại — dùng để tính xem ai đang dẫn.",
+      "Luật: KHÔNG được đặt tường bịt kín hoàn toàn đường về đích của bất kỳ ai. Chọn cỡ bàn nhỏ (5×5/7×7) để chơi nhanh. Ai về đích trước sẽ thắng.",
     ],
     create,
   });
