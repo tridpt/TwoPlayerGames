@@ -70,6 +70,10 @@
     let raf = null;
     let shot = null;
     let settledFrames = 0;
+    let tick = 0;
+    const particles = [];
+    const floaters = [];
+    let shake = 0;
     let last = "Ngắm hướng, chỉnh lực rồi chọc bi.";
 
     const root = document.createElement("div");
@@ -379,18 +383,22 @@
       b.active = false;
       b.vx = 0;
       b.vy = 0;
+      spawnSparks(b.x, b.y, b.color, 14);
       if (!shot) return;
       if (b.kind === "object") {
         scores[turn] += 1;
         shot.scored += 1;
         shot.pocketed.push(b.number);
+        addFloater(b.x, b.y, "+1", turn === 0 ? "#ff91a2" : "#8be6f0");
         ctx.sound("capture");
       } else if (b.kind === "cue") {
         if (b.player === turn) {
           shot.foul = true;
+          addFloater(b.x, b.y, "LỖI", "#ff5d73");
         } else {
           scores[turn] += 1;
           shot.opponentCue = true;
+          addFloater(b.x, b.y, "+1", "#ffd166");
         }
         ctx.sound("miss");
       }
@@ -424,6 +432,7 @@
             a.vy -= impulse * ny;
             b.vx += impulse * nx;
             b.vy += impulse * ny;
+            if (rel > 2.4) spawnSparks((a.x + b.x) / 2, (a.y + b.y) / 2, "#ffffff", 4);
             ctx.sound("place");
           }
 
@@ -439,6 +448,8 @@
     function explode(x, y) {
       if (!shot) return;
       shot.blast = { x, y, r: 8, max: 96 };
+      shake = Math.min(16, shake + 11);
+      spawnSparks(x, y, "#ff9f5d", 26);
       balls.forEach((b) => {
         if (!b.active) return;
         const dx = b.x - x;
@@ -450,6 +461,18 @@
         b.vy += dy / d * force;
       });
       ctx.sound("capture");
+    }
+
+    function spawnSparks(x, y, color, n) {
+      for (let i = 0; i < n; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const sp = 1 + Math.random() * 3.5;
+        particles.push({ x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 12 + Math.random() * 14, color });
+      }
+    }
+
+    function addFloater(x, y, text, color) {
+      floaters.push({ x, y, text, color, life: 44 });
     }
 
     function collectTokens() {
@@ -474,6 +497,12 @@
 
       if (shot) {
         const bits = [];
+        if (shot.scored >= 2) {
+          scores[turn] += 1; // thưởng combo
+          const cue = cueBall(turn);
+          addFloater(cue ? cue.x : W / 2, cue ? cue.y - 30 : H / 2, `COMBO x${shot.scored} +1`, "#ffd166");
+          bits.push(`COMBO x${shot.scored} (+1 thưởng)`);
+        }
         if (shot.pocketed.length) bits.push(`ăn ${shot.pocketed.length} bi`);
         if (shot.opponentCue) bits.push("đẩy bi chủ đối thủ xuống hố");
         if (shot.foul) bits.push("lỗi bi chủ, đối thủ +1");
@@ -620,20 +649,48 @@
     }
 
     function draw() {
+      g.clearRect(0, 0, W, H);
+      g.save();
+      if (shake > 0.3) g.translate((Math.random() * 2 - 1) * shake, (Math.random() * 2 - 1) * shake);
       drawTable();
       tokens.forEach(drawToken);
       balls.forEach(drawBall);
       drawAim();
       drawShotEffects();
+      drawParticles();
+      drawFloaters();
+      g.restore();
+    }
+
+    function drawParticles() {
+      particles.forEach((p) => {
+        g.globalAlpha = Math.max(0, p.life / 26);
+        g.fillStyle = p.color;
+        g.beginPath();
+        g.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+        g.fill();
+      });
+      g.globalAlpha = 1;
+    }
+
+    function drawFloaters() {
+      floaters.forEach((f) => {
+        g.globalAlpha = Math.max(0, f.life / 44);
+        g.fillStyle = f.color;
+        g.font = "900 16px Segoe UI, sans-serif";
+        g.textAlign = "center";
+        g.fillText(f.text, f.x, f.y);
+      });
+      g.globalAlpha = 1;
+      g.textAlign = "left";
     }
 
     function drawTable() {
-      g.clearRect(0, 0, W, H);
       const bg = g.createLinearGradient(0, 0, 0, H);
       bg.addColorStop(0, "#12182e");
       bg.addColorStop(1, "#0a1020");
       g.fillStyle = bg;
-      g.fillRect(0, 0, W, H);
+      g.fillRect(-24, -24, W + 48, H + 48);
 
       roundedRect(g, LEFT - 32, TOP - 32, RIGHT - LEFT + 64, BOTTOM - TOP + 64, 26);
       const rail = g.createLinearGradient(LEFT, TOP - 32, RIGHT, BOTTOM + 32);
@@ -651,14 +708,25 @@
       g.fillStyle = felt;
       g.fill();
 
-      g.strokeStyle = "rgba(255,255,255,0.1)";
-      g.lineWidth = 1;
-      for (let x = LEFT + 70; x < RIGHT; x += 70) {
-        g.beginPath();
-        g.moveTo(x, TOP + 12);
-        g.lineTo(x - 18, BOTTOM - 12);
-        g.stroke();
+      // ánh sáng đèn giữa bàn
+      const spot = g.createRadialGradient(W / 2, (TOP + BOTTOM) / 2, 40, W / 2, (TOP + BOTTOM) / 2, (RIGHT - LEFT) / 1.5);
+      spot.addColorStop(0, "rgba(255,255,255,0.12)");
+      spot.addColorStop(1, "rgba(0,0,0,0.18)");
+      g.fillStyle = spot;
+      roundedRect(g, LEFT, TOP, RIGHT - LEFT, BOTTOM - TOP, 16);
+      g.fill();
+
+      // nút định vị trên thành (diamonds)
+      g.fillStyle = "rgba(245,238,210,0.85)";
+      const dx4 = (RIGHT - LEFT) / 4;
+      for (let i = 1; i < 4; i++) {
+        if (i === 2) continue; // giữa là hố
+        diamond(LEFT + dx4 * i, TOP - 16);
+        diamond(LEFT + dx4 * i, BOTTOM + 16);
       }
+      const dy2 = (BOTTOM - TOP) / 2;
+      diamond(LEFT - 16, TOP + dy2);
+      diamond(RIGHT + 16, TOP + dy2);
 
       POCKETS.forEach((p) => {
         const pocket = g.createRadialGradient(p.x - 4, p.y - 5, 2, p.x, p.y, POCKET_R + 8);
@@ -740,41 +808,96 @@
       g.textBaseline = "alphabetic";
     }
 
+    function predictPath(cue, angleDeg) {
+      const rad = angleDeg * Math.PI / 180;
+      let x = cue.x, y = cue.y;
+      let vx = Math.cos(rad), vy = Math.sin(rad);
+      const r = cue.r;
+      const pts = [{ x, y }];
+      let bounces = 0;
+      for (let step = 0; step < 320; step++) {
+        x += vx * 5; y += vy * 5;
+        const pk = POCKETS.find((p) => dist(x, y, p.x, p.y) < POCKET_R);
+        if (pk) { pts.push({ x: pk.x, y: pk.y }); return { points: pts, pocket: true }; }
+        let hit = null;
+        for (const b of balls) {
+          if (!b.active || b === cue) continue;
+          if (dist(x, y, b.x, b.y) <= r + b.r + 1) { hit = b; break; }
+        }
+        if (hit) {
+          const ang = Math.atan2(hit.y - y, hit.x - x);
+          const gx = hit.x - Math.cos(ang) * (r + hit.r);
+          const gy = hit.y - Math.sin(ang) * (r + hit.r);
+          pts.push({ x: gx, y: gy });
+          return { points: pts, ghost: { x: gx, y: gy }, target: hit, targetDir: { x: Math.cos(ang), y: Math.sin(ang) } };
+        }
+        let bounced = false;
+        if (x < LEFT + r) { x = LEFT + r; vx = Math.abs(vx); bounced = true; }
+        else if (x > RIGHT - r) { x = RIGHT - r; vx = -Math.abs(vx); bounced = true; }
+        if (y < TOP + r) { y = TOP + r; vy = Math.abs(vy); bounced = true; }
+        else if (y > BOTTOM - r) { y = BOTTOM - r; vy = -Math.abs(vy); bounced = true; }
+        if (bounced) { pts.push({ x, y }); if (++bounces > 2) break; }
+      }
+      pts.push({ x, y });
+      return { points: pts };
+    }
+
     function drawAim() {
       if (busy || over) return;
       const cue = cueBall(turn);
       if (!cue || !cue.active) return;
       const pl = players[turn];
       const rad = pl.angle * Math.PI / 180;
-      const len = 70 + pl.power * 1.25;
-      const tx = cue.x + Math.cos(rad) * len;
-      const ty = cue.y + Math.sin(rad) * len;
+
       g.save();
-      g.strokeStyle = pl.color;
-      g.lineWidth = 3;
-      g.setLineDash([12, 9]);
-      g.beginPath();
-      g.moveTo(cue.x, cue.y);
-      g.lineTo(tx, ty);
-      g.stroke();
-      g.setLineDash([]);
+      // gậy chọc phía sau bi
       g.strokeStyle = "rgba(255,255,255,0.72)";
       g.lineWidth = 5;
       g.beginPath();
       g.moveTo(cue.x - Math.cos(rad) * 18, cue.y - Math.sin(rad) * 18);
-      g.lineTo(cue.x - Math.cos(rad) * 86, cue.y - Math.sin(rad) * 86);
+      g.lineTo(cue.x - Math.cos(rad) * (60 + pl.power * 0.6), cue.y - Math.sin(rad) * (60 + pl.power * 0.6));
       g.stroke();
-      g.fillStyle = pl.color;
+
+      // đường quỹ đạo dự đoán (nảy băng)
+      const pred = predictPath(cue, pl.angle);
+      g.strokeStyle = pl.color;
+      g.lineWidth = 2.5;
+      g.setLineDash([10, 8]);
       g.beginPath();
-      g.arc(tx, ty, 5, 0, Math.PI * 2);
-      g.fill();
+      pred.points.forEach((p, i) => (i === 0 ? g.moveTo(p.x, p.y) : g.lineTo(p.x, p.y)));
+      g.stroke();
+      g.setLineDash([]);
+
+      // bi bóng ma + hướng bi mục tiêu
+      if (pred.ghost) {
+        g.strokeStyle = "rgba(255,255,255,0.85)";
+        g.lineWidth = 1.6;
+        g.beginPath();
+        g.arc(pred.ghost.x, pred.ghost.y, cue.r, 0, Math.PI * 2);
+        g.stroke();
+        const t = pred.target;
+        g.strokeStyle = "rgba(255,209,102,0.9)";
+        g.lineWidth = 2.5;
+        g.beginPath();
+        g.moveTo(t.x, t.y);
+        g.lineTo(t.x + pred.targetDir.x * 52, t.y + pred.targetDir.y * 52);
+        g.stroke();
+      } else if (pred.pocket) {
+        const lastP = pred.points[pred.points.length - 1];
+        g.fillStyle = "#6ee7b7";
+        g.font = "900 13px Segoe UI, sans-serif";
+        g.textAlign = "center";
+        g.fillText("VÀO HỐ?", lastP.x, lastP.y - 14);
+      }
+      g.restore();
+
       if (selectedMode !== "normal") {
         g.fillStyle = TOKEN_DEFS[selectedMode].color;
         g.font = "800 13px Segoe UI, sans-serif";
         g.textAlign = "center";
         g.fillText(MODE_DEFS[selectedMode].label, cue.x, cue.y - 28);
+        g.textAlign = "left";
       }
-      g.restore();
     }
 
     function drawShotEffects() {
@@ -809,9 +932,23 @@
     }
 
     function loop() {
+      tick++;
       if (busy) stepPhysics();
+      particles.forEach((p) => { p.vx *= 0.94; p.vy *= 0.94; p.x += p.vx; p.y += p.vy; p.life--; });
+      for (let i = particles.length - 1; i >= 0; i--) if (particles[i].life <= 0) particles.splice(i, 1);
+      floaters.forEach((f) => { f.y -= 0.55; f.life--; });
+      for (let i = floaters.length - 1; i >= 0; i--) if (floaters[i].life <= 0) floaters.splice(i, 1);
+      if (shake > 0) shake = Math.max(0, shake - 0.8);
       draw();
       raf = requestAnimationFrame(loop);
+    }
+
+    function diamond(x, y) {
+      g.save();
+      g.translate(x, y);
+      g.rotate(Math.PI / 4);
+      g.fillRect(-3, -3, 6, 6);
+      g.restore();
     }
 
     function roundedRect(gc, x, y, w, h, r) {
@@ -870,7 +1007,7 @@
     id: "poolbattle",
     name: "Pool Battle",
     emoji: "🎱",
-    description: "Bi-a đối kháng mini: chọc bi theo lượt, ăn điểm qua hố và dùng bóng nổ, nam châm, đổi trọng lực.",
+    description: "Bi-a đối kháng mini: ngắm có đường dự đoán nảy băng + bi bóng ma, ăn điểm qua hố, thưởng combo và dùng bóng nổ, nam châm, đổi trọng lực.",
     onlineReady: true,
     options: [
       {
@@ -916,8 +1053,8 @@
     ],
     howTo: [
       "Mỗi người có một bi chủ riêng: Người chơi 1 màu đỏ, Người chơi 2 màu xanh. Đến lượt thì chọc bi chủ của mình.",
-      "Kéo trực tiếp trên bàn để ngắm nhanh, hoặc dùng thanh Hướng và Lực. Bấm Chọc bi để đánh.",
-      "Bi màu rơi vào hố sẽ cộng 1 điểm cho người vừa chọc. Đủ điểm mục tiêu thì thắng.",
+      "Kéo trực tiếp trên bàn để ngắm nhanh, hoặc dùng thanh Hướng và Lực. Đường chấm dự đoán cho thấy bi chủ sẽ đi đâu (kể cả nảy băng); bi bóng ma trắng là điểm chạm và vạch vàng là hướng bi mục tiêu sẽ lăn.",
+      "Bi màu rơi vào hố sẽ cộng 1 điểm cho người vừa chọc. Lọt từ 2 bi trong một cú đánh được thưởng COMBO +1 điểm. Đủ điểm mục tiêu thì thắng.",
       "Nếu làm rơi bi chủ của mình, đó là lỗi và đối thủ được 1 điểm. Nếu làm rơi bi chủ đối thủ, bạn được 1 điểm.",
       "Power-up Bóng nổ tạo lực nổ ở va chạm đầu tiên của bi chủ. Nam châm hút bi màu gần bi chủ trong cú đánh. Đổi trọng lực nghiêng bàn theo hướng đang ngắm.",
       "Các ô B, M, G trên bàn là power-up có thể nhặt khi bi chạm vào. Chơi online: mỗi lượt chỉ gửi hướng, lực và power-up, hai máy tự mô phỏng cùng kết quả.",
