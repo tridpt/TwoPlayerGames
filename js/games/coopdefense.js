@@ -108,6 +108,82 @@
     boss: { name: "Trùm cổng", icon: "🐲", hp: 180, speed: 0.0022, reward: 52, armor: 3 },
   };
 
+  // Sinh bãi đặt súng NẰM CẠNH đường (trên cỏ), đẩy vuông góc xen kẽ hai bên, giãn đều.
+  function _dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+  function genSlots(route, count) {
+    const segLen = [];
+    let total = 0;
+    for (let i = 1; i < route.length; i++) { const d = _dist(route[i - 1], route[i]); segLen.push(d); total += d; }
+    const OFF = 10;
+    const out = [];
+    for (let k = 0; k < count; k++) {
+      const target = (k + 0.5) / count * total;
+      let acc = 0, idx = 0, t = 0;
+      for (let i = 0; i < segLen.length; i++) {
+        if (acc + segLen[i] >= target) { idx = i; t = segLen[i] ? (target - acc) / segLen[i] : 0; break; }
+        acc += segLen[i];
+        idx = i;
+      }
+      const a = route[idx], b = route[idx + 1] || route[idx];
+      const px = a.x + (b.x - a.x) * t, py = a.y + (b.y - a.y) * t;
+      let dx = b.x - a.x, dy = b.y - a.y;
+      const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+      const nx = -dy, ny = dx; // vuông góc
+      const side = k % 2 === 0 ? 1 : -1;
+      let sx = px + nx * side * OFF, sy = py + ny * side * OFF;
+      if (sx < 6 || sx > 94 || sy < 8 || sy > 92) { sx = px - nx * side * OFF; sy = py - ny * side * OFF; }
+      sx = Math.max(6, Math.min(94, sx));
+      sy = Math.max(8, Math.min(92, sy));
+      out.push({ x: +sx.toFixed(1), y: +sy.toFixed(1) });
+    }
+    return out;
+  }
+  MAPS.forEach((m) => {
+    m.slots = m.routes.map((r) => genSlots(r, SLOTS));
+    relaxSlots(m);
+  });
+
+  function nearestOnRoute(p, route) {
+    let best = route[0], bd = Infinity;
+    for (let i = 1; i < route.length; i++) {
+      const a = route[i - 1], b = route[i];
+      const vx = b.x - a.x, vy = b.y - a.y;
+      const L2 = vx * vx + vy * vy || 1;
+      let t = ((p.x - a.x) * vx + (p.y - a.y) * vy) / L2;
+      t = Math.max(0, Math.min(1, t));
+      const q = { x: a.x + vx * t, y: a.y + vy * t };
+      const d = _dist(p, q);
+      if (d < bd) { bd = d; best = q; }
+    }
+    return { q: best, d: bd };
+  }
+
+  // Đẩy các bãi tách nhau (không đè), giữ cách đường của lane (off-path) và trong tầm bắn.
+  function relaxSlots(map) {
+    const MINSEP = 11, PATH_CLEAR = 8, MAX_OFF = 14;
+    const all = [];
+    map.slots.forEach((arr, lane) => arr.forEach((p) => all.push({ p, lane })));
+    for (let iter = 0; iter < 70; iter++) {
+      for (const s of all) {
+        let mx = 0, my = 0;
+        for (const o of all) {
+          if (o === s) continue;
+          const dx = s.p.x - o.p.x, dy = s.p.y - o.p.y;
+          const d = Math.hypot(dx, dy) || 0.01;
+          if (d < MINSEP) { const f = (MINSEP - d) / d * 0.5; mx += dx * f; my += dy * f; }
+        }
+        const nr = nearestOnRoute(s.p, map.routes[s.lane]);
+        const rd = nr.d || 0.01;
+        const dirx = (s.p.x - nr.q.x) / rd, diry = (s.p.y - nr.q.y) / rd;
+        if (rd < PATH_CLEAR) { const f = (PATH_CLEAR - rd) * 0.6; mx += dirx * f; my += diry * f; }
+        if (rd > MAX_OFF) { const f = (rd - MAX_OFF) * 0.6; mx -= dirx * f; my -= diry * f; }
+        s.p.x = Math.max(6, Math.min(94, s.p.x + mx));
+        s.p.y = Math.max(8, Math.min(92, s.p.y + my));
+      }
+    }
+    all.forEach((s) => { s.p.x = +s.p.x.toFixed(1); s.p.y = +s.p.y.toFixed(1); });
+  }
+
   function create(ctx) {
     let leaks = 0;
     let baseHp = BASE_HP;
