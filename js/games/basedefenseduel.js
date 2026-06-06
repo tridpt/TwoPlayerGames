@@ -8,7 +8,7 @@
   const SPAWN_X = [172, W - 172];
   const TOWER_X = [318, W - 318];
   const MAX_TOWER_LVL = 4;
-  const UNIT_ORDER = ["grunt", "runner", "shield", "archer", "brute", "bomber", "warlock", "golem"];
+  const UNIT_ORDER = ["grunt", "runner", "lancer", "shield", "archer", "siege", "brute", "bomber", "warlock", "medic", "golem"];
 
   const UNIT_DEFS = {
     grunt: {
@@ -118,6 +118,47 @@
       color: "#b7c1a1",
       hint: "siêu trâu",
     },
+    lancer: {
+      label: "Kỵ binh",
+      icon: "🐎",
+      cost: 58,
+      hp: 78,
+      dmg: 27,
+      speed: 80,
+      cd: 0.82,
+      range: 22,
+      reward: 13,
+      color: "#f3a8c8",
+      hint: "lao cực nhanh",
+    },
+    siege: {
+      label: "Pháo binh",
+      icon: "🚀",
+      cost: 98,
+      hp: 92,
+      dmg: 38,
+      speed: 18,
+      cd: 1.6,
+      range: 128,
+      reward: 20,
+      vsBase: 2.3,
+      color: "#cdb38b",
+      hint: "bắn xa, phá nhà",
+    },
+    medic: {
+      label: "Y tá",
+      icon: "💉",
+      cost: 54,
+      hp: 70,
+      dmg: 0,
+      speed: 32,
+      cd: 1.0,
+      range: 66,
+      reward: 12,
+      heal: 16,
+      color: "#a8f0c8",
+      hint: "hồi máu đồng đội",
+    },
   };
 
   function create(ctx) {
@@ -132,6 +173,9 @@
     const gold = [START_GOLD, START_GOLD];
     const incomeLvl = [0, 0];
     const armoryLvl = [0, 0];
+    const fortifyLvl = [0, 0];
+    const marchLvl = [0, 0];
+    const arsenalLvl = [0, 0];
     const towers = [
       [null, null, null],
       [null, null, null],
@@ -223,7 +267,10 @@
     ];
     const upgradeActions = [
       { id: "econ", label: "Kinh tế", icon: "💰", hint: "+vàng/giây" },
-      { id: "armory", label: "Lò rèn", icon: "⚒️", hint: "+quân/tháp" },
+      { id: "armory", label: "Lò rèn", icon: "⚒️", hint: "+sát thương" },
+      { id: "fortify", label: "Giáp trận", icon: "🛡️", hint: "+máu lính" },
+      { id: "march", label: "Hành quân", icon: "👟", hint: "+tốc độ lính" },
+      { id: "arsenal", label: "Khí tài", icon: "📡", hint: "+tầm & dmg tháp" },
     ];
 
     function renderStaticControls() {
@@ -332,6 +379,9 @@
       else if (cmd.action === "upTower") ok = upgradeTower(side, lane, force);
       else if (cmd.action === "econ") ok = upgradeEconomy(side, force);
       else if (cmd.action === "armory") ok = upgradeArmory(side, force);
+      else if (cmd.action === "fortify") ok = upgradeTrack(side, force, fortifyLvl, fortifyCost, "Giáp trận");
+      else if (cmd.action === "march") ok = upgradeTrack(side, force, marchLvl, marchCost, "Hành quân");
+      else if (cmd.action === "arsenal") ok = upgradeTrack(side, force, arsenalLvl, arsenalCost, "Khí tài");
       else if (cmd.action === "repair") ok = repairBase(side, force);
 
       if (ok) {
@@ -392,6 +442,15 @@
       return true;
     }
 
+    function upgradeTrack(side, force, lvlArr, costFn, name) {
+      const cost = costFn(side);
+      if (!spend(side, cost, force)) return false;
+      lvlArr[side] += 1;
+      last = `Người chơi ${side + 1} nâng ${name} lên cấp ${lvlArr[side]}.`;
+      ctx.sound("select");
+      return true;
+    }
+
     function repairBase(side, force) {
       const cost = repairCost(side);
       if (baseHp[side] >= BASE_HP) return false;
@@ -411,6 +470,7 @@
     function spawnUnit(owner, lane, type) {
       const def = UNIT_DEFS[type];
       const scale = unitScale(owner);
+      const hp0 = Math.round(def.hp * scale * (1 + fortifyLvl[owner] * 0.14));
       const y = LANES[lane] + (ctx.rng() * 12 - 6);
       units.push({
         id: Math.random().toString(36).slice(2),
@@ -419,10 +479,10 @@
         type,
         x: SPAWN_X[owner],
         y,
-        hp: Math.round(def.hp * scale),
-        maxHp: Math.round(def.hp * scale),
+        hp: hp0,
+        maxHp: hp0,
         dmg: Math.round(def.dmg * (1 + armoryLvl[owner] * 0.13 + elapsed / 360 * SCALING)),
-        speed: def.speed * (1 + elapsed / 520 * 0.08),
+        speed: def.speed * (1 + elapsed / 520 * 0.08) * (1 + marchLvl[owner] * 0.1),
         cd: 0.18 + ctx.rng() * 0.24,
         flash: 16,
         phase: ctx.rng() * Math.PI * 2,
@@ -450,11 +510,27 @@
         u.cd = Math.max(0, u.cd - dt);
         u.phase += dt * (u.speed * 0.18 + 4);
         const dir = u.owner === 0 ? 1 : -1;
-        const enemy = closestEnemyInLane(u);
         const enemyBaseX = BASE_X[1 - u.owner];
         const def = UNIT_DEFS[u.type];
         const atBase = u.owner === 0 ? u.x >= enemyBaseX - 46 : u.x <= enemyBaseX + 46;
 
+        if (def.heal) {
+          const ally = woundedAllyInLane(u, def.range + 14);
+          if (ally && u.cd <= 0) {
+            const amt = def.heal + armoryLvl[u.owner] * 3;
+            ally.hp = Math.min(ally.maxHp, ally.hp + amt);
+            ally.flash = 8;
+            pops.push({ x: ally.x, y: ally.y - 22, text: "+" + amt, color: "#6ee7b7", t: 34 });
+            u.cd = def.cd;
+            ctx.sound("place");
+          } else if (!atBase) {
+            u.x += dir * u.speed * dt;
+            u.y += (LANES[u.lane] - u.y) * Math.min(1, dt * 4);
+          }
+          return;
+        }
+
+        const enemy = closestEnemyInLane(u);
         if (enemy && Math.abs(enemy.x - u.x) <= def.range + 14) {
           if (u.cd <= 0) {
             attackUnit(u, enemy);
@@ -462,8 +538,9 @@
           }
         } else if (atBase) {
           if (u.cd <= 0) {
-            baseHp[1 - u.owner] = Math.max(0, baseHp[1 - u.owner] - u.dmg);
-            pops.push({ x: enemyBaseX, y: LANES[u.lane] - 34, text: "-" + u.dmg, color: "#ff5d73", t: 44 });
+            const dmg = Math.round(u.dmg * (def.vsBase || 1));
+            baseHp[1 - u.owner] = Math.max(0, baseHp[1 - u.owner] - dmg);
+            pops.push({ x: enemyBaseX, y: LANES[u.lane] - 34, text: "-" + dmg, color: "#ff5d73", t: 44 });
             u.cd = def.cd;
             ctx.sound("shot");
           }
@@ -476,6 +553,18 @@
       for (let i = units.length - 1; i >= 0; i--) {
         if (units[i].hp <= 0) units.splice(i, 1);
       }
+    }
+
+    function woundedAllyInLane(medic, range) {
+      let best = null, bestPct = 1;
+      units.forEach((o) => {
+        if (o.owner !== medic.owner || o.lane !== medic.lane || o.hp <= 0) return;
+        if (o.hp >= o.maxHp) return;
+        if (Math.abs(o.x - medic.x) > range) return;
+        const pct = o.hp / o.maxHp;
+        if (pct < bestPct) { bestPct = pct; best = o; }
+      });
+      return best;
     }
 
     function attackUnit(attacker, target) {
@@ -527,7 +616,7 @@
           if (tw.cd > 0) continue;
           const target = towerTarget(side, lane, tw);
           if (!target) continue;
-          const dmg = Math.round((9 + tw.lvl * 5) * (1 + armoryLvl[side] * 0.06));
+          const dmg = Math.round((9 + tw.lvl * 5) * (1 + armoryLvl[side] * 0.06 + arsenalLvl[side] * 0.1));
           tw.cd = Math.max(0.62, 1.24 - tw.lvl * 0.05);
           damageUnit(target, dmg, side, towerX(side), LANES[lane]);
           bullets.push({
@@ -545,7 +634,7 @@
     function towerTarget(side, lane, tw) {
       const x = towerX(side);
       const y = LANES[lane] - 50;
-      const range = 104 + tw.lvl * 14;
+      const range = 104 + tw.lvl * 14 + arsenalLvl[side] * 18;
       let best = null, bestD = 9999;
       units.forEach((u) => {
         if (u.owner === side || u.hp <= 0) return;
@@ -601,7 +690,7 @@
           <b>${Math.ceil(baseHp[side])}/${BASE_HP} HP</b>
           <em>${Math.floor(gold[side])} vàng · +${incomeRate(side).toFixed(1)}/s · ${towersBuilt}/3 tháp</em>
           <i class="bd-hp"><i style="width:${hpPct}%"></i></i>
-          <small>Kinh tế ${incomeLvl[side]} · Lò rèn ${armoryLvl[side]}</small>
+          <small>💰${incomeLvl[side]} ⚒️${armoryLvl[side]} 🛡️${fortifyLvl[side]} 👟${marchLvl[side]} 📡${arsenalLvl[side]}</small>
         </div>
       `;
     }
@@ -643,6 +732,9 @@
       }
       if (id === "econ") return econCost(side);
       if (id === "armory") return armoryCost(side);
+      if (id === "fortify") return fortifyCost(side);
+      if (id === "march") return marchCost(side);
+      if (id === "arsenal") return arsenalCost(side);
       if (id === "repair") return baseHp[side] >= BASE_HP ? Infinity : repairCost(side);
       return Infinity;
     }
@@ -661,6 +753,18 @@
 
     function armoryCost(side) {
       return 112 + armoryLvl[side] * 78;
+    }
+
+    function fortifyCost(side) {
+      return 96 + fortifyLvl[side] * 70;
+    }
+
+    function marchCost(side) {
+      return 90 + marchLvl[side] * 66;
+    }
+
+    function arsenalCost(side) {
+      return 104 + arsenalLvl[side] * 74;
     }
 
     function repairCost(side) {
@@ -696,31 +800,40 @@
 
     function drawBackground() {
       const sky = g.createLinearGradient(0, 0, 0, H);
-      sky.addColorStop(0, "#151936");
-      sky.addColorStop(0.58, "#1f294d");
-      sky.addColorStop(1, "#111629");
+      sky.addColorStop(0, "#10213c");
+      sky.addColorStop(0.52, "#173251");
+      sky.addColorStop(1, "#0b1726");
       g.fillStyle = sky;
       g.fillRect(0, 0, W, H);
 
-      g.fillStyle = "rgba(255,255,255,0.05)";
+      // sương mờ
+      g.fillStyle = "rgba(255,255,255,0.045)";
       for (let i = 0; i < 7; i++) {
         g.beginPath();
-        g.ellipse(90 + i * 118, 78 + (i % 3) * 20, 45, 10, 0, 0, Math.PI * 2);
+        g.ellipse(90 + i * 118, 70 + (i % 3) * 22, 46, 11, 0, 0, Math.PI * 2);
         g.fill();
       }
 
+      // nền chiến trường giữa hai nhà
+      g.fillStyle = "rgba(255,255,255,0.022)";
+      roundRect(g, 58, LANES[0] - 44, W - 116, LANES[2] - LANES[0] + 88, 26);
+      g.fill();
+
       LANES.forEach((y, lane) => {
-        const band = g.createLinearGradient(0, y - 30, W, y + 30);
-        band.addColorStop(0, "rgba(255,93,115,0.13)");
-        band.addColorStop(0.5, "rgba(255,255,255,0.06)");
-        band.addColorStop(1, "rgba(77,208,225,0.13)");
-        g.fillStyle = band;
-        roundRect(g, 68, y - 27, W - 136, 54, 999);
+        const sel = lane === selectedLane[controlSide];
+        const road = g.createLinearGradient(0, y - 26, 0, y + 26);
+        road.addColorStop(0, "rgba(255,255,255,0.11)");
+        road.addColorStop(0.5, "rgba(255,255,255,0.17)");
+        road.addColorStop(1, "rgba(0,0,0,0.12)");
+        g.fillStyle = road;
+        roundRect(g, 68, y - 26, W - 136, 52, 26);
         g.fill();
-        g.strokeStyle = lane === selectedLane[controlSide] ? "rgba(255,209,102,0.45)" : "rgba(255,255,255,0.09)";
-        g.lineWidth = lane === selectedLane[controlSide] ? 2 : 1;
+        g.strokeStyle = sel ? "rgba(255,209,102,0.6)" : "rgba(255,255,255,0.1)";
+        g.lineWidth = sel ? 3 : 1.5;
+        roundRect(g, 68, y - 26, W - 136, 52, 26);
         g.stroke();
-        g.fillStyle = "rgba(255,255,255,0.32)";
+        drawLaneFlow(y);
+        g.fillStyle = "rgba(255,255,255,0.3)";
         g.font = "800 11px Segoe UI, sans-serif";
         g.textAlign = "center";
         g.fillText("LANE " + (lane + 1), W / 2, y + 4);
@@ -733,6 +846,24 @@
       g.textAlign = "center";
       g.fillText("BASE DEFENSE DUEL", W / 2, 28);
       g.textAlign = "left";
+    }
+
+    function drawLaneFlow(y) {
+      const off = (elapsed * 26) % 40;
+      g.lineCap = "round";
+      g.lineWidth = 3;
+      g.strokeStyle = "rgba(255,93,115,0.22)";
+      for (let x = 150 - off; x < W / 2 - 26; x += 40) {
+        g.beginPath();
+        g.moveTo(x - 7, y - 7); g.lineTo(x, y); g.lineTo(x - 7, y + 7);
+        g.stroke();
+      }
+      g.strokeStyle = "rgba(77,208,225,0.22)";
+      for (let x = W - 150 + off; x > W / 2 + 26; x -= 40) {
+        g.beginPath();
+        g.moveTo(x + 7, y - 7); g.lineTo(x, y); g.lineTo(x + 7, y + 7);
+        g.stroke();
+      }
     }
 
     function drawBases() {
@@ -840,6 +971,9 @@
         else if (u.type === "bomber") drawBomberUnit(body, sideColor, walk);
         else if (u.type === "warlock") drawWarlockUnit(body, sideColor, walk);
         else if (u.type === "golem") drawGolemUnit(body, sideColor, walk);
+        else if (u.type === "lancer") drawLancerUnit(body, sideColor, walk);
+        else if (u.type === "siege") drawSiegeUnit(body, sideColor, walk);
+        else if (u.type === "medic") drawMedicUnit(body, sideColor, walk);
         else drawGruntUnit(body, sideColor, walk);
         g.restore();
 
@@ -1076,6 +1210,96 @@
       g.stroke();
     }
 
+    function drawLancerUnit(body, sideColor, walk) {
+      // ngựa
+      g.fillStyle = "#6b4a3a";
+      roundRect(g, -18, -6, 32, 16, 8);
+      g.fill();
+      g.fillStyle = "#5a3d30";
+      g.beginPath();
+      g.moveTo(12, -4);
+      g.quadraticCurveTo(22, -10, 20, 2);
+      g.lineTo(12, 4);
+      g.closePath();
+      g.fill();
+      // kỵ sĩ
+      g.fillStyle = body;
+      roundRect(g, -8, -22, 16, 18, 6);
+      g.fill();
+      g.fillStyle = sideColor;
+      g.beginPath();
+      g.arc(0, -26, 6, 0, Math.PI * 2);
+      g.fill();
+      // giáo
+      g.strokeStyle = "#e6e0cf";
+      g.lineWidth = 3;
+      g.beginPath();
+      g.moveTo(2, -18);
+      g.lineTo(34, -22 + walk * 2);
+      g.stroke();
+      g.fillStyle = sideColor;
+      g.beginPath();
+      g.moveTo(34, -22 + walk * 2);
+      g.lineTo(28, -27 + walk * 2);
+      g.lineTo(29, -18 + walk * 2);
+      g.closePath();
+      g.fill();
+    }
+
+    function drawSiegeUnit(body, sideColor, walk) {
+      // bệ + bánh xe
+      g.fillStyle = "#3a3320";
+      roundRect(g, -16, -6, 30, 14, 5);
+      g.fill();
+      g.fillStyle = "#1c1a12";
+      g.beginPath();
+      g.arc(-9, 9, 7, 0, Math.PI * 2);
+      g.arc(9, 9, 7, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = sideColor;
+      g.beginPath();
+      g.arc(-9, 9, 3, 0, Math.PI * 2);
+      g.arc(9, 9, 3, 0, Math.PI * 2);
+      g.fill();
+      // nòng pháo
+      g.save();
+      g.rotate(-0.28);
+      g.fillStyle = body;
+      roundRect(g, -8, -20, 38, 13, 6);
+      g.fill();
+      g.fillStyle = "#11141d";
+      g.beginPath();
+      g.arc(30, -13, 6, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+      g.fillStyle = sideColor;
+      g.beginPath();
+      g.arc(-6, -14, 7, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    function drawMedicUnit(body, sideColor, walk) {
+      g.fillStyle = body;
+      roundRect(g, -12, -18, 24, 24, 8);
+      g.fill();
+      g.fillStyle = sideColor;
+      roundRect(g, -9, -28, 18, 12, 6);
+      g.fill();
+      // chữ thập đỏ trắng
+      g.fillStyle = "#ffffff";
+      roundRect(g, -7, -12, 14, 14, 3);
+      g.fill();
+      g.fillStyle = "#e23a3a";
+      g.fillRect(-2, -11, 4, 12);
+      g.fillRect(-6, -7, 12, 4);
+      // túi cứu thương
+      g.fillStyle = "#d8dee9";
+      roundRect(g, 11, -6, 10, 12, 3);
+      g.fill();
+      g.fillStyle = "#e23a3a";
+      g.fillRect(14, -2 + walk, 4, 1.6);
+    }
+
     function drawEffects() {
       bullets.forEach((b) => {
         g.strokeStyle = b.color;
@@ -1170,27 +1394,27 @@
     id: "basedefenseduel",
     name: "Base Defense Duel",
     emoji: "🏰",
-    description: "Vừa thủ nhà bằng tháp, vừa gửi nhiều loại lính sang phá nhà đối thủ. Vàng và sức lính tăng dần theo thời gian.",
+    description: "Thủ nhà bằng tháp, gửi 11 loại lính (kỵ binh, pháo binh, y tá hồi máu...) phá nhà đối thủ. Nâng cấp kinh tế, giáp, tốc độ, tháp và sức mạnh.",
     onlineReady: true,
     options: [
       {
         id: "hp",
         label: "Máu nhà chính",
-        default: 700,
+        default: 560,
         choices: [
-          { value: 500, label: "500 (nhanh)" },
-          { value: 700, label: "700" },
-          { value: 950, label: "950 (lâu)" },
+          { value: 460, label: "460 (nhanh)" },
+          { value: 560, label: "560" },
+          { value: 760, label: "760 (lâu)" },
         ],
       },
       {
         id: "gold",
         label: "Vàng ban đầu",
-        default: 130,
+        default: 155,
         choices: [
-          { value: 90, label: "90 (chậm)" },
-          { value: 130, label: "130" },
-          { value: 180, label: "180 (nhanh)" },
+          { value: 120, label: "120 (chậm)" },
+          { value: 155, label: "155" },
+          { value: 210, label: "210 (nhanh)" },
         ],
       },
       {
@@ -1216,12 +1440,13 @@
     ],
     howTo: [
       "Hai bên có nhà chính ở hai đầu bản đồ. Mục tiêu là phá nhà chính đối thủ trước.",
-      "Chọn lane 1, 2 hoặc 3 rồi gửi lính sang nhà đối thủ. Có lính rẻ, lính nhanh, khiên chắn, cung thủ, đấu sĩ trâu, nổ giáp, pháp sư và golem.",
-      "Xây tháp trên lane để bắn lính địch. Tháp chỉ hỗ trợ phòng thủ, không còn đủ mạnh để tự giữ lane nếu bị ép đông.",
-      "Nâng Kinh tế để tăng vàng mỗi giây. Nâng Lò rèn để tăng sức mạnh lính và một phần sát thương tháp.",
-      "Sửa nhà dùng vàng để hồi máu nhà chính khi bị ép.",
-      "Càng về sau lính càng mạnh, nên ván có thể kéo dài và chuyển sang giai đoạn late game rất căng.",
-      "Chơi chung máy: click nửa sân hoặc nút P1/P2 để đổi phe điều khiển. Chơi online: mỗi người chỉ điều khiển phe của mình.",
+      "Chọn lane 1, 2 hoặc 3 rồi gửi lính sang nhà đối thủ. Có 11 loại: 🪖 tân binh, 🏃 trinh sát, 🐎 kỵ binh (lao cực nhanh), 🛡️ vệ binh, 🏹 cung thủ, 🚀 pháo binh (bắn xa, phá nhà mạnh), 🪓 chiến binh, 💣 công binh (nổ lan), 🧙 pháp sư, 💉 y tá (hồi máu đồng đội), 🗿 golem.",
+      "Y tá không đánh mà đi theo hồi máu cho lính cùng lane đang bị thương — kết hợp với lính trâu để giữ mũi tấn công.",
+      "Xây tháp 🗼 trên lane để bắn lính địch. Tháp hỗ trợ phòng thủ.",
+      "Nâng cấp: 💰 Kinh tế (+vàng/giây), ⚒️ Lò rèn (+sát thương), 🛡️ Giáp trận (+máu lính), 👟 Hành quân (+tốc độ lính), 📡 Khí tài (+tầm & sát thương tháp).",
+      "Sửa nhà 🔧 dùng vàng để hồi máu nhà chính khi bị ép.",
+      "Càng về sau lính càng mạnh. Nhịp đấu nhanh nên hãy ra quân và nâng cấp liên tục.",
+      "Chơi chung máy: click nửa sân hoặc nút P1/P2 để đổi phe. Chơi online: mỗi người điều khiển phe của mình.",
     ],
     create,
   });
