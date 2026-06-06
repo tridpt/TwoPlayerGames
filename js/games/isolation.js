@@ -1,6 +1,7 @@
 /* Isolation Duel - Co Co Lap
-   Hai quan bat dau o hai goc. Moi luot di theo hang/cot/cheo bat ky so o,
-   o vua roi se bi khoa. Ai lam doi thu khong con nuoc di se thang. */
+   Hai quan o hai goc. Moi luot di theo hang/cot/cheo bat ky so o.
+   Che do "vacate": o vua roi tu khoa. Che do "choose": di xong chon mot o trong bat ky de khoa.
+   Ai lam doi thu het nuoc di se thang. */
 (function () {
   const DIRS = [
     [-1, -1], [-1, 0], [-1, 1],
@@ -9,19 +10,32 @@
   ];
 
   function create(ctx) {
-    const size = Number(ctx.options?.size || 7);
+    const o = ctx.options || {};
+    const size = Number(o.size || 7);
     const N = [5, 7, 9].includes(size) ? size : 7;
+    const MODE = o.mode === "choose" ? "choose" : "vacate";
     const total = N * N;
     const blocked = Array(total).fill(false);
     const pos = [0, total - 1];
     let turn = 0;
     let over = false;
+    let phase = "move";   // move | block (chỉ dùng cho chế độ choose)
+    let lastMove = -1;
+    let lastBlock = -1;
+
+    const root = document.createElement("div");
+    root.className = "iso-root";
+    ctx.boardEl.appendChild(root);
+
+    const hud = document.createElement("div");
+    hud.className = "iso-hud";
+    root.appendChild(hud);
 
     const board = document.createElement("div");
     board.className = "iso-board";
     board.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
     board.style.setProperty("--iso-size", String(N));
-    ctx.boardEl.appendChild(board);
+    root.appendChild(board);
 
     const cells = [];
     for (let i = 0; i < total; i++) {
@@ -38,21 +52,19 @@
     function col(i) { return i % N; }
     function occupied(i) { return pos[0] === i || pos[1] === i; }
     function canAct() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
+    function isEmpty(i) { return !blocked[i] && !occupied(i); }
 
     function legalMoves(player) {
       const out = [];
       const start = pos[player];
-      const sr = row(start);
-      const sc = col(start);
+      const sr = row(start), sc = col(start);
       DIRS.forEach(([dr, dc]) => {
-        let r = sr + dr;
-        let c = sc + dc;
+        let r = sr + dr, c = sc + dc;
         while (r >= 0 && r < N && c >= 0 && c < N) {
           const target = idx(r, c);
           if (blocked[target] || occupied(target)) break;
           out.push(target);
-          r += dr;
-          c += dc;
+          r += dr; c += dc;
         }
       });
       return out;
@@ -60,33 +72,63 @@
 
     function onCell(i) {
       if (!canAct()) return;
+      if (MODE === "choose" && phase === "block") {
+        if (!isEmpty(i)) return;
+        applyMove({ block: i }, false);
+        return;
+      }
       if (!legalMoves(turn).includes(i)) return;
       applyMove({ to: i }, false);
     }
 
     function applyMove(move, fromRemote) {
       if (over) return;
+
+      if (move && Number.isInteger(Number(move.block)) && MODE === "choose" && phase === "block") {
+        const at = Number(move.block);
+        if (!isEmpty(at)) return;
+        blocked[at] = true;
+        lastBlock = at;
+        ctx.sound("capture");
+        if (!fromRemote && ctx.isOnline) ctx.sendMove({ block: at });
+        phase = "move";
+        endTurn(turn);
+        return;
+      }
+
       const to = Number(move?.to);
       const legal = legalMoves(turn);
       if (!Number.isInteger(to) || !legal.includes(to)) return;
 
       const player = turn;
       const old = pos[player];
-      blocked[old] = true;
       pos[player] = to;
+      lastMove = to;
       ctx.sound("place");
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ to });
 
-      const next = 1 - turn;
+      if (MODE === "vacate") {
+        blocked[old] = true;
+        lastBlock = old;
+        endTurn(player);
+      } else {
+        // choose: cùng người chơi phải chọn ô để khóa
+        phase = "block";
+        updateStatus();
+        render();
+      }
+    }
+
+    function endTurn(player) {
+      const next = 1 - player;
       if (legalMoves(next).length === 0) {
         over = true;
         ctx.incScore(player);
-        ctx.setStatus(`🎉 Người chơi ${player + 1} thắng! Đối thủ không còn nước đi.`);
         ctx.setTurn(-1);
+        ctx.setStatus(`🎉 Người chơi ${player + 1} thắng! Đối thủ không còn nước đi.`);
         render();
         return;
       }
-
       turn = next;
       ctx.setTurn(turn);
       updateStatus();
@@ -95,26 +137,49 @@
 
     function updateStatus() {
       if (over) return;
-      const moves = legalMoves(turn).length;
-      ctx.setStatus(`Người chơi ${turn + 1}: chọn một ô hợp lệ để di chuyển. Còn ${moves} nước.`);
+      if (ctx.isOnline && turn !== ctx.mySeat) {
+        ctx.setStatus(`Đối thủ đang đi... (P1 ${legalMoves(0).length} nước · P2 ${legalMoves(1).length} nước)`);
+        return;
+      }
+      if (MODE === "choose" && phase === "block") {
+        ctx.setStatus(`Người chơi ${turn + 1}: chọn một ô TRỐNG bất kỳ để KHÓA (chặn đường đối thủ).`);
+        return;
+      }
+      ctx.setStatus(`Người chơi ${turn + 1}: chọn ô để di chuyển (ngang/dọc/chéo). Còn ${legalMoves(turn).length} nước.`);
     }
 
     function render() {
-      const legal = canAct() ? new Set(legalMoves(turn)) : new Set();
+      const m0 = legalMoves(0).length;
+      const m1 = legalMoves(1).length;
+      const maxM = Math.max(1, m0, m1);
+      hud.innerHTML = `
+        <div class="iso-side p1 ${turn === 0 && !over ? "active" : ""}">
+          <span>🔴 Người chơi 1</span><b>${m0} nước</b>
+          <i class="iso-bar p1"><i style="width:${m0 / maxM * 100}%"></i></i>
+        </div>
+        <div class="iso-mid">${over ? "🏁" : (MODE === "choose" && phase === "block" ? "🔒 chọn ô khóa" : "⚔️")}</div>
+        <div class="iso-side p2 ${turn === 1 && !over ? "active" : ""}">
+          <span>🔵 Người chơi 2</span><b>${m1} nước</b>
+          <i class="iso-bar p2"><i style="width:${m1 / maxM * 100}%"></i></i>
+        </div>
+      `;
+
+      const moveSet = (canAct() && !(MODE === "choose" && phase === "block")) ? new Set(legalMoves(turn)) : new Set();
+      const blockMode = MODE === "choose" && phase === "block" && canAct();
       cells.forEach((cell, i) => {
-        cell.className = "iso-cell";
-        cell.textContent = "";
-        cell.disabled = over || blocked[i] || occupied(i) || !legal.has(i);
-        if (blocked[i]) cell.classList.add("blocked");
-        if (pos[0] === i) {
-          cell.classList.add("p1");
-          cell.textContent = "1";
-        }
-        if (pos[1] === i) {
-          cell.classList.add("p2");
-          cell.textContent = "2";
-        }
-        if (legal.has(i)) cell.classList.add("legal");
+        let cls = "iso-cell";
+        cell.innerHTML = "";
+        let dis = over || blocked[i] || occupied(i);
+        if ((row(i) + col(i)) % 2 === 0) cls += " alt";
+        if (blocked[i]) cls += " blocked";
+        if (i === lastBlock && blocked[i]) cls += " lastblock";
+        if (pos[0] === i) { cls += " p1"; cell.innerHTML = `<span class="iso-pawn">♟</span>`; }
+        if (pos[1] === i) { cls += " p2"; cell.innerHTML = `<span class="iso-pawn">♟</span>`; }
+        if (i === lastMove && occupied(i)) cls += " lastmove";
+        if (moveSet.has(i)) { cls += " legal"; dis = false; }
+        if (blockMode && isEmpty(i)) { cls += " blocktarget"; dis = false; }
+        cell.disabled = dis;
+        cell.className = cls;
       });
     }
 
@@ -129,26 +194,31 @@
     id: "isolation",
     name: "Cờ Cô Lập",
     emoji: "🔒",
-    description: "Di chuyển quân rồi khóa ô vừa rời. Ai làm đối thủ hết đường đi trước sẽ thắng.",
+    description: "Di chuyển quân rồi khóa ô để dồn đối thủ vào chỗ bí. Có bảng đo số nước đi và chế độ tự chọn ô khóa cổ điển.",
     onlineReady: true,
     options: [
       {
-        id: "size",
-        label: "Kích thước bàn",
-        default: 7,
+        id: "size", label: "Kích thước bàn", default: 7,
         choices: [
           { value: 5, label: "5x5 nhanh" },
           { value: 7, label: "7x7 chuẩn" },
           { value: 9, label: "9x9 dài" },
         ],
       },
+      {
+        id: "mode", label: "Kiểu khóa ô", default: "vacate",
+        choices: [
+          { value: "vacate", label: "Tự khóa ô vừa rời (đơn giản)" },
+          { value: "choose", label: "Tự chọn ô để khóa (cổ điển, sâu hơn)" },
+        ],
+      },
     ],
     howTo: [
-      "Mỗi người có một quân ở hai góc đối diện của bàn.",
-      "Đến lượt, quân của bạn đi theo hàng ngang, dọc hoặc chéo, đi xa bao nhiêu ô cũng được nếu đường không bị chặn.",
-      "Ô bạn vừa rời khỏi sẽ bị khóa vĩnh viễn, không ai được đi qua hoặc đứng lên ô đó nữa.",
-      "Bạn không được nhảy qua ô khóa hoặc quân đối thủ.",
-      "Sau nước đi của bạn, nếu đối thủ không còn nước hợp lệ thì bạn thắng.",
+      "Mỗi người có một quân ở hai góc đối diện. Đến lượt, quân đi theo hàng ngang/dọc/chéo, xa bao nhiêu ô cũng được nếu đường không bị chặn (không nhảy qua ô khóa hay quân địch).",
+      "Kiểu 'Tự khóa ô vừa rời': ô bạn vừa đứng sẽ tự bị khóa vĩnh viễn sau khi đi.",
+      "Kiểu 'Tự chọn ô để khóa' (cổ điển): sau khi đi, bạn được CHỌN một ô trống BẤT KỲ trên bàn để khóa — dùng để bịt đường đối thủ một cách chiến thuật hơn.",
+      "Bảng phía trên cho biết mỗi người còn bao nhiêu nước đi — hãy tìm cách bóp nghẹt số nước của đối thủ.",
+      "Sau lượt của bạn, nếu đối thủ không còn nước đi hợp lệ nào thì bạn thắng.",
     ],
     create,
   });
