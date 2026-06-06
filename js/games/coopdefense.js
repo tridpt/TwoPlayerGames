@@ -647,7 +647,8 @@
       const def = TOWERS[tower.type];
       return `
         <button class="cd-slot has-tower tower-${tower.type} ${selected ? "selected" : ""}" data-lane="${lane}" data-slot="${slot}" style="left:${pt.x}%;top:${pt.y}%;color:${def.color}" title="${def.name} cấp ${tower.level}">
-          <span class="cd-tw-ic">${def.icon}</span>
+          <span class="tower-model tower-${tower.type}"><i></i><em></em></span>
+          <span class="tower-code">${def.short}</span>
           <small>${tower.level}</small>
         </button>
       `;
@@ -693,7 +694,7 @@
           <div class="cd-tower-list">
             ${Object.entries(TOWERS).map(([id, def]) => `
               <button class="cd-tower-card ${selectedType === id ? "active" : ""}" data-tower="${id}" style="--tower:${def.color}" ${over ? "disabled" : ""}>
-                <span class="cd-tower-ic">${def.icon}</span>
+                <span class="tower-chip tower-${id}"><i></i><em></em></span>
                 <b>${def.name}</b>
                 <small>${def.cost} vàng · ${def.note}</small>
               </button>

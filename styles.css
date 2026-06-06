@@ -10106,29 +10106,7 @@ body {
 }
 
 
-/* ---------- Co-op Defense: emoji súng/quái + Không kích ---------- */
-.cd-slot.has-tower .cd-tw-ic {
-  font-size: 20px;
-  line-height: 1;
-  display: block;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
-}
-.cd-slot.has-tower small {
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  min-width: 14px;
-  height: 14px;
-  padding: 0 2px;
-  border-radius: 999px;
-  background: #16121d;
-  color: #ffd166;
-  font-size: 0.6rem;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* ---------- Co-op Defense: emoji quái + Không kích ---------- */
 .cd-monster .cd-mon-ic {
   position: absolute;
   inset: 0;
@@ -10142,10 +10120,6 @@ body {
 .cd-monster.mon-boss .cd-mon-ic { font-size: 27px; }
 .cd-monster.mon-brute .cd-mon-ic,
 .cd-monster.mon-splitter .cd-mon-ic { font-size: 21px; }
-.cd-tower-ic {
-  font-size: 20px;
-  line-height: 1;
-}
 .cd-strike {
   width: 100%;
   margin-top: 8px;
