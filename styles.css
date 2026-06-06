@@ -2082,8 +2082,8 @@ body {
   font-style: normal;
 }
 .pool-mini.bomb { background: #ff9f5d; }
-.pool-mini.magnet { background: #8be6f0; }
-.pool-mini.gravity { background: #ffd166; }
+.pool-mini.power { background: #ffd166; }
+.pool-mini.widen { background: #8be6f0; }
 .pool-legend {
   display: flex;
   flex-wrap: wrap;

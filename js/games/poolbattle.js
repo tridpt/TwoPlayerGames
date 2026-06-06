@@ -14,19 +14,19 @@
   const SUBSTEPS = 4;
   const MAX_FRAMES = 1500;
   const POWER_SCALE = 0.42;
-  const TOKEN_KEYS = ["bomb", "magnet", "gravity"];
+  const TOKEN_KEYS = ["bomb", "power", "widen"];
 
   const MODE_DEFS = {
     normal: { label: "Chọc thường", icon: "CUE", hint: "không tốn" },
     bomb: { label: "Bóng nổ", icon: "BOOM", hint: "va chạm đầu" },
-    magnet: { label: "Nam châm", icon: "MAG", hint: "hút bi gần" },
-    gravity: { label: "Đổi trọng lực", icon: "TILT", hint: "nghiêng bàn" },
+    power: { label: "Siêu lực", icon: "PWR", hint: "bắn cực mạnh" },
+    widen: { label: "Lỗ to", icon: "HOLE", hint: "lỗ rộng cú này" },
   };
 
   const TOKEN_DEFS = {
     bomb: { label: "Bóng nổ", color: "#ff9f5d", letter: "B" },
-    magnet: { label: "Nam châm", color: "#8be6f0", letter: "M" },
-    gravity: { label: "Đổi trọng lực", color: "#ffd166", letter: "G" },
+    power: { label: "Siêu lực", color: "#ffd166", letter: "P" },
+    widen: { label: "Lỗ to", color: "#8be6f0", letter: "O" },
   };
 
   const POCKETS = [
@@ -56,8 +56,8 @@
     ];
     const scores = [0, 0];
     const inventory = [
-      { bomb: TOKEN_COUNT ? 1 : 0, magnet: TOKEN_COUNT ? 1 : 0, gravity: TOKEN_COUNT ? 1 : 0 },
-      { bomb: TOKEN_COUNT ? 1 : 0, magnet: TOKEN_COUNT ? 1 : 0, gravity: TOKEN_COUNT ? 1 : 0 },
+      { bomb: TOKEN_COUNT ? 1 : 0, power: TOKEN_COUNT ? 1 : 0, widen: TOKEN_COUNT ? 1 : 0 },
+      { bomb: TOKEN_COUNT ? 1 : 0, power: TOKEN_COUNT ? 1 : 0, widen: TOKEN_COUNT ? 1 : 0 },
     ];
 
     const balls = makeBalls(OBJECTS);
@@ -289,7 +289,7 @@
       if (!cue.active) respawnCue();
       const pl = players[turn];
       const rad = pl.angle * Math.PI / 180;
-      const speed = pl.power * POWER_SCALE;
+      const speed = pl.power * POWER_SCALE * (mode === "power" ? 1.7 : 1);
       cue.vx += Math.cos(rad) * speed;
       cue.vy += Math.sin(rad) * speed;
       shot = {
@@ -297,10 +297,9 @@
         mode,
         frames: 0,
         bombReady: mode === "bomb",
-        gravityAngle: rad,
+        pocketBonus: mode === "widen" ? 16 : 0,
         scored: 0,
         foul: false,
-        opponentCue: false,
         pocketed: [],
         gained: [],
         blast: null,
@@ -339,32 +338,7 @@
     }
 
     function applyShotForces() {
-      if (!shot) return;
-      if (shot.mode === "magnet") {
-        const cue = cueBall(shot.owner);
-        if (cue && cue.active) {
-          balls.forEach((b) => {
-            if (!b.active || b.kind !== "object") return;
-            const dx = cue.x - b.x;
-            const dy = cue.y - b.y;
-            const d = Math.hypot(dx, dy);
-            if (d <= 1 || d > 175) return;
-            const pull = 0.022 * (1 - d / 175) / SUBSTEPS;
-            b.vx += dx / d * pull;
-            b.vy += dy / d * pull;
-          });
-        }
-      } else if (shot.mode === "gravity") {
-        const ax = Math.cos(shot.gravityAngle) * 0.032 / SUBSTEPS;
-        const ay = Math.sin(shot.gravityAngle) * 0.032 / SUBSTEPS;
-        balls.forEach((b) => {
-          if (!b.active) return;
-          if (speedOf(b) > 0.02) {
-            b.vx += ax;
-            b.vy += ay;
-          }
-        });
-      }
+      // Không còn lực đặc biệt theo từng khung cho power-up hiện tại.
     }
 
     function moveBall(b) {
@@ -382,7 +356,7 @@
 
     function resolvePocketAndRails(b) {
       if (!b.active) return;
-      const pocket = POCKETS.find((p) => dist(b.x, b.y, p.x, p.y) < POCKET_R);
+      const pocket = POCKETS.find((p) => dist(b.x, b.y, p.x, p.y) < POCKET_R + (shot ? shot.pocketBonus || 0 : 0));
       if (pocket) {
         pocketBall(b);
         return;
@@ -617,8 +591,8 @@
           <b>${scores[idx]} điểm</b>
           <em>
             <i class="pool-mini bomb">B</i>${inv.bomb}
-            <i class="pool-mini magnet">M</i>${inv.magnet}
-            <i class="pool-mini gravity">G</i>${inv.gravity}
+            <i class="pool-mini power">P</i>${inv.power}
+            <i class="pool-mini widen">O</i>${inv.widen}
           </em>
         </div>
       `;
@@ -970,25 +944,26 @@
 
     function drawShotEffects() {
       if (!shot) return;
-      if (shot.mode === "magnet") {
-        const cue = cueBall(shot.owner);
-        if (cue && cue.active) {
-          g.strokeStyle = "rgba(139,230,240,0.2)";
-          g.lineWidth = 2;
+      if (shot.pocketBonus > 0) {
+        g.strokeStyle = "rgba(139,230,240,0.55)";
+        g.lineWidth = 2;
+        g.setLineDash([5, 5]);
+        POCKETS.forEach((p) => {
           g.beginPath();
-          g.arc(cue.x, cue.y, 175, 0, Math.PI * 2);
+          g.arc(p.x, p.y, POCKET_R + shot.pocketBonus, 0, Math.PI * 2);
+          g.stroke();
+        });
+        g.setLineDash([]);
+      }
+      if (shot.mode === "power") {
+        const cue = cueBall();
+        if (cue && cue.active) {
+          g.strokeStyle = "rgba(255,209,102,0.5)";
+          g.lineWidth = 3;
+          g.beginPath();
+          g.arc(cue.x, cue.y, cue.r + 5 + (tick % 8), 0, Math.PI * 2);
           g.stroke();
         }
-      }
-      if (shot.mode === "gravity") {
-        const cx = W / 2;
-        const cy = TOP + 32;
-        g.strokeStyle = "rgba(255,209,102,0.8)";
-        g.lineWidth = 3;
-        g.beginPath();
-        g.moveTo(cx - Math.cos(shot.gravityAngle) * 34, cy - Math.sin(shot.gravityAngle) * 34);
-        g.lineTo(cx + Math.cos(shot.gravityAngle) * 34, cy + Math.sin(shot.gravityAngle) * 34);
-        g.stroke();
       }
       if (shot.blast) {
         g.strokeStyle = `rgba(255,159,93,${Math.max(0, 1 - shot.blast.r / shot.blast.max)})`;
@@ -1075,7 +1050,7 @@
     id: "poolbattle",
     name: "Pool Battle",
     emoji: "🎱",
-    description: "Bi-a đối kháng: hai người luân phiên chọc CHUNG một bi cái trắng. Kéo chuột để canh hướng và tụ lực rồi thả để bắn. Có đường ngắm dự đoán, thưởng combo và power-up.",
+    description: "Bi-a đối kháng: hai người luân phiên chọc CHUNG một bi cái trắng. Kéo chuột để canh hướng và tụ lực rồi thả để bắn. Có đường ngắm dự đoán, thưởng combo và power-up (Bóng nổ, Siêu lực, Lỗ to).",
     onlineReady: true,
     options: [
       {
@@ -1125,7 +1100,7 @@
       "Đường chấm dự đoán cho thấy bi cái sẽ đi đâu (kể cả nảy băng); bi bóng ma trắng là điểm chạm và vạch vàng là hướng bi mục tiêu sẽ lăn.",
       "Bi màu rơi vào hố cộng 1 điểm cho người vừa chọc. Lọt từ 2 bi trong một cú được thưởng COMBO +1. Đủ điểm mục tiêu thì thắng.",
       "Làm rơi bi cái xuống hố là LỖI: đối thủ được 1 điểm và bi cái được đặt lại. Vụ nổ càng gần thì đẩy bi càng mạnh.",
-      "Power-up Bóng nổ tạo lực nổ ở va chạm đầu tiên của bi cái. Nam châm hút bi màu gần bi cái. Đổi trọng lực nghiêng bàn theo hướng đang ngắm. Các ô B/M/G xuất hiện NGẪU NHIÊN trên bàn và sau mỗi vòng (cả hai đã bắn) sẽ đổi sang vị trí & loại khác — nhặt khi bi chạm vào.",
+      "Power-up: 🟠 Bóng nổ (B) tạo lực nổ ở va chạm đầu tiên của bi cái; 🟡 Siêu lực (P) cho cú bắn cực mạnh; 🔵 Lỗ to (O) nới rộng tất cả lỗ trong đúng cú đó để dễ vào bi. Các ô B/P/O xuất hiện NGẪU NHIÊN trên bàn và sau mỗi vòng (cả hai đã bắn) sẽ đổi sang vị trí & loại khác — nhặt khi bi chạm vào.",
       "Chơi online: mỗi lượt chỉ gửi hướng, lực và power-up, hai máy tự mô phỏng cùng kết quả.",
     ],
     create,
