@@ -49,8 +49,21 @@
   };
 
   function create(ctx) {
+    const o = ctx.options || {};
+    const pace = o.pace || "fast";
+    // he so nhip do: cang lon cang nhanh
+    const PACE = pace === "blitz" ? 1.7 : pace === "normal" ? 1.0 : 1.32;
+    const SPD = pace === "blitz" ? 1.4 : pace === "normal" ? 1.0 : 1.2;
+    const BASE_HP = Math.round(760 * (pace === "blitz" ? 0.6 : pace === "normal" ? 0.94 : 0.76));
+    // overdrive
+    const OD_DUR = 6;      // giay tang toc
+    const OD_CD = 20;      // giay hoi chieu
+    const OD_COST = 70;
+    const odUntil = [0, 0];
+    const odReady = [0, 0];
+
     const baseHp = [BASE_HP, BASE_HP];
-    const scrap = [150, 150];
+    const scrap = [190, 190];
     const tech = [0, 0];
     const line = [0, 0];
     const progress = [0.15, 0.15];
@@ -182,6 +195,7 @@
 
       actionBox.innerHTML = "";
       [
+        { id: "overdrive", icon: "⚡", label: "Overdrive", hint: "tăng tốc & sát thương robot" },
         { id: "rush", icon: "FAST", label: "Tăng ca", hint: "+45% tiến độ" },
         { id: "line", icon: "LINE", label: "Nâng dây chuyền", hint: "sản xuất nhanh" },
         { id: "tech", icon: "TECH", label: "Nâng công nghệ", hint: "robot mạnh hơn" },
@@ -268,6 +282,15 @@
           ? `P${side + 1} dừng sản xuất để giữ phế liệu.`
           : `P${side + 1} chạy lại dây chuyền sản xuất.`;
         ctx.sound("select");
+      } else if (cmd.action === "overdrive") {
+        if (elapsed >= odReady[side] && pay(side, OD_COST)) {
+          odUntil[side] = elapsed + OD_DUR;
+          odReady[side] = elapsed + OD_CD;
+          ok = true;
+          last = `⚡ P${side + 1} kích hoạt Overdrive - robot tăng tốc & sát thương!`;
+          pops.push({ x: BASE_X[side], y: LANES[1] - 110, text: "OVERDRIVE!", color: sideColor(side), t: 50 });
+          ctx.sound("win");
+        }
       } else if (cmd.action === "rush") {
         const cost = actionCost(side, "rush");
         if (pay(side, cost)) {
@@ -390,7 +413,8 @@
           if (r.cd <= 0) attackBase(r);
         } else {
           const blocker = friendlyBlocker(r);
-          if (!blocker) r.x += r.dir * r.speed * dt;
+          const spd = r.speed * (odActive(r.owner) ? 1.5 : 1);
+          if (!blocker) r.x += r.dir * spd * dt;
         }
 
         if (r.hp <= 0) robots.splice(i, 1);
@@ -426,8 +450,10 @@
     }
 
     function attackRobot(attacker, target) {
-      attacker.cd = attacker.cdBase;
-      damageRobot(target, attacker.dmg, attacker.owner, attacker.x, attacker.y);
+      const od = odActive(attacker.owner);
+      attacker.cd = attacker.cdBase * (od ? 0.62 : 1);
+      const dmg = Math.round(attacker.dmg * (od ? 1.4 : 1));
+      damageRobot(target, dmg, attacker.owner, attacker.x, attacker.y);
       shots.push({
         x1: attacker.x,
         y1: attacker.y - 20,
@@ -441,7 +467,7 @@
         robots.forEach((other) => {
           if (other === target || other.owner === attacker.owner || other.hp <= 0 || other.lane !== attacker.lane) return;
           if (dist(target.x, target.y, other.x, other.y) <= attacker.splash) {
-            damageRobot(other, Math.round(attacker.dmg * 0.45), attacker.owner, attacker.x, attacker.y);
+            damageRobot(other, Math.round(dmg * 0.45), attacker.owner, attacker.x, attacker.y);
           }
         });
       }
@@ -461,9 +487,10 @@
     }
 
     function attackBase(r) {
-      r.cd = r.cdBase;
+      const od = odActive(r.owner);
+      r.cd = r.cdBase * (od ? 0.62 : 1);
       const target = 1 - r.owner;
-      const dmg = Math.max(4, Math.round(r.dmg * 0.72));
+      const dmg = Math.max(6, Math.round(r.dmg * 0.9 * (od ? 1.4 : 1)));
       baseHp[target] -= dmg;
       shots.push({
         x1: r.x,
@@ -535,7 +562,7 @@
       stats.hp = Math.max(40, Math.round(stats.hp * scale));
       stats.dmg = Math.max(4, Math.round(stats.dmg * (1 + tech[side] * 0.1 + elapsed / 560 * 0.1)));
       stats.range = Math.max(24, Math.round(stats.range));
-      stats.speed = Math.max(20, Math.round(stats.speed * 1.18));
+      stats.speed = Math.max(26, Math.round(stats.speed * 1.22 * SPD));
       stats.cd = Math.max(0.32, stats.cd);
       stats.cost = Math.round(stats.cost);
       stats.armor = Math.max(0, stats.armor);
@@ -543,18 +570,24 @@
     }
 
     function factoryScale(side) {
-      return 1 + tech[side] * 0.12 + elapsed / 360 * 0.18;
+      return 1 + tech[side] * 0.12 + elapsed / 360 * 0.2;
     }
 
     function buildTime(side, stats = blueprintStats(side)) {
-      return Math.max(2.15, stats.build - line[side] * 0.38 - elapsed / 520 * 0.22);
+      const base = Math.max(1.6, stats.build - line[side] * 0.4 - elapsed / 500 * 0.26);
+      return base / PACE;
     }
 
     function incomeRate(side) {
-      return 9.5 + line[side] * 0.65 + tech[side] * 1.45 + elapsed / 210;
+      return (10.5 + line[side] * 0.7 + tech[side] * 1.6 + elapsed / 190) * PACE;
+    }
+
+    function odActive(side) {
+      return elapsed < odUntil[side];
     }
 
     function actionCost(side, id) {
+      if (id === "overdrive") return OD_COST;
       if (id === "rush") return 36 + line[side] * 8;
       if (id === "line") return 92 + line[side] * 72;
       if (id === "tech") return 112 + tech[side] * 86;
@@ -564,11 +597,12 @@
 
     function renderHud() {
       const activeSide = ctx.isOnline ? ctx.mySeat : controlSide;
+      const odTag = [0, 1].filter((s) => odActive(s)).map((s) => `⚡P${s + 1}`).join(" ");
       hud.innerHTML = `
         ${playerHud(0)}
         <div class="rf-mid">
           <b>${over ? "Kết thúc" : "Robot Factory War"}</b>
-          <span>${timeText()} · P${activeSide + 1} x${factoryScale(activeSide).toFixed(2)}</span>
+          <span>${timeText()} · P${activeSide + 1} x${factoryScale(activeSide).toFixed(2)}${odTag ? " · " + odTag : ""}</span>
           <small>${last}</small>
         </div>
         ${playerHud(1)}
@@ -607,8 +641,18 @@
       actionBox.querySelectorAll(".rf-action").forEach((btn) => {
         const id = btn.dataset.action;
         const cost = actionCost(side, id);
-        btn.querySelector("em").textContent = cost === Infinity ? "không thể" : cost + " phế liệu";
-        btn.disabled = over || cost === Infinity || scrap[side] < cost || (ctx.isOnline && side !== ctx.mySeat);
+        const em = btn.querySelector("em");
+        if (id === "overdrive") {
+          const cd = Math.max(0, odReady[side] - elapsed);
+          if (odActive(side)) em.textContent = `⚡ còn ${Math.ceil(odUntil[side] - elapsed)}s`;
+          else if (cd > 0) em.textContent = `hồi ${Math.ceil(cd)}s`;
+          else em.textContent = OD_COST + " phế liệu";
+          btn.classList.toggle("active", odActive(side));
+          btn.disabled = over || cd > 0 || scrap[side] < OD_COST || (ctx.isOnline && side !== ctx.mySeat);
+        } else {
+          em.textContent = cost === Infinity ? "không thể" : cost + " phế liệu";
+          btn.disabled = over || cost === Infinity || scrap[side] < cost || (ctx.isOnline && side !== ctx.mySeat);
+        }
       });
       renderCurrent(side);
       renderPreview(side);
@@ -766,6 +810,15 @@
           g.beginPath();
           g.ellipse(0, 22, 28, 7, 0, 0, Math.PI * 2);
           g.fill();
+          if (odActive(r.owner)) {
+            g.save();
+            g.globalAlpha = 0.32 + 0.16 * Math.sin(elapsed * 9 + r.x * 0.05);
+            g.fillStyle = "#ffd166";
+            g.beginPath();
+            g.ellipse(0, -2, 30, 30, 0, 0, Math.PI * 2);
+            g.fill();
+            g.restore();
+          }
           g.scale(dir, 1);
           drawRobotSprite(r, body, color);
           g.restore();
@@ -1045,16 +1098,28 @@
     id: "robotfactorywar",
     name: "Robot Factory War",
     emoji: "🏭",
-    description: "Hai bên xây dây chuyền, ghép module đầu-thân-vũ khí-chân để robot tự động ra lane đánh nhau.",
+    description: "Hai bên xây dây chuyền, ghép module đầu-thân-vũ khí-chân để robot tự động ra lane đánh nhau. Nhịp độ nhanh, có Overdrive tăng tốc cả đội hình.",
     onlineReady: true,
-    options: [],
+    options: [
+      {
+        id: "pace",
+        label: "Nhịp độ",
+        default: "fast",
+        choices: [
+          { value: "normal", label: "Chuẩn" },
+          { value: "fast", label: "Nhanh" },
+          { value: "blitz", label: "Chớp nhoáng" },
+        ],
+      },
+    ],
     howTo: [
       "Mỗi bên có một nhà máy. Mục tiêu là phá nhà máy đối thủ trước.",
       "Chọn 4 module: Đầu, Thân, Vũ khí và Chân. Blueprint hiện tại sẽ quyết định robot được sản xuất tiếp theo.",
       "Dây chuyền tự động tích tiến độ. Khi đầy tiến độ và đủ phế liệu, robot sẽ được xuất xưởng tại lane đang chọn.",
       "Click lane trực tiếp trên map để đổi đường ra robot. Robot gặp địch sẽ tự động bắn/đánh, sau đó tấn công nhà máy.",
       "Nâng Dây chuyền để sản xuất nhanh hơn. Nâng Công nghệ để robot mạnh hơn. Factory cũng tự mạnh dần theo thời gian.",
-      "Tăng ca dùng phế liệu để đẩy nhanh tiến độ sản xuất. Sửa nhà máy khi bị robot đối thủ ép sát.",
+      "⚡ Overdrive: tốn phế liệu, có hồi chiêu - kích hoạt để toàn bộ robot của bạn tăng tốc và sát thương trong vài giây (robot sẽ phát sáng vàng).",
+      "Tăng ca dùng phế liệu để đẩy nhanh tiến độ sản xuất. Sửa nhà máy khi bị robot đối thủ ép sát. Đổi nhịp độ ở phần tùy chọn để trận nhanh hơn nữa.",
     ],
     create,
   });
