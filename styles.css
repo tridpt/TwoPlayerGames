@@ -10201,10 +10201,11 @@ body {
 
 /* ---------- Co-op Defense: ụ súng chân thật, nòng xoay theo quái ---------- */
 .cd-slot.has-tower { overflow: visible; }
-.cd-gun-base {
+.cd-slot.has-tower .cd-gun-base {
   position: absolute;
   left: 50%;
-  top: 52%;
+  top: 50%;
+  margin: 0;
   width: 34px;
   height: 34px;
   transform: translate(-50%, -50%);
@@ -10214,27 +10215,29 @@ body {
   border: 2px solid rgba(0,0,0,0.3);
   z-index: 3;
 }
-.cd-gun-turret {
+.cd-slot.has-tower .cd-gun-turret {
   position: absolute;
   left: 50%;
-  top: 52%;
+  top: 50%;
+  margin: 0;
   width: 0;
   height: 0;
   z-index: 5;
   transform-origin: center;
   transition: transform 0.08s linear;
 }
-.cd-gun-barrel {
+.cd-slot.has-tower .cd-gun-barrel {
   position: absolute;
   left: 2px;
   top: -4px;
+  margin: 0;
   width: 24px;
   height: 8px;
   border-radius: 3px 5px 5px 3px;
   background: linear-gradient(90deg, #2b2f3a 0%, currentColor 55%, #11141d 100%);
   box-shadow: 0 0 7px currentColor, inset 0 -2px 0 rgba(0,0,0,0.35);
 }
-.cd-gun-barrel::after {
+.cd-slot.has-tower .cd-gun-barrel::after {
   content: "";
   position: absolute;
   right: -3px;
@@ -10245,10 +10248,11 @@ body {
   border-radius: 2px;
   background: #11141d;
 }
-.cd-gun-dome {
+.cd-slot.has-tower .cd-gun-dome {
   position: absolute;
   left: -11px;
   top: -11px;
+  margin: 0;
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -10257,16 +10261,16 @@ body {
   border: 2px solid rgba(0,0,0,0.28);
 }
 /* nòng theo từng loại súng */
-.tower-cannon .cd-gun-barrel,
-.tower-mortar .cd-gun-barrel { width: 20px; height: 11px; border-radius: 4px 7px 7px 4px; }
-.tower-sniper .cd-gun-barrel,
-.tower-laser .cd-gun-barrel { width: 30px; height: 5px; }
-.tower-frost .cd-gun-barrel,
-.tower-tesla .cd-gun-barrel { box-shadow: 0 0 12px currentColor; }
-.tower-flame .cd-gun-barrel { width: 18px; height: 12px; }
+.cd-slot.tower-cannon .cd-gun-barrel,
+.cd-slot.tower-mortar .cd-gun-barrel { width: 20px; height: 11px; border-radius: 4px 7px 7px 4px; }
+.cd-slot.tower-sniper .cd-gun-barrel,
+.cd-slot.tower-laser .cd-gun-barrel { width: 30px; height: 5px; }
+.cd-slot.tower-frost .cd-gun-barrel,
+.cd-slot.tower-tesla .cd-gun-barrel { box-shadow: 0 0 12px currentColor; }
+.cd-slot.tower-flame .cd-gun-barrel { width: 18px; height: 12px; }
 /* chớp lửa đầu nòng khi vừa bắn */
-.cd-gun-turret.firing .cd-gun-barrel { transform: translateX(-2px); }
-.cd-gun-turret.firing .cd-gun-barrel::before {
+.cd-slot.has-tower .cd-gun-turret.firing .cd-gun-barrel { transform: translateX(-2px); }
+.cd-slot.has-tower .cd-gun-turret.firing .cd-gun-barrel::before {
   content: "";
   position: absolute;
   right: -10px;
@@ -10278,10 +10282,11 @@ body {
   background: radial-gradient(circle, #fff 0%, currentColor 45%, transparent 75%);
   box-shadow: 0 0 12px currentColor;
 }
-.cd-gun-lv {
+.cd-slot.has-tower .cd-gun-lv {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
+  right: -3px;
+  bottom: -3px;
+  margin: 0;
   z-index: 7;
   min-width: 15px;
   height: 15px;
@@ -10295,4 +10300,5 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  text-shadow: none;
 }
