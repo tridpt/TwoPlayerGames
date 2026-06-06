@@ -10129,3 +10129,71 @@ body {
   font-weight: 800;
 }
 .cd-strike:disabled { opacity: 0.5; }
+
+
+/* ---------- Co-op Defense: đạn & hiệu ứng riêng từng súng ---------- */
+.cd-shot::after { content: none; } /* bỏ chấm đầu cũ, dùng hiệu ứng va chạm riêng */
+
+.cd-fx-tracer {
+  height: 3px;
+  background: linear-gradient(90deg, transparent, currentColor 60%, #fff);
+  box-shadow: 0 0 7px currentColor;
+}
+.cd-fx-laser {
+  height: 5px;
+  background: linear-gradient(90deg, currentColor, #ffffff, currentColor);
+  box-shadow: 0 0 16px currentColor, 0 0 5px #fff;
+}
+.cd-fx-snipe {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #fff, currentColor);
+  box-shadow: 0 0 9px currentColor;
+}
+.cd-fx-frost {
+  height: 3px;
+  background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 9px);
+  box-shadow: 0 0 10px currentColor;
+}
+.cd-fx-bolt {
+  height: 3px;
+  background: linear-gradient(90deg, #fff, currentColor, #fff, currentColor);
+  box-shadow: 0 0 14px currentColor, 0 0 6px #fff;
+  filter: drop-shadow(0 1px 0 currentColor);
+}
+.cd-fx-flame {
+  height: 7px;
+  background: linear-gradient(90deg, rgba(255,209,102,0.2), #ffb15c 45%, #ff5d3a);
+  box-shadow: 0 0 16px #ff8d3a;
+}
+
+.cd-impact {
+  position: absolute;
+  z-index: 8;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.cd-imp-tracer,
+.cd-imp-snipe,
+.cd-imp-laser {
+  background: radial-gradient(circle, #fff 0%, currentColor 45%, transparent 72%);
+}
+.cd-imp-bolt {
+  background: radial-gradient(circle, #fff 0%, currentColor 50%, transparent 74%);
+  box-shadow: 0 0 16px currentColor;
+}
+.cd-imp-explode,
+.cd-imp-blast {
+  background: radial-gradient(circle, #fff6c2 0%, #ffae3c 32%, #ff5d3a 60%, rgba(210,64,47,0) 78%);
+  box-shadow: 0 0 22px rgba(255,141,58,0.7);
+  border: 2px solid rgba(255,221,150,0.7);
+}
+.cd-imp-flame {
+  background: radial-gradient(circle, #ffe49a 0%, #ff9d3a 40%, #e23a2a 70%, transparent 82%);
+  box-shadow: 0 0 18px rgba(255,120,40,0.75);
+}
+.cd-imp-frost {
+  background: radial-gradient(circle, #ffffff 0%, #7fe7ff 45%, rgba(127,231,255,0) 75%);
+  box-shadow: 0 0 16px rgba(127,231,255,0.8);
+  border: 1px solid rgba(200,245,255,0.7);
+}

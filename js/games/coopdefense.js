@@ -82,15 +82,18 @@
   ];
 
   const TOWERS = {
-    rifle: { name: "Súng máy", short: "SM", icon: "🔫", cost: 42, dmg: 8, rate: 6, range: 0.17, color: "#ffd166", note: "bắn nhanh" },
-    cannon: { name: "Pháo nổ", short: "PH", icon: "💣", cost: 74, dmg: 21, rate: 14, range: 0.16, splash: 0.075, color: "#ff8d7a", note: "nổ lan" },
-    frost: { name: "Tháp băng", short: "BG", icon: "❄️", cost: 64, dmg: 5, rate: 10, range: 0.19, slow: 32, color: "#7fe7ff", note: "làm chậm" },
-    laser: { name: "Laser", short: "LS", icon: "🔆", cost: 96, dmg: 14, rate: 5, range: 0.24, pierce: 2, color: "#c6a7ff", note: "xuyên tuyến" },
-    sniper: { name: "Xạ thủ", short: "XT", icon: "🎯", cost: 88, dmg: 42, rate: 18, range: 0.34, ignoreArmor: true, color: "#f6f0a8", note: "bắn xa" },
-    tesla: { name: "Tesla", short: "TS", icon: "⚡", cost: 106, dmg: 15, rate: 9, range: 0.2, chain: 3, color: "#8afff1", note: "giật chuyền" },
-    flame: { name: "Hỏa tháp", short: "HT", icon: "🔥", cost: 78, dmg: 9, rate: 7, range: 0.15, burn: 20, burnDmg: 3, color: "#ffb15c", note: "đốt cháy" },
-    mortar: { name: "Cối đá", short: "CD", icon: "🧨", cost: 118, dmg: 34, rate: 22, range: 0.26, splash: 0.12, color: "#b7c1a1", note: "nổ rộng" },
+    rifle: { name: "Súng máy", short: "SM", icon: "🔫", fx: "tracer", cost: 42, dmg: 8, rate: 6, range: 0.17, color: "#ffd166", note: "bắn nhanh" },
+    cannon: { name: "Pháo nổ", short: "PH", icon: "💣", fx: "explode", cost: 74, dmg: 21, rate: 14, range: 0.16, splash: 0.075, color: "#ff8d7a", note: "nổ lan" },
+    frost: { name: "Tháp băng", short: "BG", icon: "❄️", fx: "frost", cost: 64, dmg: 5, rate: 10, range: 0.19, slow: 32, color: "#7fe7ff", note: "làm chậm" },
+    laser: { name: "Laser", short: "LS", icon: "🔆", fx: "laser", cost: 96, dmg: 14, rate: 5, range: 0.24, pierce: 2, color: "#c6a7ff", note: "xuyên tuyến" },
+    sniper: { name: "Xạ thủ", short: "XT", icon: "🎯", fx: "snipe", cost: 88, dmg: 42, rate: 18, range: 0.34, ignoreArmor: true, color: "#f6f0a8", note: "bắn xa" },
+    tesla: { name: "Tesla", short: "TS", icon: "⚡", fx: "bolt", cost: 106, dmg: 15, rate: 9, range: 0.2, chain: 3, color: "#8afff1", note: "giật chuyền" },
+    flame: { name: "Hỏa tháp", short: "HT", icon: "🔥", fx: "flame", cost: 78, dmg: 9, rate: 7, range: 0.15, burn: 20, burnDmg: 3, color: "#ffb15c", note: "đốt cháy" },
+    mortar: { name: "Cối đá", short: "CD", icon: "🧨", fx: "blast", cost: 118, dmg: 34, rate: 22, range: 0.26, splash: 0.12, color: "#b7c1a1", note: "nổ rộng" },
   };
+  const BEAM_FX = { tracer: 1, frost: 1, laser: 1, snipe: 1, bolt: 1, flame: 1 };
+  const SHOT_LIFE = { explode: 6, blast: 7, flame: 5 };
+  const IMPACT_SIZE = { explode: 30, blast: 48, frost: 22, flame: 26, laser: 14, snipe: 12, bolt: 18, tracer: 11 };
 
   const MONSTERS = {
     grunt: { name: "Bộ binh", icon: "👹", hp: 26, speed: 0.0042, reward: 8 },
@@ -471,7 +474,7 @@
           .slice(0, def.chain)
           .forEach((m) => {
             dealDamage(m, dmg * 0.55, def);
-            shots.push({ from: routePoint(lane, target.x), to: routePoint(lane, m.x), type: tower.type, life: 3 });
+            pushShot(routePoint(lane, target.x), routePoint(lane, m.x), tower.type);
           });
       }
 
@@ -490,7 +493,13 @@
       }
 
       tower.cooldown = Math.max(3, Math.round(def.rate - (tower.level - 1) * 1.05));
-      shots.push({ from: slotPoint(lane, slot), to: routePoint(lane, target.x), type: tower.type, life: 4 });
+      pushShot(slotPoint(lane, slot), routePoint(lane, target.x), tower.type);
+    }
+
+    function pushShot(from, to, type) {
+      const fx = TOWERS[type] ? TOWERS[type].fx : "tracer";
+      const life = SHOT_LIFE[fx] || 4;
+      shots.push({ from, to, type, life, max: life });
     }
 
     function dealDamage(monster, amount, def) {
@@ -668,11 +677,24 @@
 
     function renderShot(s) {
       const def = TOWERS[s.type] || TOWERS.rifle;
-      const dx = s.to.x - s.from.x;
-      const dy = s.to.y - s.from.y;
-      const width = Math.max(1.5, Math.hypot(dx, dy));
-      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-      return `<div class="cd-shot shot-${s.type}" style="left:${s.from.x}%;top:${s.from.y}%;width:${width}%;color:${def.color};transform:translateY(-50%) rotate(${angle}deg)"></div>`;
+      const fx = def.fx || "tracer";
+      const prog = s.max ? 1 - s.life / s.max : 0; // 0 mới bắn -> 1 sắp tan
+      let html = "";
+      // tia đạn (chỉ với loại có đường bay)
+      if (BEAM_FX[fx]) {
+        const dx = s.to.x - s.from.x;
+        const dy = s.to.y - s.from.y;
+        const width = Math.max(1.5, Math.hypot(dx, dy));
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        const op = (1 - prog).toFixed(2);
+        html += `<div class="cd-shot cd-fx-${fx}" style="left:${s.from.x}%;top:${s.from.y}%;width:${width}%;color:${def.color};opacity:${op};transform:translateY(-50%) rotate(${angle}deg)"></div>`;
+      }
+      // hiệu ứng va chạm tại mục tiêu
+      const base = IMPACT_SIZE[fx] || 12;
+      const size = (base * (0.45 + prog * 0.95)).toFixed(1);
+      const iop = Math.max(0, 1 - prog * 0.85).toFixed(2);
+      html += `<div class="cd-impact cd-imp-${fx}" style="left:${s.to.x}%;top:${s.to.y}%;width:${size}px;height:${size}px;color:${def.color};opacity:${iop}"></div>`;
+      return html;
     }
 
     function renderPanel() {
