@@ -13,7 +13,7 @@
   const UNIT_DEFS = {
     grunt: {
       label: "Lính nhỏ",
-      icon: "MIN",
+      icon: "🗡️",
       cost: 22,
       hp: 62,
       dmg: 10,
@@ -26,7 +26,7 @@
     },
     runner: {
       label: "Kẻ chạy",
-      icon: "RUN",
+      icon: "🏃",
       cost: 36,
       hp: 48,
       dmg: 12,
@@ -39,7 +39,7 @@
     },
     shield: {
       label: "Khiên chắn",
-      icon: "SHD",
+      icon: "🛡️",
       cost: 46,
       hp: 116,
       dmg: 8,
@@ -53,7 +53,7 @@
     },
     archer: {
       label: "Cung thủ",
-      icon: "ARC",
+      icon: "🏹",
       cost: 52,
       hp: 56,
       dmg: 18,
@@ -66,7 +66,7 @@
     },
     brute: {
       label: "Đấu sĩ trâu",
-      icon: "TANK",
+      icon: "🐂",
       cost: 64,
       hp: 142,
       dmg: 23,
@@ -79,7 +79,7 @@
     },
     bomber: {
       label: "Nổ giáp",
-      icon: "BOM",
+      icon: "💣",
       cost: 74,
       hp: 72,
       dmg: 31,
@@ -93,7 +93,7 @@
     },
     warlock: {
       label: "Pháp sư",
-      icon: "HEX",
+      icon: "🔮",
       cost: 88,
       hp: 82,
       dmg: 19,
@@ -106,7 +106,7 @@
     },
     golem: {
       label: "Golem đá",
-      icon: "GLM",
+      icon: "🗿",
       cost: 112,
       hp: 235,
       dmg: 32,
@@ -178,12 +178,14 @@
     const stageWrap = document.createElement("div");
     stageWrap.className = "bd-stage-wrap";
     const canvas = document.createElement("canvas");
-    canvas.width = W;
-    canvas.height = H;
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
     canvas.className = "bd-canvas";
     stageWrap.appendChild(canvas);
     centerCol.appendChild(stageWrap);
     const g = canvas.getContext("2d");
+    g.scale(DPR, DPR);
 
     const controls = document.createElement("div");
     controls.className = "bd-controls bd-center-controls";
@@ -215,13 +217,13 @@
       ...UNIT_ORDER.map((id) => ({ id, kind: "unit", def: UNIT_DEFS[id] })),
     ];
     const defenseActions = [
-      { id: "tower", label: "Xây tháp", icon: "TWR", hint: "lane đã chọn" },
-      { id: "upTower", label: "Nâng tháp", icon: "UP", hint: "tối đa 4" },
-      { id: "repair", label: "Sửa nhà", icon: "FIX", hint: "+90 HP" },
+      { id: "tower", label: "Xây tháp", icon: "🗼", hint: "lane đã chọn" },
+      { id: "upTower", label: "Nâng tháp", icon: "⬆️", hint: "tối đa 4" },
+      { id: "repair", label: "Sửa nhà", icon: "🔧", hint: "+90 HP" },
     ];
     const upgradeActions = [
-      { id: "econ", label: "Kinh tế", icon: "GOLD", hint: "+vàng/giây" },
-      { id: "armory", label: "Lò rèn", icon: "DMG", hint: "+quân/tháp" },
+      { id: "econ", label: "Kinh tế", icon: "💰", hint: "+vàng/giây" },
+      { id: "armory", label: "Lò rèn", icon: "⚒️", hint: "+quân/tháp" },
     ];
 
     function renderStaticControls() {
@@ -287,8 +289,8 @@
     function pointerPos(e) {
       const rect = canvas.getBoundingClientRect();
       return {
-        x: (e.clientX - rect.left) * (canvas.width / rect.width),
-        y: (e.clientY - rect.top) * (canvas.height / rect.height),
+        x: (e.clientX - rect.left) * (W / rect.width),
+        y: (e.clientY - rect.top) * (H / rect.height),
       };
     }
 
