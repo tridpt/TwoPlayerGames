@@ -1,22 +1,55 @@
-/* Dungeon Rival - hai dungeon rieng, nhat do, len cap, pha doi thu bang quai/bay. */
+/* Dungeon Rival - hai dungeon rieng, nhat do, len cap, mua sam va pha doi thu. */
 (function () {
   const DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
   const ALL_DIRS = [[0, 0], ...DIRS, [-1, -1], [-1, 1], [1, -1], [1, 1]];
   const MAX_LOG = 6;
 
+  // Pha hoai - tieu hao Bong toi (shadow)
   const SABOTAGE = {
-    imp: { cost: 3, label: "Gửi quái", icon: "IMP", hint: "đặt quái gần đối thủ" },
-    trap: { cost: 2, label: "Gài bẫy", icon: "TRAP", hint: "đặt bẫy quanh đối thủ" },
-    curse: { cost: 4, label: "Lời nguyền", icon: "HEX", hint: "gây sát thương trực tiếp" },
+    imp: { cost: 3, label: "Thả quái", icon: "👹", hint: "đặt quái cạnh địch" },
+    trap: { cost: 2, label: "Gài bẫy", icon: "🪤", hint: "đặt bẫy quanh địch" },
+    curse: { cost: 4, label: "Lời nguyền", icon: "💀", hint: "trừ thẳng máu địch" },
+    fog: { cost: 2, label: "Sương mù", icon: "🌫️", hint: "che tầm nhìn địch" },
+  };
+
+  // Cua hang - tieu hao Vang (gold)
+  const SHOP = {
+    sharpen: { cost: 16, label: "Mài vũ khí", icon: "🗡️", hint: "+2 công" },
+    plate: { cost: 18, label: "Rèn giáp", icon: "🛡️", hint: "+1 thủ" },
+    brew: { cost: 12, label: "Mua bình máu", icon: "🧪", hint: "+1 bình" },
+    ritual: { cost: 14, label: "Hiến tế", icon: "🌑", hint: "+3 bóng tối" },
   };
 
   const LOOT = {
-    blade: { label: "Kiếm cổ", icon: "⚔", text: "+2 công" },
-    armor: { label: "Giáp da", icon: "◆", text: "+1 thủ" },
-    potion: { label: "Bình máu", icon: "+", text: "+1 bình máu" },
-    shadow: { label: "Ấn bóng tối", icon: "☾", text: "+3 bóng tối" },
-    heal: { label: "Suối hồi phục", icon: "♥", text: "hồi máu" },
+    blade: { label: "Kiếm cổ", icon: "🗡️", text: "+2 công" },
+    armor: { label: "Giáp da", icon: "🛡️", text: "+1 thủ" },
+    potion: { label: "Bình máu", icon: "🧪", text: "+1 bình máu" },
+    shadow: { label: "Ấn bóng tối", icon: "🌑", text: "+3 bóng tối" },
+    gold: { label: "Túi vàng", icon: "💰", text: "+vàng" },
+    heal: { label: "Suối hồi phục", icon: "❤️", text: "hồi máu" },
   };
+
+  const TILE_ICON = {
+    monster: "👹",
+    elite: "👺",
+    boss: "🐲",
+    treasure: "🧰",
+    trap: "🪤",
+    shrine: "⛩️",
+    portal: "🌀",
+    start: "🚪",
+  };
+
+  const LEGEND = [
+    ["👹", "Quái"],
+    ["👺", "Tinh nhuệ"],
+    ["🐲", "Chúa hầm"],
+    ["🧰", "Kho báu"],
+    ["🪤", "Bẫy"],
+    ["⛩️", "Đền thờ"],
+    ["🌀", "Cổng dịch chuyển"],
+    ["🚪", "Lối vào"],
+  ];
 
   function create(ctx) {
     const o = ctx.options || {};
@@ -24,12 +57,20 @@
     const BOSS_LEVEL = o.boss || 5;
     const DANGER = o.danger === "hard" ? 1.18 : o.danger === "easy" ? 0.88 : 1;
 
-    const heroes = [
-      makeHero(0, N - 1, 0),
-      makeHero(1, N - 1, N - 1),
-    ];
-    const dungeons = [makeDungeon(0), makeDungeon(1)];
-    dungeons.forEach((_, side) => reveal(side));
+    const heroes = [makeHero(0), makeHero(1)];
+    const dungeons = [];
+    const portals = [];
+    const bossPos = [];
+    [0, 1].forEach((side) => {
+      const built = makeDungeon(side);
+      dungeons[side] = built.map;
+      portals[side] = built.portals;
+      bossPos[side] = built.boss;
+      heroes[side].r = built.start.r;
+      heroes[side].c = built.start.c;
+    });
+    [0, 1].forEach((side) => reveal(side));
+
     let turn = 0;
     let over = false;
     const log = ["Hai kẻ thám hiểm bước vào hai hầm ngục song song."];
@@ -49,6 +90,11 @@
     const boards = document.createElement("div");
     boards.className = "dr-boards";
     root.appendChild(boards);
+
+    const legend = document.createElement("div");
+    legend.className = "dr-legend";
+    legend.innerHTML = LEGEND.map(([ic, name]) => `<span><b>${ic}</b>${name}</span>`).join("");
+    root.appendChild(legend);
 
     const cells = [[], []];
     for (let side = 0; side < 2; side++) {
@@ -73,11 +119,11 @@
       }
     }
 
-    function makeHero(idx, r, c) {
+    function makeHero(idx) {
       return {
         idx,
-        r,
-        c,
+        r: 0,
+        c: 0,
         hp: 54,
         maxHp: 54,
         atk: 9,
@@ -86,7 +132,7 @@
         xp: 0,
         shadow: 2,
         pots: 1,
-        relics: 0,
+        gold: 0,
       };
     }
 
@@ -98,35 +144,48 @@
         return { kind: "empty", seen: false, depth, lvl: Math.max(1, Math.ceil(depth / 3)) };
       }));
 
+      const emptySpots = [];
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
           if ((r === start.r && c === start.c) || (r === boss.r && c === boss.c)) continue;
           const cell = map[r][c];
           const roll = ctx.rng();
-          if (roll < 0.34 * DANGER) cell.kind = "monster";
-          else if (roll < 0.43 * DANGER) cell.kind = "elite";
-          else if (roll < 0.57) cell.kind = "treasure";
-          else if (roll < 0.69) cell.kind = "trap";
-          else if (roll < 0.79) cell.kind = "shrine";
-          else cell.kind = "empty";
+          if (roll < 0.32 * DANGER) cell.kind = "monster";
+          else if (roll < 0.41 * DANGER) cell.kind = "elite";
+          else if (roll < 0.55) cell.kind = "treasure";
+          else if (roll < 0.67) cell.kind = "trap";
+          else if (roll < 0.77) cell.kind = "shrine";
+          else { cell.kind = "empty"; emptySpots.push({ r, c }); }
 
           if (cell.kind === "treasure") cell.loot = pickLoot();
-          if (cell.kind === "monster" || cell.kind === "elite") fillMonster(cell, cell.kind, owner);
+          if (cell.kind === "monster" || cell.kind === "elite") fillMonster(cell, cell.kind);
           if (cell.kind === "trap") cell.power = 8 + cell.lvl * 3;
         }
       }
       map[start.r][start.c] = { kind: "start", seen: true, depth: 0, lvl: 1 };
       map[boss.r][boss.c] = { kind: "boss", seen: false, depth: N * 2, lvl: BOSS_LEVEL };
-      fillMonster(map[boss.r][boss.c], "boss", owner);
-      return map;
+      fillMonster(map[boss.r][boss.c], "boss");
+
+      // Dat 2 cong dich chuyen tren o trong (cach nhau du xa cho thu vi)
+      const pls = [];
+      for (let i = 0; i < 2 && emptySpots.length; i++) {
+        const k = Math.floor(ctx.rng() * emptySpots.length);
+        const spot = emptySpots.splice(k, 1)[0];
+        map[spot.r][spot.c].kind = "portal";
+        pls.push(spot);
+      }
+      if (pls.length < 2) pls.length = 0; // can du cap moi co tac dung
+
+      return { map, portals: pls, boss, start };
     }
 
     function pickLoot() {
       const roll = ctx.rng();
-      if (roll < 0.25) return "blade";
-      if (roll < 0.45) return "armor";
-      if (roll < 0.68) return "potion";
-      if (roll < 0.86) return "shadow";
+      if (roll < 0.22) return "blade";
+      if (roll < 0.4) return "armor";
+      if (roll < 0.58) return "potion";
+      if (roll < 0.74) return "gold";
+      if (roll < 0.88) return "shadow";
       return "heal";
     }
 
@@ -139,6 +198,7 @@
       cell.matk = Math.round((boss ? 10 : elite ? 7 : 5) + lvl * (boss ? 2.2 : elite ? 1.5 : 1.1));
       cell.xp = Math.round((boss ? 18 : elite ? 10 : 6) + lvl * (boss ? 5 : elite ? 3 : 2));
       cell.shadow = boss ? 0 : elite ? 3 : 2;
+      cell.gold = Math.round((boss ? 30 : elite ? 12 : 5) + lvl * (boss ? 6 : elite ? 2 : 1.2));
     }
 
     function monsterName(lvl) {
@@ -160,12 +220,14 @@
     function applyMove(move, fromRemote) {
       if (!canAct(fromRemote)) return;
       let ok = false;
+      let endsTurn = true;
       if (move.t === "move") ok = doMove(move.r, move.c);
       else if (move.t === "potion") ok = doPotion();
       else if (move.t === "sabotage") ok = doSabotage(move.kind);
+      else if (move.t === "shop") { ok = doShop(move.item); endsTurn = false; }
       if (!ok) return;
       if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
-      if (!over) endTurn();
+      if (!over && endsTurn) endTurn();
       render();
       updateStatus();
     }
@@ -188,7 +250,22 @@
       hero.pots -= 1;
       const before = hero.hp;
       hero.hp = Math.min(hero.maxHp, hero.hp + 26 + hero.lvl * 3);
-      addLog(`Người chơi ${turn + 1} uống bình máu: ${before} → ${hero.hp} HP.`);
+      addLog(`P${turn + 1} uống bình máu: ${before} → ${hero.hp} HP.`);
+      ctx.sound("select");
+      return true;
+    }
+
+    function doShop(item) {
+      const cfg = SHOP[item];
+      if (!cfg) return false;
+      const hero = heroes[turn];
+      if (hero.gold < cfg.cost) return false;
+      hero.gold -= cfg.cost;
+      if (item === "sharpen") hero.atk += 2;
+      else if (item === "plate") hero.def += 1;
+      else if (item === "brew") hero.pots += 1;
+      else if (item === "ritual") hero.shadow += 3;
+      addLog(`P${turn + 1} ${cfg.label.toLowerCase()} (${cfg.hint}), tốn ${cfg.cost} vàng.`);
       ctx.sound("select");
       return true;
     }
@@ -200,14 +277,30 @@
       if (hero.shadow < cfg.cost) return false;
       hero.shadow -= cfg.cost;
       const target = 1 - turn;
+
       if (kind === "curse") {
         const dmg = 9 + hero.lvl * 3;
         heroes[target].hp = Math.max(0, heroes[target].hp - dmg);
-        addLog(`Người chơi ${turn + 1} gieo lời nguyền, P${target + 1} mất ${dmg} HP.`);
+        addLog(`P${turn + 1} gieo lời nguyền, P${target + 1} mất ${dmg} HP.`);
         ctx.sound("shot");
         if (heroes[target].hp <= 0) finish(turn, "hạ đối thủ bằng lời nguyền");
         return true;
       }
+
+      if (kind === "fog") {
+        const tgt = heroes[target];
+        for (let r = 0; r < N; r++) {
+          for (let c = 0; c < N; c++) {
+            const dist = Math.abs(tgt.r - r) + Math.abs(tgt.c - c);
+            if (dist > 1) dungeons[target][r][c].seen = false;
+          }
+        }
+        reveal(target);
+        addLog(`P${turn + 1} thả sương mù, P${target + 1} mất tầm nhìn bản đồ.`);
+        ctx.sound("miss");
+        return true;
+      }
+
       const spot = sabotageSpot(target);
       if (!spot) {
         addLog("Không còn chỗ trống để phá dungeon đối thủ.");
@@ -217,14 +310,14 @@
       if (kind === "imp") {
         cell.kind = "monster";
         cell.lvl = Math.max(cell.lvl || 1, heroes[turn].lvl + 1);
-        fillMonster(cell, "monster", target);
+        fillMonster(cell, "monster");
         cell.name = "Quái gửi sang";
       } else {
         cell.kind = "trap";
         cell.power = 12 + heroes[turn].lvl * 4;
       }
       cell.seen = true;
-      addLog(`Người chơi ${turn + 1} ${kind === "imp" ? "gửi quái" : "gài bẫy"} vào dungeon P${target + 1}.`);
+      addLog(`P${turn + 1} ${kind === "imp" ? "thả quái" : "gài bẫy"} vào dungeon P${target + 1}.`);
       ctx.sound("capture");
       return true;
     }
@@ -250,7 +343,7 @@
         const dmg = Math.max(1, cell.power - hero.def);
         hero.hp = Math.max(0, hero.hp - dmg);
         hero.shadow += 1;
-        addLog(`P${side + 1} dính bẫy, mất ${dmg} HP và thu được 1 bóng tối.`);
+        addLog(`P${side + 1} dính bẫy, mất ${dmg} HP và thu 1 bóng tối.`);
         cell.kind = "empty";
         ctx.sound("miss");
         if (hero.hp <= 0) finish(1 - side, "đối thủ gục vì bẫy");
@@ -263,9 +356,18 @@
         hero.maxHp += 4;
         hero.hp = Math.min(hero.maxHp, hero.hp + 22);
         hero.shadow += 1;
-        addLog(`P${side + 1} dùng đền thờ: HP ${before} → ${hero.hp}, max HP +4.`);
+        addLog(`P${side + 1} cầu nguyện ở đền: HP ${before} → ${hero.hp}, máu tối đa +4.`);
         cell.kind = "empty";
         ctx.sound("select");
+      } else if (cell.kind === "portal") {
+        const pair = portals[side].find((p) => !(p.r === hero.r && p.c === hero.c));
+        if (pair) {
+          hero.r = pair.r;
+          hero.c = pair.c;
+          dungeons[side][pair.r][pair.c].seen = true;
+          addLog(`P${side + 1} bước vào cổng dịch chuyển và xuất hiện ở nơi khác.`);
+          ctx.sound("place");
+        }
       } else {
         addLog(`P${side + 1} tiến sâu hơn trong hầm ngục.`);
         ctx.sound("place");
@@ -278,7 +380,7 @@
       const dmg = Math.max(1, cell.matk - hero.def) * rounds;
       hero.hp = Math.max(0, hero.hp - dmg);
       const boss = cell.kind === "boss";
-      addLog(`P${side + 1} đánh ${cell.name}: nhận ${dmg} sát thương, +${cell.xp} XP.`);
+      addLog(`P${side + 1} hạ ${cell.name}: nhận ${dmg} sát thương, +${cell.xp} XP, +${cell.gold} vàng.`);
       if (hero.hp <= 0) {
         ctx.sound("miss");
         finish(1 - side, `P${side + 1} gục trước ${cell.name}`);
@@ -286,6 +388,7 @@
       }
       hero.xp += cell.xp;
       hero.shadow += cell.shadow || 0;
+      hero.gold += cell.gold || 0;
       if (!boss && ctx.rng() < 0.22) {
         const loot = pickLoot();
         applyLoot(side, loot, true);
@@ -303,6 +406,7 @@
       else if (loot === "armor") hero.def += 1;
       else if (loot === "potion") hero.pots += 1;
       else if (loot === "shadow") hero.shadow += 3;
+      else if (loot === "gold") hero.gold += 12 + hero.lvl * 2;
       else if (loot === "heal") hero.hp = Math.min(hero.maxHp, hero.hp + 28);
       if (!quiet) addLog(`P${side + 1} nhặt ${def.label}: ${def.text}.`);
       else addLog(`P${side + 1} tìm thêm ${def.label} sau trận.`);
@@ -357,6 +461,12 @@
       return heroes[side].r === r && heroes[side].c === c;
     }
 
+    function bossDist(side) {
+      const b = bossPos[side];
+      const h = heroes[side];
+      return Math.abs(b.r - h.r) + Math.abs(b.c - h.c);
+    }
+
     function addLog(text) {
       log.unshift(text);
       if (log.length > MAX_LOG) log.pop();
@@ -371,7 +481,18 @@
     }
 
     function render() {
-      hud.innerHTML = `${heroPanel(0)}<div class="dr-mid"><b>${over ? "Kết thúc" : "Lượt Người chơi " + (turn + 1)}</b><span>Boss cấp ${BOSS_LEVEL} · dungeon ${N}x${N}</span><small>${log[0] || ""}</small></div>${heroPanel(1)}`;
+      const raceP1 = bossDist(0);
+      const raceP2 = bossDist(1);
+      hud.innerHTML = `${heroPanel(0)}
+        <div class="dr-mid">
+          <b>${over ? "Kết thúc" : "Lượt Người chơi " + (turn + 1)}</b>
+          <span>Chạy đua tới 🐲 Chúa hầm (cấp ${BOSS_LEVEL})</span>
+          <div class="dr-race">
+            <em class="p1">P1 còn ${raceP1} ô</em>
+            <em class="p2">P2 còn ${raceP2} ô</em>
+          </div>
+          <small>${log[0] || ""}</small>
+        </div>${heroPanel(1)}`;
       renderActions();
       for (let side = 0; side < 2; side++) renderDungeon(side);
     }
@@ -382,39 +503,65 @@
       const xpPct = Math.max(0, h.xp / (h.lvl * 10) * 100);
       return `
         <div class="dr-hero-panel p${side + 1} ${turn === side && !over ? "active" : ""}">
-          <span>Người chơi ${side + 1}</span>
+          <span>${side === 0 ? "🔴" : "🔵"} Người chơi ${side + 1}</span>
           <b>Lv ${h.lvl}</b>
-          <em>${h.hp}/${h.maxHp} HP · Công ${h.atk} · Thủ ${h.def}</em>
+          <em>❤️ ${h.hp}/${h.maxHp} · ⚔️ ${h.atk} · 🛡️ ${h.def}</em>
           <i class="dr-bar hp"><i style="width:${hpPct}%"></i></i>
           <i class="dr-bar xp"><i style="width:${xpPct}%"></i></i>
-          <small>${h.pots} bình máu · ${h.shadow} bóng tối</small>
+          <small>🧪 ${h.pots} bình · 🌑 ${h.shadow} bóng tối · 💰 ${h.gold} vàng</small>
         </div>
       `;
     }
 
     function renderActions() {
       const h = heroes[turn];
+      const shopBtns = Object.entries(SHOP).map(([id, s]) => `
+        <button class="btn small dr-action shop" data-shop="${id}">
+          <span>${s.icon}</span><b>${s.label}</b><small>💰 ${s.cost} · ${s.hint}</small>
+        </button>`).join("");
+      const sabBtns = Object.entries(SABOTAGE).map(([id, s]) => `
+        <button class="btn small dr-action sab" data-act="${id}">
+          <span>${s.icon}</span><b>${s.label}</b><small>🌑 ${s.cost} · ${s.hint}</small>
+        </button>`).join("");
+
       actions.innerHTML = `
-        <button class="btn small dr-action" data-act="potion"><span>HP</span><b>Bình máu</b><small>${h.pots} còn lại</small></button>
-        ${Object.entries(SABOTAGE).map(([id, s]) => `
-          <button class="btn small dr-action" data-act="${id}">
-            <span>${s.icon}</span><b>${s.label}</b><small>${s.cost} bóng tối · ${s.hint}</small>
-          </button>
-        `).join("")}
+        <div class="dr-act-group">
+          <div class="dr-act-head">🧪 Hồi phục</div>
+          <div class="dr-act-row">
+            <button class="btn small dr-action heal" data-act="potion"><span>🧪</span><b>Bình máu</b><small>${h.pots} còn lại</small></button>
+          </div>
+        </div>
+        <div class="dr-act-group">
+          <div class="dr-act-head">🏪 Cửa hàng <i>(dùng vàng, không mất lượt)</i></div>
+          <div class="dr-act-row">${shopBtns}</div>
+        </div>
+        <div class="dr-act-group">
+          <div class="dr-act-head">🌑 Phá hoại <i>(dùng bóng tối, kết thúc lượt)</i></div>
+          <div class="dr-act-row">${sabBtns}</div>
+        </div>
       `;
-      actions.querySelector('[data-act="potion"]').disabled = !canAct() || h.pots <= 0 || h.hp >= h.maxHp;
-      actions.querySelector('[data-act="potion"]').addEventListener("click", () => applyMove({ t: "potion" }, false));
+
+      const potBtn = actions.querySelector('[data-act="potion"]');
+      potBtn.disabled = !canAct() || h.pots <= 0 || h.hp >= h.maxHp;
+      potBtn.addEventListener("click", () => applyMove({ t: "potion" }, false));
+
       Object.keys(SABOTAGE).forEach((id) => {
         const btn = actions.querySelector(`[data-act="${id}"]`);
         btn.disabled = !canAct() || h.shadow < SABOTAGE[id].cost;
         btn.addEventListener("click", () => applyMove({ t: "sabotage", kind: id }, false));
+      });
+
+      Object.keys(SHOP).forEach((id) => {
+        const btn = actions.querySelector(`[data-shop="${id}"]`);
+        btn.disabled = !canAct() || h.gold < SHOP[id].cost;
+        btn.addEventListener("click", () => applyMove({ t: "shop", item: id }, false));
       });
     }
 
     function renderDungeon(side) {
       const wrap = boards.children[side];
       wrap.classList.toggle("active", side === turn && !over);
-      wrap.querySelector(".dr-board-title").textContent = `Dungeon Người chơi ${side + 1}`;
+      wrap.querySelector(".dr-board-title").textContent = `${side === 0 ? "🔴" : "🔵"} Dungeon Người chơi ${side + 1}`;
       const h = heroes[side];
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
@@ -426,7 +573,7 @@
           el.disabled = !canAct() || side !== turn || !legal;
           if (!cell.seen && !isHero) {
             el.classList.add("fog");
-            el.innerHTML = `<span class="dr-icon">?</span>`;
+            el.innerHTML = `<span class="dr-icon fog">❓</span>`;
           } else {
             el.classList.add("seen", cell.kind);
             if (legal) el.classList.add("legal");
@@ -438,13 +585,14 @@
 
     function tileMarkup(cell, isHero, side) {
       if (isHero) return `<span class="dr-adventurer p${side + 1}"><i></i><b>${side + 1}</b></span>`;
-      if (cell.kind === "monster") return `<span class="dr-icon monster">☠</span><small>${cell.lvl}</small>`;
-      if (cell.kind === "elite") return `<span class="dr-icon elite">♜</span><small>${cell.lvl}</small>`;
-      if (cell.kind === "boss") return `<span class="dr-icon boss">♛</span><small>${cell.lvl}</small>`;
-      if (cell.kind === "treasure") return `<span class="dr-icon treasure">${LOOT[cell.loot]?.icon || "$"}</span>`;
-      if (cell.kind === "trap") return `<span class="dr-icon trap">!</span>`;
-      if (cell.kind === "shrine") return `<span class="dr-icon shrine">✦</span>`;
-      if (cell.kind === "start") return `<span class="dr-icon start">⌂</span>`;
+      const lvlBadge = (cell.kind === "monster" || cell.kind === "elite" || cell.kind === "boss")
+        ? `<small>${cell.lvl}</small>` : "";
+      if (cell.kind === "treasure") {
+        const ic = LOOT[cell.loot]?.icon || "💰";
+        return `<span class="dr-icon treasure">🧰</span><small class="loot">${ic}</small>`;
+      }
+      const icon = TILE_ICON[cell.kind];
+      if (icon) return `<span class="dr-icon ${cell.kind}">${icon}</span>${lvlBadge}`;
       return `<span class="dr-icon empty">·</span>`;
     }
 
@@ -455,7 +603,7 @@
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) ctx.setStatus(`Đối thủ đang đi. ${log[0] || ""}`);
-      else ctx.setStatus(`Người chơi ${turn + 1}: click ô cạnh nhân vật để khám phá, hoặc dùng bình máu/bóng tối để phá đối thủ.`);
+      else ctx.setStatus(`Người chơi ${turn + 1}: click ô sáng cạnh nhân vật để khám phá. Mua đồ bằng vàng, phá đối thủ bằng bóng tối.`);
     }
 
     return { applyMove };
@@ -465,7 +613,7 @@
     id: "dungeonrival",
     name: "Dungeon Rival",
     emoji: "🗝️",
-    description: "Hai người đi dungeon riêng, nhặt đồ, lên cấp và dùng bóng tối gửi quái hoặc bẫy sang phá đối thủ.",
+    description: "Hai người đua nhau xuyên hầm ngục riêng: đánh quái, nhặt đồ, lên cấp, mua sắm bằng vàng và dùng bóng tối phá đối thủ. Ai hạ Chúa hầm trước sẽ thắng.",
     onlineReady: true,
     options: [
       {
@@ -500,12 +648,13 @@
       },
     ],
     howTo: [
-      "Mỗi người có một dungeon riêng. Đến lượt mình, click một ô cạnh nhân vật để đi và mở phòng.",
-      "Phòng có quái sẽ tự đánh theo chỉ số Công/Thủ. Thắng quái nhận XP, bóng tối và đôi khi có thêm đồ.",
-      "Kho báu có thể cho kiếm, giáp, bình máu, hồi phục hoặc bóng tối. Đền thờ tăng max HP và hồi máu.",
-      "Lên cấp sẽ tăng máu, công, đôi khi tăng thủ, và cho thêm bóng tối.",
-      "Dùng bóng tối để gửi quái, gài bẫy hoặc gieo lời nguyền sang dungeon đối thủ.",
-      "Đánh bại Chúa hầm trong dungeon của mình hoặc khiến đối thủ gục trước để thắng.",
+      "Mỗi người có một dungeon riêng. Đến lượt mình, click ô sáng cạnh nhân vật để di chuyển và mở phòng.",
+      "👹 Quái / 👺 Tinh nhuệ / 🐲 Chúa hầm tự đánh theo chỉ số ⚔️ Công và 🛡️ Thủ. Thắng được XP, 🌑 bóng tối, 💰 vàng và đôi khi rơi đồ.",
+      "🧰 Kho báu cho kiếm, giáp, bình máu, vàng, bóng tối hoặc hồi máu. ⛩️ Đền thờ tăng máu tối đa và hồi máu. 🪤 Bẫy gây sát thương.",
+      "🌀 Cổng dịch chuyển sẽ đưa bạn sang cổng còn lại trong dungeon - dùng để băng nhanh qua bản đồ.",
+      "🏪 Cửa hàng: tiêu vàng để mài vũ khí, rèn giáp, mua bình hoặc bóng tối - mua đồ KHÔNG mất lượt.",
+      "🌑 Phá hoại địch bằng bóng tối: thả quái, gài bẫy, gieo lời nguyền (trừ máu) hoặc thả sương mù che bản đồ địch.",
+      "Đua tới và hạ 🐲 Chúa hầm trong dungeon của mình trước, hoặc khiến đối thủ gục để giành chiến thắng.",
     ],
     create,
   });
