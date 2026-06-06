@@ -10104,3 +10104,54 @@ body {
   max-width: 480px;
   line-height: 1.35;
 }
+
+
+/* ---------- Co-op Defense: emoji súng/quái + Không kích ---------- */
+.cd-slot.has-tower .cd-tw-ic {
+  font-size: 20px;
+  line-height: 1;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+.cd-slot.has-tower small {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 2px;
+  border-radius: 999px;
+  background: #16121d;
+  color: #ffd166;
+  font-size: 0.6rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cd-monster .cd-mon-ic {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+}
+.cd-monster.mon-boss .cd-mon-ic { font-size: 27px; }
+.cd-monster.mon-brute .cd-mon-ic,
+.cd-monster.mon-splitter .cd-mon-ic { font-size: 21px; }
+.cd-tower-ic {
+  font-size: 20px;
+  line-height: 1;
+}
+.cd-strike {
+  width: 100%;
+  margin-top: 8px;
+  background: linear-gradient(180deg, #ff8d7a, #d2402f);
+  border-color: rgba(255,209,102,0.5);
+  color: #fff;
+  font-weight: 800;
+}
+.cd-strike:disabled { opacity: 0.5; }

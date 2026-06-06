@@ -4,6 +4,10 @@
   const SLOTS = 8;
   const LEAK_LIMIT = 1;
   const MAX_WAVE = 10;
+  const BASE_HP = 20;          // máu căn cứ — quái lọt sẽ trừ máu thay vì thua ngay
+  const STRIKE_COST = 70;      // chi phí Không kích
+  const STRIKE_CD = 80;        // hồi chiêu (số tick ~8s)
+  const STRIKE_DMG = 55;       // sát thương Không kích (xuyên giáp)
 
   const MAPS = [
     {
@@ -78,31 +82,33 @@
   ];
 
   const TOWERS = {
-    rifle: { name: "Súng máy", short: "SM", cost: 42, dmg: 8, rate: 6, range: 0.17, color: "#ffd166", note: "bắn nhanh" },
-    cannon: { name: "Pháo nổ", short: "PH", cost: 74, dmg: 21, rate: 14, range: 0.16, splash: 0.075, color: "#ff8d7a", note: "nổ lan" },
-    frost: { name: "Tháp băng", short: "BG", cost: 64, dmg: 5, rate: 10, range: 0.19, slow: 32, color: "#7fe7ff", note: "làm chậm" },
-    laser: { name: "Laser", short: "LS", cost: 96, dmg: 14, rate: 5, range: 0.24, pierce: 2, color: "#c6a7ff", note: "xuyên tuyến" },
-    sniper: { name: "Xạ thủ", short: "XT", cost: 88, dmg: 42, rate: 18, range: 0.34, ignoreArmor: true, color: "#f6f0a8", note: "bắn xa" },
-    tesla: { name: "Tesla", short: "TS", cost: 106, dmg: 15, rate: 9, range: 0.2, chain: 3, color: "#8afff1", note: "giật chuyền" },
-    flame: { name: "Hỏa tháp", short: "HT", cost: 78, dmg: 9, rate: 7, range: 0.15, burn: 20, burnDmg: 3, color: "#ffb15c", note: "đốt cháy" },
-    mortar: { name: "Cối đá", short: "CD", cost: 118, dmg: 34, rate: 22, range: 0.26, splash: 0.12, color: "#b7c1a1", note: "nổ rộng" },
+    rifle: { name: "Súng máy", short: "SM", icon: "🔫", cost: 42, dmg: 8, rate: 6, range: 0.17, color: "#ffd166", note: "bắn nhanh" },
+    cannon: { name: "Pháo nổ", short: "PH", icon: "💣", cost: 74, dmg: 21, rate: 14, range: 0.16, splash: 0.075, color: "#ff8d7a", note: "nổ lan" },
+    frost: { name: "Tháp băng", short: "BG", icon: "❄️", cost: 64, dmg: 5, rate: 10, range: 0.19, slow: 32, color: "#7fe7ff", note: "làm chậm" },
+    laser: { name: "Laser", short: "LS", icon: "🔆", cost: 96, dmg: 14, rate: 5, range: 0.24, pierce: 2, color: "#c6a7ff", note: "xuyên tuyến" },
+    sniper: { name: "Xạ thủ", short: "XT", icon: "🎯", cost: 88, dmg: 42, rate: 18, range: 0.34, ignoreArmor: true, color: "#f6f0a8", note: "bắn xa" },
+    tesla: { name: "Tesla", short: "TS", icon: "⚡", cost: 106, dmg: 15, rate: 9, range: 0.2, chain: 3, color: "#8afff1", note: "giật chuyền" },
+    flame: { name: "Hỏa tháp", short: "HT", icon: "🔥", cost: 78, dmg: 9, rate: 7, range: 0.15, burn: 20, burnDmg: 3, color: "#ffb15c", note: "đốt cháy" },
+    mortar: { name: "Cối đá", short: "CD", icon: "🧨", cost: 118, dmg: 34, rate: 22, range: 0.26, splash: 0.12, color: "#b7c1a1", note: "nổ rộng" },
   };
 
   const MONSTERS = {
-    grunt: { name: "Bộ binh", hp: 26, speed: 0.0042, reward: 8 },
-    runner: { name: "Chạy nhanh", hp: 18, speed: 0.0066, reward: 9 },
-    swarm: { name: "Đàn nhỏ", hp: 12, speed: 0.0061, reward: 5 },
-    brute: { name: "Giáp nặng", hp: 58, speed: 0.0029, reward: 15, armor: 2 },
-    shield: { name: "Khiên", hp: 42, speed: 0.0035, reward: 13, armor: 4 },
-    shaman: { name: "Pháp sư", hp: 36, speed: 0.0038, reward: 16, regen: 1 },
-    bomber: { name: "Nổ giáp", hp: 34, speed: 0.0042, reward: 17, armor: 1 },
-    ghost: { name: "Bóng ma", hp: 30, speed: 0.0053, reward: 16, slowResist: 0.72 },
-    splitter: { name: "Tách đàn", hp: 46, speed: 0.0039, reward: 14, split: 2 },
-    boss: { name: "Trùm cổng", hp: 180, speed: 0.0022, reward: 52, armor: 3 },
+    grunt: { name: "Bộ binh", icon: "👹", hp: 26, speed: 0.0042, reward: 8 },
+    runner: { name: "Chạy nhanh", icon: "👺", hp: 18, speed: 0.0066, reward: 9 },
+    swarm: { name: "Đàn nhỏ", icon: "🐀", hp: 12, speed: 0.0061, reward: 5 },
+    brute: { name: "Giáp nặng", icon: "🧌", hp: 58, speed: 0.0029, reward: 15, armor: 2 },
+    shield: { name: "Khiên", icon: "🛡️", hp: 42, speed: 0.0035, reward: 13, armor: 4 },
+    shaman: { name: "Pháp sư", icon: "🧙", hp: 36, speed: 0.0038, reward: 16, regen: 1 },
+    bomber: { name: "Nổ giáp", icon: "💀", hp: 34, speed: 0.0042, reward: 17, armor: 1 },
+    ghost: { name: "Bóng ma", icon: "👻", hp: 30, speed: 0.0053, reward: 16, slowResist: 0.72 },
+    splitter: { name: "Tách đàn", icon: "🪲", hp: 46, speed: 0.0039, reward: 14, split: 2 },
+    boss: { name: "Trùm cổng", icon: "🐲", hp: 180, speed: 0.0022, reward: 52, armor: 3 },
   };
 
   function create(ctx) {
     let leaks = 0;
+    let baseHp = BASE_HP;
+    let strikeCd = 0;
     let coins = 210;
     let wave = 0;
     let phase = "prep";
@@ -204,6 +210,19 @@
         if (phase !== "prep" || over) return;
         if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "start" });
         startWave();
+      }
+
+      if (move.t === "airstrike") {
+        if (phase !== "wave" || over || strikeCd > 0 || coins < STRIKE_COST) return;
+        coins -= STRIKE_COST;
+        strikeCd = STRIKE_CD;
+        if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "airstrike" });
+        let hitCount = 0;
+        monsters.forEach((m) => { m.hp -= STRIKE_DMG; m.slowUntil = Math.max(m.slowUntil, tick + 18); hitCount++; });
+        addLog(`💥 Không kích! Giáng ${STRIKE_DMG} sát thương lên ${hitCount} quái.`);
+        ctx.sound("capture");
+        resolveDeaths();
+        render();
       }
     }
 
@@ -331,6 +350,7 @@
       }
       if (phase !== "wave" || over) return;
       tick++;
+      if (strikeCd > 0) strikeCd--;
 
       while (spawns.length && spawns[0].at <= tick) {
         spawnMonster(spawns.shift());
@@ -397,11 +417,12 @@
         m.x -= m.speed * slow;
         if (m.x <= 0.018) {
           leaks++;
-          addLog(`${MONSTERS[m.type].name} đã lọt hết đường. Phòng tuyến vỡ.`);
+          const dmg = m.type === "boss" ? 8 : (m.armor >= 2 ? 3 : 2);
+          baseHp = Math.max(0, baseHp - dmg);
+          addLog(`${MONSTERS[m.type].name} lọt qua phòng tuyến! Căn cứ -${dmg} máu (còn ${baseHp}).`);
           monsters.splice(i, 1);
           ctx.sound("error");
-          finish(false);
-          return;
+          if (baseHp <= 0) { finish(false); return; }
         }
       }
     }
@@ -553,22 +574,22 @@
     }
 
     function renderHud() {
-      const leakPct = Math.max(0, LEAK_LIMIT - leaks) / LEAK_LIMIT * 100;
+      const hpPct = Math.max(0, baseHp) / BASE_HP * 100;
       hudEl.innerHTML = `
         <div class="cd-stat">
-          <b>Phòng tuyến</b>
-          <span>${leaks}/${LEAK_LIMIT} lọt</span>
-          <i><em style="width:${leakPct}%"></em></i>
+          <b>🏰 Máu căn cứ</b>
+          <span>${baseHp}/${BASE_HP} ❤️</span>
+          <i><em style="width:${hpPct}%"></em></i>
         </div>
         <div class="cd-stat">
-          <b>Kho chung</b>
+          <b>💰 Kho chung</b>
           <span>${coins} vàng</span>
           <small>${phase === "wave" ? "wave đang chạy" : "đang chuẩn bị"}</small>
         </div>
         <div class="cd-stat">
-          <b>${currentMap().name}</b>
-          <span>${Math.min(wave + (phase === "prep" ? 1 : 0), MAX_WAVE)}/${MAX_WAVE}</span>
-          <small>${monsters.length} quái trên đường</small>
+          <b>🗺️ ${currentMap().name}</b>
+          <span>Wave ${Math.min(wave + (phase === "prep" ? 1 : 0), MAX_WAVE)}/${MAX_WAVE}</span>
+          <small>${monsters.length} quái · ${leaks} đã lọt</small>
         </div>
       `;
     }
@@ -625,9 +646,8 @@
       }
       const def = TOWERS[tower.type];
       return `
-        <button class="cd-slot has-tower tower-${tower.type} ${selected ? "selected" : ""}" data-lane="${lane}" data-slot="${slot}" style="left:${pt.x}%;top:${pt.y}%;color:${def.color}" title="${def.name}">
-          <span class="tower-model tower-${tower.type}"><i></i><em></em></span>
-          <span class="tower-code">${def.short}</span>
+        <button class="cd-slot has-tower tower-${tower.type} ${selected ? "selected" : ""}" data-lane="${lane}" data-slot="${slot}" style="left:${pt.x}%;top:${pt.y}%;color:${def.color}" title="${def.name} cấp ${tower.level}">
+          <span class="cd-tw-ic">${def.icon}</span>
           <small>${tower.level}</small>
         </button>
       `;
@@ -636,9 +656,10 @@
     function renderMonster(m) {
       const pct = Math.max(0, m.hp) / m.maxHp * 100;
       const pt = routePoint(m.lane, m.x);
+      const def = MONSTERS[m.type];
       return `
-        <div class="cd-monster mon-${m.type} ${m.slowUntil > tick ? "slowed" : ""} ${m.burnUntil > tick ? "burning" : ""}" style="left:${pt.x}%;top:${pt.y}%" title="${MONSTERS[m.type].name}">
-          <b></b>
+        <div class="cd-monster mon-${m.type} ${m.slowUntil > tick ? "slowed" : ""} ${m.burnUntil > tick ? "burning" : ""}" style="left:${pt.x}%;top:${pt.y}%" title="${def.name}">
+          <span class="cd-mon-ic">${def.icon}</span>
           <i><em style="width:${pct}%"></em></i>
         </div>
       `;
@@ -672,7 +693,7 @@
           <div class="cd-tower-list">
             ${Object.entries(TOWERS).map(([id, def]) => `
               <button class="cd-tower-card ${selectedType === id ? "active" : ""}" data-tower="${id}" style="--tower:${def.color}" ${over ? "disabled" : ""}>
-                <span class="tower-chip tower-${id}"><i></i><em></em></span>
+                <span class="cd-tower-ic">${def.icon}</span>
                 <b>${def.name}</b>
                 <small>${def.cost} vàng · ${def.note}</small>
               </button>
@@ -683,6 +704,7 @@
           <h3>Điều khiển</h3>
           ${renderSelectedActions(sel)}
           <button class="btn primary cd-start" id="cdStart" ${phase !== "prep" || over ? "disabled" : ""}>${phase === "wave" ? "Wave đang chạy" : wave === 0 ? "Gọi wave 1" : "Gọi wave " + (wave + 1)}</button>
+          <button class="btn cd-strike" id="cdStrike" ${phase !== "wave" || over || strikeCd > 0 || coins < STRIKE_COST ? "disabled" : ""}>💥 Không kích (${STRIKE_COST} vàng${strikeCd > 0 ? " · hồi " + Math.ceil(strikeCd / 10) + "s" : ""})</button>
         </div>
       `;
 
@@ -697,6 +719,8 @@
       });
       const startBtn = panelEl.querySelector("#cdStart");
       startBtn && startBtn.addEventListener("click", () => applyMove({ t: "start" }, false));
+      const strikeBtn = panelEl.querySelector("#cdStrike");
+      strikeBtn && strikeBtn.addEventListener("click", () => applyMove({ t: "airstrike" }, false));
       const upgradeBtn = panelEl.querySelector("#cdUpgrade");
       upgradeBtn && upgradeBtn.addEventListener("click", () => applyMove({ t: "upgrade", lane: selectedSlot.lane, slot: selectedSlot.slot }, false));
       const sellBtn = panelEl.querySelector("#cdSell");
@@ -735,16 +759,17 @@
   window.GameRegistry.register({
     id: "coopdefense",
     name: "Thủ Thành Hợp Tác",
-    emoji: "CD",
-    description: "Hai người cùng thủ đường: chọn nhiều map, mua nhiều loại súng, chặn nhiều loại quái và vẫn xây được khi wave đang chạy.",
+    emoji: "🏰",
+    description: "Hai người cùng thủ đường: nhiều map, nhiều loại súng & quái (emoji rõ ràng), căn cứ có thanh máu, và chiêu Không kích 💥 dùng chung.",
     onlineReady: true,
     options: [],
     howTo: [
-      "Đây là game hợp tác: cả hai người dùng chung vàng để giữ các đường không cho quái lọt qua phòng tuyến.",
+      "Đây là game hợp tác: cả hai người dùng chung vàng để giữ căn cứ. Quái lọt qua sẽ trừ máu căn cứ 🏰❤️ — hết máu là cả đội thua.",
       "Có nhiều map. Chọn map trước khi xây tháp hoặc gọi wave đầu tiên; sau khi đã xây thì map sẽ khóa cho ván đó.",
-      "Quái xuất hiện từ ổ quái bên phải và chạy theo 3 đường về mép trái. Chỉ cần một quái lọt hết đường là thua.",
-      "Có nhiều súng: súng máy, pháo nổ, băng, laser, xạ thủ, Tesla, hỏa tháp và cối đá. Mỗi loại có tầm, nhịp bắn và hiệu ứng riêng.",
+      "Quái xuất hiện từ ổ quái bên phải và chạy theo 3 đường về mép trái. Mỗi loại quái và súng có biểu tượng riêng để dễ nhận.",
+      "Có 8 loại súng: 🔫 súng máy, 💣 pháo nổ, ❄️ băng, 🔆 laser, 🎯 xạ thủ, ⚡ Tesla, 🔥 hỏa tháp, 🧨 cối đá. Mỗi loại có tầm, nhịp bắn và hiệu ứng riêng.",
       "Trong lúc wave đang chạy vẫn có thể chọn súng, xây bãi trống, nâng cấp hoặc bán tháp.",
+      "💥 Không kích: tốn vàng, giáng sát thương lớn (xuyên giáp) lên TẤT CẢ quái đang trên map và làm chậm chúng — dùng để cứu nguy khi quá đông. Có thời gian hồi chiêu.",
       "Qua wave sẽ nhận thêm vàng. Sống sót qua toàn bộ wave là cả đội thắng.",
     ],
     create,
