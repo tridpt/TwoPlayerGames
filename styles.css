@@ -3926,6 +3926,88 @@ body {
 }
 .bc-hint-res b { color: var(--accent); }
 
+/* bàn phím số bấm chuột */
+.bc-keypad {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 5px;
+  width: min(440px, 96vw);
+  margin: 10px auto 0;
+}
+.bc-key {
+  padding: 9px 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.bc-key-back { color: var(--p1); }
+@media (max-width: 460px) {
+  .bc-keypad { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* bảng ghi chú suy luận */
+.bc-notepad {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-soft);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.bc-np-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.bc-np-title span {
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.bc-np-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 5px;
+}
+.bc-np-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s, border-color 0.15s;
+}
+.bc-np-cell b { font-size: 1.05rem; font-weight: 800; }
+.bc-np-cell i {
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  font-size: 0.7rem;
+  font-style: normal;
+}
+.bc-np-cell:hover { transform: translateY(-1px); }
+.bc-np-cell.yes {
+  background: rgba(110,231,183,0.22);
+  border-color: #6ee7b7;
+  color: #d6ffe9;
+}
+.bc-np-cell.no {
+  background: rgba(255,93,115,0.18);
+  border-color: rgba(255,93,115,0.6);
+  color: #ffd2d8;
+  opacity: 0.85;
+}
+.bc-np-cell.no b { text-decoration: line-through; }
+@media (max-width: 460px) {
+  .bc-np-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
 /* ---------- Cờ Quân Úp (Stratego) ---------- */
 .st-root {
   display: flex;

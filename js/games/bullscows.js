@@ -49,8 +49,13 @@
       `<div class="bc-guessrow">` +
       `<input class="bc-input" id="bcGuess" maxlength="${LEN}" inputmode="numeric" placeholder="${"•".repeat(LEN)}">` +
       `<button class="btn primary" id="bcGuessBtn">Đoán</button></div>` +
+      `<div class="bc-keypad" id="bcKeypad"></div>` +
       `<div class="bc-hints" id="bcHints"></div>` +
       `<p class="bc-err" id="bcGuessErr"></p>` +
+      `<div class="bc-notepad" id="bcNotepad">` +
+      `<div class="bc-np-title">📝 Ghi chú của bạn <span>(bấm số: ✓ có trong đáp án · ✗ loại · trống = chưa rõ)</span></div>` +
+      `<div class="bc-np-grid" id="bcNpGrid"></div>` +
+      `</div>` +
       `<div class="bc-cols">` +
       `<div class="bc-col"><h4>Bạn đoán</h4><div class="bc-log" id="bcMine"></div></div>` +
       `<div class="bc-col"><h4>Đối thủ đoán</h4><div class="bc-log" id="bcOpp"></div></div>` +
@@ -64,10 +69,53 @@
     const oppLog = playBox.querySelector("#bcOpp");
     const metersEl = playBox.querySelector("#bcMeters");
     const hintsEl = playBox.querySelector("#bcHints");
+    const keypadEl = playBox.querySelector("#bcKeypad");
+    const npGridEl = playBox.querySelector("#bcNpGrid");
 
     guessInput.addEventListener("input", () => {
       guessInput.value = guessInput.value.replace(/\D/g, "").slice(0, LEN);
     });
+
+    // ghi chú suy luận (chỉ là công cụ ghi nhớ cục bộ, mỗi người một bảng, không gửi qua mạng)
+    // 0 = chưa rõ, 1 = có trong đáp án (✓), 2 = đã loại (✗)
+    const noteState = [Array(10).fill(0), Array(10).fill(0)];
+    function activeNoteSeat() { return ctx.isOnline ? ctx.mySeat : currentLocalSeat(); }
+
+    function buildKeypad() {
+      keypadEl.innerHTML = "";
+      const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "⌫"];
+      keys.forEach((k) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "btn small bc-key" + (k === "⌫" ? " bc-key-back" : "");
+        b.textContent = k;
+        b.addEventListener("click", () => {
+          if (guessInput.disabled) return;
+          if (k === "⌫") guessInput.value = guessInput.value.slice(0, -1);
+          else if (guessInput.value.length < LEN) guessInput.value += k;
+          guessInput.focus();
+        });
+        keypadEl.appendChild(b);
+      });
+    }
+
+    function renderNotepad() {
+      const seat = activeNoteSeat();
+      const state = noteState[seat] || noteState[0];
+      npGridEl.innerHTML = "";
+      for (let d = 0; d <= 9; d++) {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        const st = state[d];
+        cell.className = "bc-np-cell" + (st === 1 ? " yes" : st === 2 ? " no" : "");
+        cell.innerHTML = `<b>${d}</b><i>${st === 1 ? "✓" : st === 2 ? "✗" : ""}</i>`;
+        cell.addEventListener("click", () => {
+          state[d] = (state[d] + 1) % 3;
+          renderNotepad();
+        });
+        npGridEl.appendChild(cell);
+      }
+    }
 
     function validCode(s) {
       if (s.length !== LEN) return "Phải đủ " + LEN + " chữ số.";
@@ -148,6 +196,7 @@
       setBox.classList.add("hidden");
       playBox.classList.remove("hidden");
       buildHintButtons();
+      buildKeypad();
       renderMeters();
       ctx.setTurn(0);
       updateInput();
@@ -376,6 +425,7 @@
       hintsEl.querySelectorAll(".bc-hint-btn").forEach((b) => {
         b.disabled = !(phase === "play" && !over && !won[seat] && hintsLeft[seat] > 0 && (!awaiting || !ctx.isOnline));
       });
+      renderNotepad();
     }
 
     function updateStatusLine() {
@@ -518,6 +568,7 @@
       "Trợ giúp (mỗi người 2 lần): 🔍 Lộ 1 vị trí (cho biết chữ số đúng ở 1 ô), 🧮 Đếm số đúng (đếm chữ số của lần đoán gần nhất có trong đáp án).",
       "Chấm điểm: thắng càng NHANH điểm càng cao — mỗi lượt thừa −8đ, mỗi 5 giây suy nghĩ −2đ, mỗi trợ giúp −10đ (tối đa 120đ).",
       "Đồng hồ chỉ chạy khi tới lượt bạn nghĩ; đoán xong là dừng, lượt sau lại chạy tiếp và cộng dồn. Ai đoán đúng ở lượt sớm hơn sẽ thắng; cùng lượt thì so điểm.",
+      "📝 Bảng ghi chú: bấm vào số 0-9 để tự đánh dấu ✓ (chắc có) hoặc ✗ (đã loại) giúp suy luận dễ hơn. Mỗi người có bảng riêng, chỉ bạn thấy. Có thể dùng bàn phím số bấm chuột để nhập cho nhanh.",
     ],
     create,
   });
