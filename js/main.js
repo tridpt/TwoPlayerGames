@@ -7,6 +7,8 @@
   const el = {
     menu: $("menu"),
     gameGrid: $("gameGrid"),
+    catSidebar: $("catSidebar"),
+    catHead: $("catHead"),
     openOnlineHubBtn: $("openOnlineHubBtn"),
     modeView: $("modeView"),
     modeTitle: $("modeTitle"),
@@ -83,37 +85,45 @@
   let roomExitTimer = null;
   let online = null; // null = chơi chung máy; {roomSeat, seat, seed} = online
   let currentOptions = {}; // giá trị tùy chỉnh ván chơi đang dùng
+  let currentCategory = "all"; // thể loại đang xem ở menu
+  let menuCategories = [];     // danh sách thể loại đã dựng
 
   const PLAYER_NAME_KEY = "tpg_player_name";
 
   const GAME_GROUPS = [
     {
       title: "Cờ & chiến thuật bàn",
+      icon: "♟️",
       hint: "Caro, cờ lật, kết nối, đặt tường và các game bàn cờ kinh điển.",
       games: ["tictactoe", "gomoku", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "pathlockduel", "hunterswarm", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
     },
     {
       title: "Chiến thuật trên bản đồ",
+      icon: "🗺️",
       hint: "Đi quân trên lưới, chiếm vùng, dùng tài nguyên và kỹ năng theo lượt.",
       games: ["tankarena", "dicebattle", "territorywar", "crystalconquest"],
     },
     {
       title: "Đối kháng hành động & vật lý",
+      icon: "⚡",
       hint: "Canh lực, bắn, kéo thả, va chạm và phản xạ.",
       games: ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery", "fishingfrenzy"],
     },
     {
       title: "Ván dài & xây dựng",
+      icon: "🏰",
       hint: "Có tiến triển lâu hơn: thủ nhà, gửi quái, đi dungeon và lên cấp.",
       games: ["coopdefense", "basedefenseduel", "robotfactorywar", "dungeonrival"],
     },
     {
       title: "Ẩn thông tin & suy luận",
+      icon: "🕵️",
       hint: "Giấu vị trí, đoán tọa độ, tìm mìn, giải từ và đọc dấu hiệu.",
       games: ["battleship", "seabattleplus", "submarinehunt", "hiddenassassin", "trapmansion", "minesweeper", "treasure", "bullscows", "hangman", "noitu"],
     },
     {
       title: "Xúc xắc, bài & may rủi",
+      icon: "🎲",
       hint: "Roll, ghi điểm, domino, đấu giá kín và lật cặp nhanh gọn.",
       games: ["auctionwar", "memory", "pig", "yahtzee", "domino"],
     },
@@ -681,25 +691,65 @@
 
   // ====================== Menu chọn game ======================
   function renderMenu() {
-    el.gameGrid.innerHTML = "";
     const byId = new Map(GameRegistry.games.map((g) => [g.id, g]));
     const rendered = new Set();
+    menuCategories = [];
 
-    GAME_GROUPS.forEach((group) => {
+    // thể loại "Tất cả" luôn ở đầu
+    menuCategories.push({
+      id: "all",
+      title: "Tất cả trò chơi",
+      icon: "🎮",
+      hint: `Toàn bộ ${GameRegistry.games.length} trò chơi 2 người — cờ chiến thuật, đối kháng hành động, suy luận và may rủi. Chọn một thể loại bên trái để lọc.`,
+      games: GameRegistry.games.slice(),
+    });
+
+    GAME_GROUPS.forEach((group, i) => {
       const games = group.games.map((id) => byId.get(id)).filter(Boolean);
       if (!games.length) return;
       games.forEach((g) => rendered.add(g.id));
-      el.gameGrid.appendChild(createGameSection(group, games));
+      menuCategories.push({ id: "g" + i, title: group.title, icon: group.icon || "🎯", hint: group.hint, games });
     });
 
     const otherGames = GameRegistry.games.filter((g) => !rendered.has(g.id));
     if (otherGames.length) {
-      el.gameGrid.appendChild(createGameSection({
-        title: "Khác",
-        hint: "Các game mới chưa gắn nhóm.",
-      }, otherGames));
+      menuCategories.push({ id: "other", title: "Khác", icon: "✨", hint: "Các game mới chưa gắn nhóm.", games: otherGames });
     }
+
+    if (!menuCategories.some((c) => c.id === currentCategory)) currentCategory = "all";
+    buildCatSidebar();
+    renderCategory(currentCategory);
     buildLobbyGameSelect();
+  }
+
+  function buildCatSidebar() {
+    el.catSidebar.innerHTML = "";
+    menuCategories.forEach((cat) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cat-item" + (cat.id === currentCategory ? " active" : "");
+      btn.innerHTML =
+        `<span class="cat-ic">${cat.icon}</span>` +
+        `<span class="cat-label"><b>${cat.title}</b><small>${cat.games.length} game</small></span>`;
+      btn.addEventListener("click", () => {
+        currentCategory = cat.id;
+        buildCatSidebar();
+        renderCategory(cat.id);
+        if (el.catContent && el.catContent.scrollIntoView) el.catContent.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+      el.catSidebar.appendChild(btn);
+    });
+  }
+
+  function renderCategory(catId) {
+    const cat = menuCategories.find((c) => c.id === catId) || menuCategories[0];
+    if (!cat) return;
+    el.catHead.innerHTML =
+      `<h2><span class="cat-head-ic">${cat.icon}</span>${cat.title}</h2>` +
+      `<p>${cat.hint}</p>` +
+      `<span class="cat-head-count">${cat.games.length} trò chơi</span>`;
+    el.gameGrid.innerHTML = "";
+    cat.games.forEach((game) => el.gameGrid.appendChild(createGameCard(game)));
   }
 
   function buildLobbyGameSelect(preselectId = "") {
@@ -731,26 +781,6 @@
       return;
     }
     buildOptionsUI(lobbySelectedGame, el.lobbyOptionsPanel, el.lobbyOptionsList, "lobby_opt_");
-  }
-
-  function createGameSection(group, games) {
-    const section = document.createElement("section");
-    section.className = "game-section";
-    section.innerHTML = `
-      <div class="game-section-head">
-        <div>
-          <h2>${group.title}</h2>
-          <p>${group.hint}</p>
-        </div>
-        <span class="game-section-count">${games.length} game</span>
-      </div>
-    `;
-
-    const grid = document.createElement("div");
-    grid.className = "game-section-grid";
-    games.forEach((game) => grid.appendChild(createGameCard(game)));
-    section.appendChild(grid);
-    return section;
   }
 
   function createGameCard(g) {

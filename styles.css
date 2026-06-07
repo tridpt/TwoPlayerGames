@@ -88,12 +88,95 @@ body {
 
 #app {
   flex: 1;
-  width: min(960px, 100%);
+  width: min(1160px, 100%);
   margin: 0 auto;
   padding: 16px;
 }
 
 .hidden { display: none !important; }
+
+/* ---------- Bố cục duyệt theo thể loại (sidebar) ---------- */
+.browse {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+  margin-top: 6px;
+}
+.cat-sidebar {
+  position: sticky;
+  top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: linear-gradient(170deg, rgba(42,48,96,0.55), rgba(22,26,55,0.8));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: var(--shadow);
+}
+.cat-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: background 0.16s, color 0.16s, border-color 0.16s, transform 0.1s;
+}
+.cat-item:hover { background: rgba(255, 255, 255, 0.06); color: var(--text); transform: translateX(2px); }
+.cat-item.active {
+  background: linear-gradient(135deg, rgba(255,209,102,0.2), rgba(255,143,177,0.13));
+  border-color: rgba(255, 209, 102, 0.42);
+  color: var(--text);
+}
+.cat-ic { font-size: 1.35rem; width: 30px; text-align: center; flex: 0 0 auto; }
+.cat-label { display: flex; flex-direction: column; line-height: 1.18; min-width: 0; }
+.cat-label b { font-size: 0.9rem; font-weight: 600; }
+.cat-label small { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+.cat-item.active .cat-label small { color: var(--accent); }
+.cat-head { margin-bottom: 16px; }
+.cat-head h2 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 1.7rem;
+  margin: 0 0 7px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.cat-head-ic { font-size: 1.55rem; }
+.cat-head p { margin: 0; color: var(--muted); max-width: 760px; line-height: 1.5; font-size: 0.95rem; }
+.cat-head-count {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 13px;
+  border-radius: 999px;
+  background: rgba(255, 209, 102, 0.1);
+  border: 1px solid rgba(255, 209, 102, 0.32);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+@media (max-width: 720px) {
+  .browse { grid-template-columns: 1fr; gap: 14px; }
+  .cat-sidebar {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cat-item { flex: 0 0 auto; }
+  .cat-label small { display: none; }
+  .cat-head h2 { font-size: 1.4rem; }
+}
 
 /* ---------- Menu ---------- */
 .game-grid {
