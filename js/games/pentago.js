@@ -105,11 +105,11 @@
 
     function applyMove(move, fromRemote) {
       if (over || animating) return;
-      // nếu là nước từ xa, cần đặt bi trước rồi hiển thị
-      if (fromRemote) {
-        const r = Math.floor(move.cell / N), c = move.cell % N;
-        if (board[r][c] === null) board[r][c] = turn;
-        pendingCell = [r, c];
+      // đảm bảo bi đã được đặt (người chơi local đã đặt qua onPlace; AI/từ xa thì đặt tại đây)
+      const pr = Math.floor(move.cell / N), pc = move.cell % N;
+      if (board[pr][pc] === null) {
+        board[pr][pc] = turn;
+        pendingCell = [pr, pc];
         render();
       }
 
@@ -174,6 +174,65 @@
       rotBar.classList.toggle("ptg-armed", on);
     }
 
+    // ----- AI -----
+    function ptgFiveFor(p) {
+      const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        if (board[r][c] !== p) continue;
+        for (const [dr, dc] of dirs) {
+          let cnt = 1, nr = r + dr, nc = c + dc;
+          while (nr >= 0 && nr < N && nc >= 0 && nc < N && board[nr][nc] === p) { cnt++; if (cnt >= 5) return true; nr += dr; nc += dc; }
+        }
+      }
+      return false;
+    }
+    function ptgLongest(p) {
+      const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      let best = 0;
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        if (board[r][c] !== p) continue;
+        for (const [dr, dc] of dirs) {
+          const pr = r - dr, pc = c - dc;
+          if (pr >= 0 && pr < N && pc >= 0 && pc < N && board[pr][pc] === p) continue;
+          let len = 1, nr = r + dr, nc = c + dc;
+          while (nr >= 0 && nr < N && nc >= 0 && nc < N && board[nr][nc] === p) { len++; nr += dr; nc += dc; }
+          if (len > best) best = len;
+        }
+      }
+      return best;
+    }
+    function aiMove(level) {
+      if (over || animating) return null;
+      const me = turn, opp = 1 - me;
+      const empties = [];
+      for (let i = 0; i < N * N; i++) { const r = Math.floor(i / N), c = i % N; if (board[r][c] === null) empties.push(i); }
+      if (!empties.length) return null;
+      const dirs = ["cw", "ccw"];
+      const moves = [];
+      for (const cell of empties) for (let q = 0; q < 4; q++) for (const d of dirs) moves.push({ cell, quad: q, dir: d });
+      if (level === "easy" && Math.random() < 0.5) return moves[Math.floor(Math.random() * moves.length)];
+      const snap = board.map((row) => row.slice());
+      const restore = () => { for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) board[r][c] = snap[r][c]; };
+      // thắng ngay
+      for (const mv of moves) {
+        const r = Math.floor(mv.cell / N), c = mv.cell % N;
+        board[r][c] = me; rotateQuad(mv.quad, mv.dir);
+        const win = ptgFiveFor(me);
+        restore();
+        if (win) return mv;
+      }
+      // heuristic: tối đa chuỗi mình, hạn chế chuỗi đối thủ
+      let best = -Infinity, pick = moves[0];
+      for (const mv of moves) {
+        const r = Math.floor(mv.cell / N), c = mv.cell % N;
+        board[r][c] = me; rotateQuad(mv.quad, mv.dir);
+        const sc = ptgLongest(me) * 10 - ptgLongest(opp) * 8;
+        restore();
+        if (sc > best) { best = sc; pick = mv; }
+      }
+      return pick;
+    }
+
     // tìm người chơi có >=5 bi thẳng hàng
     function checkWinners() {
       const found = new Set();
@@ -231,7 +290,7 @@
     setRotEnabled(false);
     render();
     ctx.setStatus("Đặt một bi vào ô trống, sau đó xoay một ô vuông con. Ai có 5 bi thẳng hàng trước sẽ thắng.");
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -240,6 +299,7 @@
     emoji: "🔵",
     description: "Đặt bi rồi xoay một góc bàn 90°. Tạo 5 bi thẳng hàng để thắng — xoay khéo để vừa công vừa thủ.",
     onlineReady: true,
+    supportsAI: true,
     howTo: [
       "Bàn 6×6 chia thành 4 ô vuông con (3×3). Người chơi 1 dùng bi đỏ, Người chơi 2 dùng bi xanh.",
       "Mỗi lượt gồm 2 bước: (1) bấm vào một ô trống để đặt bi của bạn.",
