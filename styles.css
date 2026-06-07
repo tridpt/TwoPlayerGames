@@ -9056,6 +9056,38 @@ body {
   transform: translateY(-1px);
   filter: brightness(1.12);
 }
+.tw-cell.tw-last { box-shadow: inset 0 0 0 3px var(--accent); }
+.tw-cell.tw-flash { animation: tw-flash-anim 0.34s ease; }
+@keyframes tw-flash-anim {
+  0%, 100% { filter: brightness(1); }
+  45% { filter: brightness(1.7) saturate(1.3); }
+}
+.tw-float {
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  transform: translateX(-50%);
+  font-weight: 800;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 7;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  animation: tw-float-anim 0.95s ease-out forwards;
+}
+.tw-float.win { color: #6ee7b7; }
+.tw-float.lose { color: #ff6b81; }
+.tw-float.wall { color: #ffd166; }
+@keyframes tw-float-anim {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.7); }
+  25% { opacity: 1; transform: translate(-50%, -3px) scale(1.1); }
+  100% { opacity: 0; transform: translate(-50%, -22px) scale(1); }
+}
+.tw-ap {
+  font-weight: 800;
+  color: var(--accent);
+}
+.tw-end span { background: linear-gradient(145deg, #5a6072, #3a4050); }
 @media (max-width: 760px) {
   .tw-hud {
     grid-template-columns: 1fr;

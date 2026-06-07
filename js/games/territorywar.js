@@ -6,6 +6,7 @@
     const o = ctx.options || {};
     const N = o.size || 11;
     const GOAL = o.goal || 55;
+    const AP = o.actions === "blitz" ? 2 : 1; // số hành động mỗi lượt
     const MOUNTAINS = o.mountains === "many" ? Math.round(N * 1.15)
       : o.mountains === "few" ? Math.round(N * 0.45)
       : Math.round(N * 0.8);
@@ -14,6 +15,9 @@
     let turn = 0;
     let mode = "claim";
     let over = false;
+    let apLeft = AP;
+    let lastCell = null;       // [r,c] ô vừa tác động
+    let pendingFloat = [];     // chữ nổi chờ vẽ
     let last = "Mở rộng lãnh thổ từ căn cứ, xây tường giữ biên, rồi đánh vào vùng đối thủ.";
 
     const root = document.createElement("div");
@@ -28,9 +32,14 @@
     const claimBtn = actionButton("Chiếm ô", "claim", "CLAIM", "ô trung lập kề biên");
     const wallBtn = actionButton("Xây tường", "wall", "WALL", "tăng thủ ô mình");
     const attackBtn = actionButton("Tấn công", "attack", "ATK", "đánh ô địch kề biên");
+    const endBtn = document.createElement("button");
+    endBtn.className = "btn small tw-action tw-end";
+    endBtn.innerHTML = `<span>END</span><b>Kết thúc lượt</b><small>nhường lượt</small>`;
+    endBtn.addEventListener("click", () => applyMove({ t: "end" }, false));
     actions.appendChild(claimBtn);
     actions.appendChild(wallBtn);
     actions.appendChild(attackBtn);
+    if (AP > 1) actions.appendChild(endBtn);
     root.appendChild(actions);
 
     const legend = document.createElement("div");
@@ -149,14 +158,45 @@
 
     function applyMove(move, fromRemote) {
       if (!canAct(fromRemote)) return;
+      lastCell = null;
       let ok = false;
       if (move.t === "claim") ok = doClaim(move);
       else if (move.t === "wall") ok = doWall(move);
       else if (move.t === "attack") ok = doAttack(move);
+      else if (move.t === "end") ok = doEnd();
       if (!ok) return;
       if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
       render();
+      flushFloats();
       updateStatus();
+    }
+
+    function spendAction() {
+      apLeft--;
+      if (apLeft <= 0) endTurn();
+    }
+
+    function doEnd() {
+      last = `Người chơi ${turn + 1} kết thúc lượt.`;
+      endTurn();
+      return true;
+    }
+
+    function floatText(r, c, text, cls) { pendingFloat.push({ r, c, text, cls }); }
+    function flushFloats() {
+      if (!pendingFloat.length) return;
+      pendingFloat.forEach(({ r, c, text, cls }) => {
+        const cell = cells[r] && cells[r][c];
+        if (!cell) return;
+        const s = document.createElement("span");
+        s.className = "tw-float " + (cls || "");
+        s.textContent = text;
+        cell.appendChild(s);
+        setTimeout(() => s.remove(), 950);
+        cell.classList.add("tw-flash");
+        setTimeout(() => cell.classList.remove("tw-flash"), 340);
+      });
+      pendingFloat = [];
     }
 
     function doClaim(move) {
@@ -164,9 +204,10 @@
       const cell = grid[move.r][move.c];
       cell.owner = turn;
       cell.wall = 0;
+      lastCell = [move.r, move.c];
       last = `Người chơi ${turn + 1} chiếm ${cell.type === "supply" ? "kho tiếp tế" : "ô"} ${coord(move.r, move.c)}.`;
       ctx.sound(cell.type === "supply" ? "capture" : "select");
-      if (!checkEnd()) endTurn();
+      if (!checkEnd()) spendAction();
       return true;
     }
 
@@ -174,9 +215,11 @@
       if (!legalWall(move.r, move.c)) return false;
       const cell = grid[move.r][move.c];
       cell.wall = Math.min(2, cell.wall + 1);
+      lastCell = [move.r, move.c];
+      floatText(move.r, move.c, "🛡+1", "wall");
       last = `Người chơi ${turn + 1} xây tường cấp ${cell.wall} tại ${coord(move.r, move.c)}.`;
       ctx.sound("select");
-      endTurn();
+      spendAction();
       return true;
     }
 
@@ -190,20 +233,23 @@
       const defSupport = supportFor(defender, move.r, move.c) + cell.wall * 2 + (cell.base === defender ? 2 : 0);
       const atk = ar + atkSupport;
       const def = dr + defSupport;
+      lastCell = [move.r, move.c];
 
       if (atk >= def) {
         cell.owner = turn;
         cell.wall = Math.max(0, cell.wall - 1);
+        floatText(move.r, move.c, `⚔${atk}>${def}`, "win");
         last = `Tấn công ${coord(move.r, move.c)}: ${ar}+${atkSupport} thắng ${dr}+${defSupport}. Vùng này đổi chủ.`;
         ctx.sound(cell.base === defender ? "capture" : "shot");
-          if (!checkEnd()) endTurn();
+        if (!checkEnd()) spendAction();
       } else {
         const hadWall = cell.wall > 0;
         if (hadWall) cell.wall--;
+        floatText(move.r, move.c, `⚔${atk}<${def}`, "lose");
         last = `Tấn công ${coord(move.r, move.c)} thất bại: ${ar}+${atkSupport} thua ${dr}+${defSupport}.`
           + (hadWall ? " Tường phòng thủ bị mài mòn." : "");
         ctx.sound("miss");
-        endTurn();
+        spendAction();
       }
       return true;
     }
@@ -293,6 +339,7 @@
     function endTurn() {
       turn = 1 - turn;
       mode = "claim";
+      apLeft = AP;
       ctx.setTurn(turn);
     }
 
@@ -344,6 +391,7 @@
             }
           }
           if (legal.has(r + "," + c)) el.classList.add("legal", "legal-" + mode);
+          if (lastCell && lastCell[0] === r && lastCell[1] === c) el.classList.add("tw-last");
         }
       }
 
@@ -351,6 +399,7 @@
         ${playerPanel(0)}
         <div class="tw-mid">
           <b>${over ? "Kết thúc" : "Lượt Người chơi " + (turn + 1)}</b>
+          ${AP > 1 && !over ? `<span class="tw-ap">Hành động: ${apLeft}/${AP}</span>` : ""}
           <span>${modeLabel()}</span>
           <small>${last}</small>
         </div>
@@ -387,6 +436,7 @@
       claimBtn.disabled = lock;
       wallBtn.disabled = lock;
       attackBtn.disabled = lock;
+      endBtn.disabled = lock;
     }
 
     function updateStatus() {
@@ -445,12 +495,22 @@
           { value: 60, label: "60%" },
         ],
       },
+      {
+        id: "actions",
+        label: "Hành động mỗi lượt",
+        default: "classic",
+        choices: [
+          { value: "classic", label: "Cổ điển (1 hành động)" },
+          { value: "blitz", label: "Càn quét (2 hành động)" },
+        ],
+      },
     ],
     howTo: [
       "Mỗi lượt chọn một hành động: Chiếm ô, Xây tường hoặc Tấn công.",
+      "Chế độ Càn quét: mỗi lượt được làm 2 hành động liên tiếp, có thể bấm 'Kết thúc lượt' để nhường sớm.",
       "Chiếm ô: lấy một ô trung lập kề với lãnh thổ của bạn.",
       "Xây tường: tăng phòng thủ cho một ô của bạn, tối đa cấp 2.",
-      "Tấn công: chọn ô địch kề biên giới. Hai bên roll d6, cộng hỗ trợ từ các ô lân cận.",
+      "Tấn công: chọn ô địch kề biên giới. Hai bên roll d6, cộng hỗ trợ từ các ô lân cận. Kết quả roll hiện ngay trên ô tranh chấp.",
       "Kho tiếp tế ở giữa bản đồ khi thuộc về bạn sẽ tăng hỗ trợ tấn công/phòng thủ, tối đa +2.",
       "Chiếm thủ phủ đối thủ hoặc kiểm soát đủ tỷ lệ bản đồ đã chọn để thắng.",
     ],
