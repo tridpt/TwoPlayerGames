@@ -164,10 +164,46 @@
       }
     }
 
+    // ----- AI: giải hoàn hảo (minimax + memo) cho mọi biến thể -----
+    function maxTakeFor(n) { return LIMIT > 0 ? Math.min(LIMIT, n) : n; }
+    function nimWin(state, memo) {
+      const total = state.reduce((a, b) => a + b, 0);
+      if (total === 0) return misere ? true : false; // người tới lượt khi hết sỏi
+      const key = state.slice().sort((a, b) => a - b).join(",");
+      if (memo.has(key)) return memo.get(key);
+      let win = false;
+      for (let r = 0; r < state.length && !win; r++) {
+        const mt = maxTakeFor(state[r]);
+        for (let k = 1; k <= mt; k++) {
+          const ns = state.slice(); ns[r] -= k;
+          if (!nimWin(ns, memo)) { win = true; break; }
+        }
+      }
+      memo.set(key, win);
+      return win;
+    }
+    function aiMove(level) {
+      if (over) return null;
+      const legal = [];
+      for (let r = 0; r < rows.length; r++) {
+        const mt = maxTakeFor(rows[r]);
+        for (let k = 1; k <= mt; k++) legal.push({ row: r, count: k });
+      }
+      if (!legal.length) return null;
+      const randChance = level === "easy" ? 0.6 : level === "normal" ? 0.2 : 0;
+      if (Math.random() < randChance) return legal[Math.floor(Math.random() * legal.length)];
+      const memo = new Map();
+      for (const mv of legal) {
+        const ns = rows.slice(); ns[mv.row] -= mv.count;
+        if (!nimWin(ns, memo)) return mv; // để đối thủ vào thế thua
+      }
+      return legal[Math.floor(Math.random() * legal.length)]; // đang thua: đi đại
+    }
+
     ctx.setTurn(0);
     render();
     updateStatus();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -176,6 +212,7 @@
     emoji: "🪨",
     description: "Cờ trí tuệ kinh điển: bốc sỏi từ các hàng. Chọn luật thường (bốc viên cuối thắng) hay luật ngược (bốc viên cuối thua), thêm giới hạn mỗi lượt để biến hóa.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "preset", label: "Cấu hình hàng sỏi", default: "classic",

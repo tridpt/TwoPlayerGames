@@ -114,6 +114,7 @@
       } else {
         // choose: cùng người chơi phải chọn ô để khóa
         phase = "block";
+        ctx.setTurn(turn); // báo lại lượt để engine AI kích hoạt bước khóa
         updateStatus();
         render();
       }
@@ -146,6 +147,46 @@
         return;
       }
       ctx.setStatus(`Người chơi ${turn + 1}: chọn ô để di chuyển (ngang/dọc/chéo). Còn ${legalMoves(turn).length} nước.`);
+    }
+
+    // ----- AI -----
+    function aiMove(level) {
+      if (!canAct()) return null;
+      const me = turn;
+      // Pha khóa ô (chế độ choose): khóa ô làm đối thủ ít nước nhất
+      if (MODE === "choose" && phase === "block") {
+        const empties = [];
+        for (let i = 0; i < total; i++) if (isEmpty(i)) empties.push(i);
+        if (!empties.length) return null;
+        if (level === "easy" && Math.random() < 0.6) return { block: empties[Math.floor(Math.random() * empties.length)] };
+        let best = Infinity, pick = empties[0];
+        for (const i of empties) {
+          blocked[i] = true;
+          const oppM = legalMoves(1 - me).length;
+          blocked[i] = false;
+          if (oppM < best) { best = oppM; pick = i; }
+        }
+        return { block: pick };
+      }
+      // Pha di chuyển: chọn nước làm đối thủ ít nước nhất, ưu tiên giữ nước cho mình
+      const moves = legalMoves(me);
+      if (!moves.length) return null;
+      if (level === "easy" && Math.random() < 0.55) return { to: moves[Math.floor(Math.random() * moves.length)] };
+      let bestScore = -Infinity, pick = moves[0];
+      const old = pos[me];
+      for (const to of moves) {
+        pos[me] = to;
+        let restore = -1;
+        if (MODE === "vacate") { blocked[old] = true; restore = old; }
+        const oppM = legalMoves(1 - me).length;
+        const myM = legalMoves(me).length;
+        pos[me] = old;
+        if (restore >= 0) blocked[restore] = false;
+        // muốn đối thủ ít nước, mình nhiều nước
+        const sc = myM - oppM * 2 + (oppM === 0 ? 1000 : 0);
+        if (sc > bestScore) { bestScore = sc; pick = to; }
+      }
+      return { to: pick };
     }
 
     function render() {
@@ -187,7 +228,7 @@
     ctx.setTurn(0);
     updateStatus();
     render();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -196,6 +237,7 @@
     emoji: "🔒",
     description: "Di chuyển quân rồi khóa ô để dồn đối thủ vào chỗ bí. Có bảng đo số nước đi và chế độ tự chọn ô khóa cổ điển.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "size", label: "Kích thước bàn", default: 7,
