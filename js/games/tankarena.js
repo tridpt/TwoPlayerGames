@@ -22,10 +22,10 @@
     const START_AP = o.ap || 4;
     const ROCKET_RANGE = o.range || 5;
     const density = {
-      open: { wall: 0.07, crate: 0.12 },
-      balanced: { wall: 0.11, crate: 0.18 },
-      dense: { wall: 0.15, crate: 0.24 },
-    }[o.map || "balanced"] || { wall: 0.11, crate: 0.18 };
+      open: { wall: 0.06, crate: 0.11, water: 0.04, forest: 0.05 },
+      balanced: { wall: 0.09, crate: 0.16, water: 0.06, forest: 0.07 },
+      dense: { wall: 0.12, crate: 0.20, water: 0.08, forest: 0.09 },
+    }[o.map || "balanced"] || { wall: 0.09, crate: 0.16, water: 0.06, forest: 0.07 };
 
     let terrain = makeTerrain();
     const items = Array.from({ length: N }, () => Array(N).fill(null));
@@ -40,6 +40,8 @@
     let selected = "move";
     let over = false;
     let last = "Chiếm vị trí, nhặt item, rồi tìm góc bắn.";
+    let pendingFx = []; // hiệu ứng nổ chờ vẽ sau render
+    let pendingBeam = []; // hiệu ứng tia đạn chờ vẽ sau render
 
     const root = document.createElement("div");
     root.className = "ta-root";
@@ -52,6 +54,7 @@
     bar.className = "ta-actions";
     const moveBtn = actionButton("Di chuyển", "move", "MOVE", "1 AP / ô");
     const shootBtn = actionButton("Bắn", "shoot", "FIRE", "2 AP");
+    const pierceBtn = actionButton("Bắn xuyên", "pierce", "PRC", "3 AP");
     const rocketBtn = actionButton("Rocket", "rocket", "RKT", "3 AP");
     const mineBtn = actionButton("Đặt mìn", "mine", "MINE", "1 AP");
     const endBtn = document.createElement("button");
@@ -60,6 +63,7 @@
     endBtn.addEventListener("click", () => applyMove({ t: "end" }, false));
     bar.appendChild(moveBtn);
     bar.appendChild(shootBtn);
+    bar.appendChild(pierceBtn);
     bar.appendChild(rocketBtn);
     bar.appendChild(mineBtn);
     bar.appendChild(endBtn);
@@ -70,6 +74,8 @@
     legend.innerHTML = `
       <span><i class="ta-legend-tank p1"></i> Xe bạn</span>
       <span><i class="ta-legend-wall"></i> Tường chắn</span>
+      <span><i class="ta-legend-water"></i> Nước (đạn bay qua)</span>
+      <span><i class="ta-legend-forest"></i> Bụi cây (ẩn nấp, chắn đạn)</span>
       <span><i class="ta-legend-crate"></i> Thùng vật phẩm</span>
       <span><i class="ta-legend-item">+</i> Item</span>
       <span><i class="ta-legend-mine"></i> Mìn đã đặt</span>
@@ -132,11 +138,19 @@
           const mc = N - 1 - c;
           if (r > mr || (r === mr && c > mc) || safe(r, c)) continue;
           const roll = ctx.rng();
-          if (roll < density.wall) {
+          const tWall = density.wall;
+          const tCrate = tWall + density.crate;
+          const tWater = tCrate + density.water;
+          const tForest = tWater + density.forest;
+          if (roll < tWall) {
             setPair(r, c, { type: "wall", hp: 0, item: null });
-          } else if (roll < density.wall + density.crate) {
+          } else if (roll < tCrate) {
             const item = ctx.rng() < 0.58 ? ITEM_KEYS[Math.floor(ctx.rng() * ITEM_KEYS.length)] : null;
             setPair(r, c, { type: "crate", hp: 1, item });
+          } else if (roll < tWater) {
+            setPair(r, c, { type: "water", hp: 0, item: null });
+          } else if (roll < tForest) {
+            setPair(r, c, { type: "forest", hp: 0, item: null });
           }
         }
       }
@@ -152,8 +166,42 @@
       if (!canAct()) return;
       if (selected === "move") applyMove({ t: "move", r, c }, false);
       else if (selected === "shoot") applyMove({ t: "shoot", r, c }, false);
+      else if (selected === "pierce") applyMove({ t: "pierce", r, c }, false);
       else if (selected === "rocket") applyMove({ t: "rocket", r, c }, false);
       else if (selected === "mine") applyMove({ t: "mine", r, c }, false);
+    }
+
+    function fx(r, c, big) { pendingFx.push({ r, c, big: !!big }); }
+    function fxBeam(list, cls) { pendingBeam.push({ list, cls }); }
+    function flushFx() {
+      // tia đạn vẽ trước, nổ vẽ sau (đè lên)
+      pendingBeam.forEach(({ list, cls }) => {
+        list.forEach(({ r, c }) => {
+          const cell = cells[r] && cells[r][c];
+          if (!cell) return;
+          const b = document.createElement("span");
+          b.className = "ta-beam " + cls;
+          cell.appendChild(b);
+          setTimeout(() => b.remove(), 380);
+        });
+      });
+      pendingBeam = [];
+      if (!pendingFx.length) return;
+      let shook = false;
+      pendingFx.forEach(({ r, c, big }) => {
+        const cell = cells[r] && cells[r][c];
+        if (!cell) return;
+        const b = document.createElement("span");
+        b.className = "ta-boom" + (big ? " big" : "");
+        cell.appendChild(b);
+        setTimeout(() => b.remove(), 620);
+        shook = true;
+      });
+      pendingFx = [];
+      if (shook) {
+        board.classList.add("ta-shake");
+        setTimeout(() => board.classList.remove("ta-shake"), 320);
+      }
     }
 
     function canAct(fromRemote) {
@@ -169,7 +217,7 @@
     }
 
     function passable(r, c) {
-      return inside(r, c) && terrain[r][c].type === "empty" && occupied(r, c) === -1;
+      return inside(r, c) && (terrain[r][c].type === "empty" || terrain[r][c].type === "forest") && occupied(r, c) === -1;
     }
 
     function applyMove(move, fromRemote) {
@@ -177,6 +225,7 @@
       let ok = false;
       if (move.t === "move") ok = doMove(move.r, move.c, fromRemote);
       else if (move.t === "shoot") ok = doShoot(move.r, move.c, fromRemote);
+      else if (move.t === "pierce") ok = doPierce(move.r, move.c, fromRemote);
       else if (move.t === "rocket") ok = doRocket(move.r, move.c, fromRemote);
       else if (move.t === "mine") ok = doMine(move.r, move.c, fromRemote);
       else if (move.t === "end") ok = doEnd(fromRemote);
@@ -184,6 +233,7 @@
       if (!ok) return;
       if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
       render();
+      flushFx();
       updateStatus();
     }
 
@@ -280,15 +330,31 @@
       if (!dir) return false;
       ap -= 2;
       const hit = traceShot(pl.r, pl.c, r, c, dir);
+      // tia đạn từ vị trí bắn tới điểm chạm
+      const beam = [];
+      let br = pl.r + dir[0], bc = pl.c + dir[1];
+      while (inside(br, bc)) {
+        beam.push({ r: br, c: bc });
+        if (br === hit.r && bc === hit.c) break;
+        br += dir[0]; bc += dir[1];
+      }
+      fxBeam(beam, turn === 0 ? "p1" : "p2");
       if (hit.type === "tank") {
         damageTank(hit.player, 32);
+        fx(hit.r, hit.c, true);
         last = `Người chơi ${turn + 1} bắn trúng xe tăng đối thủ.`;
         ctx.sound("shot");
       } else if (hit.type === "crate") {
         breakCrate(hit.r, hit.c);
+        fx(hit.r, hit.c, false);
         last = `Người chơi ${turn + 1} phá thùng vật phẩm.`;
         ctx.sound("capture");
+      } else if (hit.type === "forest") {
+        fx(hit.r, hit.c, false);
+        last = "Đạn bị bụi cây cản lại.";
+        ctx.sound("miss");
       } else if (hit.type === "wall") {
+        fx(hit.r, hit.c, false);
         last = "Đạn ghim vào tường chắn.";
         ctx.sound("miss");
       } else {
@@ -319,6 +385,50 @@
         c += dir[1];
       }
       return { type: "miss", r: tr, c: tc };
+    }
+
+    // Bắn xuyên: đạn xuyên qua bụi cây và phá thùng dọc đường,
+    // gây sát thương MỌI xe tăng trên đường thẳng, chỉ dừng ở tường. Tốn 3 AP.
+    function doPierce(r, c, fromRemote) {
+      if (!canAct(fromRemote) || (!fromRemote && selected !== "pierce") || ap < 3) return false;
+      const pl = players[turn];
+      const dir = lineDir(pl.r, pl.c, r, c);
+      if (!dir) return false;
+      ap -= 3;
+      const beam = [];
+      let rr = pl.r + dir[0], cc = pl.c + dir[1];
+      let hitsTank = false, brokeCrate = false;
+      while (inside(rr, cc)) {
+        const cell = terrain[rr][cc];
+        if (cell.type === "wall") { fx(rr, cc, false); break; }
+        beam.push({ r: rr, c: cc });
+        const tank = occupied(rr, cc);
+        if (tank !== -1) { damageTank(tank, 30, true); fx(rr, cc, true); hitsTank = true; }
+        if (cell.type === "crate") { breakCrate(rr, cc); brokeCrate = true; }
+        rr += dir[0]; cc += dir[1];
+      }
+      checkEnd();
+      fxBeam(beam, turn === 0 ? "p1" : "p2");
+      last = hitsTank
+        ? `Người chơi ${turn + 1} bắn xuyên trúng xe tăng đối thủ!`
+        : (brokeCrate ? `Đạn xuyên phá thùng dọc đường.` : `Đạn xuyên của Người chơi ${turn + 1} quét một hàng.`);
+      ctx.sound("shot");
+      if (!over && ap <= 0) endTurn();
+      return true;
+    }
+
+    function pierceRay(pl) {
+      const out = [];
+      for (const [dr, dc] of DIRS) {
+        let r = pl.r + dr, c = pl.c + dc;
+        while (inside(r, c)) {
+          const cell = terrain[r][c];
+          if (cell.type === "wall") break;
+          out.push({ r, c, hit: occupied(r, c) !== -1 });
+          r += dr; c += dc;
+        }
+      }
+      return out;
     }
 
     function doRocket(r, c, fromRemote) {
@@ -422,6 +532,8 @@
         reachable(pl, ap).forEach((key) => map.set(key, "move"));
       } else if (selected === "shoot") {
         rayCells(pl).forEach(({ r, c, stop }) => map.set(r + "," + c, stop ? "danger" : "aim"));
+      } else if (selected === "pierce") {
+        if (ap >= 3) pierceRay(pl).forEach(({ r, c, hit }) => map.set(r + "," + c, hit ? "danger" : "aim"));
       } else if (selected === "rocket") {
         if (pl.rockets > 0 && ap >= 3) {
           for (let r = 0; r < N; r++) {
@@ -483,11 +595,13 @@
     function updateButtons() {
       moveBtn.classList.toggle("active", selected === "move");
       shootBtn.classList.toggle("active", selected === "shoot");
+      pierceBtn.classList.toggle("active", selected === "pierce");
       rocketBtn.classList.toggle("active", selected === "rocket");
       mineBtn.classList.toggle("active", selected === "mine");
       const lock = !canAct();
       moveBtn.disabled = lock || ap <= 0;
       shootBtn.disabled = lock || ap < 2;
+      pierceBtn.disabled = lock || ap < 3;
       rocketBtn.disabled = lock || ap < 3 || players[turn].rockets <= 0;
       mineBtn.disabled = lock || ap < 1 || players[turn].mines <= 0;
       endBtn.disabled = lock;
@@ -599,6 +713,7 @@
     function selectedLabel() {
       if (selected === "move") return "Di chuyển tốn AP theo số ô.";
       if (selected === "shoot") return "Bắn thẳng hàng/cột, tốn 2 AP.";
+      if (selected === "pierce") return "Bắn xuyên: xuyên bụi cây & phá thùng, trúng mọi xe trên đường, tốn 3 AP.";
       if (selected === "rocket") return `Rocket nổ 3x3, tầm ${ROCKET_RANGE}, tốn 3 AP.`;
       return "Đặt mìn ở ô kề bên, tốn 1 AP.";
     }
@@ -674,6 +789,7 @@
       "Mỗi người điều khiển một xe tăng trên map lưới. Có thể chơi chung máy hoặc online.",
       "Mỗi lượt có một số AP. Di chuyển tốn AP theo số ô đi được, bắn thường tốn 2 AP, rocket tốn 3 AP, đặt mìn tốn 1 AP.",
       "Bắn thường chỉ bắn theo hàng ngang hoặc cột dọc, đạn dừng khi gặp xe tăng, thùng vật phẩm hoặc tường.",
+      "Bắn xuyên (3 AP): đạn xuyên qua bụi cây và phá thùng dọc đường, gây sát thương mọi xe tăng trên đường thẳng, chỉ bị tường chặn lại.",
       "Rocket có tầm giới hạn, nổ vùng 3×3, phá thùng và gây sát thương mạnh.",
       "Thùng vật phẩm có thể rơi sửa chữa, giáp, rocket hoặc mìn. Di chuyển vào ô item để nhặt.",
       "Giáp giảm sát thương của đòn kế tiếp. Mìn đặt ở ô kề bên và nổ khi đối thủ đi vào.",

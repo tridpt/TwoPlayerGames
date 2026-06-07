@@ -8295,6 +8295,52 @@ body {
   }
 }
 
+/* Tank Arena: hiệu ứng nổ, rung màn, tia đạn */
+.ta-boom {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 70%; height: 70%;
+  transform: translate(-50%, -50%) scale(0.2);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #ffd166 32%, #ff7a2f 55%, rgba(255,93,40,0) 72%);
+  pointer-events: none;
+  z-index: 6;
+  animation: ta-boom-anim 0.55s ease-out forwards;
+}
+.ta-boom.big {
+  width: 150%; height: 150%;
+  background: radial-gradient(circle, #fff 0%, #ffe08a 28%, #ff7a2f 52%, #ff3b30 66%, rgba(255,59,48,0) 78%);
+  animation-duration: 0.62s;
+}
+@keyframes ta-boom-anim {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  55% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.25); opacity: 0; }
+}
+.ta-shake { animation: ta-shake-anim 0.3s ease; }
+@keyframes ta-shake-anim {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-3px, -2px); }
+  80% { transform: translate(3px, 2px); }
+}
+.ta-beam {
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+  animation: ta-beam-anim 0.36s ease-out forwards;
+}
+.ta-beam.p1 { background: radial-gradient(circle, rgba(255,140,156,0.95), rgba(255,93,115,0)); box-shadow: 0 0 10px 3px rgba(255,93,115,0.7); }
+.ta-beam.p2 { background: radial-gradient(circle, rgba(139,230,240,0.95), rgba(77,208,225,0)); box-shadow: 0 0 10px 3px rgba(77,208,225,0.7); }
+@keyframes ta-beam-anim {
+  0% { opacity: 0; transform: scale(0.4); }
+  40% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.9); }
+}
+
 /* ---------- Dice Battle ---------- */
 .db-root {
   display: flex;
