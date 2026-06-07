@@ -236,6 +236,28 @@
       }
     }
 
+    function posWeight(r, c) {
+      const edgeR = (r === 0 || r === N - 1);
+      const edgeC = (c === 0 || c === N - 1);
+      if (edgeR && edgeC) return 100;            // góc
+      if ((r === 1 || r === N - 2) && (c === 1 || c === N - 2)) return -30; // cạnh góc xấu
+      if (edgeR || edgeC) return 12;             // biên
+      return 1;
+    }
+    function aiMove() {
+      if (over) return null;
+      const me = turn;
+      const moves = legalMoves(me);
+      if (!moves.length) return null;
+      let best = -Infinity, pick = moves[0];
+      for (const [r, c] of moves) {
+        const flips = flipsFor(r, c, me).length;
+        const sc = posWeight(r, c) * 6 + flips;
+        if (sc > best) { best = sc; pick = [r, c]; }
+      }
+      return { r: pick[0], c: pick[1] };
+    }
+
     function undo() {
       if (!history.length) return false;
       const s = history.pop();
@@ -255,7 +277,7 @@
     ctx.setTurn(0);
     render();
     updateHud();
-    return { applyMove, undo };
+    return { applyMove, undo, aiMove };
   }
 
   window.GameRegistry.register({
@@ -264,6 +286,7 @@
     emoji: "⚫",
     description: "Kẹp quân đối thủ để lật thành quân mình. Ai nhiều quân hơn khi hết bàn sẽ thắng. Có gợi ý số quân sẽ lật cho người mới.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "hints", label: "Gợi ý cho người mới", default: "on",

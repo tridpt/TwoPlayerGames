@@ -136,6 +136,82 @@
 
     function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
 
+    // ----- AI: minimax alpha-beta -----
+    function validCols() { const v = []; for (let c = 0; c < COLS; c++) if (board[0][c] === null) v.push(c); return v; }
+    function windowScore(cells, me) {
+      let mine = 0, opp = 0, empty = 0;
+      for (const v of cells) { if (v === me) mine++; else if (v === null) empty++; else opp++; }
+      if (mine && opp) return 0;
+      if (mine === NEED) return 10000;
+      if (opp === NEED) return -10000;
+      if (mine) return mine * mine;
+      if (opp) return -(opp * opp) * 1.1;
+      return 0;
+    }
+    function c4eval(me) {
+      let score = 0;
+      // ưu tiên cột giữa
+      const mid = Math.floor(COLS / 2);
+      for (let r = 0; r < ROWS; r++) if (board[r][mid] === me) score += 3;
+      const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          for (const [dr, dc] of dirs) {
+            const cells = [];
+            let ok = true;
+            for (let k = 0; k < NEED; k++) {
+              const nr = r + dr * k, nc = c + dc * k;
+              if (!inBounds(nr, nc)) { ok = false; break; }
+              cells.push(board[nr][nc]);
+            }
+            if (ok) score += windowScore(cells, me);
+          }
+        }
+      }
+      return score;
+    }
+    function c4mini(cur, me, depth, alpha, beta) {
+      const valid = validCols();
+      if (depth === 0 || !valid.length) return c4eval(me);
+      if (cur === me) {
+        let v = -Infinity;
+        for (const c of valid) {
+          const r = landingRow(c); board[r][c] = cur;
+          const sc = winningLine(r, c, cur) ? 100000 - (10 - depth) : c4mini(1 - cur, me, depth - 1, alpha, beta);
+          board[r][c] = null;
+          v = Math.max(v, sc); alpha = Math.max(alpha, v); if (alpha >= beta) break;
+        }
+        return v;
+      }
+      let v = Infinity;
+      for (const c of valid) {
+        const r = landingRow(c); board[r][c] = cur;
+        const sc = winningLine(r, c, cur) ? -(100000 - (10 - depth)) : c4mini(1 - cur, me, depth - 1, alpha, beta);
+        board[r][c] = null;
+        v = Math.min(v, sc); beta = Math.min(beta, v); if (alpha >= beta) break;
+      }
+      return v;
+    }
+    function aiMove() {
+      if (over) return null;
+      const me = turn, opp = 1 - me;
+      const valid = validCols();
+      if (!valid.length) return null;
+      // thắng ngay
+      for (const c of valid) { const r = landingRow(c); board[r][c] = me; const w = !!winningLine(r, c, me); board[r][c] = null; if (w) return c; }
+      // chặn thắng đối thủ
+      for (const c of valid) { const r = landingRow(c); board[r][c] = opp; const w = !!winningLine(r, c, opp); board[r][c] = null; if (w) return c; }
+      const depth = COLS * ROWS > 56 ? 4 : 5;
+      let best = -Infinity, pick = valid[Math.floor(valid.length / 2)];
+      for (const c of valid) {
+        const r = landingRow(c); board[r][c] = me;
+        const sc = c4mini(opp, me, depth - 1, -Infinity, Infinity);
+        board[r][c] = null;
+        if (sc > best) { best = sc; pick = c; }
+      }
+      return pick;
+    }
+
     function undo() {
       if (!moveStack.length) return false;
       const m = moveStack.pop();
@@ -157,7 +233,7 @@
 
     ctx.setTurn(0);
     ctx.setStatus("Thả quân vào cột. Nối 4 quân cùng màu là thắng.");
-    return { applyMove, undo };
+    return { applyMove, undo, aiMove };
   }
 
   window.GameRegistry.register({
@@ -166,6 +242,7 @@
     emoji: "🔴",
     description: "Thả quân xuống cột, ai nối được 4 quân thẳng hàng trước sẽ thắng. Quân rơi từ trên cao xuống có nảy động.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "cols", label: "Số cột", default: 7,

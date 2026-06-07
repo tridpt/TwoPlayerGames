@@ -210,6 +210,75 @@
       return WINS.find((line) => line.every((idx) => board[idx] === p)) || null;
     }
 
+    // ----- AI -----
+    function boardWinner() {
+      if (winningLine(0)) return 0;
+      if (winningLine(1)) return 1;
+      if (board.every((v) => v !== null)) return "draw";
+      return null;
+    }
+    function minimax(cur, me, depth) {
+      const w = boardWinner();
+      if (w === me) return 10 - depth;
+      if (w === 1 - me) return depth - 10;
+      if (w === "draw") return 0;
+      const empty = [];
+      for (let i = 0; i < 9; i++) if (board[i] === null) empty.push(i);
+      if (cur === me) {
+        let best = -Infinity;
+        for (const i of empty) { board[i] = cur; best = Math.max(best, minimax(1 - cur, me, depth + 1)); board[i] = null; }
+        return best;
+      }
+      let best = Infinity;
+      for (const i of empty) { board[i] = cur; best = Math.min(best, minimax(1 - cur, me, depth + 1)); board[i] = null; }
+      return best;
+    }
+    function genMoves(me) {
+      const out = [];
+      if (!MOVE_MODE || phase === "place") {
+        for (let i = 0; i < 9; i++) if (board[i] === null) out.push({ k: "p", i });
+      } else {
+        for (let f = 0; f < 9; f++) {
+          if (board[f] !== me) continue;
+          for (let t = 0; t < 9; t++) if (board[t] === null && adjacent(f, t)) out.push({ k: "m", from: f, to: t });
+        }
+      }
+      return out;
+    }
+    function aiMove() {
+      if (over) return null;
+      const me = turn;
+      if (!MOVE_MODE) {
+        const empty = [];
+        for (let i = 0; i < 9; i++) if (board[i] === null) empty.push(i);
+        if (!empty.length) return null;
+        let best = -Infinity, pick = empty[0];
+        for (const i of empty) {
+          board[i] = me;
+          const sc = minimax(1 - me, me, 1);
+          board[i] = null;
+          if (sc > best) { best = sc; pick = i; }
+        }
+        return { k: "p", i: pick };
+      }
+      // chế độ di chuyển: ưu tiên nước thắng ngay, nếu không thì ngẫu nhiên
+      const moves = genMoves(me);
+      if (!moves.length) return null;
+      for (const mv of moves) {
+        const sim = applySim(mv, me);
+        const win = winningLine(me);
+        undoSim(sim);
+        if (win) return mv;
+      }
+      return moves[Math.floor(Math.random() * moves.length)];
+    }
+    function applySim(mv, me) {
+      if (mv.k === "p") { board[mv.i] = me; return { undo: () => { board[mv.i] = null; } }; }
+      const fv = board[mv.from]; board[mv.from] = null; board[mv.to] = me;
+      return { undo: () => { board[mv.from] = fv; board[mv.to] = null; } };
+    }
+    function undoSim(sim) { sim.undo(); }
+
     function updateHud() {
       sx.classList.toggle("turn", !over && turn === 0);
       so.classList.toggle("turn", !over && turn === 1);
@@ -255,7 +324,7 @@
     ctx.setTurn(0);
     render();
     updateHud();
-    return { applyMove, undo };
+    return { applyMove, undo, aiMove };
   }
 
   window.GameRegistry.register({
@@ -264,6 +333,7 @@
     emoji: "❌",
     description: "Xếp 3 ký hiệu thẳng hàng (ngang, dọc, chéo) để chiến thắng. Có thêm chế độ '3 quân di chuyển' chống hòa.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "mode", label: "Kiểu chơi", default: "classic",

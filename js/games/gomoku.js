@@ -86,6 +86,58 @@
 
     function inB(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
 
+    // ----- AI: heuristic đe dọa -----
+    function lineValue(total, openEnds) {
+      if (total >= NEED) return 1000000;
+      if (total === NEED - 1) return openEnds === 2 ? 100000 : (openEnds === 1 ? 10000 : 0);
+      if (total === NEED - 2) return openEnds === 2 ? 5000 : (openEnds === 1 ? 500 : 0);
+      if (total === NEED - 3) return openEnds === 2 ? 200 : (openEnds === 1 ? 20 : 0);
+      return total;
+    }
+    function patternScore(r, c, p) {
+      const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      let score = 0;
+      board[r][c] = p;
+      for (const [dr, dc] of dirs) {
+        let total = 1, open = 0;
+        let nr = r + dr, nc = c + dc;
+        while (inB(nr, nc) && board[nr][nc] === p) { total++; nr += dr; nc += dc; }
+        if (inB(nr, nc) && board[nr][nc] === null) open++;
+        nr = r - dr; nc = c - dc;
+        while (inB(nr, nc) && board[nr][nc] === p) { total++; nr -= dr; nc -= dc; }
+        if (inB(nr, nc) && board[nr][nc] === null) open++;
+        score += lineValue(total, open);
+      }
+      board[r][c] = null;
+      return score;
+    }
+    function aiMove() {
+      if (over) return null;
+      const me = turn, opp = 1 - me;
+      // ô gần quân đã đặt
+      let any = false;
+      const cand = new Set();
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          if (board[r][c] === null) continue;
+          any = true;
+          for (let dr = -2; dr <= 2; dr++)
+            for (let dc = -2; dc <= 2; dc++) {
+              const nr = r + dr, nc = c + dc;
+              if (inB(nr, nc) && board[nr][nc] === null) cand.add(nr * N + nc);
+            }
+        }
+      }
+      if (!any) { const m = Math.floor(N / 2); return { r: m, c: m }; }
+      let best = -Infinity, pick = null;
+      cand.forEach((key) => {
+        const r = Math.floor(key / N), c = key % N;
+        const sc = patternScore(r, c, me) * 1.15 + patternScore(r, c, opp);
+        if (sc > best) { best = sc; pick = { r, c }; }
+      });
+      return pick;
+    }
+
     function undo() {
       if (!moveStack.length) return false;
       const m = moveStack.pop();
@@ -107,7 +159,7 @@
     ctx.setNames("Người chơi 1 (X)", "Người chơi 2 (O)");
     ctx.setTurn(0);
     ctx.setStatus(`X đi trước. Nối ${NEED} quân liên tiếp để thắng.`);
-    return { applyMove, undo };
+    return { applyMove, undo, aiMove };
   }
 
   window.GameRegistry.register({
@@ -116,6 +168,7 @@
     emoji: "⚪",
     description: "Cờ caro cỡ lớn dùng ký hiệu X/O: nối được 5 quân liên tiếp (ngang, dọc, chéo) là thắng.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "size", label: "Kích thước bàn", default: 15,

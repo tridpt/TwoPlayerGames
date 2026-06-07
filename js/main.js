@@ -14,6 +14,7 @@
     modeView: $("modeView"),
     modeTitle: $("modeTitle"),
     modeLocal: $("modeLocal"),
+    modeAI: $("modeAI"),
     modeOnline: $("modeOnline"),
     modeBackBtn: $("modeBackBtn"),
     optionsPanel: $("optionsPanel"),
@@ -87,6 +88,8 @@
   let sessionLocked = false;
   let roomExitTimer = null;
   let online = null; // null = chơi chung máy; {roomSeat, seat, seed} = online
+  let vsAI = false;  // true = đang đấu với máy (local)
+  const AI_SEAT = 1; // máy luôn cầm người chơi 2
   let currentOptions = {}; // giá trị tùy chỉnh ván chơi đang dùng
   let currentCategory = "all"; // thể loại đang xem ở menu
   let menuCategories = [];     // danh sách thể loại đã dựng
@@ -180,6 +183,7 @@
         // sáng đèn thẻ điểm của người đang tới lượt
         el.scoreP1.classList.toggle("active", idx === 0);
         el.scoreP2.classList.toggle("active", idx === 1);
+        if (vsAI && !online && idx === AI_SEAT) scheduleAI();
       },
       setNames(n1, n2) {
         el.p1Name.textContent = labelWithPlayerName(0, n1);
@@ -195,6 +199,21 @@
   function renderScores() {
     el.p1Score.textContent = scores[0];
     el.p2Score.textContent = scores[1];
+  }
+
+  // Máy suy nghĩ rồi đi (chặn thao tác người trong lúc chờ)
+  function scheduleAI() {
+    el.boardWrap.classList.add("ai-thinking");
+    setTimeout(() => {
+      el.boardWrap.classList.remove("ai-thinking");
+      if (!vsAI || online) return;
+      if (instance && typeof instance.aiMove === "function") {
+        try {
+          const mv = instance.aiMove();
+          if (mv !== null && mv !== undefined) instance.applyMove(mv, false);
+        } catch (e) { /* ignore AI error */ }
+      }
+    }, 480);
   }
 
   function cleanName(value, fallback = "Người chơi") {
@@ -946,6 +965,8 @@
     el.modeOnline.classList.toggle("disabled", game.onlineReady === false);
     // game chỉ chơi online (giấu thông tin) thì ẩn lựa chọn chung máy
     el.modeLocal.classList.toggle("disabled", game.localReady === false);
+    // chỉ hiện "Đấu với máy" nếu game hỗ trợ AI
+    el.modeAI.classList.toggle("hidden", !game.supportsAI);
     buildOptionsUI(game, el.optionsPanel, el.optionsList, "opt_");
     show("modeView");
   }
@@ -1000,7 +1021,18 @@
 
   el.modeLocal.addEventListener("click", () => {
     if (selectedGame.localReady === false) return;
+    vsAI = false;
     startLocalGame(selectedGame, readOptions(selectedGame));
+  });
+
+  el.modeAI.addEventListener("click", () => {
+    if (!selectedGame.supportsAI) return;
+    vsAI = true;
+    online = null;
+    selectedGame = selectedGame;
+    currentOptions = readOptions(selectedGame);
+    startGame(null, { autoHelp: true });
+    navTo("play/" + selectedGame.id);
   });
 
   el.modeOnline.addEventListener("click", () => {
@@ -1273,7 +1305,7 @@
     instance = selectedGame.create(ctx);
     if (selectedGame && selectedGame.id) { pushRecent(selectedGame.id); incPlay(selectedGame.id); }
     // Nút hoàn tác chỉ hiện khi chơi chung máy và game có hỗ trợ undo
-    el.undoBtn.classList.toggle("hidden", !!online || !instance || typeof instance.undo !== "function");
+    el.undoBtn.classList.toggle("hidden", !!online || vsAI || !instance || typeof instance.undo !== "function");
     el.undoBtn.disabled = false;
     show("gameView");
     if (opts.autoHelp) {
@@ -1336,6 +1368,7 @@
   function startLocalGame(game, options) {
     if (!game || game.localReady === false) return;
     online = null;
+    vsAI = false;
     selectedGame = game;
     currentOptions = options || defaultOptions(game);
     startGame(null, { autoHelp: true });
