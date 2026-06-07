@@ -782,6 +782,24 @@ body {
 }
 
 /* Tic-Tac-Toe */
+.ttt-root { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.ttt-hud { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.ttt-side {
+  display: flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px; border-radius: 12px;
+  font-size: 1.5rem; font-weight: 900;
+  background: var(--panel-2);
+  border: 2px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.ttt-side.x { color: var(--p1); }
+.ttt-side.o { color: var(--p2); }
+.ttt-side.x.turn { border-color: var(--p1); box-shadow: 0 0 12px rgba(255,93,115,0.5); transform: scale(1.08); }
+.ttt-side.o.turn { border-color: var(--p2); box-shadow: 0 0 12px rgba(77,208,225,0.5); transform: scale(1.08); }
+.ttt-badge {
+  font-size: 0.95rem; padding: 8px 14px; border-radius: 10px;
+  background: var(--panel-2); white-space: nowrap; min-width: 84px; text-align: center;
+}
 .ttt-board {
   display: grid;
   grid-template-columns: repeat(3, 100px);
@@ -803,7 +821,21 @@ body {
 .ttt-cell:hover { background: var(--panel-2); }
 .ttt-cell.x { color: var(--p1); }
 .ttt-cell.o { color: var(--p2); }
-.ttt-cell.win { background: var(--good); color: #0f1226; }
+.ttt-cell.x:not(.ghost), .ttt-cell.o:not(.ghost) { animation: ttt-pop 0.22s ease; }
+.ttt-cell.ghost { opacity: 0.35; }
+.ttt-cell.ghost.gx { color: var(--p1); }
+.ttt-cell.ghost.go { color: var(--p2); }
+.ttt-cell.last { box-shadow: 0 0 0 3px var(--accent), var(--shadow); }
+.ttt-cell.lastempty { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25); }
+.ttt-cell.selected { box-shadow: 0 0 0 3px var(--good), var(--shadow); transform: scale(1.06); }
+.ttt-cell.movehint { background: var(--panel-2); }
+.ttt-cell.movehint::after {
+  content: ""; width: 24px; height: 24px; border-radius: 50%;
+  border: 3px dashed var(--good);
+}
+.ttt-cell.win { background: var(--good); color: #0f1226; animation: ttt-winpulse 0.7s ease infinite; }
+@keyframes ttt-pop { 0% { transform: scale(0.2); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+@keyframes ttt-winpulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 
 /* Connect Four */
 .c4-board {
