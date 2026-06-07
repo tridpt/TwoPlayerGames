@@ -177,6 +177,147 @@ body {
   .cat-label small { display: none; }
   .cat-head h2 { font-size: 1.4rem; }
 }
+.cat-item.cat-special { border-left: 3px solid transparent; }
+.cat-item.cat-special.active { border-left-color: var(--p1); }
+
+/* ---------- Thanh tìm kiếm ---------- */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(42,48,96,0.7), rgba(24,28,58,0.85));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow);
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.search-bar:focus-within {
+  border-color: rgba(255, 209, 102, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.12), var(--shadow);
+}
+.search-ic { font-size: 1.1rem; opacity: 0.8; }
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 14px 0;
+}
+.search-input::placeholder { color: var(--muted); }
+
+.cat-empty {
+  grid-column: 1 / -1;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+}
+
+/* ---------- Poster thẻ game ---------- */
+.card-media {
+  position: relative;
+  margin: -6px -6px 16px;
+}
+.game-poster {
+  position: relative;
+  height: 122px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(120% 80% at 78% 12%, hsla(calc(var(--ph) + 40), 85%, 62%, 0.55), transparent 60%),
+    linear-gradient(150deg, hsl(var(--ph), 70%, 42%), hsl(calc(var(--ph) + 30), 65%, 20%));
+}
+.game-poster::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.16) 1px, transparent 1.4px);
+  background-size: 16px 16px;
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+}
+.poster-emoji {
+  font-size: 3.6rem;
+  line-height: 1;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.45));
+  transition: transform 0.25s cubic-bezier(0.34,1.4,0.5,1);
+  z-index: 1;
+}
+.game-card:hover .poster-emoji { transform: scale(1.18) rotate(-4deg); }
+.poster-mark {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 2;
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: rgba(8, 11, 27, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.4px;
+  backdrop-filter: blur(3px);
+}
+
+/* ---------- Huy hiệu trên thẻ ---------- */
+.card-badges {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+.badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+.badge-hot { background: linear-gradient(135deg, #ff5d4d, #ff2d55); color: #fff; }
+.badge-new { background: linear-gradient(135deg, #6ee7b7, #34d399); color: #08231a; }
+.badge-online { background: rgba(8, 11, 27, 0.72); color: #9fd9ff; border: 1px solid rgba(159, 217, 255, 0.4); }
+
+/* ---------- Nút yêu thích ---------- */
+.fav-btn {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(8, 11, 27, 0.6);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 1rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(4px);
+  transition: transform 0.12s, color 0.16s, background 0.16s, border-color 0.16s;
+}
+.fav-btn:hover { transform: scale(1.12); color: #ff6b81; border-color: rgba(255, 107, 129, 0.6); }
+.fav-btn.on { color: #ff5d73; background: rgba(255, 93, 115, 0.18); border-color: rgba(255, 93, 115, 0.7); }
+.fav-btn.on:hover { color: #ff8fa1; }
 
 /* ---------- Menu ---------- */
 .game-grid {

@@ -9,6 +9,7 @@
     gameGrid: $("gameGrid"),
     catSidebar: $("catSidebar"),
     catHead: $("catHead"),
+    gameSearch: $("gameSearch"),
     openOnlineHubBtn: $("openOnlineHubBtn"),
     modeView: $("modeView"),
     modeTitle: $("modeTitle"),
@@ -450,7 +451,53 @@
     return `<span class="game-icon game-icon-${game.id} ${extraClass}" data-mark="${mark}" aria-hidden="true"></span>`;
   }
 
+  // ====================== Yêu thích / Gần đây / Lượt chơi ======================
+  const FAV_KEY = "tpg_favorites";
+  const RECENT_KEY = "tpg_recent";
+  const PLAYS_KEY = "tpg_plays";
+  const NEW_IDS = new Set(["tictactoe", "memory", "pong", "tankarena", "dicebattle", "territorywar", "crystalconquest", "yahtzee"]);
+  const DEFAULT_HOT = ["gomoku", "connectfour", "checkers", "battleship", "reversi", "pentago"];
+
+  function loadList(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch (e) { return []; } }
+  function saveList(key, arr) { try { localStorage.setItem(key, JSON.stringify(arr)); } catch (e) { /* ignore */ } }
+  function getFavorites() { return loadList(FAV_KEY); }
+  function isFav(id) { return getFavorites().includes(id); }
+  function toggleFav(id) {
+    const f = getFavorites();
+    const i = f.indexOf(id);
+    if (i >= 0) f.splice(i, 1); else f.unshift(id);
+    saveList(FAV_KEY, f);
+  }
+  function getRecent() { return loadList(RECENT_KEY); }
+  function pushRecent(id) {
+    let r = getRecent().filter((x) => x !== id);
+    r.unshift(id);
+    saveList(RECENT_KEY, r.slice(0, 12));
+  }
+  function getPlays() { try { return JSON.parse(localStorage.getItem(PLAYS_KEY)) || {}; } catch (e) { return {}; } }
+  function incPlay(id) {
+    const p = getPlays();
+    p[id] = (p[id] || 0) + 1;
+    try { localStorage.setItem(PLAYS_KEY, JSON.stringify(p)); } catch (e) { /* ignore */ }
+  }
+  function isHot(id) {
+    const plays = getPlays();
+    const top = Object.entries(plays).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 6).map((e) => e[0]);
+    if (top.length >= 3) return top.includes(id);
+    return DEFAULT_HOT.includes(id);
+  }
+  function isNew(id) { return NEW_IDS.has(id) && !getPlays()[id]; }
+  function hashHue(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }
+
   function gameAvatarHtml(game) {
+    const hue = hashHue(game.id);
+    return `<div class="game-poster" style="--ph:${hue}" aria-hidden="true">` +
+      `<span class="poster-emoji">${game.emoji || "🎮"}</span>` +
+      `<span class="poster-mark">${escapeHtml(gameMark(game))}</span>` +
+      `</div>`;
+  }
+
+  function gameAvatarHtmlSvg(game) {
     return `<div class="game-avatar game-avatar-${game.id}" aria-hidden="true">${renderGameAvatar(game.id, gameMark(game))}</div>`;
   }
 
@@ -695,7 +742,21 @@
     const rendered = new Set();
     menuCategories = [];
 
-    // thể loại "Tất cả" luôn ở đầu
+    // Chơi gần đây + Yêu thích (đặc biệt, luôn ở đầu)
+    const recentGames = getRecent().map((id) => byId.get(id)).filter(Boolean);
+    menuCategories.push({
+      id: "recent", title: "Chơi gần đây", icon: "🕘", special: true,
+      hint: "Những trò chơi bạn vừa mở gần đây — bấm để chơi lại nhanh.",
+      games: recentGames,
+    });
+    const favGames = getFavorites().map((id) => byId.get(id)).filter(Boolean);
+    menuCategories.push({
+      id: "fav", title: "Yêu thích", icon: "❤️", special: true,
+      hint: "Các trò chơi bạn đã đánh dấu yêu thích (bấm ♥ trên thẻ game để thêm).",
+      games: favGames,
+    });
+
+    // thể loại "Tất cả"
     menuCategories.push({
       id: "all",
       title: "Tất cả trò chơi",
@@ -727,29 +788,59 @@
     menuCategories.forEach((cat) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "cat-item" + (cat.id === currentCategory ? " active" : "");
+      btn.className = "cat-item" + (cat.id === currentCategory ? " active" : "") + (cat.special ? " cat-special" : "");
       btn.innerHTML =
         `<span class="cat-ic">${cat.icon}</span>` +
         `<span class="cat-label"><b>${cat.title}</b><small>${cat.games.length} game</small></span>`;
       btn.addEventListener("click", () => {
         currentCategory = cat.id;
+        if (el.gameSearch) el.gameSearch.value = "";
         buildCatSidebar();
         renderCategory(cat.id);
-        if (el.catContent && el.catContent.scrollIntoView) el.catContent.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
       el.catSidebar.appendChild(btn);
     });
   }
 
   function renderCategory(catId) {
-    const cat = menuCategories.find((c) => c.id === catId) || menuCategories[0];
+    const cat = menuCategories.find((c) => c.id === catId) || menuCategories.find((c) => c.id === "all");
     if (!cat) return;
     el.catHead.innerHTML =
       `<h2><span class="cat-head-ic">${cat.icon}</span>${cat.title}</h2>` +
       `<p>${cat.hint}</p>` +
       `<span class="cat-head-count">${cat.games.length} trò chơi</span>`;
     el.gameGrid.innerHTML = "";
+    if (!cat.games.length) {
+      const empty = document.createElement("div");
+      empty.className = "cat-empty";
+      empty.textContent = cat.id === "fav"
+        ? "Chưa có game yêu thích. Bấm ♥ trên thẻ game để thêm vào đây."
+        : (cat.id === "recent" ? "Bạn chưa chơi game nào gần đây." : "Chưa có game trong mục này.");
+      el.gameGrid.appendChild(empty);
+      return;
+    }
     cat.games.forEach((game) => el.gameGrid.appendChild(createGameCard(game)));
+  }
+
+  // Tìm kiếm game theo tên / mô tả
+  function runSearch(query) {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) { renderCategory(currentCategory); return; }
+    const matches = GameRegistry.games.filter((g) =>
+      g.name.toLowerCase().includes(q) || (g.description || "").toLowerCase().includes(q));
+    el.catHead.innerHTML =
+      `<h2><span class="cat-head-ic">🔎</span>Kết quả tìm kiếm</h2>` +
+      `<p>Từ khóa: "<b>${escapeHtml(query.trim())}</b>" — tìm theo tên và mô tả trò chơi.</p>` +
+      `<span class="cat-head-count">${matches.length} kết quả</span>`;
+    el.gameGrid.innerHTML = "";
+    if (!matches.length) {
+      const empty = document.createElement("div");
+      empty.className = "cat-empty";
+      empty.textContent = "Không tìm thấy trò chơi nào khớp. Thử từ khóa khác nhé.";
+      el.gameGrid.appendChild(empty);
+      return;
+    }
+    matches.forEach((game) => el.gameGrid.appendChild(createGameCard(game)));
   }
 
   function buildLobbyGameSelect(preselectId = "") {
@@ -789,11 +880,30 @@
     const tags = [];
     if (g.onlineReady === false) tags.push("chỉ chung máy");
     if (g.localReady === false) tags.push("chỉ online");
+
+    const badges = [];
+    if (isHot(g.id)) badges.push(`<span class="badge badge-hot">🔥 Hot</span>`);
+    else if (isNew(g.id)) badges.push(`<span class="badge badge-new">✦ Mới</span>`);
+    if (g.onlineReady !== false) badges.push(`<span class="badge badge-online">🌐 Online</span>`);
+
     card.innerHTML =
-      gameAvatarHtml(g) +
+      `<div class="card-media">` +
+        gameAvatarHtml(g) +
+        `<div class="card-badges">${badges.join("")}</div>` +
+        `<button type="button" class="fav-btn${isFav(g.id) ? " on" : ""}" title="Yêu thích" aria-label="Yêu thích">♥</button>` +
+      `</div>` +
       `<h3>${g.name}</h3>` +
       `<p>${g.description}</p>` +
       tags.map((tag) => `<span class="tag-local">${tag}</span>`).join("");
+
+    const fav = card.querySelector(".fav-btn");
+    fav.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleFav(g.id);
+      fav.classList.toggle("on");
+      buildCatSidebar();
+      if (currentCategory === "fav") renderCategory("fav");
+    });
     card.addEventListener("click", () => openMode(g));
     return card;
   }
@@ -1129,6 +1239,7 @@
     const ctx = makeContext(seed);
     applyScoreboardNames();
     instance = selectedGame.create(ctx);
+    if (selectedGame && selectedGame.id) { pushRecent(selectedGame.id); incPlay(selectedGame.id); }
     show("gameView");
     if (opts.autoHelp) {
       setTimeout(openHelp, 0);
@@ -1363,6 +1474,10 @@
     restartGame();
   });
   el.winMenu.addEventListener("click", () => { hideWinScreen(); goHome(); });
+
+  if (el.gameSearch) {
+    el.gameSearch.addEventListener("input", () => runSearch(el.gameSearch.value));
+  }
 
   renderMenu();
   handleRoute();
