@@ -1830,6 +1830,8 @@ body {
 .utt-cell.x { color: var(--p1); }
 .utt-cell.o { color: var(--p2); }
 .utt-cell.ghost { opacity: 0.4; }
+.utt-cell.ghost.gx { color: var(--p1); }
+.utt-cell.ghost.go { color: var(--p2); }
 .utt-cell.placed { animation: utt-pop 0.25s ease; }
 .utt-cell.subwin { background: rgba(255, 215, 0, 0.22); }
 .utt-cell.last { box-shadow: 0 0 0 2px var(--accent); }

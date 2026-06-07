@@ -21,6 +21,7 @@
     let forcedBoard = -1; // -1 = được chọn bàn bất kỳ
     let over = false;
     let lastCell = null; // { b, i }
+    let ghostCell = null; // { b, i } ô đang hiện quân ma
 
     const root = document.createElement("div");
     root.className = "utt-root";
@@ -74,10 +75,13 @@
     function myTurnNow() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
 
     function onHover(b, i) {
+      // luôn dọn sạch trạng thái xem trước cũ trước, tránh ghost bị kẹt
+      clearHover();
       if (!myTurnNow() || cells[b][i] !== null || !playableBoard(b)) return;
       const cell = cellEls[b][i];
       cell.textContent = symbol(turn);
-      cell.classList.add("ghost", turn === 0 ? "x" : "o");
+      cell.classList.add("ghost", turn === 0 ? "gx" : "go");
+      ghostCell = { b, i };
       if (PREVIEW) {
         // ô (i) sẽ ép đối thủ tới bàn i (hoặc bàn bất kỳ nếu bàn i đã xong)
         if (boardWinner[i] === null) {
@@ -90,16 +94,15 @@
     }
 
     function clearHover() {
-      for (let b = 0; b < 9; b++) {
-        boardEls[b].classList.remove("target", "target-free");
-        for (let i = 0; i < 9; i++) {
-          const cell = cellEls[b][i];
-          if (cell.classList.contains("ghost")) {
-            cell.classList.remove("ghost", "x", "o");
-            cell.textContent = "";
-          }
-        }
+      // xóa quân ma
+      if (ghostCell) {
+        const g = cellEls[ghostCell.b][ghostCell.i];
+        g.classList.remove("ghost", "gx", "go");
+        if (cells[ghostCell.b][ghostCell.i] === null) g.textContent = "";
+        ghostCell = null;
       }
+      // xóa viền xem trước
+      for (let b = 0; b < 9; b++) boardEls[b].classList.remove("target", "target-free");
     }
 
     function onClick(b, i) {
@@ -121,7 +124,8 @@
       lastCell = { b, i };
 
       const el = cellEls[b][i];
-      el.classList.remove("ghost");
+      el.classList.remove("ghost", "gx", "go");
+      if (ghostCell && ghostCell.b === b && ghostCell.i === i) ghostCell = null;
       el.textContent = symbol(p);
       el.classList.add(p === 0 ? "x" : "o", "placed", "last");
       ctx.sound("place");
