@@ -209,11 +209,74 @@
       }
     }
 
+    // ----- AI: minimax alpha-beta -----
+    function hasLineB(b, p) { return LINES.some((l) => l.every((i) => b[i] === p)); }
+    function genMovesSim(b, player, ph) {
+      const out = [];
+      if (ph === "place") { for (let i = 0; i < 9; i++) if (b[i] === null) out.push({ type: "place", to: i }); }
+      else {
+        for (let f = 0; f < 9; f++) {
+          if (b[f] !== player) continue;
+          for (let t = 0; t < 9; t++) if (b[t] === null && (FREE || ADJ[f].includes(t))) out.push({ type: "move", from: f, to: t });
+        }
+      }
+      return out;
+    }
+    function applySim(b, player, ph, placedArr, mv) {
+      const nb = b.slice(); const np = placedArr.slice(); let nph = ph;
+      if (mv.type === "place") { nb[mv.to] = player; np[player]++; if (np[0] === 3 && np[1] === 3) nph = "move"; }
+      else { nb[mv.from] = null; nb[mv.to] = player; }
+      return { b: nb, placed: np, phase: nph };
+    }
+    function evalB(b, me) {
+      let s = (b[4] === me ? 3 : b[4] === 1 - me ? -3 : 0);
+      for (const l of LINES) {
+        let mine = 0, opp = 0;
+        for (const i of l) { if (b[i] === me) mine++; else if (b[i] === 1 - me) opp++; }
+        if (mine && !opp) s += mine * mine;
+        if (opp && !mine) s -= opp * opp;
+      }
+      return s;
+    }
+    function search(b, player, ph, placedArr, me, depth, alpha, beta) {
+      if (hasLineB(b, me)) return 1000 - (8 - depth);
+      if (hasLineB(b, 1 - me)) return -(1000 - (8 - depth));
+      if (depth === 0) return evalB(b, me);
+      const moves = genMovesSim(b, player, ph);
+      if (!moves.length) return evalB(b, me);
+      if (player === me) {
+        let v = -Infinity;
+        for (const mv of moves) { const s = applySim(b, player, ph, placedArr, mv); v = Math.max(v, search(s.b, 1 - player, s.phase, s.placed, me, depth - 1, alpha, beta)); alpha = Math.max(alpha, v); if (alpha >= beta) break; }
+        return v;
+      }
+      let v = Infinity;
+      for (const mv of moves) { const s = applySim(b, player, ph, placedArr, mv); v = Math.min(v, search(s.b, 1 - player, s.phase, s.placed, me, depth - 1, alpha, beta)); beta = Math.min(beta, v); if (alpha >= beta) break; }
+      return v;
+    }
+    function aiMove(level) {
+      if (over) return null;
+      const me = turn;
+      const moves = genMovesSim(board, me, phase);
+      if (!moves.length) return null;
+      const randChance = level === "easy" ? 0.6 : level === "normal" ? 0.2 : 0;
+      if (Math.random() < randChance) return moves[Math.floor(Math.random() * moves.length)];
+      // thắng ngay
+      for (const mv of moves) { const s = applySim(board, me, phase, placed, mv); if (hasLineB(s.b, me)) return mv; }
+      const depth = level === "easy" ? 2 : level === "hard" ? 6 : 4;
+      let best = -Infinity, pick = moves[0];
+      for (const mv of moves) {
+        const s = applySim(board, me, phase, placed, mv);
+        const sc = search(s.b, 1 - me, s.phase, s.placed, me, depth - 1, -Infinity, Infinity);
+        if (sc > best) { best = sc; pick = mv; }
+      }
+      return pick;
+    }
+
     ctx.setNames("Người chơi 1 (Đỏ)", "Người chơi 2 (Xanh)");
     ctx.setTurn(0);
     render();
     updateStatus();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -222,6 +285,7 @@
     emoji: "⭕",
     description: "Đặt 3 quân rồi di chuyển để xếp thành hàng. Caro phiên bản có di chuyển, thêm chế độ đi tự do.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "move", label: "Cách di chuyển", default: "adjacent",
