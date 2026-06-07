@@ -10,6 +10,7 @@
     const boardEl = document.createElement("div");
     boardEl.className = "gmk-board";
     boardEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+    boardEl.style.setProperty("--n", N);
     ctx.boardEl.appendChild(boardEl);
 
     const cellEls = Array.from({ length: N }, () => Array(N));
@@ -30,6 +31,8 @@
       applyMove({ r, c }, false);
     }
 
+    let lastCell = null;
+
     function applyMove(move, fromRemote) {
       const { r, c } = move;
       if (over || board[r][c] !== null) return;
@@ -37,7 +40,12 @@
       board[r][c] = p;
       const stone = document.createElement("div");
       stone.className = "gmk-stone " + (p === 0 ? "p1" : "p2");
+      stone.textContent = p === 0 ? "X" : "O";
       cellEls[r][c].appendChild(stone);
+      // highlight nước đi cuối
+      if (lastCell) cellEls[lastCell[0]][lastCell[1]].classList.remove("last");
+      cellEls[r][c].classList.add("last");
+      lastCell = [r, c];
       ctx.sound("place");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ r, c });
@@ -47,7 +55,7 @@
         over = true;
         line.forEach(([rr, cc]) => cellEls[rr][cc].classList.add("win"));
         ctx.incScore(p);
-        ctx.setStatus(`🎉 Người chơi ${p + 1} (${p === 0 ? "Đen" : "Trắng"}) thắng!`);
+        ctx.setStatus(`🎉 Người chơi ${p + 1} (${p === 0 ? "X" : "O"}) thắng!`);
         ctx.setTurn(-1);
         return;
       }
@@ -76,9 +84,9 @@
 
     function inB(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
 
-    ctx.setNames("Người chơi 1 (Đen)", "Người chơi 2 (Trắng)");
+    ctx.setNames("Người chơi 1 (X)", "Người chơi 2 (O)");
     ctx.setTurn(0);
-    ctx.setStatus(`Đen đi trước. Nối ${NEED} quân liên tiếp để thắng.`);
+    ctx.setStatus(`X đi trước. Nối ${NEED} quân liên tiếp để thắng.`);
     return { applyMove };
   }
 
@@ -86,7 +94,7 @@
     id: "gomoku",
     name: "Cờ Caro 15×15",
     emoji: "⚪",
-    description: "Cờ caro cỡ lớn: nối được 5 quân liên tiếp (ngang, dọc, chéo) là thắng.",
+    description: "Cờ caro cỡ lớn dùng ký hiệu X/O: nối được 5 quân liên tiếp (ngang, dọc, chéo) là thắng.",
     onlineReady: true,
     options: [
       {
@@ -108,7 +116,7 @@
       },
     ],
     howTo: [
-      "Bàn cờ tùy chỉnh (mặc định 15×15). Người chơi 1 dùng quân Đen, Người chơi 2 dùng quân Trắng. Đen đi trước.",
+      "Bàn cờ tùy chỉnh (mặc định 15×15). Người chơi 1 dùng ký hiệu X, Người chơi 2 dùng ký hiệu O. X đi trước.",
       "Đến lượt mình, bấm vào một ô trống bất kỳ để đặt quân.",
       "Mục tiêu: nối được số quân cùng màu liên tiếp (theo tùy chỉnh) thành một hàng — ngang, dọc hoặc chéo.",
       "Ai nối đủ số quân yêu cầu trước sẽ thắng ngay lập tức.",

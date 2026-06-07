@@ -1649,6 +1649,7 @@ body {
   box-shadow: var(--shadow);
   width: min(540px, 92vw);
   aspect-ratio: 1 / 1;
+  container-type: inline-size;
 }
 .gmk-cell {
   position: relative;
@@ -1659,13 +1660,26 @@ body {
   cursor: pointer;
 }
 .gmk-stone {
-  width: 78%;
-  height: 78%;
-  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-weight: 900;
+  line-height: 1;
+  font-size: calc(64cqw / var(--n, 15));
+  animation: gmk-pop 0.18s ease;
 }
-.gmk-stone.p1 { background: radial-gradient(circle at 35% 30%, #555, #111); }
-.gmk-stone.p2 { background: radial-gradient(circle at 35% 30%, #fff, #c8c8c8); }
+.gmk-stone.p1 { color: #d6273f; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+.gmk-stone.p2 { color: #1180c4; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+@keyframes gmk-pop {
+  0% { transform: scale(0.2); }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.gmk-cell.last { background: rgba(255, 255, 255, 0.3); box-shadow: inset 0 0 0 2px var(--accent); }
 .gmk-cell.win { background: rgba(110, 231, 183, 0.7); }
+.gmk-cell.win .gmk-stone { color: #0b3d2e; }
 
 /* ---------- Dots and Boxes ---------- */
 .dnb-root {
