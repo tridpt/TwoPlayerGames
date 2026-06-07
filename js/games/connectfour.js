@@ -192,16 +192,19 @@
       }
       return v;
     }
-    function aiMove() {
+    function aiMove(level) {
       if (over) return null;
       const me = turn, opp = 1 - me;
       const valid = validCols();
       if (!valid.length) return null;
-      // thắng ngay
+      // mức Dễ thường đi ngẫu nhiên; thắng ngay luôn được ưu tiên
       for (const c of valid) { const r = landingRow(c); board[r][c] = me; const w = !!winningLine(r, c, me); board[r][c] = null; if (w) return c; }
-      // chặn thắng đối thủ
-      for (const c of valid) { const r = landingRow(c); board[r][c] = opp; const w = !!winningLine(r, c, opp); board[r][c] = null; if (w) return c; }
-      const depth = COLS * ROWS > 56 ? 4 : 5;
+      if (level === "easy" && Math.random() < 0.55) return valid[Math.floor(Math.random() * valid.length)];
+      // chặn thắng đối thủ (Vừa/Khó)
+      if (level !== "easy") {
+        for (const c of valid) { const r = landingRow(c); board[r][c] = opp; const w = !!winningLine(r, c, opp); board[r][c] = null; if (w) return c; }
+      }
+      const depth = level === "easy" ? 2 : level === "hard" ? (COLS * ROWS > 56 ? 5 : 6) : 4;
       let best = -Infinity, pick = valid[Math.floor(valid.length / 2)];
       for (const c of valid) {
         const r = landingRow(c); board[r][c] = me;

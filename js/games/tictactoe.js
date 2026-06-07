@@ -245,13 +245,16 @@
       }
       return out;
     }
-    function aiMove() {
+    function aiMove(level) {
       if (over) return null;
       const me = turn;
       if (!MOVE_MODE) {
         const empty = [];
         for (let i = 0; i < 9; i++) if (board[i] === null) empty.push(i);
         if (!empty.length) return null;
+        // mức Dễ/Vừa thỉnh thoảng đi ngẫu nhiên để dễ thắng hơn
+        const randChance = level === "easy" ? 0.6 : level === "normal" ? 0.18 : 0;
+        if (Math.random() < randChance) return { k: "p", i: empty[Math.floor(Math.random() * empty.length)] };
         let best = -Infinity, pick = empty[0];
         for (const i of empty) {
           board[i] = me;

@@ -244,15 +244,20 @@
       if (edgeR || edgeC) return 12;             // biên
       return 1;
     }
-    function aiMove() {
+    function aiMove(level) {
       if (over) return null;
       const me = turn;
       const moves = legalMoves(me);
       if (!moves.length) return null;
+      if (level === "easy" && Math.random() < 0.5) {
+        const m = moves[Math.floor(Math.random() * moves.length)];
+        return { r: m[0], c: m[1] };
+      }
+      const cornerW = level === "hard" ? 9 : 6;
       let best = -Infinity, pick = moves[0];
       for (const [r, c] of moves) {
         const flips = flipsFor(r, c, me).length;
-        const sc = posWeight(r, c) * 6 + flips;
+        const sc = posWeight(r, c) * cornerW + flips;
         if (sc > best) { best = sc; pick = [r, c]; }
       }
       return { r: pick[0], c: pick[1] };

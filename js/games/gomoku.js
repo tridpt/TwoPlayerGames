@@ -111,7 +111,7 @@
       board[r][c] = null;
       return score;
     }
-    function aiMove() {
+    function aiMove(level) {
       if (over) return null;
       const me = turn, opp = 1 - me;
       // ô gần quân đã đặt
@@ -129,10 +129,17 @@
         }
       }
       if (!any) { const m = Math.floor(N / 2); return { r: m, c: m }; }
+      const candArr = [...cand];
+      // mức Dễ hay đi ngẫu nhiên quanh khu vực
+      if (level === "easy" && Math.random() < 0.5) {
+        const k = candArr[Math.floor(Math.random() * candArr.length)];
+        return { r: Math.floor(k / N), c: k % N };
+      }
+      const offense = level === "hard" ? 1.3 : level === "normal" ? 1.15 : 1.0;
       let best = -Infinity, pick = null;
-      cand.forEach((key) => {
+      candArr.forEach((key) => {
         const r = Math.floor(key / N), c = key % N;
-        const sc = patternScore(r, c, me) * 1.15 + patternScore(r, c, opp);
+        const sc = patternScore(r, c, me) * offense + patternScore(r, c, opp);
         if (sc > best) { best = sc; pick = { r, c }; }
       });
       return pick;

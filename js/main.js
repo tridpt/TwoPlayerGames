@@ -15,6 +15,7 @@
     modeTitle: $("modeTitle"),
     modeLocal: $("modeLocal"),
     modeAI: $("modeAI"),
+    aiLevel: $("aiLevel"),
     modeOnline: $("modeOnline"),
     modeBackBtn: $("modeBackBtn"),
     optionsPanel: $("optionsPanel"),
@@ -89,6 +90,7 @@
   let roomExitTimer = null;
   let online = null; // null = chơi chung máy; {roomSeat, seat, seed} = online
   let vsAI = false;  // true = đang đấu với máy (local)
+  let aiLevel = "normal"; // easy | normal | hard
   const AI_SEAT = 1; // máy luôn cầm người chơi 2
   let currentOptions = {}; // giá trị tùy chỉnh ván chơi đang dùng
   let currentCategory = "all"; // thể loại đang xem ở menu
@@ -209,7 +211,7 @@
       if (!vsAI || online) return;
       if (instance && typeof instance.aiMove === "function") {
         try {
-          const mv = instance.aiMove();
+          const mv = instance.aiMove(aiLevel);
           if (mv !== null && mv !== undefined) instance.applyMove(mv, false);
         } catch (e) { /* ignore AI error */ }
       }
@@ -1028,12 +1030,15 @@
   el.modeAI.addEventListener("click", () => {
     if (!selectedGame.supportsAI) return;
     vsAI = true;
+    aiLevel = (el.aiLevel && el.aiLevel.value) || "normal";
     online = null;
     selectedGame = selectedGame;
     currentOptions = readOptions(selectedGame);
     startGame(null, { autoHelp: true });
     navTo("play/" + selectedGame.id);
   });
+  // chọn mức khó không kích hoạt vào game
+  if (el.aiLevel) el.aiLevel.addEventListener("click", (e) => e.stopPropagation());
 
   el.modeOnline.addEventListener("click", () => {
     if (selectedGame.onlineReady === false) return;

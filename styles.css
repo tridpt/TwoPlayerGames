@@ -371,6 +371,7 @@ body.theme-light .status { color: #b06a00; }
   pointer-events: none;
 }
 .mode-icon-ai { display: flex; align-items: center; justify-content: center; font-size: 2.4rem; }
+.ai-level-select { margin-top: 10px; width: 100%; }
 
 /* ---------- Menu ---------- */
 .game-grid {
