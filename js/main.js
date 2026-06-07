@@ -52,6 +52,7 @@
     restartBtn: $("restartBtn"),
     homeBtn: $("homeBtn"),
     soundToggle: $("soundToggle"),
+    themeToggle: $("themeToggle"),
     helpBtn: $("helpBtn"),
     helpOverlay: $("helpOverlay"),
     helpTitle: $("helpTitle"),
@@ -1372,6 +1373,27 @@
     updateSoundIcon();
   });
   updateSoundIcon();
+
+  // ---- Chế độ sáng / tối ----
+  const THEME_KEY = "tpg_theme";
+  function applyTheme(theme) {
+    const light = theme === "light";
+    document.body.classList.toggle("theme-light", light);
+    if (el.themeToggle) {
+      el.themeToggle.textContent = light ? "☀️" : "🌙";
+      el.themeToggle.title = light ? "Chuyển sang giao diện tối" : "Chuyển sang giao diện sáng";
+    }
+  }
+  let currentTheme = "dark";
+  try { currentTheme = localStorage.getItem(THEME_KEY) || "dark"; } catch (e) { /* ignore */ }
+  applyTheme(currentTheme);
+  if (el.themeToggle) {
+    el.themeToggle.addEventListener("click", () => {
+      currentTheme = currentTheme === "light" ? "dark" : "light";
+      try { localStorage.setItem(THEME_KEY, currentTheme); } catch (e) { /* ignore */ }
+      applyTheme(currentTheme);
+    });
+  }
 
   // ---- Modal hướng dẫn ----
   function openHelp() {
