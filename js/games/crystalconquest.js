@@ -8,6 +8,7 @@
     shield: { cost: 3, value: 4 },
     teleport: { cost: 5 },
     freeze: { cost: 4, range: 4 },
+    heal: { cost: 4, value: 5 },
   };
 
   function create(ctx) {
@@ -27,6 +28,8 @@
     let turn = 0;
     let mode = "move";
     let over = false;
+    let lastCell = null;
+    let pendingFloat = [];
     let last = "Chiếm tinh thể để tạo mana, rồi dùng phép kết liễu pháp sư đối thủ.";
 
     const root = document.createElement("div");
@@ -43,8 +46,9 @@
     const shieldBtn = actionButton("Khiên", "shield", "WARD", "3 mana", true);
     const teleportBtn = actionButton("Dịch chuyển", "teleport", "BLINK", "5 mana", false);
     const freezeBtn = actionButton("Đóng băng", "freeze", "FROST", "4 mana", false);
+    const healBtn = actionButton("Hồi máu", "heal", "HEAL", "4 mana • +5 HP", true);
     const channelBtn = actionButton("Tụ mana", "channel", "FOCUS", "+3 mana", true);
-    [moveBtn, lightningBtn, shieldBtn, teleportBtn, freezeBtn, channelBtn].forEach((b) => actions.appendChild(b));
+    [moveBtn, lightningBtn, shieldBtn, teleportBtn, freezeBtn, healBtn, channelBtn].forEach((b) => actions.appendChild(b));
     root.appendChild(actions);
 
     const legend = document.createElement("div");
@@ -153,17 +157,51 @@
 
     function applyMove(move, fromRemote) {
       if (!canAct(fromRemote)) return;
+      lastCell = null;
       let ok = false;
       if (move.t === "move") ok = doMove(move);
       else if (move.t === "teleport") ok = doTeleport(move);
       else if (move.t === "lightning") ok = doLightning(move);
       else if (move.t === "shield") ok = doShield();
       else if (move.t === "freeze") ok = doFreeze(move);
+      else if (move.t === "heal") ok = doHeal();
       else if (move.t === "channel") ok = doChannel();
       if (!ok) return;
       if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
       render();
+      flushFloats();
       updateStatus();
+    }
+
+    function floatText(r, c, text, cls) { pendingFloat.push({ r, c, text, cls }); }
+    function flushFloats() {
+      if (!pendingFloat.length) return;
+      pendingFloat.forEach(({ r, c, text, cls }) => {
+        const cell = cells[r] && cells[r][c];
+        if (!cell) return;
+        const s = document.createElement("span");
+        s.className = "cc-float " + (cls || "");
+        s.textContent = text;
+        cell.appendChild(s);
+        setTimeout(() => s.remove(), 950);
+        cell.classList.add("cc-flash", "cc-flash-" + (cls || "x"));
+        setTimeout(() => cell.classList.remove("cc-flash", "cc-flash-" + (cls || "x")), 360);
+      });
+      pendingFloat = [];
+    }
+
+    function doHeal() {
+      const wiz = wizards[turn];
+      if (wiz.mana < SPELL.heal.cost || wiz.hp >= MAX_HP) return false;
+      wiz.mana -= SPELL.heal.cost;
+      const before = wiz.hp;
+      wiz.hp = Math.min(MAX_HP, wiz.hp + SPELL.heal.value);
+      lastCell = [wiz.r, wiz.c];
+      floatText(wiz.r, wiz.c, "+" + (wiz.hp - before) + "❤", "heal");
+      last = `Pháp sư ${turn + 1} hồi máu: ${before} → ${wiz.hp} HP.`;
+      ctx.sound("capture");
+      if (!checkEnd()) endTurn();
+      return true;
     }
 
     function doMove(move) {
@@ -173,6 +211,7 @@
       wiz.r = move.r;
       wiz.c = move.c;
       const captured = captureCrystal(turn, wiz.r, wiz.c);
+      lastCell = [wiz.r, wiz.c];
       last = captured
         ? `Pháp sư ${turn + 1} đi từ ${from} tới ${coord(wiz.r, wiz.c)} và chiếm tinh thể.`
         : `Pháp sư ${turn + 1} di chuyển từ ${from} tới ${coord(wiz.r, wiz.c)}.`;
@@ -189,6 +228,8 @@
       wiz.r = move.r;
       wiz.c = move.c;
       const captured = captureCrystal(turn, wiz.r, wiz.c);
+      lastCell = [wiz.r, wiz.c];
+      floatText(wiz.r, wiz.c, "✦ blink", "mana");
       last = captured
         ? `Pháp sư ${turn + 1} dịch chuyển từ ${from} tới ${coord(wiz.r, wiz.c)} và đoạt tinh thể.`
         : `Pháp sư ${turn + 1} dịch chuyển từ ${from} tới ${coord(wiz.r, wiz.c)}.`;
@@ -203,6 +244,8 @@
       if (wiz.mana < SPELL.lightning.cost || enemy !== 1 - turn || !legalSpellTarget(move.r, move.c, SPELL.lightning.range)) return false;
       wiz.mana -= SPELL.lightning.cost;
       const res = damageWizard(enemy, SPELL.lightning.dmg);
+      lastCell = [move.r, move.c];
+      floatText(move.r, move.c, "⚡-" + res.dealt + (res.blocked ? " 🛡" + res.blocked : ""), "bolt");
       last = `Sét đánh trúng pháp sư ${enemy + 1}: chặn ${res.blocked}, nhận ${res.dealt} sát thương.`;
       ctx.sound("shot");
       if (!checkEnd()) endTurn();
@@ -214,6 +257,8 @@
       if (wiz.mana < SPELL.shield.cost) return false;
       wiz.mana -= SPELL.shield.cost;
       wiz.shield = Math.min(8, wiz.shield + SPELL.shield.value);
+      lastCell = [wiz.r, wiz.c];
+      floatText(wiz.r, wiz.c, "🛡+" + SPELL.shield.value, "shield");
       last = `Pháp sư ${turn + 1} dựng khiên năng lượng, khiên hiện tại ${wiz.shield}.`;
       ctx.sound("select");
       if (!checkEnd()) endTurn();
@@ -226,12 +271,15 @@
       if (wiz.mana < SPELL.freeze.cost || enemy !== 1 - turn || !legalSpellTarget(move.r, move.c, SPELL.freeze.range)) return false;
       wiz.mana -= SPELL.freeze.cost;
       const target = wizards[enemy];
+      lastCell = [move.r, move.c];
       if (target.shield >= 2) {
         target.shield -= 2;
+        floatText(move.r, move.c, "❄ bị chặn", "freeze");
         last = `Băng thuật bị khiên của pháp sư ${enemy + 1} chặn lại.`;
         ctx.sound("miss");
       } else {
         target.frozen = true;
+        floatText(move.r, move.c, "❄ ĐÓNG BĂNG", "freeze");
         last = `Pháp sư ${enemy + 1} bị đóng băng, lượt tới không thể di chuyển hoặc dịch chuyển.`;
         ctx.sound("shot");
       }
@@ -243,6 +291,8 @@
       const wiz = wizards[turn];
       const before = wiz.mana;
       wiz.mana = Math.min(MAX_MANA, wiz.mana + 3);
+      lastCell = [wiz.r, wiz.c];
+      floatText(wiz.r, wiz.c, "+" + (wiz.mana - before) + "✦", "mana");
       last = `Pháp sư ${turn + 1} tụ mana: ${before} → ${wiz.mana}.`;
       ctx.sound("select");
       if (!checkEnd()) endTurn();
@@ -409,6 +459,7 @@
           }
           if (legal.has(r + "," + c)) el.classList.add(mode === "teleport" ? "legal-teleport" : "legal-move");
           if (target.has(r + "," + c)) el.classList.add(mode === "freeze" ? "legal-freeze" : "legal-lightning");
+          if (lastCell && lastCell[0] === r && lastCell[1] === c) el.classList.add("cc-last");
         }
       }
 
@@ -480,6 +531,7 @@
       shieldBtn.disabled = lock || w.mana < SPELL.shield.cost;
       teleportBtn.disabled = lock || w.frozen || w.mana < SPELL.teleport.cost || teleportCells(turn).size === 0;
       freezeBtn.disabled = lock || w.mana < SPELL.freeze.cost;
+      healBtn.disabled = lock || w.mana < SPELL.heal.cost || w.hp >= MAX_HP;
       channelBtn.disabled = lock || w.mana >= MAX_MANA;
     }
 
@@ -506,7 +558,7 @@
     id: "crystalconquest",
     name: "Crystal Conquest",
     emoji: "💎",
-    description: "Điều khiển pháp sư chiếm tinh thể để tạo mana, rồi cast sét, khiên, dịch chuyển và đóng băng.",
+    description: "Điều khiển pháp sư chiếm tinh thể để tạo mana, rồi cast sét, khiên, dịch chuyển, đóng băng và hồi máu.",
     onlineReady: true,
     options: [
       {
@@ -556,6 +608,7 @@
       "Sét tốn 4 mana, gây sát thương trong tầm 4 ô. Khiên tốn 3 mana và chặn sát thương.",
       "Dịch chuyển tốn 5 mana, đưa pháp sư tới vùng gần tinh thể bạn kiểm soát.",
       "Đóng băng tốn 4 mana, khiến đối thủ không thể di chuyển hoặc dịch chuyển trong lượt kế.",
+      "Hồi máu tốn 4 mana, phục hồi 5 HP (không quá máu tối đa) — dùng để trụ lâu trong giao tranh.",
       "Tụ mana dùng cả lượt để nhận thêm 3 mana khi cần hồi tài nguyên.",
     ],
     create,
