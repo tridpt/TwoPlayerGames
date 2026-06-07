@@ -79,6 +79,9 @@
     avatarPicker: $("avatarPicker"),
     profileStats: $("profileStats"),
     achGrid: $("achGrid"),
+    volRange: $("volRange"),
+    sfxToggle: $("sfxToggle"),
+    musicToggle: $("musicToggle"),
     helpBtn: $("helpBtn"),
     helpOverlay: $("helpOverlay"),
     helpTitle: $("helpTitle"),
@@ -626,6 +629,10 @@
       const done = ac.done(a);
       return `<div class="ach ${done ? "done" : "locked"}"><span class="ach-ic">${done ? ac.icon : "🔒"}</span><div class="ach-txt"><b>${ac.title}</b><small>${ac.desc}</small></div></div>`;
     }).join("");
+    // cài đặt âm thanh
+    if (el.volRange) el.volRange.value = String(Math.round(Sound.getVolume() * 100));
+    if (el.sfxToggle) el.sfxToggle.checked = Sound.isEnabled();
+    if (el.musicToggle) el.musicToggle.checked = Sound.isMusicOn();
     show("profileView");
   }
   function getStats() { try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {}; } catch (e) { return {}; } }
@@ -1596,6 +1603,9 @@
     savePlayerName(cleanName(el.profileName.value, ""));
     updateProfileChip();
   });
+  if (el.volRange) el.volRange.addEventListener("input", () => Sound.setVolume(el.volRange.value / 100));
+  if (el.sfxToggle) el.sfxToggle.addEventListener("change", () => { Sound.setEnabled(el.sfxToggle.checked); updateSoundIcon(); });
+  if (el.musicToggle) el.musicToggle.addEventListener("change", () => Sound.setMusic(el.musicToggle.checked));
   el.lobbyBackBtn.addEventListener("click", closeLobby);
   el.restartBtn.addEventListener("click", restartGame);
 
@@ -1762,4 +1772,5 @@
   renderMenu();
   handleRoute();
   updateProfileChip();
+  if (window.Sound && Sound.isMusicOn()) Sound.startMusic();
 })();
