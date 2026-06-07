@@ -90,7 +90,7 @@
     {
       title: "Cờ & chiến thuật bàn",
       hint: "Caro, cờ lật, kết nối, đặt tường và các game bàn cờ kinh điển.",
-      games: ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "pathlockduel", "hunterswarm", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
+      games: ["tictactoe", "gomoku", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "pathlockduel", "hunterswarm", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
     },
     {
       title: "Chiến thuật trên bản đồ",
@@ -420,7 +420,6 @@
     timeloopduel: "TL",
     trapmansion: "TM",
     treasure: "TR",
-    ultimate: "UT",
     yahtzee: "YZ",
   };
 
@@ -473,7 +472,7 @@
   }
 
   function avatarPalette(id) {
-    const board = ["tictactoe", "gomoku", "ultimate", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "pathlockduel", "hunterswarm", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"];
+    const board = ["tictactoe", "gomoku", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "pathlockduel", "hunterswarm", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"];
     const map = ["tankarena", "dicebattle", "territorywar", "crystalconquest"];
     const action = ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery", "fishingfrenzy"];
     const long = ["basedefenseduel", "robotfactorywar", "dungeonrival"];
@@ -497,8 +496,6 @@
         return `<g transform="translate(78 23)"><rect width="124" height="86" rx="10" fill="#1c2445"/><path d="M16 16h92M16 34h92M16 52h92M16 70h92M16 16v54M39 16v54M62 16v54M85 16v54M108 16v54" ${line}/><circle cx="39" cy="34" r="9" fill="${p.a}"/><circle cx="62" cy="34" r="9" fill="${p.a}"/><circle cx="85" cy="34" r="9" fill="${p.a}"/><circle cx="108" cy="34" r="9" fill="${p.a}"/><circle cx="62" cy="52" r="9" fill="${p.b}"/></g>`;
       case "connectfour":
         return `<g transform="translate(78 22)"><rect width="126" height="88" rx="12" fill="#1d3d74"/><g fill="#0b1026">${[0,1,2,3,4,5,6].map((c)=>[0,1,2,3].map((r)=>`<circle cx="${15+c*16}" cy="${18+r*16}" r="6"/>`).join("")).join("")}</g><circle cx="31" cy="66" r="6" fill="${p.a}"/><circle cx="47" cy="66" r="6" fill="${p.a}"/><circle cx="63" cy="66" r="6" fill="${p.a}"/><circle cx="79" cy="66" r="6" fill="${p.a}"/><circle cx="47" cy="50" r="6" fill="${p.c}"/><circle cx="63" cy="50" r="6" fill="${p.c}"/></g>`;
-      case "ultimate":
-        return `<g transform="translate(79 22)"><rect width="122" height="88" rx="10" fill="#121a36"/><path d="M45 10v68M78 10v68M10 32h102M10 56h102" ${line}/><g opacity=".95"><rect x="14" y="14" width="24" height="18" rx="3" fill="${p.a}"/><path d="M22 17v12M30 17v12M17 20h18M17 26h18" stroke="#151936" stroke-width="1.5"/><rect x="49" y="36" width="24" height="18" rx="3" fill="${p.b}"/><path d="M57 39v12M65 39v12M52 42h18M52 48h18" stroke="#151936" stroke-width="1.5"/><rect x="83" y="58" width="24" height="18" rx="3" fill="${p.c}"/><path d="M91 61v12M99 61v12M86 64h18M86 70h18" stroke="#151936" stroke-width="1.5"/></g></g>`;
       case "reversi":
         return `<g transform="translate(82 24)"><rect width="116" height="84" rx="10" fill="#14533d"/><path d="M29 8v68M58 8v68M87 8v68M8 28h100M8 56h100" ${line}/><circle cx="30" cy="28" r="13" fill="#f4f1dd"/><circle cx="58" cy="28" r="13" fill="#0b1026"/><circle cx="58" cy="56" r="13" fill="#f4f1dd"/><circle cx="86" cy="56" r="13" fill="#0b1026"/><path d="M31 19c16 9 16 22 0 32" fill="none" stroke="${p.a}" stroke-width="4"/></g>`;
       case "pentago":
