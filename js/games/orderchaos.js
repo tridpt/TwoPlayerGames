@@ -214,6 +214,52 @@
 
     function inB(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
 
+    // ----- AI -----
+    function runScore(r, c, sym) {
+      let score = 0;
+      for (const [dr, dc] of DIRS) {
+        let total = 1, open = 0;
+        let nr = r + dr, nc = c + dc;
+        while (inB(nr, nc) && board[nr][nc] === sym) { total++; nr += dr; nc += dc; }
+        if (inB(nr, nc) && board[nr][nc] === null) open++;
+        nr = r - dr; nc = c - dc;
+        while (inB(nr, nc) && board[nr][nc] === sym) { total++; nr -= dr; nc -= dc; }
+        if (inB(nr, nc) && board[nr][nc] === null) open++;
+        let v = total * total;
+        if (total >= NEED) v = 100000;
+        else if (total === NEED - 1 && open >= 1) v += 5000;
+        score += v + open;
+      }
+      return score;
+    }
+    function aiMove(level) {
+      if (over) return null;
+      const me = turn;
+      const cands = [];
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (board[r][c] === null) { cands.push({ r, c, sym: "X" }); cands.push({ r, c, sym: "O" }); }
+      if (!cands.length) return null;
+      if (level === "easy" && Math.random() < 0.55) return cands[Math.floor(Math.random() * cands.length)];
+      if (me === 0) {
+        // Order: thắng ngay nếu được, không thì tối đa tiềm năng chuỗi
+        for (const m of cands) { board[m.r][m.c] = m.sym; const w = fiveLine(m.r, m.c, m.sym); board[m.r][m.c] = null; if (w) return m; }
+        let best = -Infinity, pick = cands[0];
+        for (const m of cands) { board[m.r][m.c] = m.sym; const sc = runScore(m.r, m.c, m.sym); board[m.r][m.c] = null; if (sc > best) { best = sc; pick = m; } }
+        return pick;
+      }
+      // Chaos: tuyệt đối không tạo chuỗi đủ dài; trong các nước an toàn, giảm tối đa chuỗi dài nhất
+      let best = Infinity, pick = null, safePick = null;
+      for (const m of cands) {
+        board[m.r][m.c] = m.sym;
+        const makesWin = !!fiveLine(m.r, m.c, m.sym);
+        const lr = longestRun();
+        board[m.r][m.c] = null;
+        if (makesWin) continue;
+        if (lr < best) { best = lr; safePick = m; }
+      }
+      pick = safePick || cands[0];
+      return pick;
+    }
+
     function renderHeader() {
       const run = Math.min(longestRun(), NEED);
       const runPct = run / NEED * 100;
@@ -264,7 +310,7 @@
     ctx.setTurn(0);
     renderHeader();
     updateStatus();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -273,6 +319,7 @@
     emoji: "🔀",
     description: "Biến thể caro độc đáo: cả hai cùng đặt X/O nhưng mục tiêu trái ngược. Bàn rộng tới 10×10, có thanh đo chuỗi & độ đầy bàn.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "size", label: "Bàn cờ", default: 8,
