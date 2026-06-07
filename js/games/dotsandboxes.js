@@ -193,10 +193,53 @@
       return Math.max(min, Math.min(max, Math.round(n)));
     }
 
+    // ----- AI: heuristic Dots & Boxes -----
+    function sidesOf(br, bc) {
+      let n = 0;
+      if (hEdges[br][bc]) n++; if (hEdges[br + 1][bc]) n++;
+      if (vEdges[br][bc]) n++; if (vEdges[br][bc + 1]) n++;
+      return n;
+    }
+    function adjacentBoxes(m) {
+      const out = [];
+      if (m.type === "h") { if (m.r > 0) out.push([m.r - 1, m.c]); if (m.r < H) out.push([m.r, m.c]); }
+      else { if (m.c > 0) out.push([m.r, m.c - 1]); if (m.c < W) out.push([m.r, m.c]); }
+      return out;
+    }
+    function setEdgeSim(m, v) { if (m.type === "h") hEdges[m.r][m.c] = v; else vEdges[m.r][m.c] = v; }
+    function moveCompletes(m) {
+      setEdgeSim(m, true);
+      let c = 0; for (const [br, bc] of adjacentBoxes(m)) if (sidesOf(br, bc) === 4) c++;
+      setEdgeSim(m, false);
+      return c;
+    }
+    function moveCreates3(m) {
+      setEdgeSim(m, true);
+      let bad = false; for (const [br, bc] of adjacentBoxes(m)) if (sidesOf(br, bc) === 3) bad = true;
+      setEdgeSim(m, false);
+      return bad;
+    }
+    function aiMove(level) {
+      if (over) return null;
+      const free = [];
+      for (let r = 0; r <= H; r++) for (let c = 0; c < W; c++) if (!hEdges[r][c]) free.push({ type: "h", r, c });
+      for (let r = 0; r < H; r++) for (let c = 0; c <= W; c++) if (!vEdges[r][c]) free.push({ type: "v", r, c });
+      if (!free.length) return null;
+      if (level === "easy" && Math.random() < 0.5) return free[Math.floor(Math.random() * free.length)];
+      // 1) ăn ô nếu được (ưu tiên ăn nhiều nhất)
+      const completing = free.filter((m) => moveCompletes(m) > 0);
+      if (completing.length) { completing.sort((a, b) => moveCompletes(b) - moveCompletes(a)); return completing[0]; }
+      // 2) nước an toàn: không tạo ô 3 cạnh cho đối thủ
+      const safe = free.filter((m) => !moveCreates3(m));
+      if (safe.length) return safe[Math.floor(Math.random() * safe.length)];
+      // 3) buộc phải hi sinh: đi đại (Khó vẫn chấp nhận, có thể tối ưu chuỗi sau)
+      return free[Math.floor(Math.random() * free.length)];
+    }
+
     ctx.setTurn(0);
     renderHeader();
     updateStatus();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -205,6 +248,7 @@
     emoji: "🔲",
     description: "Nối các cạnh giữa chấm, hoàn thành ô vuông để chiếm và đi tiếp. Tùy chỉnh kích thước map và có ô thưởng ⭐.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "cols", label: "Số ô ngang", default: 5,
