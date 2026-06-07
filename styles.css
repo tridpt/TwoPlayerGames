@@ -1813,13 +1813,9 @@ body {
   opacity: 0.55;
 }
 .utt-sub.active { opacity: 1; box-shadow: 0 0 0 3px var(--accent); }
-/* bàn mà đối thủ sẽ bị ép tới (xem trước khi hover) */
-.utt-sub.target { opacity: 1; box-shadow: 0 0 0 3px var(--good), 0 0 14px 2px var(--good); animation: utt-targetpulse 0.8s ease infinite; }
-.utt-sub.target-free { opacity: 0.9; box-shadow: 0 0 0 2px var(--good); }
-@keyframes utt-targetpulse {
-  0%, 100% { box-shadow: 0 0 0 3px var(--good), 0 0 10px 1px var(--good); }
-  50% { box-shadow: 0 0 0 3px var(--good), 0 0 18px 5px var(--good); }
-}
+/* bàn mà đối thủ sẽ bị ép tới (xem trước khi hover) — viền tĩnh, nhẹ, không giật */
+.utt-sub.target { opacity: 1; outline: 3px solid var(--good); outline-offset: 1px; }
+.utt-sub.target-free { opacity: 0.92; outline: 2px solid var(--good); outline-offset: 1px; }
 .utt-cell {
   background: var(--panel);
   border-radius: 4px;
