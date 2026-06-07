@@ -26,6 +26,7 @@
     let lastMove = null;  // {from, to} | {to}
     let hover = null;
     let moveCount = 0;
+    const history = [];   // ngăn xếp trạng thái để hoàn tác
 
     const root = document.createElement("div");
     root.className = "mor-root";
@@ -100,6 +101,7 @@
 
     function applyMove(move, fromRemote) {
       if (over) return;
+      const snap = { board: board.slice(), turn, placed: placed.slice(), phase, moveCount, lastMove };
       if (move.type === "place") {
         if (board[move.to] !== null || phase !== "place") return;
         board[move.to] = turn;
@@ -112,6 +114,8 @@
         lastMove = { from: move.from, to: move.to };
         moveCount++;
       }
+      history.push(snap);
+      if (history.length > 100) history.shift();
       selected = null;
       hover = null;
 
@@ -145,6 +149,22 @@
     }
 
     function hasLine(p) { return LINES.some((l) => l.every((i) => board[i] === p)); }
+    function undo() {
+      if (!history.length) return false;
+      const s = history.pop();
+      board = s.board.slice();
+      turn = s.turn;
+      placed = s.placed.slice();
+      phase = s.phase;
+      moveCount = s.moveCount;
+      lastMove = s.lastMove;
+      selected = null; hover = null; over = false;
+      spotEls.forEach((sp) => sp.classList.remove("win"));
+      ctx.setTurn(turn);
+      render();
+      updateStatus();
+      return true;
+    }
     function highlight(p) {
       const line = LINES.find((l) => l.every((i) => board[i] === p));
       if (line) line.forEach((i) => spotEls[i].classList.add("win"));
@@ -276,7 +296,7 @@
     ctx.setTurn(0);
     render();
     updateStatus();
-    return { applyMove, aiMove };
+    return { applyMove, aiMove, undo };
   }
 
   window.GameRegistry.register({

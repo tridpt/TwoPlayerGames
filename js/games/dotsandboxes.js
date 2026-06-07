@@ -18,6 +18,7 @@
     let filled = 0;
     let over = false;
     let lastEl = null;
+    const moveStack = []; // ngăn xếp nước đi để hoàn tác
 
     // ô thưởng ⭐ (tất định theo seed)
     const stars = makeStars();
@@ -108,6 +109,7 @@
       if (!fromRemote && ctx.isOnline) ctx.sendMove(m);
 
       const gained = claimBoxes(m, turn);
+      moveStack.push({ m, turnBefore: turn, boxes: gained.boxes, el });
       if (gained.count > 0) {
         if (filled === W * H) return finish();
         const extra = gained.bonus > 0 ? ` (+${gained.bonus} thưởng ⭐)` : "";
@@ -133,6 +135,7 @@
         if (m.c < W) candidates.push([m.r, m.c]);
       }
       let count = 0, bonus = 0;
+      const boxes = [];
       for (const [br, bc] of candidates) {
         if (owner[br][bc] === null && boxComplete(br, bc)) {
           owner[br][bc] = p;
@@ -143,12 +146,13 @@
           if (isStar) bonus += 1;
           points[p] += val;
           for (let k = 0; k < val; k++) ctx.incScore(p);
+          boxes.push({ br, bc, val, isStar });
           const box = boxEls[br][bc];
           box.classList.add(p === 0 ? "own-p1" : "own-p2", "claimed");
           box.textContent = (isStar ? "⭐" : "") + (p === 0 ? "1" : "2");
         }
       }
-      return { count, bonus };
+      return { count, bonus, boxes };
     }
 
     function boxComplete(br, bc) {
@@ -191,6 +195,32 @@
       const n = Number(v);
       if (!Number.isFinite(n)) return def;
       return Math.max(min, Math.min(max, Math.round(n)));
+    }
+
+    function undo() {
+      if (!moveStack.length) return false;
+      const e = moveStack.pop();
+      const m = e.m;
+      // gỡ cạnh
+      if (m.type === "h") hEdges[m.r][m.c] = false; else vEdges[m.r][m.c] = false;
+      if (e.el) e.el.className = m.type === "h" ? "dnb-h" : "dnb-v";
+      // hoàn các ô đã chiếm
+      for (const bx of e.boxes) {
+        owner[bx.br][bx.bc] = null;
+        filled--;
+        points[e.turnBefore] -= bx.val;
+        for (let k = 0; k < bx.val; k++) ctx.decScore(e.turnBefore);
+        const box = boxEls[bx.br][bx.bc];
+        box.classList.remove("own-p1", "own-p2", "claimed");
+        box.textContent = bx.isStar ? "⭐" : "";
+      }
+      over = false;
+      turn = e.turnBefore;
+      lastEl = null;
+      renderHeader();
+      ctx.setTurn(turn);
+      updateStatus();
+      return true;
     }
 
     // ----- AI: heuristic Dots & Boxes -----
@@ -239,7 +269,7 @@
     ctx.setTurn(0);
     renderHeader();
     updateStatus();
-    return { applyMove, aiMove };
+    return { applyMove, aiMove, undo };
   }
 
   window.GameRegistry.register({

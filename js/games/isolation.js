@@ -22,6 +22,7 @@
     let phase = "move";   // move | block (chỉ dùng cho chế độ choose)
     let lastMove = -1;
     let lastBlock = -1;
+    const history = []; // ngăn xếp trạng thái để hoàn tác
 
     const root = document.createElement("div");
     root.className = "iso-root";
@@ -83,10 +84,12 @@
 
     function applyMove(move, fromRemote) {
       if (over) return;
+      const snap = { blocked: blocked.slice(), pos: pos.slice(), turn, phase, lastMove, lastBlock };
 
       if (move && Number.isInteger(Number(move.block)) && MODE === "choose" && phase === "block") {
         const at = Number(move.block);
         if (!isEmpty(at)) return;
+        history.push(snap);
         blocked[at] = true;
         lastBlock = at;
         ctx.sound("capture");
@@ -99,6 +102,7 @@
       const to = Number(move?.to);
       const legal = legalMoves(turn);
       if (!Number.isInteger(to) || !legal.includes(to)) return;
+      history.push(snap);
 
       const player = turn;
       const old = pos[player];
@@ -150,6 +154,18 @@
     }
 
     // ----- AI -----
+    function undo() {
+      if (!history.length) return false;
+      const s = history.pop();
+      for (let i = 0; i < total; i++) blocked[i] = s.blocked[i];
+      pos[0] = s.pos[0]; pos[1] = s.pos[1];
+      turn = s.turn; phase = s.phase; lastMove = s.lastMove; lastBlock = s.lastBlock;
+      over = false;
+      ctx.setTurn(turn);
+      updateStatus();
+      render();
+      return true;
+    }
     function aiMove(level) {
       if (!canAct()) return null;
       const me = turn;
@@ -228,7 +244,7 @@
     ctx.setTurn(0);
     updateStatus();
     render();
-    return { applyMove, aiMove };
+    return { applyMove, aiMove, undo };
   }
 
   window.GameRegistry.register({

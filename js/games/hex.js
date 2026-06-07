@@ -13,6 +13,7 @@
     let over = false;
     let lastMove = null;
     let winSet = null;
+    const moveStack = []; // ngăn xếp nước đi để hoàn tác
 
     const root = document.createElement("div");
     root.className = "hex-root";
@@ -59,6 +60,7 @@
       if (over || !inB(r, c) || board[r][c] !== null) return;
       const p = turn;
       board[r][c] = p;
+      moveStack.push({ r, c, p, prev: lastMove });
       lastMove = [r, c];
       ctx.sound("place");
 
@@ -166,6 +168,20 @@
       `;
     }
 
+    function undo() {
+      if (!moveStack.length) return false;
+      const m = moveStack.pop();
+      board[m.r][m.c] = null;
+      lastMove = m.prev;
+      winSet = null;
+      over = false;
+      turn = m.p;
+      ctx.setTurn(turn);
+      render();
+      updateStatus();
+      return true;
+    }
+
     function updateStatus() {
       renderHeader();
       if (ctx.isOnline && turn !== ctx.mySeat) {
@@ -181,7 +197,7 @@
     renderHeader();
     render();
     ctx.setStatus("🔴 Đỏ nối cạnh TRÊN–DƯỚI. 🔵 Xanh nối cạnh TRÁI–PHẢI. Đỏ đi trước. Quân nối được về cạnh nhà sẽ phát sáng.");
-    return { applyMove };
+    return { applyMove, undo };
   }
 
   window.GameRegistry.register({

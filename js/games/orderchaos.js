@@ -24,6 +24,7 @@
     let count = 0;
     let lastMove = null;
     let pending = null; // [r,c] ô đang chờ xác nhận
+    const history = []; // ngăn xếp trạng thái để hoàn tác
 
     const root = document.createElement("div");
     root.className = "oc-root";
@@ -140,6 +141,7 @@
       const r = Number(move.r), c = Number(move.c);
       const sym = move.sym === "O" ? "O" : "X";
       if (over || !inB(r, c) || board[r][c] !== null) return;
+      history.push({ board: board.map((row) => row.slice()), turn, count, lastMove });
       clearPending();
       board[r][c] = sym;
       count++;
@@ -213,6 +215,34 @@
     }
 
     function inB(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
+
+    function undo() {
+      if (!history.length) return false;
+      const s = history.pop();
+      board = s.board.map((row) => row.slice());
+      turn = s.turn;
+      count = s.count;
+      lastMove = s.lastMove;
+      over = false;
+      pending = null;
+      picker.classList.remove("disabled");
+      // dựng lại toàn bộ ô từ board
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const el = cellEls[r][c];
+          el.className = "oc-cell";
+          el.textContent = "";
+          const v = board[r][c];
+          if (v) { el.classList.add(v === "X" ? "x" : "o"); el.textContent = v; }
+        }
+      }
+      if (lastMove) cellEls[lastMove[0]][lastMove[1]].classList.add("last");
+      setSym("X");
+      ctx.setTurn(turn);
+      renderHeader();
+      updateStatus();
+      return true;
+    }
 
     // ----- AI -----
     function runScore(r, c, sym) {
@@ -310,7 +340,7 @@
     ctx.setTurn(0);
     renderHeader();
     updateStatus();
-    return { applyMove, aiMove };
+    return { applyMove, aiMove, undo };
   }
 
   window.GameRegistry.register({

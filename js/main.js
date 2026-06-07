@@ -192,6 +192,7 @@
         el.p2Name.textContent = labelWithPlayerName(1, n2);
       },
       incScore(idx) { scores[idx]++; lastWinner = idx; renderScores(); },
+      decScore(idx) { scores[idx] = Math.max(0, scores[idx] - 1); renderScores(); },
       getScore(idx) { return scores[idx]; },
       sendMove(move) { if (online && !sessionLocked) Net.send("move", { move }); },
       sound(name) { window.Sound && Sound.play(name); },
