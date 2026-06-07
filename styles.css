@@ -1744,6 +1744,38 @@ body {
 @keyframes dnb-pop { from { transform: scale(0.4); } to { transform: scale(1); } }
 
 /* ---------- Ultimate Tic-Tac-Toe ---------- */
+.utt-root { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.utt-hud {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: min(480px, 94vw);
+}
+.utt-score {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  border: 2px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.utt-score b { font-size: 1.3rem; }
+.utt-score .utt-mk { font-size: 1.1rem; }
+.utt-score.x { color: var(--p1); }
+.utt-score.o { color: var(--p2); }
+.utt-score .utt-lbl { font-size: 0.78rem; color: var(--muted); }
+.utt-score.x.turn { border-color: var(--p1); box-shadow: 0 0 12px rgba(255,93,115,0.5); }
+.utt-score.o.turn { border-color: var(--p2); box-shadow: 0 0 12px rgba(77,208,225,0.5); }
+.utt-badge {
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  white-space: nowrap;
+}
 .utt-board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1767,6 +1799,13 @@ body {
   opacity: 0.55;
 }
 .utt-sub.active { opacity: 1; box-shadow: 0 0 0 3px var(--accent); }
+/* bàn mà đối thủ sẽ bị ép tới (xem trước khi hover) */
+.utt-sub.target { opacity: 1; box-shadow: 0 0 0 3px var(--good), 0 0 14px 2px var(--good); animation: utt-targetpulse 0.8s ease infinite; }
+.utt-sub.target-free { opacity: 0.9; box-shadow: 0 0 0 2px var(--good); }
+@keyframes utt-targetpulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--good), 0 0 10px 1px var(--good); }
+  50% { box-shadow: 0 0 0 3px var(--good), 0 0 18px 5px var(--good); }
+}
 .utt-cell {
   background: var(--panel);
   border-radius: 4px;
@@ -1780,6 +1819,15 @@ body {
 }
 .utt-cell.x { color: var(--p1); }
 .utt-cell.o { color: var(--p2); }
+.utt-cell.ghost { opacity: 0.4; }
+.utt-cell.placed { animation: utt-pop 0.25s ease; }
+.utt-cell.subwin { background: rgba(255, 215, 0, 0.22); }
+.utt-cell.last { box-shadow: 0 0 0 2px var(--accent); }
+@keyframes utt-pop {
+  0% { transform: scale(0.2); }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
 .utt-sub.won::after {
   content: attr(data-mark);
   position: absolute;
@@ -1790,11 +1838,21 @@ body {
   font-size: 3.4rem;
   font-weight: 900;
   border-radius: 8px;
+  animation: utt-stamp 0.35s ease;
+}
+@keyframes utt-stamp {
+  0% { transform: scale(2.2); opacity: 0; }
+  60% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 .utt-sub.won-x::after { color: var(--p1); background: rgba(255,93,115,0.18); }
 .utt-sub.won-o::after { color: var(--p2); background: rgba(77,208,225,0.18); }
 .utt-sub.draw { background: #2b2f50; }
-.utt-sub.big-win { box-shadow: 0 0 0 4px var(--good); }
+.utt-sub.big-win { box-shadow: 0 0 0 4px var(--good); animation: utt-bigwin 0.7s ease infinite; }
+@keyframes utt-bigwin {
+  0%, 100% { box-shadow: 0 0 0 4px var(--good); }
+  50% { box-shadow: 0 0 0 4px var(--good), 0 0 20px 6px var(--good); }
+}
 
 /* ---------- Chat panel ---------- */
 .chat-panel {
