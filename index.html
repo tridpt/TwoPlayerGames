@@ -11,6 +11,10 @@
 </head>
 <body>
   <header class="app-header">
+    <button class="profile-chip" id="profileChip" title="Hồ sơ của bạn">
+      <span class="chip-avatar" id="chipAvatar">🎮</span>
+      <span class="chip-name" id="chipName">Bạn</span>
+    </button>
     <h1 class="logo" id="homeBtn">🎮 Game 2 Người</h1>
     <p class="tagline">Chơi chung một máy hoặc online qua mạng</p>
     <button class="sound-toggle theme-toggle" id="themeToggle" title="Đổi giao diện sáng/tối">🌙</button>
@@ -52,6 +56,22 @@
           <button type="button" class="btn load-more hidden" id="loadMoreBtn">Xem thêm</button>
         </div>
       </div>
+    </section>
+
+    <!-- Trang hồ sơ / thống kê -->
+    <section id="profileView" class="profile-view hidden">
+      <button class="btn back-btn" id="profileBackBtn">← Về danh sách</button>
+      <div class="profile-card">
+        <div class="profile-avatar" id="profileAvatar">🎮</div>
+        <div class="profile-id">
+          <label class="option-label" for="profileName">Tên của bạn</label>
+          <input id="profileName" class="player-name-input" maxlength="24" placeholder="Nhập tên..." autocomplete="nickname" />
+          <div class="avatar-picker" id="avatarPicker"></div>
+        </div>
+      </div>
+      <div class="profile-stats" id="profileStats"></div>
+      <h3 class="profile-h">🏅 Thành tích</h3>
+      <div class="ach-grid" id="achGrid"></div>
     </section>
 
     <!-- Trang chi tiết game -->

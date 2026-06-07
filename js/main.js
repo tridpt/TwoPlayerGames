@@ -69,6 +69,16 @@
     homeBtn: $("homeBtn"),
     soundToggle: $("soundToggle"),
     themeToggle: $("themeToggle"),
+    profileChip: $("profileChip"),
+    chipAvatar: $("chipAvatar"),
+    chipName: $("chipName"),
+    profileView: $("profileView"),
+    profileBackBtn: $("profileBackBtn"),
+    profileAvatar: $("profileAvatar"),
+    profileName: $("profileName"),
+    avatarPicker: $("avatarPicker"),
+    profileStats: $("profileStats"),
+    achGrid: $("achGrid"),
     helpBtn: $("helpBtn"),
     helpOverlay: $("helpOverlay"),
     helpTitle: $("helpTitle"),
@@ -183,6 +193,7 @@
           if (!resultRecorded && selectedGame && selectedGame.id) {
             resultRecorded = true;
             recordStat(selectedGame.id, kind === "draw" ? "draw" : "win", lastWinner);
+            recordOutcomeFlags(kind);
           }
           if (el.winOverlay.classList.contains("hidden")) {
             showWinScreen(kind, text);
@@ -311,11 +322,12 @@
   }
 
   function applyScoreboardNames() {
+    const av = getAvatar() + " ";
     if (online) {
-      el.p1Name.textContent = seatName(0);
-      el.p2Name.textContent = seatName(1);
+      el.p1Name.textContent = (online.seat === 0 ? av : "") + seatName(0);
+      el.p2Name.textContent = (online.seat === 1 ? av : "") + seatName(1);
     } else {
-      el.p1Name.textContent = "Người chơi 1";
+      el.p1Name.textContent = av + "Người chơi 1";
       el.p2Name.textContent = "Người chơi 2";
     }
   }
@@ -532,6 +544,90 @@
   }
 
   const STATS_KEY = "tpg_stats";
+  const AVATAR_KEY = "tpg_avatar";
+  const FLAGS_KEY = "tpg_flags";
+  const AVATARS = ["🎮", "😀", "😎", "🐱", "🐶", "🦊", "🐼", "🦁", "🐯", "🐸", "🦄", "🤖", "👾", "🐲", "🦖", "🐙", "🦋", "🌟", "🔥", "⚡", "🍀", "♟️", "🎲", "🏆"];
+  function getAvatar() { try { return localStorage.getItem(AVATAR_KEY) || "🎮"; } catch (e) { return "🎮"; } }
+  function setAvatar(a) { try { localStorage.setItem(AVATAR_KEY, a); } catch (e) { /* ignore */ } }
+  function getFlags() { try { return JSON.parse(localStorage.getItem(FLAGS_KEY)) || {}; } catch (e) { return {}; } }
+  function saveFlags(f) { try { localStorage.setItem(FLAGS_KEY, JSON.stringify(f)); } catch (e) { /* ignore */ } }
+  function recordOutcomeFlags(kind) {
+    if (kind === "draw") return;
+    const f = getFlags();
+    if (vsAI && lastWinner === 0) { const k = "ai_" + aiLevel; f[k] = (f[k] || 0) + 1; }
+    if (online && lastWinner === online.seat) { f.onlineWins = (f.onlineWins || 0) + 1; }
+    saveFlags(f);
+  }
+
+  const ACHIEVEMENTS = [
+    { id: "first", icon: "🎯", title: "Ván đầu tiên", desc: "Chơi ván đầu tiên", done: (a) => a.totalPlayed >= 1 },
+    { id: "play10", icon: "🎮", title: "Ham chơi", desc: "Chơi 10 ván", done: (a) => a.totalPlayed >= 10 },
+    { id: "play50", icon: "🔥", title: "Cuồng game", desc: "Chơi 50 ván", done: (a) => a.totalPlayed >= 50 },
+    { id: "try10", icon: "🧭", title: "Nhà thám hiểm", desc: "Thử 10 trò khác nhau", done: (a) => a.tried >= 10 },
+    { id: "try25", icon: "🗺️", title: "Đa năng", desc: "Thử 25 trò khác nhau", done: (a) => a.tried >= 25 },
+    { id: "tryAll", icon: "🏅", title: "Bộ sưu tập", desc: "Thử hết tất cả trò chơi", done: (a) => a.tried >= a.totalGames },
+    { id: "win10", icon: "🏆", title: "Tay thắng", desc: "Thắng 10 ván (P1)", done: (a) => a.p1 >= 10 },
+    { id: "win25", icon: "👑", title: "Bất bại", desc: "Thắng 25 ván (P1)", done: (a) => a.p1 >= 25 },
+    { id: "aiHard", icon: "🤖", title: "Hạ gục máy (Khó)", desc: "Thắng AI mức Khó 1 lần", done: (a) => (a.flags.ai_hard || 0) >= 1 },
+    { id: "aiHard5", icon: "💀", title: "Khắc tinh AI", desc: "Thắng AI mức Khó 5 lần", done: (a) => (a.flags.ai_hard || 0) >= 5 },
+    { id: "online1", icon: "🌐", title: "Cao thủ online", desc: "Thắng 1 ván online", done: (a) => (a.flags.onlineWins || 0) >= 1 },
+    { id: "fav3", icon: "❤️", title: "Có gu", desc: "Thêm 3 game yêu thích", done: (a) => a.favCount >= 3 },
+  ];
+
+  function computeAgg() {
+    const stats = getStats();
+    let totalPlayed = 0, tried = 0, p1 = 0, p2 = 0, draw = 0, topId = null, topN = 0;
+    Object.keys(stats).forEach((id) => {
+      const s = stats[id];
+      if (s.played > 0) { tried++; totalPlayed += s.played; p1 += s.p1; p2 += s.p2; draw += s.draw; }
+      if (s.played > topN) { topN = s.played; topId = id; }
+    });
+    return { totalPlayed, tried, p1, p2, draw, topId, topN, totalGames: GameRegistry.games.length, flags: getFlags(), favCount: getFavorites().length };
+  }
+
+  function updateProfileChip() {
+    if (el.chipAvatar) el.chipAvatar.textContent = getAvatar();
+    if (el.chipName) el.chipName.textContent = loadSavedPlayerName() || "Bạn";
+  }
+
+  function openProfile() {
+    const a = computeAgg();
+    el.profileAvatar.textContent = getAvatar();
+    el.profileName.value = loadSavedPlayerName() || "";
+    // avatar picker
+    el.avatarPicker.innerHTML = "";
+    AVATARS.forEach((av) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "avatar-opt" + (av === getAvatar() ? " on" : "");
+      b.textContent = av;
+      b.addEventListener("click", () => {
+        setAvatar(av);
+        el.profileAvatar.textContent = av;
+        updateProfileChip();
+        [...el.avatarPicker.children].forEach((c) => c.classList.toggle("on", c.textContent === av));
+      });
+      el.avatarPicker.appendChild(b);
+    });
+    // stats
+    const decided = a.p1 + a.p2;
+    const rate = decided ? Math.round(a.p1 / decided * 100) : 0;
+    const topName = a.topId ? (getGameById(a.topId) ? getGameById(a.topId).name : a.topId) : "—";
+    el.profileStats.innerHTML = [
+      ["🎮", a.totalPlayed, "Tổng số ván"],
+      ["🕹️", `${a.tried}/${a.totalGames}`, "Trò đã thử"],
+      ["🏆", a.p1, "Thắng (P1)"],
+      ["⚔️", a.p2, "Thắng (P2)"],
+      ["📈", decided ? rate + "%" : "—", "Tỉ lệ thắng P1"],
+      ["⭐", topName, "Chơi nhiều nhất"],
+    ].map(([ic, v, lb]) => `<div class="pstat"><span class="pstat-ic">${ic}</span><b>${v}</b><small>${lb}</small></div>`).join("");
+    // achievements
+    el.achGrid.innerHTML = ACHIEVEMENTS.map((ac) => {
+      const done = ac.done(a);
+      return `<div class="ach ${done ? "done" : "locked"}"><span class="ach-ic">${done ? ac.icon : "🔒"}</span><div class="ach-txt"><b>${ac.title}</b><small>${ac.desc}</small></div></div>`;
+    }).join("");
+    show("profileView");
+  }
   function getStats() { try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {}; } catch (e) { return {}; } }
   function statOf(id) { return getStats()[id] || { played: 0, p1: 0, p2: 0, draw: 0 }; }
   function recordStat(id, kind, winner) {
@@ -1484,7 +1580,7 @@
 
   // ---- Điều hướng màn hình ----
   function show(viewId) {
-    ["menu", "detailView", "modeView", "lobbyView", "gameView"].forEach((id) => {
+    ["menu", "profileView", "detailView", "modeView", "lobbyView", "gameView"].forEach((id) => {
       el[id].classList.toggle("hidden", id !== viewId);
     });
   }
@@ -1494,6 +1590,12 @@
   el.modeBackBtn.addEventListener("click", () => show("menu"));
   if (el.detailBackBtn) el.detailBackBtn.addEventListener("click", () => show("menu"));
   if (el.detailPlayBtn) el.detailPlayBtn.addEventListener("click", () => { if (selectedGame) openMode(selectedGame); });
+  if (el.profileChip) el.profileChip.addEventListener("click", openProfile);
+  if (el.profileBackBtn) el.profileBackBtn.addEventListener("click", () => show("menu"));
+  if (el.profileName) el.profileName.addEventListener("input", () => {
+    savePlayerName(cleanName(el.profileName.value, ""));
+    updateProfileChip();
+  });
   el.lobbyBackBtn.addEventListener("click", closeLobby);
   el.restartBtn.addEventListener("click", restartGame);
 
@@ -1659,4 +1761,5 @@
 
   renderMenu();
   handleRoute();
+  updateProfileChip();
 })();

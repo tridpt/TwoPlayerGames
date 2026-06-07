@@ -63,6 +63,96 @@ body {
 .sound-toggle.muted { opacity: 0.6; }
 .theme-toggle { right: 74px; }
 
+/* ---------- Chip hồ sơ ---------- */
+.profile-chip {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 8px;
+  border-radius: 999px;
+  background: rgba(42, 48, 96, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  font-family: var(--font-body);
+  transition: background 0.16s, box-shadow 0.16s, transform 0.1s;
+}
+.profile-chip:hover { background: rgba(60, 68, 120, 0.7); box-shadow: 0 0 16px rgba(120,160,255,0.4); }
+.profile-chip:active { transform: scale(0.96); }
+.chip-avatar { font-size: 1.3rem; line-height: 1; }
+.chip-name { font-weight: 700; font-size: 0.9rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Trang hồ sơ ---------- */
+.profile-view { display: flex; flex-direction: column; gap: 18px; }
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: linear-gradient(160deg, rgba(42,48,96,0.7), rgba(28,33,68,0.85));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.profile-avatar {
+  width: 76px; height: 76px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  font-size: 2.8rem;
+  border-radius: 50%;
+  background: var(--grad-cool);
+  box-shadow: 0 6px 18px rgba(77,208,225,0.4);
+}
+.profile-id { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 8px; }
+.avatar-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.avatar-opt {
+  width: 38px; height: 38px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  font-size: 1.2rem; cursor: pointer;
+  transition: transform 0.1s, border-color 0.16s, background 0.16s;
+}
+.avatar-opt:hover { transform: scale(1.12); }
+.avatar-opt.on { border-color: var(--accent); background: rgba(255,209,102,0.2); }
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+.pstat {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 16px 12px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(42,48,96,0.6), rgba(24,28,58,0.8));
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.pstat-ic { font-size: 1.5rem; }
+.pstat b { font-size: 1.3rem; font-family: var(--font-head); }
+.pstat small { color: var(--muted); font-size: 0.78rem; text-align: center; }
+.profile-h { font-family: var(--font-head); margin: 4px 0 0; }
+.ach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.ach {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(42,48,96,0.4);
+}
+.ach.done { border-color: rgba(255,209,102,0.4); background: linear-gradient(135deg, rgba(255,209,102,0.14), rgba(255,143,177,0.08)); }
+.ach.locked { opacity: 0.6; }
+.ach-ic { font-size: 1.8rem; flex: 0 0 auto; }
+.ach-txt { display: flex; flex-direction: column; }
+.ach-txt b { font-size: 0.95rem; }
+.ach-txt small { color: var(--muted); font-size: 0.78rem; }
+
 /* ---------- Giao diện SÁNG ---------- */
 body.theme-light {
   --bg: #eef1fb;
