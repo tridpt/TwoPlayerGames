@@ -23,6 +23,9 @@
     let selectedId = null;
     let over = false;
     let last = "Chọn một quân xúc xắc của bạn để di chuyển hoặc tấn công.";
+    let justRolled = new Set(); // id quân vừa đổi mặt (để chạy hoạt ảnh lăn)
+    let lastCells = [];          // ô của hành động cuối (highlight)
+    let pendingFloat = [];       // chữ nổi (sát thương/hồi máu) chờ vẽ
 
     const root = document.createElement("div");
     root.className = "db-root";
@@ -183,6 +186,8 @@
 
     function applyMove(move, fromRemote) {
       if (!canAct(fromRemote)) return;
+      justRolled = new Set();
+      lastCells = [];
       let ok = false;
       if (move.t === "move") ok = doMove(move);
       else if (move.t === "attack") ok = doAttack(move);
@@ -190,7 +195,36 @@
       if (!ok) return;
       if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
       render();
+      flushFloats();
       updateStatus();
+    }
+
+    function floatText(r, c, text, cls) { pendingFloat.push({ r, c, text, cls }); }
+    function flushFloats() {
+      if (!pendingFloat.length) return;
+      pendingFloat.forEach(({ r, c, text, cls }) => {
+        const cell = cells[r] && cells[r][c];
+        if (!cell) return;
+        const s = document.createElement("span");
+        s.className = "db-float " + (cls || "");
+        s.textContent = text;
+        cell.appendChild(s);
+        setTimeout(() => s.remove(), 850);
+        if (cls === "dmg") {
+          cell.classList.add("db-hit");
+          setTimeout(() => cell.classList.remove("db-hit"), 320);
+        }
+      });
+      pendingFloat = [];
+    }
+
+    // số quân của 'attacker' phe đứng kề defender (trừ chính attacker) -> hợp vây +1 công
+    function flankBonus(attacker, defender) {
+      let n = 0;
+      units.forEach((u) => {
+        if (u.hp > 0 && u.owner === attacker.owner && u.id !== attacker.id && adjacent(u, defender)) n++;
+      });
+      return n > 0 ? 1 : 0;
     }
 
     function doMove(move) {
@@ -202,12 +236,15 @@
       if (terrain[unit.r][unit.c] === "power") {
         unit.hp = Math.min(MAX_HP, unit.hp + 2);
         unit.face = Math.min(6, unit.face + 1);
+        justRolled.add(unit.id);
+        floatText(unit.r, unit.c, "+2", "heal");
         last = `${nameOf(unit)} đi từ ${old} đến ô năng lượng ${coord(unit.r, unit.c)}: +2 HP, tăng mặt xúc xắc.`;
         ctx.sound("capture");
       } else {
         last = `${nameOf(unit)} đi từ ${old} đến ${coord(unit.r, unit.c)}.`;
         ctx.sound("select");
       }
+      lastCells = [[unit.r, unit.c]];
       endTurn();
       return true;
     }
@@ -218,22 +255,31 @@
       if (!a || !d || a.owner !== turn || d.owner === turn || !adjacent(a, d)) return false;
       const ar = clampDie(move.ar);
       const dr = clampDie(move.dr);
-      const atk = a.face + ar;
+      const flank = flankBonus(a, d);
+      const crit = ar === 6; // tung mặt 6 = chí mạng
+      const atk = a.face + ar + flank;
       const def = d.face + dr;
       a.face = ar;
       d.face = dr;
+      justRolled.add(a.id);
+      justRolled.add(d.id);
+      lastCells = [[a.r, a.c], [d.r, d.c]];
+      const flankTxt = flank ? ` +${flank} hợp vây` : "";
 
       if (atk >= def) {
-        const dmg = Math.max(2, atk - def + 2);
+        let dmg = Math.max(2, atk - def + 2);
+        if (crit) dmg += 3; // chí mạng cộng thêm sát thương
         d.hp = Math.max(0, d.hp - dmg);
         a.hp = Math.min(MAX_HP, a.hp + 1);
-        last = `${nameOf(a)} roll ${ar} (${atk}) thắng ${nameOf(d)} roll ${dr} (${def}), gây ${dmg} sát thương.`;
+        floatText(d.r, d.c, (crit ? "CHÍ MẠNG " : "") + "-" + dmg, crit ? "dmg crit" : "dmg");
+        last = `${nameOf(a)} roll ${ar} (${atk}${flankTxt})${crit ? " ⚡CHÍ MẠNG" : ""} thắng ${nameOf(d)} roll ${dr} (${def}), gây ${dmg} sát thương.`;
         if (d.hp <= 0) last += ` ${nameOf(d)} bị loại!`;
         ctx.sound(d.hp <= 0 ? "capture" : "shot");
       } else {
         const dmg = Math.max(1, def - atk);
         a.hp = Math.max(0, a.hp - dmg);
-        last = `${nameOf(a)} roll ${ar} (${atk}) thua phòng thủ ${dr} (${def}), bị phản đòn ${dmg}.`;
+        floatText(a.r, a.c, "-" + dmg, "dmg");
+        last = `${nameOf(a)} roll ${ar} (${atk}${flankTxt}) thua phòng thủ ${dr} (${def}), bị phản đòn ${dmg}.`;
         if (a.hp <= 0) last += ` ${nameOf(a)} bị loại!`;
         ctx.sound(a.hp <= 0 ? "capture" : "miss");
       }
@@ -249,6 +295,9 @@
       const r = clampDie(move.roll);
       unit.face = r;
       unit.hp = Math.min(MAX_HP, unit.hp + 1);
+      justRolled.add(unit.id);
+      lastCells = [[unit.r, unit.c]];
+      floatText(unit.r, unit.c, "+1", "heal");
       last = `${nameOf(unit)} tập trung: đổi sang mặt ${r} và hồi 1 HP.`;
       ctx.sound("select");
       endTurn();
@@ -335,7 +384,8 @@
           if (unit) {
             cell.classList.add("unit", unit.owner === 0 ? "p1" : "p2");
             if (unit.id === selectedId) cell.classList.add("selected");
-            cell.innerHTML = diceMarkup(unit);
+            if (lastCells.some(([lr, lc]) => lr === r && lc === c)) cell.classList.add("last-acted");
+            cell.innerHTML = diceMarkup(unit, justRolled.has(unit.id));
           } else if (moves.has(r + "," + c)) {
             cell.classList.add("can-move");
           }
@@ -373,10 +423,10 @@
       `;
     }
 
-    function diceMarkup(unit) {
+    function diceMarkup(unit, rolling) {
       const pips = PIP_POS[unit.face].map((p) => `<i class="db-pip ${p}"></i>`).join("");
       return `
-        <span class="db-die face-${unit.face}" aria-hidden="true">
+        <span class="db-die face-${unit.face}${rolling ? " rolling" : ""}" aria-hidden="true">
           ${pips}
           <b>${unit.owner + 1}</b>
         </span>
@@ -411,7 +461,7 @@
     id: "dicebattle",
     name: "Dice Battle",
     emoji: "🎲",
-    description: "Điều khiển đội quân xúc xắc trên lưới. Di chuyển, chiếm ô năng lượng và đánh nhau bằng roll.",
+    description: "Điều khiển đội quân xúc xắc trên lưới. Di chuyển, chiếm ô năng lượng và đánh nhau bằng roll — tung mặt 6 để gây chí mạng.",
     onlineReady: true,
     options: [
       {
@@ -460,6 +510,7 @@
       "Click một xúc xắc của bạn để chọn. Ô xanh là nơi có thể di chuyển, ô đỏ là quân địch có thể tấn công.",
       "Xúc xắc mặt 1-4 đi được 1 ô, mặt 5-6 đi được 2 ô.",
       "Khi tấn công, hai bên roll d6. Tổng tấn công = mặt hiện tại + roll. Tổng cao hơn sẽ gây sát thương.",
+      "⚡ CHÍ MẠNG: nếu bên tấn công tung được mặt 6, đòn đánh cộng thêm 3 sát thương khi thắng.",
       "Sau giao tranh, mặt xúc xắc đổi thành kết quả roll vừa tung.",
       "Ô năng lượng ở giữa bàn giúp hồi 2 HP và tăng mặt xúc xắc thêm 1 khi đi vào.",
       "Nút Tập trung dùng cả lượt để reroll xúc xắc đã chọn và hồi 1 HP.",

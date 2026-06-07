@@ -8685,6 +8685,44 @@ body {
 }
 .db-cell.p1 .db-hp i { background: var(--p1); }
 .db-cell.p2 .db-hp i { background: var(--p2); }
+.db-die.rolling { animation: db-roll 0.42s cubic-bezier(0.3, 0.1, 0.4, 1.4); }
+@keyframes db-roll {
+  0% { transform: rotate(-180deg) scale(0.7); }
+  50% { transform: rotate(-40deg) scale(1.12); }
+  75% { transform: rotate(12deg) scale(1.05); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.db-float {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  font-weight: 800;
+  font-size: 0.9rem;
+  pointer-events: none;
+  z-index: 7;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  animation: db-float-anim 0.85s ease-out forwards;
+}
+.db-float.dmg { color: #ff6b81; }
+.db-float.heal { color: #6ee7b7; }
+@keyframes db-float-anim {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.7); }
+  25% { opacity: 1; transform: translate(-50%, -4px) scale(1.1); }
+  100% { opacity: 0; transform: translate(-50%, -24px) scale(1); }
+}
+.db-cell.db-hit { animation: db-hit-anim 0.32s ease; }
+@keyframes db-hit-anim {
+  0%, 100% { filter: brightness(1); }
+  40% { filter: brightness(1.8) saturate(1.4); transform: scale(0.94); }
+}
+.db-float.crit {
+  color: #ffd166;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(255, 209, 102, 0.9), 0 1px 2px rgba(0,0,0,0.6);
+  font-size: 1.05em;
+}
 @media (max-width: 760px) {
   .db-hud {
     grid-template-columns: 1fr;
