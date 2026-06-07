@@ -10,6 +10,7 @@
     let turn = 0;
     let over = false;
     let pendingCell = null; // [r,c] vừa đặt, đang chờ chọn xoay
+    let animating = false;  // đang chạy hiệu ứng xoay
 
     const root = document.createElement("div");
     root.className = "ptg-root";
@@ -61,7 +62,7 @@
     }
     root.appendChild(rotBar);
 
-    function canPlay() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
+    function canPlay() { return !over && !animating && (!ctx.isOnline || turn === ctx.mySeat); }
 
     function onPlace(r, c) {
       if (!canPlay() || pendingCell || board[r][c] !== null) return;
@@ -79,49 +80,76 @@
       applyMove(move, false);
     }
 
+    // hiệu ứng xoay ô vuông con 90° rồi gọi done()
+    function animateRotate(q, dir, done) {
+      const el = quadEls[q];
+      animating = true;
+      setRotEnabled(false);
+      el.classList.add("ptg-spin");
+      el.style.transition = "transform 0.42s cubic-bezier(0.34, 1.2, 0.5, 1)";
+      el.style.transform = `rotate(${dir === "cw" ? 90 : -90}deg)`;
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        el.removeEventListener("transitionend", finish);
+        el.style.transition = "none";
+        el.style.transform = "none";
+        el.classList.remove("ptg-spin");
+        animating = false;
+        done();
+      };
+      el.addEventListener("transitionend", finish);
+      setTimeout(finish, 480); // dự phòng nếu không có transitionend
+    }
+
     function applyMove(move, fromRemote) {
-      if (over) return;
-      // nếu là nước từ xa, cần đặt bi trước
+      if (over || animating) return;
+      // nếu là nước từ xa, cần đặt bi trước rồi hiển thị
       if (fromRemote) {
         const r = Math.floor(move.cell / N), c = move.cell % N;
         if (board[r][c] === null) board[r][c] = turn;
+        pendingCell = [r, c];
+        render();
       }
-      rotateQuad(move.quad, move.dir);
-      pendingCell = null;
-      ctx.sound("rotate");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      ctx.sound("rotate");
 
-      render();
+      animateRotate(move.quad, move.dir, () => {
+        rotateQuad(move.quad, move.dir);
+        pendingCell = null;
+        render();
 
-      const winners = checkWinners();
-      if (winners.length) {
-        over = true;
-        ctx.setTurn(-1);
-        setRotEnabled(false);
-        // cả hai cùng đạt 5 (hiếm) -> hòa; ngược lại người trong winners thắng
-        if (winners.includes(0) && winners.includes(1)) {
-          ctx.setStatus("🤝 Cả hai cùng có 5 bi thẳng hàng — hòa!");
-        } else {
-          const w = winners[0];
-          ctx.incScore(w);
-          ctx.setStatus(`🎉 Người chơi ${w + 1} có 5 bi thẳng hàng — chiến thắng!`);
+        const winners = checkWinners();
+        if (winners.length) {
+          over = true;
+          ctx.setTurn(-1);
+          setRotEnabled(false);
+          // cả hai cùng đạt 5 (hiếm) -> hòa; ngược lại người trong winners thắng
+          if (winners.includes(0) && winners.includes(1)) {
+            ctx.setStatus("🤝 Cả hai cùng có 5 bi thẳng hàng — hòa!");
+          } else {
+            const w = winners[0];
+            ctx.incScore(w);
+            ctx.setStatus(`🎉 Người chơi ${w + 1} có 5 bi thẳng hàng — chiến thắng!`);
+          }
+          highlightWin();
+          return;
         }
-        highlightWin();
-        return;
-      }
-      if (board.every((row) => row.every((v) => v !== null))) {
-        over = true;
-        ctx.setTurn(-1);
-        setRotEnabled(false);
-        ctx.setStatus("🤝 Bàn đầy — hòa!");
-        return;
-      }
+        if (board.every((row) => row.every((v) => v !== null))) {
+          over = true;
+          ctx.setTurn(-1);
+          setRotEnabled(false);
+          ctx.setStatus("🤝 Bàn đầy — hòa!");
+          return;
+        }
 
-      turn = 1 - turn;
-      ctx.setTurn(turn);
-      setRotEnabled(false);
-      ctx.setStatus(`Lượt Người chơi ${turn + 1} — đặt một bi vào ô trống.`);
+        turn = 1 - turn;
+        ctx.setTurn(turn);
+        setRotEnabled(false);
+        ctx.setStatus(`Lượt Người chơi ${turn + 1} — đặt một bi vào ô trống.`);
+      });
     }
 
     // xoay ô vuông con q theo chiều dir
