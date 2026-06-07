@@ -187,13 +187,12 @@
         for (let c = 0; c < N; c++) {
           const cell = cellEls[r][c];
           cell.className = "ptg-cell";
+          cell.innerHTML = "";
           const v = board[r][c];
           if (v !== null) {
             const m = document.createElement("div");
             m.className = "ptg-marble " + (v === 0 ? "p1" : "p2");
             cell.appendChild(m);
-          } else {
-            cell.innerHTML = "";
           }
           if (pendingCell && pendingCell[0] === r && pendingCell[1] === c) cell.classList.add("just");
         }
