@@ -1372,6 +1372,27 @@ body {
 }
 
 /* Memory */
+.mem-root { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.mem-hud {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  width: min(520px, 94vw); flex-wrap: wrap;
+}
+.mem-score {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 10px;
+  background: var(--panel-2); border: 2px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-size: 0.95rem;
+}
+.mem-score.p1 { color: var(--p1); }
+.mem-score.p2 { color: var(--p2); }
+.mem-score.p1.turn { border-color: var(--p1); box-shadow: 0 0 12px rgba(255,93,115,0.5); }
+.mem-score.p2.turn { border-color: var(--p2); box-shadow: 0 0 12px rgba(77,208,225,0.5); }
+.mem-pairs { font-size: 1.3rem; font-weight: 800; }
+.mem-combo { font-size: 0.85rem; color: #ffb15c; }
+.mem-mid { display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--muted); }
+.mem-time { font-size: 1.05rem; font-weight: 700; color: var(--text, #e8ecff); }
+.mem-left { font-size: 0.75rem; }
 .mem-board {
   display: grid;
   gap: 10px;
@@ -1379,22 +1400,50 @@ body {
 .mem-card {
   width: 80px;
   height: 80px;
-  border-radius: 12px;
-  background: var(--panel-2);
+  perspective: 700px;
+  cursor: pointer;
+  user-select: none;
+}
+.mem-card.matched { cursor: default; }
+.mem-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.4, 0.1, 0.4, 1.2);
+}
+.mem-card.flipped .mem-inner { transform: rotateY(180deg); }
+.mem-back, .mem-front {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.2rem;
-  cursor: pointer;
-  transform-style: preserve-3d;
-  transition: transform 0.3s, background 0.2s;
-  user-select: none;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: var(--shadow);
 }
-.mem-card.flipped { background: var(--panel); transform: rotateY(180deg); }
-.mem-card.flipped .mem-face { transform: rotateY(180deg); }
-.mem-card .mem-face { transition: transform 0.3s; }
-.mem-card.matched { background: var(--good); cursor: default; }
-.mem-card.hidden-face .mem-face { visibility: hidden; }
+.mem-back {
+  font-size: 1.8rem;
+  background: linear-gradient(135deg, #39407a, #232a52);
+  color: rgba(255, 255, 255, 0.55);
+}
+.mem-front {
+  font-size: 2.4rem;
+  background: var(--panel);
+  transform: rotateY(180deg);
+}
+.mem-card.matched .mem-front {
+  background: var(--good);
+  box-shadow: 0 0 14px 2px var(--good);
+  animation: mem-matched 0.5s ease;
+}
+@keyframes mem-matched {
+  0% { transform: rotateY(180deg) scale(1); }
+  50% { transform: rotateY(180deg) scale(1.18); }
+  100% { transform: rotateY(180deg) scale(1); }
+}
 
 .winner-glow { animation: pop 0.5s ease; }
 @keyframes pop {

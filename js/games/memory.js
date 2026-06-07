@@ -1,9 +1,15 @@
 /* Lật Hình Tìm Cặp (Memory) — hỗ trợ chơi chung máy & online
-   Online dùng RNG có hạt giống (ctx.rng) để hai máy xáo bài giống nhau. */
+   Online dùng RNG có hạt giống (ctx.rng) để hai máy xáo bài giống nhau.
+   Thẻ lật 3D, nhiều bộ chủ đề emoji, combo và đồng hồ. */
 (function () {
-  const POOL = ["🍎", "🚀", "🐱", "🌸", "⚽", "🎸", "🍕", "🎲",
-                "🐶", "🌟", "🍔", "🎯", "🦊", "🍩", "🎈", "🐧",
-                "🍉", "🚗"]; // tối đa 18 cặp
+  const THEMES = {
+    animals: ["🐶", "🐱", "🦊", "🐼", "🐯", "🦁", "🐸", "🐵", "🐨", "🐰", "🐷", "🐧", "🐔", "🦄", "🐢", "🐙", "🦋", "🐝"],
+    food: ["🍎", "🍕", "🍔", "🍩", "🍦", "🍓", "🍒", "🍇", "🍉", "🍌", "🍑", "🥑", "🌮", "🍪", "🧁", "🍫", "🍿", "🥨"],
+    faces: ["😀", "😎", "🤩", "😍", "🥳", "😜", "🤓", "😱", "😡", "🥶", "🤠", "👻", "🤖", "💀", "😴", "🤯", "🥰", "😈"],
+    sport: ["⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏓", "🏸", "🥏", "🎱", "🥊", "⛳", "🏒", "🥅", "🏹", "🎯", "🛹", "🎳"],
+    nature: ["🌸", "🌻", "🌺", "🌹", "🌴", "🌵", "🍀", "🌊", "⭐", "🌙", "☀️", "🌈", "❄️", "🔥", "🍄", "🌿", "🌷", "🪐"],
+    space: ["🚀", "🛸", "🚗", "🚕", "🚌", "🚓", "🚑", "🚒", "🏎️", "🚲", "🛵", "🚂", "✈️", "🚁", "⛵", "🚤", "🛶", "🚜"],
+  };
 
   function shuffle(arr, rng) {
     for (let i = arr.length - 1; i > 0; i--) {
@@ -13,15 +19,14 @@
     return arr;
   }
 
-  // chọn số cột để lưới gần vuông nhất (ưu tiên rộng hơn cao một chút)
   function bestCols(total) {
     let bestC = Math.round(Math.sqrt(total));
     let bestScore = Infinity;
     for (let c = 2; c <= total; c++) {
       const rows = Math.ceil(total / c);
-      const empty = c * rows - total;          // số ô thừa
-      const aspect = Math.abs(c - rows);        // lệch vuông
-      const score = aspect + empty * 3 + (c < rows ? 0.5 : 0); // phạt ô thừa + thiên về rộng
+      const empty = c * rows - total;
+      const aspect = Math.abs(c - rows);
+      const score = aspect + empty * 3 + (c < rows ? 0.5 : 0);
       if (score < bestScore) { bestScore = score; bestC = c; }
     }
     return bestC;
@@ -29,27 +34,56 @@
 
   function create(ctx) {
     const PAIRS = (ctx.options && ctx.options.pairs) || 8;
+    const themeKey = (ctx.options && ctx.options.theme) || "animals";
+    const POOL = THEMES[themeKey] || THEMES.animals;
     const EMOJIS = POOL.slice(0, PAIRS);
     const deck = shuffle([...EMOJIS, ...EMOJIS], ctx.rng);
-    const cols = bestCols(deck.length); // tự động cho gần vuông
+    const cols = bestCols(deck.length);
     let turn = 0;
     let firstIdx = null;
     let lock = false;
     let matchedCount = 0;
     const matchedBy = [0, 0];
+    const combo = [0, 0];
+    const bestCombo = [0, 0];
+    let startTime = Date.now();
+    let timerId = null;
+
+    const root = document.createElement("div");
+    root.className = "mem-root";
+    ctx.boardEl.appendChild(root);
+
+    // HUD
+    const hud = document.createElement("div");
+    hud.className = "mem-hud";
+    const sp1 = document.createElement("div");
+    sp1.className = "mem-score p1";
+    const mid = document.createElement("div");
+    mid.className = "mem-mid";
+    const sp2 = document.createElement("div");
+    sp2.className = "mem-score p2";
+    hud.appendChild(sp1); hud.appendChild(mid); hud.appendChild(sp2);
+    root.appendChild(hud);
 
     const boardEl = document.createElement("div");
     boardEl.className = "mem-board";
     boardEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    ctx.boardEl.appendChild(boardEl);
+    root.appendChild(boardEl);
 
     const cards = deck.map((emoji, i) => {
       const card = document.createElement("div");
       card.className = "mem-card hidden-face";
-      const face = document.createElement("span");
-      face.className = "mem-face";
-      face.textContent = emoji;
-      card.appendChild(face);
+      const inner = document.createElement("div");
+      inner.className = "mem-inner";
+      const back = document.createElement("div");
+      back.className = "mem-back";
+      back.textContent = "❓";
+      const front = document.createElement("div");
+      front.className = "mem-front mem-face";
+      front.textContent = emoji;
+      inner.appendChild(back);
+      inner.appendChild(front);
+      card.appendChild(inner);
       card.addEventListener("click", () => onClick(i));
       boardEl.appendChild(card);
       return { el: card, emoji, matched: false };
@@ -58,6 +92,22 @@
     function showFace(i, show) {
       cards[i].el.classList.toggle("flipped", show);
       cards[i].el.classList.toggle("hidden-face", !show);
+    }
+
+    function fmtTime(ms) {
+      const s = Math.floor(ms / 1000);
+      const m = Math.floor(s / 60);
+      return `${m}:${String(s % 60).padStart(2, "0")}`;
+    }
+
+    function updateHud() {
+      sp1.classList.toggle("turn", turn === 0);
+      sp2.classList.toggle("turn", turn === 1);
+      const c1 = combo[0] >= 2 ? ` <span class="mem-combo">🔥x${combo[0]}</span>` : "";
+      const c2 = combo[1] >= 2 ? ` <span class="mem-combo">🔥x${combo[1]}</span>` : "";
+      sp1.innerHTML = `<b>P1</b> <span class="mem-pairs">${matchedBy[0]}</span>${c1}`;
+      sp2.innerHTML = `<span class="mem-pairs">${matchedBy[1]}</span> <b>P2</b>${c2}`;
+      mid.innerHTML = `<span class="mem-time">⏱ ${fmtTime(Date.now() - startTime)}</span><span class="mem-left">${EMOJIS.length - matchedCount} cặp còn lại</span>`;
     }
 
     function onClick(i) {
@@ -90,37 +140,58 @@
         card.el.classList.add("matched");
         matchedBy[turn]++;
         matchedCount++;
+        combo[turn]++;
+        if (combo[turn] > bestCombo[turn]) bestCombo[turn] = combo[turn];
         firstIdx = null;
         ctx.incScore(turn);
         ctx.sound("capture");
+        updateHud();
         if (matchedCount === EMOJIS.length) return finish();
-        ctx.setStatus(`✅ Người chơi ${turn + 1} tìm được một cặp — được đi tiếp!`);
+        const cb = combo[turn] >= 2 ? ` 🔥 Combo x${combo[turn]}!` : "";
+        ctx.setStatus(`✅ Người chơi ${turn + 1} tìm được một cặp — được đi tiếp!${cb}`);
       } else {
         lock = true;
         const a = firstIdx, b = i;
         firstIdx = null;
+        combo[turn] = 0;
         ctx.sound("error");
+        updateHud();
         setTimeout(() => {
           showFace(a, false);
           showFace(b, false);
           lock = false;
           turn = 1 - turn;
           ctx.setTurn(turn);
+          updateHud();
           ctx.setStatus(`❌ Không khớp. Đến lượt Người chơi ${turn + 1}.`);
         }, 800);
       }
     }
 
     function finish() {
+      if (timerId) { clearInterval(timerId); timerId = null; }
       ctx.setTurn(-1);
       const [a, b] = matchedBy;
-      if (a > b) ctx.setStatus(`🎉 Người chơi 1 thắng với ${a} cặp!`);
-      else if (b > a) ctx.setStatus(`🎉 Người chơi 2 thắng với ${b} cặp!`);
-      else ctx.setStatus(`🤝 Hòa! Mỗi người ${a} cặp.`);
+      const bc = `(combo cao nhất: P1 x${bestCombo[0]}, P2 x${bestCombo[1]})`;
+      if (a > b) ctx.setStatus(`🎉 Người chơi 1 thắng với ${a} cặp! ${bc}`);
+      else if (b > a) ctx.setStatus(`🎉 Người chơi 2 thắng với ${b} cặp! ${bc}`);
+      else ctx.setStatus(`🤝 Hòa! Mỗi người ${a} cặp. ${bc}`);
+      updateHud();
     }
 
+    // đồng hồ + tự dọn khi rời game
+    timerId = setInterval(() => { if (matchedCount < EMOJIS.length) updateHud(); }, 1000);
+    const observer = new MutationObserver(() => {
+      if (!document.body.contains(boardEl)) {
+        if (timerId) { clearInterval(timerId); timerId = null; }
+        observer.disconnect();
+      }
+    });
+    observer.observe(ctx.boardEl.parentNode || document.body, { childList: true, subtree: true });
+
     ctx.setTurn(0);
-    ctx.setStatus("Lật 2 thẻ giống nhau để ghi điểm. Tìm đúng được đi tiếp.");
+    updateHud();
+    ctx.setStatus("Lật 2 thẻ giống nhau để ghi điểm. Tìm đúng được đi tiếp — ghép liên tiếp để lên combo!");
     return { applyMove };
   }
 
@@ -128,7 +199,7 @@
     id: "memory",
     name: "Lật Hình Tìm Cặp",
     emoji: "🧠",
-    description: "Lật tìm các cặp hình giống nhau. Ai tìm được nhiều cặp hơn sẽ thắng.",
+    description: "Lật tìm các cặp hình giống nhau. Ghép liên tiếp để lên combo. Ai tìm được nhiều cặp hơn sẽ thắng.",
     onlineReady: true,
     options: [
       {
@@ -140,13 +211,24 @@
           { value: 18, label: "18 cặp (siêu khó)" },
         ],
       },
+      {
+        id: "theme", label: "Bộ hình", default: "animals",
+        choices: [
+          { value: "animals", label: "🐶 Động vật" },
+          { value: "food", label: "🍕 Đồ ăn" },
+          { value: "faces", label: "😎 Mặt cười" },
+          { value: "sport", label: "⚽ Thể thao" },
+          { value: "nature", label: "🌸 Thiên nhiên" },
+          { value: "space", label: "🚀 Xe & du hành" },
+        ],
+      },
     ],
     howTo: [
-      "Bàn có 16 thẻ úp xuống, gồm 8 cặp hình giống nhau.",
+      "Các thẻ úp xuống theo từng cặp hình giống nhau (chọn bộ hình và số cặp ở màn chế độ).",
       "Đến lượt mình, lật 2 thẻ bất kỳ để xem hình.",
-      "Nếu 2 thẻ giống nhau: bạn ghi được 1 điểm và được đi tiếp.",
-      "Nếu 2 thẻ khác nhau: chúng úp lại và chuyển lượt cho đối thủ.",
-      "Khi tìm hết các cặp, ai có nhiều cặp hơn sẽ thắng.",
+      "Nếu 2 thẻ giống nhau: bạn ghi 1 điểm, được đi tiếp và tăng COMBO 🔥 — ghép càng nhiều liên tiếp combo càng cao.",
+      "Nếu 2 thẻ khác nhau: chúng úp lại, combo về 0 và chuyển lượt cho đối thủ.",
+      "Đồng hồ ở giữa đếm thời gian ván đấu. Khi tìm hết các cặp, ai nhiều cặp hơn sẽ thắng.",
     ],
     create,
   });
