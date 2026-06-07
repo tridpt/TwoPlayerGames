@@ -348,6 +348,12 @@ body.theme-light .status { color: #b06a00; }
 .fav-btn:hover { transform: scale(1.12); color: #ff6b81; border-color: rgba(255, 107, 129, 0.6); }
 .fav-btn.on { color: #ff5d73; background: rgba(255, 93, 115, 0.18); border-color: rgba(255, 93, 115, 0.7); }
 .fav-btn.on:hover { color: #ff8fa1; }
+.card-stats {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
+}
 
 /* ---------- Menu ---------- */
 .game-grid {

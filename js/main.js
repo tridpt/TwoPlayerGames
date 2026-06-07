@@ -89,6 +89,8 @@
   let currentOptions = {}; // giá trị tùy chỉnh ván chơi đang dùng
   let currentCategory = "all"; // thể loại đang xem ở menu
   let menuCategories = [];     // danh sách thể loại đã dựng
+  let resultRecorded = false;  // đã ghi thống kê cho ván hiện tại chưa
+  let lastWinner = -1;         // người thắng gần nhất (theo incScore)
 
   const PLAYER_NAME_KEY = "tpg_player_name";
 
@@ -151,8 +153,12 @@
           else if (text.includes("🤝")) Sound.play("draw");
         }
         if (text && (text.includes("🎉") || text.includes("🤝") || text.includes("💀"))) {
+          const kind = text.includes("🎉") ? "win" : text.includes("💀") ? "lose" : "draw";
+          if (!resultRecorded && selectedGame && selectedGame.id) {
+            resultRecorded = true;
+            recordStat(selectedGame.id, kind === "draw" ? "draw" : "win", lastWinner);
+          }
           if (el.winOverlay.classList.contains("hidden")) {
-            const kind = text.includes("🎉") ? "win" : text.includes("💀") ? "lose" : "draw";
             showWinScreen(kind, text);
           }
         }
@@ -178,7 +184,7 @@
         el.p1Name.textContent = labelWithPlayerName(0, n1);
         el.p2Name.textContent = labelWithPlayerName(1, n2);
       },
-      incScore(idx) { scores[idx]++; renderScores(); },
+      incScore(idx) { scores[idx]++; lastWinner = idx; renderScores(); },
       getScore(idx) { return scores[idx]; },
       sendMove(move) { if (online && !sessionLocked) Net.send("move", { move }); },
       sound(name) { window.Sound && Sound.play(name); },
@@ -480,6 +486,20 @@
     const p = getPlays();
     p[id] = (p[id] || 0) + 1;
     try { localStorage.setItem(PLAYS_KEY, JSON.stringify(p)); } catch (e) { /* ignore */ }
+  }
+
+  const STATS_KEY = "tpg_stats";
+  function getStats() { try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {}; } catch (e) { return {}; } }
+  function statOf(id) { return getStats()[id] || { played: 0, p1: 0, p2: 0, draw: 0 }; }
+  function recordStat(id, kind, winner) {
+    const all = getStats();
+    const s = all[id] || { played: 0, p1: 0, p2: 0, draw: 0 };
+    s.played++;
+    if (kind === "draw") s.draw++;
+    else if (winner === 0) s.p1++;
+    else if (winner === 1) s.p2++;
+    all[id] = s;
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(all)); } catch (e) { /* ignore */ }
   }
   function isHot(id) {
     const plays = getPlays();
@@ -875,6 +895,13 @@
     buildOptionsUI(lobbySelectedGame, el.lobbyOptionsPanel, el.lobbyOptionsList, "lobby_opt_");
   }
 
+  function statLineHtml(id) {
+    const s = statOf(id);
+    if (!s.played) return "";
+    return `<div class="card-stats">🎮 ${s.played} ván · 🏆 ${s.p1}–${s.p2}` +
+      (s.draw ? ` · 🤝 ${s.draw}` : "") + `</div>`;
+  }
+
   function createGameCard(g) {
     const card = document.createElement("div");
     card.className = "game-card";
@@ -895,6 +922,7 @@
       `</div>` +
       `<h3>${g.name}</h3>` +
       `<p>${g.description}</p>` +
+      statLineHtml(g.id) +
       tags.map((tag) => `<span class="tag-local">${tag}</span>`).join("");
 
     const fav = card.querySelector(".fav-btn");
@@ -1217,6 +1245,8 @@
     el.scoreP2.classList.remove("active");
     if (el.winOverlay) { el.winOverlay.classList.add("hidden"); stopConfetti(); }
     scores = [0, 0];
+    resultRecorded = false;
+    lastWinner = -1;
     renderScores();
     setGameHeading(el.gameTitle, selectedGame);
 
