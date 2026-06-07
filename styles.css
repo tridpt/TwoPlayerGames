@@ -4104,46 +4104,80 @@ body {
 .ptg-rotgroup span { font-size: 0.8rem; color: var(--muted); margin-right: 2px; }
 
 /* ---------- Cờ Ba Quân (Morris) ---------- */
-.mor-wrap { display: flex; justify-content: center; padding: 20px; }
+.mor-root { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.mor-hud {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  width: min(420px, 90vw);
+}
+.mor-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid transparent;
+  font-size: 0.78rem;
+}
+.mor-side small { color: var(--muted); font-size: 0.72rem; }
+.mor-side.p1 { color: #ff8c9c; }
+.mor-side.p2 { color: #7fe2f0; }
+.mor-side.p1.active { border-color: var(--p1); box-shadow: 0 0 10px rgba(255,93,115,0.4); }
+.mor-side.p2.active { border-color: var(--p2); box-shadow: 0 0 10px rgba(77,208,225,0.4); }
+.mor-phase {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 0.82rem; color: var(--accent); min-width: 96px;
+}
+.mor-phase i { font-style: normal; font-size: 0.66rem; color: var(--muted); font-weight: 600; }
+.mor-wrap { display: flex; justify-content: center; }
 .mor-board {
   position: relative;
   width: min(360px, 84vw);
   height: min(360px, 84vw);
-  background: var(--panel);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
-  padding: 30px;
+  background:
+    radial-gradient(circle at 50% 40%, #e8cfa0, #d3b380 70%, #b9925f);
+  border: 8px solid #6b4421;
+  border-radius: 16px;
+  box-shadow: var(--shadow), inset 0 0 24px rgba(90,50,20,0.4);
+  padding: 32px;
   box-sizing: content-box;
 }
-.mor-lines { position: absolute; inset: 30px; width: calc(100% - 60px); height: calc(100% - 60px); pointer-events: none; }
+.mor-lines { position: absolute; inset: 32px; width: calc(100% - 64px); height: calc(100% - 64px); pointer-events: none; }
 .mor-spot {
   position: absolute;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: radial-gradient(circle at 50% 50%, #6b4421 0 32%, transparent 36%);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s, box-shadow 0.12s;
+  transition: box-shadow 0.12s, transform 0.1s;
 }
-/* các điểm nằm trong vùng 30px padding -> dùng inset bằng calc qua left/top % của khung trong */
-.mor-board { }
-.mor-spot { margin-left: 0; }
-.mor-spot.sel { box-shadow: 0 0 0 3px var(--accent); }
-.mor-spot.hint { background: rgba(110, 231, 183, 0.4); }
+.mor-spot.hint { box-shadow: 0 0 0 3px rgba(110,231,183,0.7), 0 0 12px rgba(110,231,183,0.5); }
+.mor-spot.hint:hover { transform: translate(-50%, -50%) scale(1.08); }
+.mor-spot.sel { box-shadow: 0 0 0 4px var(--accent), 0 0 14px rgba(255,209,102,0.6); }
+.mor-spot.last { box-shadow: 0 0 0 3px rgba(255,209,102,0.55); }
 .mor-piece {
-  width: 70%;
-  height: 70%;
+  width: 74%;
+  height: 74%;
   border-radius: 50%;
-  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 -4px 7px rgba(0,0,0,0.4), inset 0 3px 5px rgba(255,255,255,0.4);
 }
-.mor-piece.p1 { background: radial-gradient(circle at 35% 30%, #ff8c9c, #d33049); }
-.mor-piece.p2 { background: radial-gradient(circle at 35% 30%, #8be6f0, #1aa7bd); }
-.mor-spot.win { background: var(--good); }
+.mor-piece.p1 { background: radial-gradient(circle at 36% 28%, #ffb3c0, #ff5d73 58%, #b3263c); }
+.mor-piece.p2 { background: radial-gradient(circle at 36% 28%, #b3f3ff, #4dd0e1 58%, #1c8a99); }
+.mor-piece.ghost { opacity: 0.4; box-shadow: none; }
+.mor-spot.win {
+  box-shadow: 0 0 0 4px var(--good), 0 0 18px rgba(110,231,183,0.8);
+  animation: mor-win 0.7s ease-in-out infinite alternate;
+}
+@keyframes mor-win { from { filter: brightness(1); } to { filter: brightness(1.4); } }
 
 /* ---------- Bắn Tăng (Artillery) ---------- */
 .art-canvas {
