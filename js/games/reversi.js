@@ -1,4 +1,6 @@
-/* Reversi / Othello (bàn 8x8) — hỗ trợ chơi chung máy & online */
+/* Reversi / Othello (bàn 8x8) — hỗ trợ chơi chung máy & online
+   Phiên bản thân thiện người mới: HUD đếm quân, gợi ý số quân sẽ lật trên mỗi ô,
+   xem trước khi rê chuột, hiệu ứng lật quân, highlight nước đi cuối. */
 (function () {
   const N = 8;
   const DIRS = [
@@ -8,15 +10,48 @@
   ];
 
   function create(ctx) {
+    const o = ctx.options || {};
+    const HINTS = o.hints !== "off"; // mặc định bật gợi ý
+
     let board = Array.from({ length: N }, () => Array(N).fill(null));
     board[3][3] = 1; board[3][4] = 0;
     board[4][3] = 0; board[4][4] = 1;
     let turn = 0; // 0 = đen đi trước
     let over = false;
+    let lastMove = null;       // [r,c] vừa đặt
+    let lastFlips = [];        // các ô vừa bị lật
+
+    const root = document.createElement("div");
+    root.className = "rv-root";
+    ctx.boardEl.appendChild(root);
+
+    // ----- HUD đếm quân + chỉ báo lượt -----
+    const hud = document.createElement("div");
+    hud.className = "rv-hud";
+    const sideP1 = document.createElement("div");
+    sideP1.className = "rv-side p1";
+    sideP1.innerHTML = '<span class="rv-chip p1"></span><span class="rv-count" id="rvc1">2</span><span class="rv-name">Đen</span>';
+    const sideP2 = document.createElement("div");
+    sideP2.className = "rv-side p2";
+    sideP2.innerHTML = '<span class="rv-name">Trắng</span><span class="rv-count" id="rvc2">2</span><span class="rv-chip p2"></span>';
+    const turnBadge = document.createElement("div");
+    turnBadge.className = "rv-turnbadge";
+    hud.appendChild(sideP1);
+    hud.appendChild(turnBadge);
+    hud.appendChild(sideP2);
+    root.appendChild(hud);
+
+    // thanh tỉ lệ quân
+    const bar = document.createElement("div");
+    bar.className = "rv-bar";
+    const barFill = document.createElement("div");
+    barFill.className = "rv-bar-fill";
+    bar.appendChild(barFill);
+    root.appendChild(bar);
 
     const boardEl = document.createElement("div");
     boardEl.className = "rv-board";
-    ctx.boardEl.appendChild(boardEl);
+    root.appendChild(boardEl);
 
     const cellEls = Array.from({ length: N }, () => Array(N));
     for (let r = 0; r < N; r++) {
@@ -25,6 +60,8 @@
         cell.className = "rv-cell";
         const rr = r, cc = c;
         cell.addEventListener("click", () => onClick(rr, cc));
+        cell.addEventListener("mouseenter", () => onHover(rr, cc));
+        cell.addEventListener("mouseleave", () => clearPreview());
         boardEl.appendChild(cell);
         cellEls[r][c] = cell;
       }
@@ -53,10 +90,40 @@
       return moves;
     }
 
+    function myTurnNow() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
+
+    function onHover(r, c) {
+      if (!HINTS || !myTurnNow()) return;
+      const flips = flipsFor(r, c, turn);
+      if (!flips.length) return;
+      // hiển thị quân ma tại ô sẽ đặt
+      cellEls[r][c].classList.add("preview");
+      const ghost = document.createElement("div");
+      ghost.className = "rv-disc ghost " + (turn === 0 ? "p1" : "p2");
+      cellEls[r][c].appendChild(ghost);
+      // làm nổi các quân sẽ bị lật
+      flips.forEach(([fr, fc]) => cellEls[fr][fc].classList.add("willflip"));
+    }
+
+    function clearPreview() {
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const cell = cellEls[r][c];
+          if (cell.classList.contains("preview")) {
+            cell.classList.remove("preview");
+            const g = cell.querySelector(".ghost");
+            if (g) g.remove();
+          }
+          cell.classList.remove("willflip");
+        }
+      }
+    }
+
     function onClick(r, c) {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) return;
       if (!flipsFor(r, c, turn).length) return;
+      clearPreview();
       applyMove({ r, c }, false);
     }
 
@@ -67,6 +134,8 @@
       if (!flips.length) return;
       board[r][c] = turn;
       flips.forEach(([fr, fc]) => { board[fr][fc] = turn; });
+      lastMove = [r, c];
+      lastFlips = flips;
       ctx.sound(flips.length >= 3 ? "capture" : "place");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ r, c });
@@ -80,14 +149,19 @@
       if (legalMoves(other).length) {
         turn = other;
       } else if (legalMoves(turn).length) {
-        ctx.setStatus(`Người chơi ${other + 1} không có nước đi — mất lượt.`);
+        ctx.setTurn(turn);
+        updateHud(`⏭️ ${pname(other)} không có nước đi hợp lệ — bị mất lượt!`);
+        render();
+        return;
       } else {
         return endGame();
       }
       ctx.setTurn(turn);
-      updateStatus();
+      updateHud();
       render();
     }
+
+    function pname(p) { return p === 0 ? "Đen" : "Trắng"; }
 
     function count(p) {
       let n = 0;
@@ -95,14 +169,30 @@
       return n;
     }
 
-    function updateStatus() {
-      ctx.setStatus(`⚫ Đen: ${count(0)}  —  ⚪ Trắng: ${count(1)}`);
+    function updateHud(msg) {
+      const b = count(0), w = count(1);
+      const c1 = document.querySelector("#rvc1"), c2 = document.querySelector("#rvc2");
+      if (c1) c1.textContent = b;
+      if (c2) c2.textContent = w;
+      const total = b + w;
+      barFill.style.width = total ? `${(b / total) * 100}%` : "50%";
+      sideP1.classList.toggle("active", !over && turn === 0);
+      sideP2.classList.toggle("active", !over && turn === 1);
+      if (over) {
+        turnBadge.textContent = "Kết thúc";
+      } else {
+        const chip = turn === 0 ? "⚫" : "⚪";
+        turnBadge.innerHTML = `Lượt: <b>${chip} ${pname(turn)}</b>`;
+      }
+      if (msg) ctx.setStatus(msg);
+      else ctx.setStatus(`⚫ Đen: ${b}  —  ⚪ Trắng: ${w}. ${over ? "" : "Bấm ô có số để đặt quân — số là số quân bạn sẽ lật được."}`);
     }
 
     function endGame() {
       over = true;
       const b = count(0), w = count(1);
       ctx.setTurn(-1);
+      updateHud();
       if (b > w) { ctx.incScore(0); ctx.setStatus(`🎉 Người chơi 1 (Đen) thắng ${b}–${w}!`); }
       else if (w > b) { ctx.incScore(1); ctx.setStatus(`🎉 Người chơi 2 (Trắng) thắng ${w}–${b}!`); }
       else ctx.setStatus(`🤝 Hòa ${b}–${w}!`);
@@ -110,21 +200,32 @@
     }
 
     function render() {
-      const legal = (over || (ctx.isOnline && turn !== ctx.mySeat)) ? [] : legalMoves(turn);
-      const legalSet = new Set(legal.map(([r, c]) => r * N + c));
+      const showHints = HINTS && myTurnNow();
+      const legal = showHints ? legalMoves(turn) : [];
+      const flipCount = new Map(); // r*N+c -> số quân lật
+      legal.forEach(([r, c]) => flipCount.set(r * N + c, flipsFor(r, c, turn).length));
+      const lastFlipSet = new Set(lastFlips.map(([r, c]) => r * N + c));
+
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
           const cell = cellEls[r][c];
           cell.innerHTML = "";
-          cell.classList.remove("legal");
+          cell.className = "rv-cell";
           const v = board[r][c];
           if (v !== null) {
             const disc = document.createElement("div");
             disc.className = "rv-disc " + (v === 0 ? "p1" : "p2");
+            if (lastFlipSet.has(r * N + c)) disc.classList.add("flip");
+            if (lastMove && lastMove[0] === r && lastMove[1] === c) disc.classList.add("placed");
             cell.appendChild(disc);
-          } else if (legalSet.has(r * N + c)) {
+          } else if (flipCount.has(r * N + c)) {
             cell.classList.add("legal");
+            const tag = document.createElement("span");
+            tag.className = "rv-hint";
+            tag.textContent = flipCount.get(r * N + c);
+            cell.appendChild(tag);
           }
+          if (lastMove && lastMove[0] === r && lastMove[1] === c) cell.classList.add("lastmove");
         }
       }
     }
@@ -132,7 +233,7 @@
     ctx.setNames("Người chơi 1 (Đen)", "Người chơi 2 (Trắng)");
     ctx.setTurn(0);
     render();
-    updateStatus();
+    updateHud();
     return { applyMove };
   }
 
@@ -140,14 +241,25 @@
     id: "reversi",
     name: "Cờ Lật (Reversi)",
     emoji: "⚫",
-    description: "Kẹp quân đối thủ để lật thành quân mình. Ai nhiều quân hơn khi hết bàn sẽ thắng.",
+    description: "Kẹp quân đối thủ để lật thành quân mình. Ai nhiều quân hơn khi hết bàn sẽ thắng. Có gợi ý số quân sẽ lật cho người mới.",
     onlineReady: true,
+    options: [
+      {
+        id: "hints", label: "Gợi ý cho người mới", default: "on",
+        choices: [
+          { value: "on", label: "Bật (hiện số quân lật + xem trước)" },
+          { value: "off", label: "Tắt (chơi như cao thủ)" },
+        ],
+      },
+    ],
     howTo: [
-      "Người chơi 1 dùng quân Đen, Người chơi 2 dùng quân Trắng. Đen đi trước.",
-      "Các ô có thể đánh được sẽ hiện chấm mờ gợi ý.",
-      "Đặt quân sao cho kẹp được một hàng quân đối thủ giữa quân vừa đặt và một quân khác của mình — toàn bộ hàng bị kẹp sẽ lật thành quân của bạn.",
-      "Bạn chỉ được đánh vào ô tạo ra ít nhất một lần lật. Nếu không có nước đi hợp lệ thì mất lượt.",
-      "Khi bàn đầy (hoặc cả hai đều không đi được), ai có nhiều quân hơn sẽ thắng.",
+      "Người chơi 1 dùng quân ⚫ Đen, Người chơi 2 dùng quân ⚪ Trắng. Đen đi trước.",
+      "Mục tiêu: kẹp một hàng quân đối thủ giữa quân bạn vừa đặt và một quân khác của bạn — cả hàng đó sẽ LẬT thành quân của bạn.",
+      "Khi bật Gợi ý: các ô đánh được sẽ hiện một CON SỐ — đó là số quân bạn sẽ lật nếu đặt vào đó. Số càng to thường càng lợi.",
+      "Rê chuột lên ô gợi ý để XEM TRƯỚC: quân ma hiện ra và những quân sắp bị lật sẽ nhấp nháy.",
+      "Bạn chỉ được đặt vào ô tạo ra ít nhất 1 lần lật. Không có nước đi hợp lệ thì bị mất lượt.",
+      "Bảng trên đếm số quân mỗi bên và cho biết đang tới lượt ai. Khi bàn đầy (hoặc cả hai đều tắc), ai nhiều quân hơn sẽ thắng.",
+      "Mẹo: 4 góc bàn rất mạnh vì không bao giờ bị lật lại — cố chiếm góc!",
     ],
     create,
   });
