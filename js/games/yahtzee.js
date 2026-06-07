@@ -51,6 +51,7 @@
     let rolledThisTurn = false;
     let animating = false;
     const scores = [{}, {}];
+    const yahtzeeBonus = [0, 0]; // thưởng +100 mỗi Yahtzee thêm (sau khi ô ⭐ đã có 50)
 
     const root = document.createElement("div");
     root.className = "yz-root";
@@ -133,6 +134,14 @@
       `<span class="yz-v p2" id="yzB1"></span>`;
     tableEl.appendChild(bonusRow);
 
+    // hàng thưởng Yahtzee thêm (+100 mỗi lần)
+    const yzbRow = document.createElement("div");
+    yzbRow.className = "yz-row yz-bonus";
+    yzbRow.innerHTML = `<span class="yz-cat">⭐ Yahtzee Bonus (+100)</span>` +
+      `<span class="yz-v p1" id="yzYB0"></span>` +
+      `<span class="yz-v p2" id="yzYB1"></span>`;
+    tableEl.appendChild(yzbRow);
+
     // hàng tổng
     const totalRow = document.createElement("div");
     totalRow.className = "yz-row yz-total";
@@ -179,6 +188,15 @@
         const cat = CATS.find((c) => c.id === move.cat);
         if (!cat || scores[turn][move.cat] !== undefined) return;
         if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        // Luật Yahtzee Bonus: nếu đang có 5 viên giống nhau VÀ ô ⭐ đã ghi 50 điểm,
+        // mỗi Yahtzee thêm được +100 điểm thưởng.
+        const isYahtzee = ofAKind(dice, 5);
+        if (isYahtzee && scores[turn].yahtzee === 50) {
+          yahtzeeBonus[turn] += 100;
+          hintEl.innerHTML = "⭐ <b>YAHTZEE BONUS +100!</b> 🎉";
+          hintEl.classList.add("yz-celebrate");
+          ctx.sound("win");
+        }
         const val = cat.fn(dice);
         scores[turn][move.cat] = val;
         ctx.sound(val > 0 ? "capture" : "error");
@@ -257,7 +275,7 @@
     function upperSum(p) { return UPPER.reduce((s, id) => s + (scores[p][id] || 0), 0); }
     function bonus(p) { return upperSum(p) >= UPPER_TARGET ? UPPER_BONUS : 0; }
     function total(p) {
-      return CATS.reduce((s, c) => s + (scores[p][c.id] || 0), 0) + bonus(p);
+      return CATS.reduce((s, c) => s + (scores[p][c.id] || 0), 0) + bonus(p) + yahtzeeBonus[p];
     }
 
     function finish() {
@@ -308,6 +326,12 @@
         el.textContent = bn ? "+" + bn : us + "/" + UPPER_TARGET;
         el.classList.toggle("filled", bn > 0);
       });
+      // thưởng Yahtzee thêm
+      [0, 1].forEach((p) => {
+        const el = root.querySelector("#yzYB" + p);
+        el.textContent = yahtzeeBonus[p] ? "+" + yahtzeeBonus[p] : "·";
+        el.classList.toggle("filled", yahtzeeBonus[p] > 0);
+      });
       root.querySelector("#yzTot0").textContent = total(0);
       root.querySelector("#yzTot1").textContent = total(1);
     }
@@ -332,6 +356,7 @@
       "Các ô số (1–6): tính tổng các viên có số đó. 3/4 giống nhau: tổng tất cả viên. Cù lũ: 25đ. Sảnh nhỏ (4 liên tiếp): 30đ. Sảnh lớn (5 liên tiếp): 40đ.",
       "Yahtzee (cả 5 viên giống nhau): 50đ. May rủi: tổng tất cả viên.",
       "THƯỞNG: nếu tổng 6 ô số (1–6) đạt từ 63 điểm trở lên, bạn được cộng thêm 35 điểm.",
+      "⭐ YAHTZEE BONUS: nếu ô ⭐ đã được ghi 50 điểm, mỗi lần bạn tung thêm một Yahtzee (5 viên giống nhau) sẽ được cộng ngay +100 điểm thưởng.",
       "Mỗi ô chỉ điền một lần. Khi cả hai điền hết 13 ô, ai tổng điểm cao hơn sẽ thắng.",
     ],
     create,
