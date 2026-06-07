@@ -9,6 +9,7 @@
     let board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     let turn = 0;
     let over = false;
+    const moveStack = []; // ngăn xếp nước đi để hoàn tác
 
     const boardEl = document.createElement("div");
     boardEl.className = "c4-board";
@@ -72,6 +73,7 @@
 
       const p = turn;
       board[r][c] = p;
+      moveStack.push({ r, c, p });
 
       // xóa highlight nước cũ
       for (let rr = 0; rr < ROWS; rr++)
@@ -134,9 +136,28 @@
 
     function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
 
+    function undo() {
+      if (!moveStack.length) return false;
+      const m = moveStack.pop();
+      board[m.r][m.c] = null;
+      for (let rr = 0; rr < ROWS; rr++)
+        for (let cc = 0; cc < COLS; cc++)
+          cellEls[rr][cc].classList.remove("win", "last");
+      const cell = cellEls[m.r][m.c];
+      cell.className = "c4-cell";
+      if (cell.style && cell.style.removeProperty) cell.style.removeProperty("--drop");
+      over = false;
+      turn = m.p;
+      const prev = moveStack[moveStack.length - 1];
+      if (prev) cellEls[prev.r][prev.c].classList.add("last");
+      ctx.setTurn(turn);
+      ctx.setStatus(`Lượt Người chơi ${turn + 1} — bấm vào cột để thả quân.`);
+      return true;
+    }
+
     ctx.setTurn(0);
     ctx.setStatus("Thả quân vào cột. Nối 4 quân cùng màu là thắng.");
-    return { applyMove };
+    return { applyMove, undo };
   }
 
   window.GameRegistry.register({

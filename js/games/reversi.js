@@ -20,6 +20,7 @@
     let over = false;
     let lastMove = null;       // [r,c] vừa đặt
     let lastFlips = [];        // các ô vừa bị lật
+    const history = [];        // ngăn xếp trạng thái để hoàn tác
 
     const root = document.createElement("div");
     root.className = "rv-root";
@@ -132,6 +133,11 @@
       const { r, c } = move;
       const flips = flipsFor(r, c, turn);
       if (!flips.length) return;
+      history.push({
+        board: board.map((row) => row.slice()),
+        turn, over, lastMove, lastFlips: lastFlips.slice(),
+      });
+      if (history.length > 100) history.shift();
       board[r][c] = turn;
       flips.forEach(([fr, fc]) => { board[fr][fc] = turn; });
       lastMove = [r, c];
@@ -230,11 +236,26 @@
       }
     }
 
+    function undo() {
+      if (!history.length) return false;
+      const s = history.pop();
+      board = s.board.map((row) => row.slice());
+      turn = s.turn;
+      over = s.over;
+      lastMove = s.lastMove;
+      lastFlips = s.lastFlips.slice();
+      clearPreview();
+      ctx.setTurn(turn);
+      render();
+      updateHud();
+      return true;
+    }
+
     ctx.setNames("Người chơi 1 (Đen)", "Người chơi 2 (Trắng)");
     ctx.setTurn(0);
     render();
     updateHud();
-    return { applyMove };
+    return { applyMove, undo };
   }
 
   window.GameRegistry.register({

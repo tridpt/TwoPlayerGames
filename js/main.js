@@ -50,6 +50,7 @@
     scoreP2: $("scoreP2"),
     backBtn: $("backBtn"),
     restartBtn: $("restartBtn"),
+    undoBtn: $("undoBtn"),
     homeBtn: $("homeBtn"),
     soundToggle: $("soundToggle"),
     themeToggle: $("themeToggle"),
@@ -1271,6 +1272,9 @@
     applyScoreboardNames();
     instance = selectedGame.create(ctx);
     if (selectedGame && selectedGame.id) { pushRecent(selectedGame.id); incPlay(selectedGame.id); }
+    // Nút hoàn tác chỉ hiện khi chơi chung máy và game có hỗ trợ undo
+    el.undoBtn.classList.toggle("hidden", !!online || !instance || typeof instance.undo !== "function");
+    el.undoBtn.disabled = false;
     show("gameView");
     if (opts.autoHelp) {
       setTimeout(openHelp, 0);
@@ -1526,6 +1530,16 @@
     restartGame();
   });
   el.winMenu.addEventListener("click", () => { hideWinScreen(); goHome(); });
+
+  if (el.undoBtn) {
+    el.undoBtn.addEventListener("click", () => {
+      if (online) return;
+      if (instance && typeof instance.undo === "function") {
+        const undone = instance.undo();
+        if (undone) { resultRecorded = false; Sound.play("select"); }
+      }
+    });
+  }
 
   if (el.gameSearch) {
     el.gameSearch.addEventListener("input", () => runSearch(el.gameSearch.value));

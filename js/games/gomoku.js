@@ -32,12 +32,14 @@
     }
 
     let lastCell = null;
+    const moveStack = []; // ngăn xếp nước đi để hoàn tác
 
     function applyMove(move, fromRemote) {
       const { r, c } = move;
       if (over || board[r][c] !== null) return;
       const p = turn;
       board[r][c] = p;
+      moveStack.push({ r, c, p, prev: lastCell });
       const stone = document.createElement("div");
       stone.className = "gmk-stone " + (p === 0 ? "p1" : "p2");
       stone.textContent = p === 0 ? "X" : "O";
@@ -84,10 +86,28 @@
 
     function inB(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
 
+    function undo() {
+      if (!moveStack.length) return false;
+      const m = moveStack.pop();
+      board[m.r][m.c] = null;
+      const cell = cellEls[m.r][m.c];
+      cell.innerHTML = "";
+      cell.classList.remove("last", "win");
+      // gỡ highlight thắng trên toàn bàn (nếu vừa thắng)
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) cellEls[r][c].classList.remove("win");
+      over = false;
+      turn = m.p;
+      lastCell = m.prev;
+      if (lastCell) cellEls[lastCell[0]][lastCell[1]].classList.add("last");
+      ctx.setTurn(turn);
+      ctx.setStatus(`Lượt Người chơi ${turn + 1} (${turn === 0 ? "X" : "O"}).`);
+      return true;
+    }
+
     ctx.setNames("Người chơi 1 (X)", "Người chơi 2 (O)");
     ctx.setTurn(0);
     ctx.setStatus(`X đi trước. Nối ${NEED} quân liên tiếp để thắng.`);
-    return { applyMove };
+    return { applyMove, undo };
   }
 
   window.GameRegistry.register({

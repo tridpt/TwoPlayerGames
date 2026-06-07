@@ -27,6 +27,7 @@
     let lastCells = [];       // các ô của nước đi cuối để highlight
     let moveCount = 0;        // đếm nước ở giai đoạn di chuyển
     let ghostIdx = null;
+    const history = [];       // ngăn xếp trạng thái để hoàn tác
 
     const root = document.createElement("div");
     root.className = "ttt-root";
@@ -108,17 +109,50 @@
       }
     }
 
+    function snapshot() {
+      history.push({
+        board: board.slice(),
+        turn, over,
+        placed: placed.slice(),
+        phase, moveCount,
+        lastCells: lastCells.slice(),
+      });
+      if (history.length > 100) history.shift();
+    }
+
+    function undo() {
+      if (!history.length) return false;
+      const s = history.pop();
+      board = s.board.slice();
+      turn = s.turn;
+      over = s.over;
+      placed[0] = s.placed[0]; placed[1] = s.placed[1];
+      phase = s.phase;
+      moveCount = s.moveCount;
+      lastCells = s.lastCells.slice();
+      selected = null;
+      ghostIdx = null;
+      // xóa highlight thắng
+      cells.forEach((c) => c.classList.remove("win"));
+      ctx.setTurn(turn);
+      render();
+      updateHud();
+      return true;
+    }
+
     function applyMove(move, fromRemote) {
       if (over) return;
       const p = turn;
 
       if (move.k === "p") {
         if (board[move.i] !== null) return;
+        snapshot();
         board[move.i] = p;
         placed[p]++;
         lastCells = [move.i];
       } else if (move.k === "m") {
         if (board[move.from] !== p || board[move.to] !== null || !adjacent(move.from, move.to)) return;
+        snapshot();
         board[move.from] = null;
         board[move.to] = p;
         lastCells = [move.from, move.to];
@@ -221,7 +255,7 @@
     ctx.setTurn(0);
     render();
     updateHud();
-    return { applyMove };
+    return { applyMove, undo };
   }
 
   window.GameRegistry.register({
