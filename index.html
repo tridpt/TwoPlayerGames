@@ -35,7 +35,21 @@
             <input type="search" id="gameSearch" class="search-input" placeholder="Tìm trò chơi theo tên hoặc mô tả..." autocomplete="off" />
           </div>
           <div class="cat-head" id="catHead"><!-- tiêu đề + mô tả thể loại --></div>
+          <div class="list-controls">
+            <div class="filter-chips">
+              <button type="button" class="chip" id="chipOnline">🌐 Online</button>
+              <button type="button" class="chip" id="chipAI">🤖 Đấu máy</button>
+            </div>
+            <label class="sort-wrap">Sắp xếp:
+              <select class="option-select sort-select" id="sortSelect">
+                <option value="popular">Phổ biến</option>
+                <option value="az">Tên A→Z</option>
+                <option value="new">Mới nhất</option>
+              </select>
+            </label>
+          </div>
           <div class="game-section-grid" id="gameGrid"><!-- thẻ game render bằng JS --></div>
+          <button type="button" class="btn load-more hidden" id="loadMoreBtn">Xem thêm</button>
         </div>
       </div>
     </section>
