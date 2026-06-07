@@ -373,6 +373,46 @@ body.theme-light .status { color: #b06a00; }
 .mode-icon-ai { display: flex; align-items: center; justify-content: center; font-size: 2.4rem; }
 .ai-level-select { margin-top: 10px; width: 100%; }
 
+/* ---------- Trang chi tiết game ---------- */
+.detail-view { display: flex; flex-direction: column; gap: 18px; }
+.detail-card {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+  background: linear-gradient(160deg, rgba(42,48,96,0.7), rgba(28,33,68,0.85));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.detail-poster .game-poster { height: 200px; border-radius: 14px; }
+.detail-poster .poster-emoji { font-size: 6rem; }
+.detail-info { display: flex; flex-direction: column; gap: 12px; }
+.detail-title { font-family: var(--font-head); font-weight: 800; font-size: 1.8rem; margin: 0; }
+.detail-badges { display: flex; flex-wrap: wrap; gap: 7px; }
+.detail-badges .badge { position: static; }
+.badge-ai { background: linear-gradient(135deg, #a78bfa, #7c5cff); color: #fff; }
+.detail-desc { color: var(--muted); line-height: 1.55; margin: 0; font-size: 1rem; }
+.detail-stats { display: flex; flex-wrap: wrap; gap: 14px; color: var(--text); font-weight: 600; font-size: 0.9rem; }
+.detail-stats .detail-nostat { color: var(--muted); font-weight: 500; }
+.detail-play { align-self: flex-start; font-size: 1.05rem; padding: 12px 28px; margin-top: 4px; }
+.detail-howto {
+  background: linear-gradient(160deg, rgba(42,48,96,0.55), rgba(24,28,58,0.8));
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  box-shadow: var(--shadow);
+}
+.detail-howto h3 { margin: 0 0 12px; font-family: var(--font-head); }
+.detail-howto ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 9px; }
+.detail-howto li { line-height: 1.5; color: var(--text); }
+.detail-howto li::marker { color: var(--accent); font-weight: 700; }
+@media (max-width: 640px) {
+  .detail-card { grid-template-columns: 1fr; }
+  .detail-poster .game-poster { height: 150px; }
+}
+
 /* ---------- Menu ---------- */
 .game-grid {
   display: flex;

@@ -10,6 +10,15 @@
     catSidebar: $("catSidebar"),
     catHead: $("catHead"),
     gameSearch: $("gameSearch"),
+    detailView: $("detailView"),
+    detailBackBtn: $("detailBackBtn"),
+    detailPoster: $("detailPoster"),
+    detailTitle: $("detailTitle"),
+    detailBadges: $("detailBadges"),
+    detailDesc: $("detailDesc"),
+    detailStats: $("detailStats"),
+    detailHowto: $("detailHowto"),
+    detailPlayBtn: $("detailPlayBtn"),
     openOnlineHubBtn: $("openOnlineHubBtn"),
     modeView: $("modeView"),
     modeTitle: $("modeTitle"),
@@ -956,8 +965,29 @@
       buildCatSidebar();
       if (currentCategory === "fav") renderCategory("fav");
     });
-    card.addEventListener("click", () => openMode(g));
+    card.addEventListener("click", () => openDetail(g));
     return card;
+  }
+
+  // ====================== Trang chi tiết game ======================
+  function openDetail(game) {
+    selectedGame = game;
+    el.detailPoster.innerHTML = gameAvatarHtml(game);
+    el.detailTitle.textContent = (game.emoji ? game.emoji + " " : "") + game.name;
+    const badges = [];
+    if (isHot(game.id)) badges.push(`<span class="badge badge-hot">🔥 Hot</span>`);
+    if (isNew(game.id)) badges.push(`<span class="badge badge-new">✦ Mới</span>`);
+    if (game.onlineReady !== false) badges.push(`<span class="badge badge-online">🌐 Online</span>`);
+    if (game.supportsAI) badges.push(`<span class="badge badge-ai">🤖 Đấu máy</span>`);
+    el.detailBadges.innerHTML = badges.join("");
+    el.detailDesc.textContent = game.description || "";
+    const s = statOf(game.id);
+    el.detailStats.innerHTML = s.played
+      ? `<span>🎮 ${s.played} ván đã chơi</span><span>🏆 P1 ${s.p1} – ${s.p2} P2</span>${s.draw ? `<span>🤝 ${s.draw} hòa</span>` : ""}`
+      : `<span class="detail-nostat">Chưa có ván nào — chơi thử ngay!</span>`;
+    const steps = game.howTo || ["Chưa có hướng dẫn cho trò này."];
+    el.detailHowto.innerHTML = steps.map((t) => `<li>${t}</li>`).join("");
+    show("detailView");
   }
 
   // ====================== Chọn chế độ ======================
@@ -1425,7 +1455,7 @@
 
   // ---- Điều hướng màn hình ----
   function show(viewId) {
-    ["menu", "modeView", "lobbyView", "gameView"].forEach((id) => {
+    ["menu", "detailView", "modeView", "lobbyView", "gameView"].forEach((id) => {
       el[id].classList.toggle("hidden", id !== viewId);
     });
   }
@@ -1433,6 +1463,8 @@
   el.backBtn.addEventListener("click", goHome);
   el.homeBtn.addEventListener("click", goHome);
   el.modeBackBtn.addEventListener("click", () => show("menu"));
+  if (el.detailBackBtn) el.detailBackBtn.addEventListener("click", () => show("menu"));
+  if (el.detailPlayBtn) el.detailPlayBtn.addEventListener("click", () => { if (selectedGame) openMode(selectedGame); });
   el.lobbyBackBtn.addEventListener("click", closeLobby);
   el.restartBtn.addEventListener("click", restartGame);
 
