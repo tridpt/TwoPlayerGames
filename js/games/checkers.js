@@ -23,6 +23,8 @@
     let over = false;
     let lastMove = null;     // {from:[r,c], to:[r,c]}
     const eaten = [0, 0];    // số quân mỗi người đã ăn
+    let aiPlan = null;       // chuỗi nước ăn liên hoàn AI đã chọn
+    let aiPlanIdx = 0;
 
     const root = document.createElement("div");
     root.className = "chk-root";
@@ -154,6 +156,7 @@
         mustContinue = [tr, tc];
         selected = [tr, tc];
         render();
+        ctx.setTurn(turn); // báo lại lượt để engine AI tiếp tục chuỗi ăn
         ctx.setStatus(`Người chơi ${turn + 1} ăn tiếp! Tiếp tục bắt quân.`);
         return;
       }
@@ -247,11 +250,127 @@
         : `Người chơi ${turn + 1}: chọn quân để đi (ô xanh = đi, ô đỏ = ăn).`);
     }
 
+    // ----- AI: minimax theo lượt đầy đủ (ăn liên hoàn) -----
+    function dirsForB(piece) {
+      if (piece.king) return [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+      return piece.p === 0 ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]];
+    }
+    function movesB(b, r, c, capturesOnly) {
+      const piece = b[r][c];
+      if (!piece) return [];
+      const moves = [];
+      if (piece.king && FLYING) {
+        for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+          let rr = r + dr, cc = c + dc;
+          while (inB(rr, cc) && b[rr][cc] === null) { if (!capturesOnly) moves.push({ to: [rr, cc], cap: null }); rr += dr; cc += dc; }
+          if (inB(rr, cc) && b[rr][cc] && b[rr][cc].p !== piece.p) {
+            const cap = [rr, cc]; let lr = rr + dr, lc = cc + dc;
+            while (inB(lr, lc) && b[lr][lc] === null) { moves.push({ to: [lr, lc], cap }); lr += dr; lc += dc; }
+          }
+        }
+        return moves;
+      }
+      for (const [dr, dc] of dirsForB(piece)) {
+        const ar = r + dr, ac = c + dc, lr = r + 2 * dr, lc = c + 2 * dc;
+        if (inB(lr, lc) && b[ar][ac] && b[ar][ac].p !== piece.p && b[lr][lc] === null) moves.push({ to: [lr, lc], cap: [ar, ac] });
+        else if (!capturesOnly && inB(ar, ac) && b[ar][ac] === null) moves.push({ to: [ar, ac], cap: null });
+      }
+      return moves;
+    }
+    function hasCapB(b, p) {
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (b[r][c] && b[r][c].p === p && movesB(b, r, c, true).length) return true;
+      return false;
+    }
+    function cloneB(b) { return b.map((row) => row.map((x) => x ? { p: x.p, king: x.king } : null)); }
+    function applySubB(b, sub) {
+      const [fr, fc] = sub.from, [tr, tc] = sub.to; const piece = b[fr][fc];
+      b[tr][tc] = piece; b[fr][fc] = null; if (sub.cap) b[sub.cap[0]][sub.cap[1]] = null;
+      let promoted = false;
+      if (!piece.king && ((piece.p === 0 && tr === 0) || (piece.p === 1 && tr === N - 1))) { piece.king = true; promoted = true; }
+      return promoted;
+    }
+    function expandCaps(b, r, c, seq, out) {
+      const caps = movesB(b, r, c, true);
+      if (!caps.length) { out.push(seq); return; }
+      for (const m of caps) {
+        const nb = cloneB(b); const sub = { from: [r, c], to: m.to, cap: m.cap };
+        const promoted = applySubB(nb, sub);
+        if (promoted) out.push(seq.concat([sub]));
+        else expandCaps(nb, m.to[0], m.to[1], seq.concat([sub]), out);
+      }
+    }
+    function genTurns(b, p) {
+      const out = []; const forced = hasCapB(b, p);
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        const piece = b[r][c]; if (!piece || piece.p !== p) continue;
+        const ms = movesB(b, r, c, forced);
+        for (const m of ms) {
+          if (m.cap) {
+            const nb = cloneB(b); const sub = { from: [r, c], to: m.to, cap: m.cap };
+            const promoted = applySubB(nb, sub);
+            if (promoted) out.push([sub]); else expandCaps(nb, m.to[0], m.to[1], [sub], out);
+          } else out.push([{ from: [r, c], to: m.to, cap: null }]);
+        }
+      }
+      return out;
+    }
+    function applyTurnB(b, t) { const nb = cloneB(b); for (const sub of t) applySubB(nb, sub); return nb; }
+    function evalB(b, me) {
+      let s = 0;
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        const x = b[r][c]; if (!x) continue;
+        let v = x.king ? 3.2 : 1;
+        if (!x.king) v += (x.p === 0 ? (N - 1 - r) : r) * 0.05;
+        s += (x.p === me ? v : -v);
+      }
+      return s;
+    }
+    function searchT(b, p, me, depth, alpha, beta) {
+      const turns = genTurns(b, p);
+      if (!turns.length) return p === me ? -10000 + (12 - depth) : 10000 - (12 - depth);
+      if (depth === 0) return evalB(b, me);
+      if (p === me) {
+        let v = -Infinity;
+        for (const t of turns) { v = Math.max(v, searchT(applyTurnB(b, t), 1 - p, me, depth - 1, alpha, beta)); alpha = Math.max(alpha, v); if (alpha >= beta) break; }
+        return v;
+      }
+      let v = Infinity;
+      for (const t of turns) { v = Math.min(v, searchT(applyTurnB(b, t), 1 - p, me, depth - 1, alpha, beta)); beta = Math.min(beta, v); if (alpha >= beta) break; }
+      return v;
+    }
+    function aiMove(level) {
+      if (over) return null;
+      const me = turn;
+      // tiếp tục chuỗi ăn đã định
+      if (mustContinue) {
+        if (aiPlan && aiPlanIdx < aiPlan.length) { const s = aiPlan[aiPlanIdx++]; return { from: s.from.slice(), to: s.to.slice(), cap: s.cap }; }
+        const ms = legalMoves(mustContinue[0], mustContinue[1]);
+        if (ms.length) { const m = ms[0]; return { from: mustContinue.slice(), to: m.to, cap: m.cap || null }; }
+        return null;
+      }
+      const turns = genTurns(board, me);
+      if (!turns.length) return null;
+      let pick;
+      if (level === "easy" && Math.random() < 0.5) {
+        pick = turns[Math.floor(Math.random() * turns.length)];
+      } else {
+        const depth = level === "easy" ? 2 : level === "hard" ? 6 : 4;
+        let best = -Infinity; pick = turns[0];
+        for (const t of turns) {
+          const sc = searchT(applyTurnB(board, t), 1 - me, me, depth - 1, -Infinity, Infinity);
+          if (sc > best) { best = sc; pick = t; }
+        }
+      }
+      aiPlan = pick; aiPlanIdx = 1;
+      const s = pick[0];
+      return { from: s.from.slice(), to: s.to.slice(), cap: s.cap };
+    }
+
     ctx.setNames("Người chơi 1 (Đỏ)", "Người chơi 2 (Đen)");
     ctx.setTurn(0);
     render();
     updateStatus();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -260,6 +379,7 @@
     emoji: "🔴",
     description: "Cờ ăn quân nhảy chéo kinh điển. Bắt buộc ăn, ăn liên hoàn, phong Vua. Có chế độ Vua bay và bảng đếm quân/khay quân đã ăn.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "kings", label: "Kiểu Vua", default: "standard",
