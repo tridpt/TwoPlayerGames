@@ -144,6 +144,8 @@
     let pickedThisTurn = [];
     let flashItem = null;
     let tick = 0;
+    let shake = 0;
+    const sparks = [];
 
     const canvas = document.createElement("canvas");
     canvas.width = W; canvas.height = H;
@@ -380,6 +382,8 @@
 
     function explodeOne(x, y, blast, maxDmg, carveScale) {
       explosions.push({ x, y, r: 4, max: blast });
+      spawnSparks(x, y, blast);
+      shake = Math.min(18, shake + blast * 0.12);
       carveCrater(x, y, blast * 0.7 * (carveScale || 1));
       players.forEach((pl) => {
         const py = terrainY(pl.x) - 10;
@@ -465,12 +469,14 @@
     }
 
     function draw() {
+      g.save();
+      if (shake > 0.3) g.translate((Math.random() * 2 - 1) * shake, (Math.random() * 2 - 1) * shake);
       // trời
       const sky = g.createLinearGradient(0, 0, 0, H);
       sky.addColorStop(0, STYLE.sky0);
       sky.addColorStop(1, STYLE.sky1);
       g.fillStyle = sky;
-      g.fillRect(0, 0, W, H);
+      g.fillRect(-24, -24, W + 48, H + 48);
 
       // mặt trời
       g.save();
@@ -595,6 +601,34 @@
         g.fillText(`${def.icon} ${def.label}!`, W / 2, H * 0.36);
         g.globalAlpha = 1;
       }
+
+      // mảnh văng (debris)
+      sparks.forEach((p) => {
+        g.globalAlpha = Math.max(0, p.life / p.max);
+        g.fillStyle = p.color;
+        g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
+      });
+      g.globalAlpha = 1;
+
+      g.restore();
+    }
+
+    function spawnSparks(x, y, blast) {
+      const n = Math.round(10 + blast * 0.25);
+      const colors = ["#ffd166", "#ff9f5d", "#ff6a3d", "#ffe6a0"];
+      for (let i = 0; i < n; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const sp = 1.5 + Math.random() * (blast * 0.08);
+        sparks.push({
+          x, y,
+          vx: Math.cos(ang) * sp,
+          vy: Math.sin(ang) * sp - 1.5,
+          r: 1.5 + Math.random() * 2.5,
+          life: 26 + Math.random() * 20,
+          max: 46,
+          color: colors[Math.floor(Math.random() * colors.length)],
+        });
+      }
     }
 
     function drawTank(pl, i) {
@@ -680,6 +714,16 @@
         explosions[i].r += 3;
         if (explosions[i].r >= explosions[i].max) explosions.splice(i, 1);
       }
+      // mảnh văng: rơi theo trọng lực + mờ dần
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const p = sparks[i];
+        p.vy += 0.16;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        if (p.life <= 0) sparks.splice(i, 1);
+      }
+      if (shake > 0.3) shake *= 0.86; else shake = 0;
       if (flashItem && flashItem.t > 0) flashItem.t--;
       draw();
       raf = requestAnimationFrame(loop);
