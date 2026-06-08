@@ -87,6 +87,7 @@
     leadList: $("leadList"),
     achGrid: $("achGrid"),
     histList: $("histList"),
+    replayTourBtn: $("replayTourBtn"),
     volRange: $("volRange"),
     sfxToggle: $("sfxToggle"),
     musicToggle: $("musicToggle"),
@@ -2289,6 +2290,10 @@
 
   if (el.tourNext) el.tourNext.addEventListener("click", nextTourStep);
   if (el.tourSkip) el.tourSkip.addEventListener("click", endTour);
+  if (el.replayTourBtn) el.replayTourBtn.addEventListener("click", () => {
+    show("menu");
+    setTimeout(startTour, 200);
+  });
 
   // Phím Escape đóng overlay đang mở (ưu tiên từ trên xuống)
   document.addEventListener("keydown", (e) => {
