@@ -82,7 +82,26 @@
     let over = false;
     let lastTime = 0;
     let raf = null;
-    let last = "Chọn module để lắp robot, dây chuyền sẽ tự động sản xuất khi đủ phế liệu.";
+    let last = ctx.t("Chọn module để lắp robot, dây chuyền sẽ tự động sản xuất khi đủ phế liệu.", "Pick modules to build your robot; the line auto-produces when there's enough scrap.");
+    // bản dịch nhãn nhóm & module (GROUPS/MODULES là hằng module-level)
+    const GROUP_LABEL_EN = { head: "Head", body: "Body", weapon: "Weapon", legs: "Legs" };
+    const GROUP_TITLE_EN = { head: "Robot head", body: "Chassis", weapon: "Weapon", legs: "Legs / wheels" };
+    const MOD_LABEL_EN = {
+      core: "Balance core", sensor: "Radar head", medic: "Repair head", overclock: "Overclock head",
+      light: "Light frame", plated: "Steel armor", fortress: "Fortress body", battery: "Battery body",
+      claw: "Claw", laser: "Laser gun", rocket: "Rocket pod", saw: "Saw blade",
+      wheels: "Wheels", tracks: "Tracks", booster: "Jet legs", crawler: "Spider legs",
+    };
+    const MOD_HINT_EN = {
+      core: "cheap, stable", sensor: "long range", medic: "self-heal", overclock: "fast fire",
+      light: "fast, cheap", plated: "balanced", fortress: "very tanky", battery: "high damage",
+      claw: "melee", laser: "long range", rocket: "splash", saw: "fast melee",
+      wheels: "speed", tracks: "extra armor", booster: "rush in", crawler: "tanky-ish",
+    };
+    const groupLabel = (id) => ctx.t(GROUPS.find((x) => x.id === id).label, GROUP_LABEL_EN[id]);
+    const groupTitle = (id) => ctx.t(GROUPS.find((x) => x.id === id).title, GROUP_TITLE_EN[id]);
+    const modLabel = (gid, mid) => ctx.t(MODULES[gid][mid].label, MOD_LABEL_EN[mid] || MODULES[gid][mid].label);
+    const modHint = (gid, mid) => ctx.t(MODULES[gid][mid].hint, MOD_HINT_EN[mid] || MODULES[gid][mid].hint);
 
     const root = document.createElement("div");
     root.className = "rf-root";
@@ -100,8 +119,8 @@
     modulePanel.className = "rf-panel rf-module-panel";
     modulePanel.innerHTML = `
       <div class="rf-panel-head">
-        <b>Thiết kế robot</b>
-        <span>Chọn đầu, thân, vũ khí và chân</span>
+        <b>${ctx.t("Thiết kế robot", "Robot design")}</b>
+        <span>${ctx.t("Chọn đầu, thân, vũ khí và chân", "Pick head, body, weapon and legs")}</span>
       </div>
       <div class="rf-current"></div>
       <button class="btn small rf-pause-btn" type="button"></button>
@@ -132,8 +151,8 @@
     factoryPanel.className = "rf-panel rf-factory-panel";
     factoryPanel.innerHTML = `
       <div class="rf-panel-head">
-        <b>Dây chuyền</b>
-        <span>Tự động xuất xưởng robot</span>
+        <b>${ctx.t("Dây chuyền", "Assembly line")}</b>
+        <span>${ctx.t("Tự động xuất xưởng robot", "Auto-produces robots")}</span>
       </div>
       <div class="rf-preview"></div>
       <div class="rf-action-list"></div>
@@ -152,7 +171,7 @@
       if (ctx.isOnline) {
         const label = document.createElement("div");
         label.className = "rf-online-side";
-        label.innerHTML = `<b>Bạn: P${ctx.mySeat + 1}</b><span>${ctx.mySeat === 0 ? "nhà máy đỏ" : "nhà máy xanh"}</span>`;
+        label.innerHTML = `<b>${ctx.t(`Bạn: P${ctx.mySeat + 1}`, `You: P${ctx.mySeat + 1}`)}</b><span>${ctx.mySeat === 0 ? ctx.t("nhà máy đỏ", "red factory") : ctx.t("nhà máy xanh", "blue factory")}</span>`;
         sideBox.appendChild(label);
       } else {
         [0, 1].forEach((side) => {
@@ -176,7 +195,7 @@
       GROUPS.forEach((group) => {
         const title = document.createElement("div");
         title.className = "rf-group-title";
-        title.textContent = group.title;
+        title.textContent = groupTitle(group.id);
         moduleBox.appendChild(title);
         const grid = document.createElement("div");
         grid.className = "rf-module-grid";
@@ -186,7 +205,7 @@
           btn.className = "btn small rf-module-btn";
           btn.dataset.group = group.id;
           btn.dataset.module = id;
-          btn.innerHTML = `<span>${mod.short}</span><b>${mod.label}</b><small>${mod.hint}</small>`;
+          btn.innerHTML = `<span>${mod.short}</span><b>${modLabel(group.id, id)}</b><small>${modHint(group.id, id)}</small>`;
           btn.addEventListener("click", () => submitAction("module", { group: group.id, module: id }));
           grid.appendChild(btn);
         });
@@ -195,11 +214,11 @@
 
       actionBox.innerHTML = "";
       [
-        { id: "overdrive", icon: "⚡", label: "Overdrive", hint: "tăng tốc & sát thương robot" },
-        { id: "rush", icon: "FAST", label: "Tăng ca", hint: "+45% tiến độ" },
-        { id: "line", icon: "LINE", label: "Nâng dây chuyền", hint: "sản xuất nhanh" },
-        { id: "tech", icon: "TECH", label: "Nâng công nghệ", hint: "robot mạnh hơn" },
-        { id: "repair", icon: "FIX", label: "Sửa nhà máy", hint: "+120 HP" },
+        { id: "overdrive", icon: "⚡", label: ctx.t("Overdrive", "Overdrive"), hint: ctx.t("tăng tốc & sát thương robot", "robot speed & damage boost") },
+        { id: "rush", icon: "FAST", label: ctx.t("Tăng ca", "Rush"), hint: ctx.t("+45% tiến độ", "+45% progress") },
+        { id: "line", icon: "LINE", label: ctx.t("Nâng dây chuyền", "Upgrade line"), hint: ctx.t("sản xuất nhanh", "faster production") },
+        { id: "tech", icon: "TECH", label: ctx.t("Nâng công nghệ", "Upgrade tech"), hint: ctx.t("robot mạnh hơn", "stronger robots") },
+        { id: "repair", icon: "FIX", label: ctx.t("Sửa nhà máy", "Repair factory"), hint: ctx.t("+120 HP", "+120 HP") },
       ].forEach((a) => {
         const btn = document.createElement("button");
         btn.type = "button";
@@ -265,29 +284,29 @@
       if (cmd.action === "lane") {
         selectedLane[side] = clamp(Number(cmd.lane), 0, LANES.length - 1);
         ok = true;
-        last = `P${side + 1} chuyển dây chuyền sang Lane ${selectedLane[side] + 1}.`;
+        last = ctx.t(`P${side + 1} chuyển dây chuyền sang Lane ${selectedLane[side] + 1}.`, `P${side + 1} switched the line to Lane ${selectedLane[side] + 1}.`);
       } else if (cmd.action === "module") {
         const group = String(cmd.group || "");
         const id = String(cmd.module || "");
         if (MODULES[group] && MODULES[group][id]) {
           blueprint[side][group] = id;
           ok = true;
-          last = `P${side + 1} lắp ${MODULES[group][id].label}.`;
+          last = ctx.t(`P${side + 1} lắp ${MODULES[group][id].label}.`, `P${side + 1} installed ${modLabel(group, id)}.`);
           ctx.sound("select");
         }
       } else if (cmd.action === "pause") {
         paused[side] = !paused[side];
         ok = true;
         last = paused[side]
-          ? `P${side + 1} dừng sản xuất để giữ phế liệu.`
-          : `P${side + 1} chạy lại dây chuyền sản xuất.`;
+          ? ctx.t(`P${side + 1} dừng sản xuất để giữ phế liệu.`, `P${side + 1} paused production to save scrap.`)
+          : ctx.t(`P${side + 1} chạy lại dây chuyền sản xuất.`, `P${side + 1} resumed the production line.`);
         ctx.sound("select");
       } else if (cmd.action === "overdrive") {
         if (elapsed >= odReady[side] && pay(side, OD_COST)) {
           odUntil[side] = elapsed + OD_DUR;
           odReady[side] = elapsed + OD_CD;
           ok = true;
-          last = `⚡ P${side + 1} kích hoạt Overdrive - robot tăng tốc & sát thương!`;
+          last = ctx.t(`⚡ P${side + 1} kích hoạt Overdrive - robot tăng tốc & sát thương!`, `⚡ P${side + 1} activated Overdrive — robots gain speed & damage!`);
           pops.push({ x: BASE_X[side], y: LANES[1] - 110, text: "OVERDRIVE!", color: sideColor(side), t: 50 });
           ctx.sound("win");
         }
@@ -296,7 +315,7 @@
         if (pay(side, cost)) {
           progress[side] = Math.min(1.15, progress[side] + 0.45);
           ok = true;
-          last = `P${side + 1} tăng ca dây chuyền.`;
+          last = ctx.t(`P${side + 1} tăng ca dây chuyền.`, `P${side + 1} rushed the assembly line.`);
           ctx.sound("place");
         }
       } else if (cmd.action === "line") {
@@ -304,7 +323,7 @@
         if (pay(side, cost)) {
           line[side]++;
           ok = true;
-          last = `P${side + 1} nâng cấp dây chuyền lên cấp ${line[side]}.`;
+          last = ctx.t(`P${side + 1} nâng cấp dây chuyền lên cấp ${line[side]}.`, `P${side + 1} upgraded the line to level ${line[side]}.`);
           ctx.sound("capture");
         }
       } else if (cmd.action === "tech") {
@@ -312,7 +331,7 @@
         if (pay(side, cost)) {
           tech[side]++;
           ok = true;
-          last = `P${side + 1} nâng công nghệ lên cấp ${tech[side]}.`;
+          last = ctx.t(`P${side + 1} nâng công nghệ lên cấp ${tech[side]}.`, `P${side + 1} upgraded tech to level ${tech[side]}.`);
           ctx.sound("capture");
         }
       } else if (cmd.action === "repair") {
@@ -320,7 +339,7 @@
         if (cost !== Infinity && pay(side, cost)) {
           baseHp[side] = Math.min(BASE_HP, baseHp[side] + 120);
           ok = true;
-          last = `P${side + 1} sửa nhà máy.`;
+          last = ctx.t(`P${side + 1} sửa nhà máy.`, `P${side + 1} repaired the factory.`);
           ctx.sound("place");
         }
       }
@@ -393,7 +412,7 @@
         step: 0,
         flash: 0,
       });
-      last = `P${side + 1} xuất xưởng robot ${moduleShort(side)} ở Lane ${lane + 1}.`;
+      last = ctx.t(`P${side + 1} xuất xưởng robot ${moduleShort(side)} ở Lane ${lane + 1}.`, `P${side + 1} rolled out robot ${moduleShort(side)} on Lane ${lane + 1}.`);
       pops.push({ x: SPAWN_X[side], y: LANES[lane] - 46, text: "ROBOT", color: sideColor(side), t: 42 });
       ctx.sound("place");
     }
@@ -523,12 +542,12 @@
       robots.forEach((r) => { r.hp = Math.max(0, r.hp); });
       ctx.setTurn(-1);
       if (baseHp[0] <= 0 && baseHp[1] <= 0) {
-        ctx.setStatus("🤝 Hai nhà máy cùng sập - hòa!");
+        ctx.setStatus(ctx.t("🤝 Hai nhà máy cùng sập - hòa!", "🤝 Both factories collapsed — draw!"));
         return;
       }
       const winner = baseHp[0] <= 0 ? 1 : 0;
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} phá nhà máy đối thủ và thắng!`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} phá nhà máy đối thủ và thắng!`, `🎉 Player ${winner + 1} destroyed the enemy factory and wins!`));
     }
 
     function blueprintStats(side) {
@@ -613,11 +632,11 @@
       const pct = Math.max(0, baseHp[side] / BASE_HP * 100);
       return `
         <div class="rf-player p${side + 1} ${controlSide === side && !over ? "active" : ""}">
-          <span>Người chơi ${side + 1}</span>
+          <span>${ctx.t(`Người chơi ${side + 1}`, `Player ${side + 1}`)}</span>
           <b>${Math.ceil(baseHp[side])}/${BASE_HP} HP</b>
-          <em>${Math.floor(scrap[side])} phế liệu · +${incomeRate(side).toFixed(1)}/s</em>
+          <em>${ctx.t(`${Math.floor(scrap[side])} phế liệu · +${incomeRate(side).toFixed(1)}/s`, `${Math.floor(scrap[side])} scrap · +${incomeRate(side).toFixed(1)}/s`)}</em>
           <i class="rf-hp"><i style="width:${pct}%"></i></i>
-          <small>Dây chuyền ${line[side]} · Công nghệ ${tech[side]}</small>
+          <small>${ctx.t(`Dây chuyền ${line[side]} · Công nghệ ${tech[side]}`, `Line ${line[side]} · Tech ${tech[side]}`)}</small>
         </div>
       `;
     }
@@ -635,7 +654,7 @@
         const id = btn.dataset.module;
         btn.classList.toggle("active", blueprint[side][group] === id);
       });
-      pauseBtn.textContent = paused[side] ? "Tiếp tục sản xuất" : "Dừng sản xuất";
+      pauseBtn.textContent = paused[side] ? ctx.t("Tiếp tục sản xuất", "Resume production") : ctx.t("Dừng sản xuất", "Pause production");
       pauseBtn.classList.toggle("active", paused[side]);
       pauseBtn.disabled = over || (ctx.isOnline && side !== ctx.mySeat);
       actionBox.querySelectorAll(".rf-action").forEach((btn) => {
@@ -644,13 +663,13 @@
         const em = btn.querySelector("em");
         if (id === "overdrive") {
           const cd = Math.max(0, odReady[side] - elapsed);
-          if (odActive(side)) em.textContent = `⚡ còn ${Math.ceil(odUntil[side] - elapsed)}s`;
-          else if (cd > 0) em.textContent = `hồi ${Math.ceil(cd)}s`;
-          else em.textContent = OD_COST + " phế liệu";
+          if (odActive(side)) em.textContent = ctx.t(`⚡ còn ${Math.ceil(odUntil[side] - elapsed)}s`, `⚡ ${Math.ceil(odUntil[side] - elapsed)}s left`);
+          else if (cd > 0) em.textContent = ctx.t(`hồi ${Math.ceil(cd)}s`, `cd ${Math.ceil(cd)}s`);
+          else em.textContent = ctx.t(OD_COST + " phế liệu", OD_COST + " scrap");
           btn.classList.toggle("active", odActive(side));
           btn.disabled = over || cd > 0 || scrap[side] < OD_COST || (ctx.isOnline && side !== ctx.mySeat);
         } else {
-          em.textContent = cost === Infinity ? "không thể" : cost + " phế liệu";
+          em.textContent = cost === Infinity ? ctx.t("không thể", "unavailable") : ctx.t(cost + " phế liệu", cost + " scrap");
           btn.disabled = over || cost === Infinity || scrap[side] < cost || (ctx.isOnline && side !== ctx.mySeat);
         }
       });
@@ -661,7 +680,7 @@
     function renderCurrent(side) {
       currentBox.innerHTML = GROUPS.map((group) => {
         const mod = MODULES[group.id][blueprint[side][group.id]];
-        return `<span><b>${group.label}</b><em>${mod.short}</em><small>${mod.label}</small></span>`;
+        return `<span><b>${groupLabel(group.id)}</b><em>${mod.short}</em><small>${modLabel(group.id, blueprint[side][group.id])}</small></span>`;
       }).join("");
     }
 
@@ -670,17 +689,17 @@
       const pct = Math.min(100, progress[side] * 100);
       previewBox.innerHTML = `
         <div class="rf-build-meter">
-          <b>P${side + 1} · Lane ${selectedLane[side] + 1}</b>
-          <span>${paused[side] ? "Đang dừng" : Math.floor(pct) + "%"}</span>
+          <b>${ctx.t(`P${side + 1} · Lane ${selectedLane[side] + 1}`, `P${side + 1} · Lane ${selectedLane[side] + 1}`)}</b>
+          <span>${paused[side] ? ctx.t("Đang dừng", "Paused") : Math.floor(pct) + "%"}</span>
           <i><i style="width:${pct}%"></i></i>
         </div>
         <div class="rf-stat-grid">
-          <span><b>${stats.cost}</b><small>giá</small></span>
+          <span><b>${stats.cost}</b><small>${ctx.t("giá", "cost")}</small></span>
           <span><b>${stats.hp}</b><small>HP</small></span>
-          <span><b>${stats.dmg}</b><small>sát thương</small></span>
-          <span><b>${stats.range}</b><small>tầm đánh</small></span>
-          <span><b>${stats.speed}</b><small>tốc độ</small></span>
-          <span><b>${buildTime(side, stats).toFixed(1)}s</b><small>chu kỳ</small></span>
+          <span><b>${stats.dmg}</b><small>${ctx.t("sát thương", "damage")}</small></span>
+          <span><b>${stats.range}</b><small>${ctx.t("tầm đánh", "range")}</small></span>
+          <span><b>${stats.speed}</b><small>${ctx.t("tốc độ", "speed")}</small></span>
+          <span><b>${buildTime(side, stats).toFixed(1)}s</b><small>${ctx.t("chu kỳ", "cycle")}</small></span>
         </div>
       `;
     }
@@ -689,9 +708,9 @@
       if (over) return;
       const side = ctx.isOnline ? ctx.mySeat : controlSide;
       if (ctx.isOnline) {
-        ctx.setStatus(`Bạn là P${ctx.mySeat + 1}. Chọn module, chọn lane và nâng dây chuyền để robot tự động tấn công.`);
+        ctx.setStatus(ctx.t(`Bạn là P${ctx.mySeat + 1}. Chọn module, chọn lane và nâng dây chuyền để robot tự động tấn công.`, `You are P${ctx.mySeat + 1}. Pick modules, choose a lane and upgrade the line so robots auto-attack.`));
       } else {
-        ctx.setStatus(`Đang điều khiển P${side + 1}. Click nửa sân để đổi phe, chọn lane/module để đổi công thức robot.`);
+        ctx.setStatus(ctx.t(`Đang điều khiển P${side + 1}. Click nửa sân để đổi phe, chọn lane/module để đổi công thức robot.`, `Controlling P${side + 1}. Click a half of the field to switch side, pick lane/module to change the robot blueprint.`));
       }
       ctx.setTurn(side);
     }
@@ -1024,7 +1043,7 @@
       g.fillStyle = "rgba(255,209,102,0.92)";
       g.font = "900 13px Segoe UI, sans-serif";
       g.textAlign = "center";
-      g.fillText(`Đang sản xuất P${side + 1} · Lane ${selectedLane[side] + 1}`, W / 2, y + 44);
+      g.fillText(ctx.t(`Đang sản xuất P${side + 1} · Lane ${selectedLane[side] + 1}`, `Producing P${side + 1} · Lane ${selectedLane[side] + 1}`), W / 2, y + 44);
     }
 
     function moduleShort(side) {
@@ -1084,7 +1103,7 @@
     observer.observe(ctx.boardEl.parentNode || document.body, { childList: true, subtree: true });
 
     renderStaticControls();
-    ctx.setNames?.("Người chơi 1 (nhà máy đỏ)", "Người chơi 2 (nhà máy xanh)");
+    ctx.setNames?.(ctx.t("Người chơi 1 (nhà máy đỏ)", "Player 1 (red factory)"), ctx.t("Người chơi 2 (nhà máy xanh)", "Player 2 (blue factory)"));
     ctx.setTurn(controlSide);
     renderHud();
     syncControls();
