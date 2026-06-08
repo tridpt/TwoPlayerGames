@@ -139,6 +139,7 @@
         tempEl.textContent = temp;
         ctx.sound("select");
         ctx.setStatus(`Người chơi ${turn + 1} gieo ra ${die}. Tổng tạm: ${temp}. Gieo tiếp hay giữ?`);
+        ctx.setTurn(turn); // cùng lượt — để máy (nếu đấu máy) cân nhắc gieo tiếp/giữ
         updateButtons();
       }
     }
@@ -160,10 +161,33 @@
       updateButtons();
     }
 
+    // ----- AI (đấu máy): chiến lược ngưỡng "giữ điểm" cổ điển -----
+    function aiMove(level) {
+      if (over || rolling) return null;
+      const me = turn, opp = 1 - me;
+      if (totals[me] + temp >= TARGET) return { kind: "hold" }; // đủ điểm thắng -> chốt ngay
+      let threshold;
+      if (level === "easy") {
+        threshold = 12 + Math.floor(Math.random() * 9); // 12–20, thất thường cho dễ thở
+      } else if (level === "hard") {
+        threshold = 21;
+        const behind = totals[opp] - totals[me];
+        if (behind > 24) threshold += 13;       // tụt lại nhiều -> liều hơn
+        else if (behind > 0) threshold += 5;
+        // gần đích thì chỉ gom vừa đủ rồi giữ
+        const remain = TARGET - totals[me];
+        if (remain <= 30) threshold = Math.max(8, remain);
+      } else {
+        threshold = 20; // chuẩn
+      }
+      if (temp > 0 && temp >= threshold) return { kind: "hold" };
+      return { kind: "roll", die: 1 + Math.floor(Math.random() * 6) };
+    }
+
     ctx.setTurn(0);
     ctx.setStatus(`Gieo xúc xắc để cộng điểm. Đạt ${TARGET} điểm trước sẽ thắng. Ra 1 là CHUYỂN điểm tạm cho đối thủ!`);
     updateButtons();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -172,6 +196,7 @@
     emoji: "🎲",
     description: "Gieo xúc xắc cộng dồn điểm, nhưng ra 1 là CHUYỂN hết điểm tạm cho đối thủ. Biết dừng đúng lúc để thắng.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "target", label: "Điểm để thắng", default: 150,

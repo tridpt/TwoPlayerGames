@@ -147,6 +147,7 @@
         // bốc xong vẫn lượt của mình; render lại
         render();
         ctx.setStatus(`Người chơi ${turn + 1} bốc một quân từ nọc.`);
+        ctx.setTurn(turn); // cùng lượt — để máy (nếu đấu máy) cân nhắc đánh/bốc tiếp
         return;
       }
 
@@ -188,6 +189,33 @@
     }
 
     function pipsSum(seat) { return hands[seat].reduce((s, t) => s + t[0] + t[1], 0); }
+
+    // ----- AI (đấu máy): ưu tiên xả quân nặng / quân đôi, hết nước thì bốc, hết nọc thì bỏ -----
+    function aiMove(level) {
+      if (over) return null;
+      const me = turn;
+      const playable = hands[me].filter(canPlayTile);
+      if (playable.length) {
+        let best = playable[0], bestScore = -Infinity;
+        for (const t of playable) {
+          let s;
+          if (level === "easy") s = Math.random();
+          else {
+            s = t[0] + t[1];                 // xả bớt điểm nặng (lợi khi bí cờ)
+            if (t[0] === t[1]) s += 3;       // ưu tiên đánh quân đôi (khó đánh sau)
+            if (level === "hard" && (t[0] === t[1])) s += 2;
+          }
+          if (s > bestScore) { bestScore = s; best = t; }
+        }
+        let end;
+        if (line.length === 0) end = "R";
+        else if (best[0] === leftEnd || best[1] === leftEnd) end = "L";
+        else end = "R";
+        return { kind: "play", tile: best.slice(), end };
+      }
+      if (boneyard.length > 0) return { kind: "draw" };
+      return { kind: "pass" };
+    }
 
     function finish(winner, reason) {
       over = true;
@@ -258,7 +286,7 @@
     ctx.setTurn(0);
     render();
     ctx.setStatus("Nối quân khớp số chấm ở hai đầu chuỗi. Hết quân trước (hoặc bí mà ít điểm hơn) sẽ thắng!");
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -267,6 +295,7 @@
     emoji: "🀫",
     description: "Nối các quân domino khớp số chấm ở hai đầu. Hết quân trước sẽ thắng.",
     onlineReady: true,
+    supportsAI: true,
     howTo: [
       "Bộ đôi-sáu gồm 28 quân, mỗi quân có 2 đầu mang số chấm (0–6). Mỗi người được chia 7 quân, phần còn lại là 'nọc'.",
       "Đến lượt, chọn một quân trên tay có số chấm KHỚP với một trong hai đầu của chuỗi để nối vào (quân sáng là quân đánh được).",

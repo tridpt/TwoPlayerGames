@@ -170,3 +170,22 @@ test("Nối Từ: dựng được với tùy chọn gợi ý (không hẹn giờ
   const api = cfg.create(ctx);
   assert.ok(api && typeof api.applyMove === "function");
 });
+
+test("Pig: AI trả về nước gieo/giữ hợp lệ (đầu ván phải gieo)", () => {
+  const cfg = loadGame("pig");
+  const ctx = makeCtx({ target: 100 });
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("normal");
+  assert.ok(mv && (mv.kind === "roll" || mv.kind === "hold"));
+  assert.strictEqual(mv.kind, "roll", "điểm tạm = 0 thì luôn phải gieo");
+  if (mv.kind === "roll") assert.ok(mv.die >= 1 && mv.die <= 6);
+});
+
+test("Domino: AI mở màn trả về nước đánh hợp lệ", () => {
+  const cfg = loadGame("domino");
+  const ctx = makeCtx({});
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("hard");
+  assert.ok(mv && mv.kind === "play", "đầu ván luôn đánh được");
+  assert.ok(Array.isArray(mv.tile) && mv.tile.length === 2);
+});
