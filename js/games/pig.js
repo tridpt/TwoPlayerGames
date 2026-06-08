@@ -22,15 +22,15 @@
     root.className = "pig-root";
     root.innerHTML =
       `<div class="pig-scores">` +
-      `<div class="pig-p p1"><span>Người chơi 1</span><b id="pigT0">0</b></div>` +
-      `<div class="pig-p p2"><span>Người chơi 2</span><b id="pigT1">0</b></div>` +
+      `<div class="pig-p p1"><span>${ctx.t("Người chơi 1", "Player 1")}</span><b id="pigT0">0</b></div>` +
+      `<div class="pig-p p2"><span>${ctx.t("Người chơi 2", "Player 2")}</span><b id="pigT1">0</b></div>` +
       `</div>` +
       `<div class="pig-die-stage"><div class="pig-die" id="pigDie">` +
       `<div class="pig-die-face" id="pigDieFace"></div></div></div>` +
-      `<div class="pig-temp">Điểm tạm lượt này: <b id="pigTemp">0</b></div>` +
+      `<div class="pig-temp">${ctx.t("Điểm tạm lượt này:", "Turn points:")} <b id="pigTemp">0</b></div>` +
       `<div class="pig-actions">` +
-      `<button class="btn primary" id="pigRoll">🎲 Gieo</button>` +
-      `<button class="btn" id="pigHold">✋ Giữ điểm</button>` +
+      `<button class="btn primary" id="pigRoll">${ctx.t("🎲 Gieo", "🎲 Roll")}</button>` +
+      `<button class="btn" id="pigHold">${ctx.t("✋ Giữ điểm", "✋ Hold")}</button>` +
       `</div>`;
     ctx.boardEl.appendChild(root);
 
@@ -112,7 +112,7 @@
         tEls[turn].textContent = totals[turn];
         ctx.sound("capture");
         if (totals[turn] >= TARGET) return finish(turn);
-        nextTurn(`✋ Người chơi ${turn + 1} giữ ${temp} điểm.`);
+        nextTurn(ctx.t(`✋ Người chơi ${turn + 1} giữ ${temp} điểm.`, `✋ Player ${turn + 1} holds ${temp} points.`));
       }
     }
 
@@ -132,13 +132,15 @@
         // điểm chuyển sang có thể giúp đối thủ thắng luôn
         if (totals[opp] >= TARGET) return finish(opp);
         nextTurn(moved > 0
-          ? `💥 Người chơi ${turn + 1} ra 1 — chuyển ${moved} điểm tạm cho đối thủ!`
-          : `💥 Người chơi ${turn + 1} ra 1!`);
+          ? ctx.t(`💥 Người chơi ${turn + 1} ra 1 — chuyển ${moved} điểm tạm cho đối thủ!`,
+                  `💥 Player ${turn + 1} rolled a 1 — ${moved} turn points go to the opponent!`)
+          : ctx.t(`💥 Người chơi ${turn + 1} ra 1!`, `💥 Player ${turn + 1} rolled a 1!`));
       } else {
         temp += die;
         tempEl.textContent = temp;
         ctx.sound("select");
-        ctx.setStatus(`Người chơi ${turn + 1} gieo ra ${die}. Tổng tạm: ${temp}. Gieo tiếp hay giữ?`);
+        ctx.setStatus(ctx.t(`Người chơi ${turn + 1} gieo ra ${die}. Tổng tạm: ${temp}. Gieo tiếp hay giữ?`,
+          `Player ${turn + 1} rolled ${die}. Turn total: ${temp}. Roll again or hold?`));
         ctx.setTurn(turn); // cùng lượt — để máy (nếu đấu máy) cân nhắc gieo tiếp/giữ
         updateButtons();
       }
@@ -149,7 +151,7 @@
       tempEl.textContent = 0;
       turn = 1 - turn;
       ctx.setTurn(turn);
-      ctx.setStatus(`${msg} — Lượt Người chơi ${turn + 1}.`);
+      ctx.setStatus(ctx.t(`${msg} — Lượt Người chơi ${turn + 1}.`, `${msg} — Player ${turn + 1}'s turn.`));
       updateButtons();
     }
 
@@ -157,7 +159,8 @@
       over = true;
       ctx.setTurn(-1);
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} đạt ${totals[winner]} điểm — chiến thắng!`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} đạt ${totals[winner]} điểm — chiến thắng!`,
+        `🎉 Player ${winner + 1} reached ${totals[winner]} points — wins!`));
       updateButtons();
     }
 
@@ -185,7 +188,8 @@
     }
 
     ctx.setTurn(0);
-    ctx.setStatus(`Gieo xúc xắc để cộng điểm. Đạt ${TARGET} điểm trước sẽ thắng. Ra 1 là CHUYỂN điểm tạm cho đối thủ!`);
+    ctx.setStatus(ctx.t(`Gieo xúc xắc để cộng điểm. Đạt ${TARGET} điểm trước sẽ thắng. Ra 1 là CHUYỂN điểm tạm cho đối thủ!`,
+      `Roll dice to score. First to ${TARGET} points wins. Rolling a 1 GIVES your turn points to the opponent!`));
     updateButtons();
     return { applyMove, aiMove };
   }

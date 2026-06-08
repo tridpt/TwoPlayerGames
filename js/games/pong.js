@@ -184,7 +184,7 @@
       } else if (pu.type === "speed") {
         ball.vx *= 1.25; ball.vy *= 1.25;
       }
-      ctx.setStatus(`⚡ Vật phẩm: ${POWER_INFO[pu.type].label}!`);
+      ctx.setStatus(ctx.t(`⚡ Vật phẩm: ${POWER_INFO[pu.type].label}!`, `⚡ Power-up: ${POWER_INFO[pu.type].label}!`));
     }
 
     function afterScore(dir) {
@@ -192,7 +192,8 @@
         over = true; running = false;
         const winner = score[0] > score[1] ? 0 : 1;
         ctx.incScore(winner);
-        ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng ${score[0]}–${score[1]}!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng ${score[0]}–${score[1]}!`,
+          `🎉 Player ${winner + 1} wins ${score[0]}–${score[1]}!`));
         ctx.setTurn(-1);
         return;
       }
@@ -200,7 +201,8 @@
       powerups.length = 0;
       paddleBoost[0] = paddleBoost[1] = 0;
       resetBalls(dir);
-      ctx.setStatus(`Tỉ số ${score[0]} – ${score[1]}. Nhấn phím để tiếp tục.`);
+      ctx.setStatus(ctx.t(`Tỉ số ${score[0]} – ${score[1]}. Nhấn phím để tiếp tục.`,
+        `Score ${score[0]} – ${score[1]}. Press a key to continue.`));
     }
 
     function draw() {
@@ -276,7 +278,7 @@
     function startLoop() {
       if (over) return;
       running = true;
-      ctx.setStatus("Đang chơi! P1: W/S — P2: ↑/↓");
+      ctx.setStatus(ctx.t("Đang chơi! P1: W/S — P2: ↑/↓", "Playing! P1: W/S — P2: ↑/↓"));
     }
 
     function applyMove() {} // Pong không dùng relay online
@@ -294,7 +296,8 @@
     resetBalls(Math.random() < 0.5 ? -1 : 1);
     spawnTimer = 150;
     ctx.setTurn(0);
-    ctx.setStatus(`Nhấn W/S (P1) hoặc ↑/↓ (P2) để bắt đầu. Ai đạt ${WIN_SCORE} điểm trước thắng!`);
+    ctx.setStatus(ctx.t(`Nhấn W/S (P1) hoặc ↑/↓ (P2) để bắt đầu. Ai đạt ${WIN_SCORE} điểm trước thắng!`,
+      `Press W/S (P1) or ↑/↓ (P2) to start. First to ${WIN_SCORE} points wins!`));
     draw();
     raf = requestAnimationFrame(loop);
     return { applyMove };

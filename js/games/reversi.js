@@ -156,7 +156,8 @@
         turn = other;
       } else if (legalMoves(turn).length) {
         ctx.setTurn(turn);
-        updateHud(`⏭️ ${pname(other)} không có nước đi hợp lệ — bị mất lượt!`);
+        updateHud(ctx.t(`⏭️ ${pname(other)} không có nước đi hợp lệ — bị mất lượt!`,
+          `⏭️ ${pname(other)} has no legal move — turn skipped!`));
         render();
         return;
       } else {
@@ -167,7 +168,7 @@
       render();
     }
 
-    function pname(p) { return p === 0 ? "Đen" : "Trắng"; }
+    function pname(p) { return p === 0 ? ctx.t("Đen", "Black") : ctx.t("Trắng", "White"); }
 
     function count(p) {
       let n = 0;
@@ -188,10 +189,12 @@
         turnBadge.textContent = "Kết thúc";
       } else {
         const chip = turn === 0 ? "⚫" : "⚪";
-        turnBadge.innerHTML = `Lượt: <b>${chip} ${pname(turn)}</b>`;
+        turnBadge.innerHTML = ctx.t("Lượt:", "Turn:") + ` <b>${chip} ${pname(turn)}</b>`;
       }
       if (msg) ctx.setStatus(msg);
-      else ctx.setStatus(`⚫ Đen: ${b}  —  ⚪ Trắng: ${w}. ${over ? "" : "Bấm ô có số để đặt quân — số là số quân bạn sẽ lật được."}`);
+      else ctx.setStatus(ctx.t(
+        `⚫ Đen: ${b}  —  ⚪ Trắng: ${w}. ${over ? "" : "Bấm ô có số để đặt quân — số là số quân bạn sẽ lật được."}`,
+        `⚫ Black: ${b}  —  ⚪ White: ${w}. ${over ? "" : "Click a numbered cell to place — the number is how many discs you'll flip."}`));
     }
 
     function endGame() {
@@ -199,9 +202,9 @@
       const b = count(0), w = count(1);
       ctx.setTurn(-1);
       updateHud();
-      if (b > w) { ctx.incScore(0); ctx.setStatus(`🎉 Người chơi 1 (Đen) thắng ${b}–${w}!`); }
-      else if (w > b) { ctx.incScore(1); ctx.setStatus(`🎉 Người chơi 2 (Trắng) thắng ${w}–${b}!`); }
-      else ctx.setStatus(`🤝 Hòa ${b}–${w}!`);
+      if (b > w) { ctx.incScore(0); ctx.setStatus(ctx.t(`🎉 Người chơi 1 (Đen) thắng ${b}–${w}!`, `🎉 Player 1 (Black) wins ${b}–${w}!`)); }
+      else if (w > b) { ctx.incScore(1); ctx.setStatus(ctx.t(`🎉 Người chơi 2 (Trắng) thắng ${w}–${b}!`, `🎉 Player 2 (White) wins ${w}–${b}!`)); }
+      else ctx.setStatus(ctx.t(`🤝 Hòa ${b}–${w}!`, `🤝 Draw ${b}–${w}!`));
       render();
     }
 
@@ -278,7 +281,7 @@
       return true;
     }
 
-    ctx.setNames("Người chơi 1 (Đen)", "Người chơi 2 (Trắng)");
+    ctx.setNames(ctx.t("Người chơi 1 (Đen)", "Player 1 (Black)"), ctx.t("Người chơi 2 (Trắng)", "Player 2 (White)"));
     ctx.setTurn(0);
     render();
     updateHud();

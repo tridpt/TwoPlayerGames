@@ -71,6 +71,7 @@ function makeCtx(options, seed) {
     boardEl, isOnline: false, mySeat: 0, options: options || {}, rng: makeRng(seed || 7),
     scores,
     sound() {}, sendMove() {}, setNames() {},
+    t(vi) { return vi; },
     setStatus(s) { this.status = s; },
     setTurn(t) { this.turn = t; },
     incScore(p) { scores[p]++; },

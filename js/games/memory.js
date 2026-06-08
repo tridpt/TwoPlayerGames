@@ -107,7 +107,7 @@
       const c2 = combo[1] >= 2 ? ` <span class="mem-combo">🔥x${combo[1]}</span>` : "";
       sp1.innerHTML = `<b>P1</b> <span class="mem-pairs">${matchedBy[0]}</span>${c1}`;
       sp2.innerHTML = `<span class="mem-pairs">${matchedBy[1]}</span> <b>P2</b>${c2}`;
-      mid.innerHTML = `<span class="mem-time">⏱ ${fmtTime(Date.now() - startTime)}</span><span class="mem-left">${EMOJIS.length - matchedCount} cặp còn lại</span>`;
+      mid.innerHTML = `<span class="mem-time">⏱ ${fmtTime(Date.now() - startTime)}</span><span class="mem-left">${EMOJIS.length - matchedCount} ${ctx.t("cặp còn lại", "pairs left")}</span>`;
     }
 
     function onClick(i) {
@@ -148,7 +148,8 @@
         updateHud();
         if (matchedCount === EMOJIS.length) return finish();
         const cb = combo[turn] >= 2 ? ` 🔥 Combo x${combo[turn]}!` : "";
-        ctx.setStatus(`✅ Người chơi ${turn + 1} tìm được một cặp — được đi tiếp!${cb}`);
+        ctx.setStatus(ctx.t(`✅ Người chơi ${turn + 1} tìm được một cặp — được đi tiếp!${cb}`,
+          `✅ Player ${turn + 1} found a pair — go again!${cb}`));
       } else {
         lock = true;
         const a = firstIdx, b = i;
@@ -163,7 +164,8 @@
           turn = 1 - turn;
           ctx.setTurn(turn);
           updateHud();
-          ctx.setStatus(`❌ Không khớp. Đến lượt Người chơi ${turn + 1}.`);
+          ctx.setStatus(ctx.t(`❌ Không khớp. Đến lượt Người chơi ${turn + 1}.`,
+            `❌ No match. Player ${turn + 1}'s turn.`));
         }, 800);
       }
     }
@@ -172,10 +174,11 @@
       if (timerId) { clearInterval(timerId); timerId = null; }
       ctx.setTurn(-1);
       const [a, b] = matchedBy;
-      const bc = `(combo cao nhất: P1 x${bestCombo[0]}, P2 x${bestCombo[1]})`;
-      if (a > b) ctx.setStatus(`🎉 Người chơi 1 thắng với ${a} cặp! ${bc}`);
-      else if (b > a) ctx.setStatus(`🎉 Người chơi 2 thắng với ${b} cặp! ${bc}`);
-      else ctx.setStatus(`🤝 Hòa! Mỗi người ${a} cặp. ${bc}`);
+      const bc = ctx.t(`(combo cao nhất: P1 x${bestCombo[0]}, P2 x${bestCombo[1]})`,
+        `(best combo: P1 x${bestCombo[0]}, P2 x${bestCombo[1]})`);
+      if (a > b) ctx.setStatus(ctx.t(`🎉 Người chơi 1 thắng với ${a} cặp! ${bc}`, `🎉 Player 1 wins with ${a} pairs! ${bc}`));
+      else if (b > a) ctx.setStatus(ctx.t(`🎉 Người chơi 2 thắng với ${b} cặp! ${bc}`, `🎉 Player 2 wins with ${b} pairs! ${bc}`));
+      else ctx.setStatus(ctx.t(`🤝 Hòa! Mỗi người ${a} cặp. ${bc}`, `🤝 Draw! ${a} pairs each. ${bc}`));
       updateHud();
     }
 
@@ -191,7 +194,8 @@
 
     ctx.setTurn(0);
     updateHud();
-    ctx.setStatus("Lật 2 thẻ giống nhau để ghi điểm. Tìm đúng được đi tiếp — ghép liên tiếp để lên combo!");
+    ctx.setStatus(ctx.t("Lật 2 thẻ giống nhau để ghi điểm. Tìm đúng được đi tiếp — ghép liên tiếp để lên combo!",
+      "Flip two matching cards to score. A match lets you go again — chain matches for combos!"));
     return { applyMove };
   }
 

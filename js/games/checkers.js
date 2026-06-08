@@ -157,7 +157,8 @@
         selected = [tr, tc];
         render();
         ctx.setTurn(turn); // báo lại lượt để engine AI tiếp tục chuỗi ăn
-        ctx.setStatus(`Người chơi ${turn + 1} ăn tiếp! Tiếp tục bắt quân.`);
+        ctx.setStatus(ctx.t(`Người chơi ${turn + 1} ăn tiếp! Tiếp tục bắt quân.`,
+          `Player ${turn + 1} captures again! Keep jumping.`));
         return;
       }
 
@@ -170,7 +171,8 @@
         over = true;
         ctx.incScore(1 - turn);
         ctx.setTurn(-1);
-        ctx.setStatus(`🎉 Người chơi ${(1 - turn) + 1} thắng — đối thủ không còn nước đi!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${(1 - turn) + 1} thắng — đối thủ không còn nước đi!`,
+          `🎉 Player ${(1 - turn) + 1} wins — opponent has no moves left!`));
         return;
       }
       ctx.setTurn(turn);
@@ -193,13 +195,13 @@
       const forced = !over && playerHasCapture(turn);
       hud.innerHTML = `
         <div class="chk-side p1 ${turn === 0 && !over ? "active" : ""}">
-          <span>🔴 Đỏ${me === 0 ? " (bạn)" : ""}</span>
+          <span>🔴 ${ctx.t("Đỏ", "Red")}${me === 0 ? ctx.t(" (bạn)", " (you)") : ""}</span>
           <b>${a.n} quân${a.k ? " · ♔" + a.k : ""}</b>
           ${trayP(eaten[0], "p2")}
         </div>
-        <div class="chk-mid">${over ? "🏁" : forced ? "⚠️ buộc ăn" : "VS"}</div>
+        <div class="chk-mid">${over ? "🏁" : forced ? ctx.t("⚠️ buộc ăn", "⚠️ must capture") : "VS"}</div>
         <div class="chk-side p2 ${turn === 1 && !over ? "active" : ""}">
-          <span>⚫ Đen${me === 1 ? " (bạn)" : ""}</span>
+          <span>⚫ ${ctx.t("Đen", "Black")}${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}</span>
           <b>${b.n} quân${b.k ? " · ♔" + b.k : ""}</b>
           ${trayP(eaten[1], "p1")}
         </div>
@@ -244,10 +246,12 @@
 
     function updateStatus() {
       if (over) return;
-      if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus("Đối thủ đang đi..."); return; }
+      if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus(ctx.t("Đối thủ đang đi...", "Opponent is moving...")); return; }
       ctx.setStatus(playerHasCapture(turn)
-        ? `Người chơi ${turn + 1}: BẮT BUỘC ăn quân! Chọn quân có thể ăn.`
-        : `Người chơi ${turn + 1}: chọn quân để đi (ô xanh = đi, ô đỏ = ăn).`);
+        ? ctx.t(`Người chơi ${turn + 1}: BẮT BUỘC ăn quân! Chọn quân có thể ăn.`,
+                `Player ${turn + 1}: capture is MANDATORY! Pick a piece that can capture.`)
+        : ctx.t(`Người chơi ${turn + 1}: chọn quân để đi (ô xanh = đi, ô đỏ = ăn).`,
+                `Player ${turn + 1}: pick a piece to move (green = move, red = capture).`));
     }
 
     // ----- AI: minimax theo lượt đầy đủ (ăn liên hoàn) -----
@@ -366,7 +370,7 @@
       return { from: s.from.slice(), to: s.to.slice(), cap: s.cap };
     }
 
-    ctx.setNames("Người chơi 1 (Đỏ)", "Người chơi 2 (Đen)");
+    ctx.setNames(ctx.t("Người chơi 1 (Đỏ)", "Player 1 (Red)"), ctx.t("Người chơi 2 (Đen)", "Player 2 (Black)"));
     ctx.setTurn(0);
     render();
     updateStatus();

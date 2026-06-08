@@ -106,19 +106,22 @@
           ctx.sound("capture");
         }, 360);
         ctx.incScore(p);
-        ctx.setStatus(`🎉 Người chơi ${p + 1} nối được ${line.length} quân — chiến thắng!`);
+        ctx.setStatus(ctx.t(
+          `🎉 Người chơi ${p + 1} nối được ${line.length} quân — chiến thắng!`,
+          `🎉 Player ${p + 1} connected ${line.length} — wins!`));
         ctx.setTurn(-1);
         return;
       }
       if (board[0].every((v) => v !== null)) {
         over = true;
-        ctx.setStatus("🤝 Hòa! Bàn cờ đã đầy.");
+        ctx.setStatus(ctx.t("🤝 Hòa! Bàn cờ đã đầy.", "🤝 Draw! The board is full."));
         ctx.setTurn(-1);
         return;
       }
       turn = 1 - turn;
       ctx.setTurn(turn);
-      ctx.setStatus(`Lượt Người chơi ${turn + 1} — bấm vào cột để thả quân.`);
+      ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} — bấm vào cột để thả quân.`,
+        `Player ${turn + 1}'s turn — click a column to drop a disc.`));
     }
 
     function winningLine(r, c, p) {
@@ -230,12 +233,14 @@
       const prev = moveStack[moveStack.length - 1];
       if (prev) cellEls[prev.r][prev.c].classList.add("last");
       ctx.setTurn(turn);
-      ctx.setStatus(`Lượt Người chơi ${turn + 1} — bấm vào cột để thả quân.`);
+      ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} — bấm vào cột để thả quân.`,
+        `Player ${turn + 1}'s turn — click a column to drop a disc.`));
       return true;
     }
 
     ctx.setTurn(0);
-    ctx.setStatus("Thả quân vào cột. Nối 4 quân cùng màu là thắng.");
+    ctx.setStatus(ctx.t("Thả quân vào cột. Nối 4 quân cùng màu là thắng.",
+      "Drop discs into columns. Connect 4 of your color to win."));
     return { applyMove, undo, aiMove };
   }
 

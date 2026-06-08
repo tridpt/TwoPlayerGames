@@ -58,9 +58,9 @@
     root.innerHTML =
       `<div class="yz-dice" id="yzDice"></div>` +
       `<div class="yz-actions">` +
-      `<button class="btn primary yz-rollbtn" id="yzRoll"><span class="yz-rollicon">🎲</span> Gieo <b id="yzRollN">3</b></button>` +
+      `<button class="btn primary yz-rollbtn" id="yzRoll"><span class="yz-rollicon">🎲</span> ${ctx.t("Gieo", "Roll")} <b id="yzRollN">3</b></button>` +
       `</div>` +
-      `<div class="yz-hint" id="yzHint">Bấm Gieo để bắt đầu lượt.</div>` +
+      `<div class="yz-hint" id="yzHint">${ctx.t("Bấm Gieo để bắt đầu lượt.", "Press Roll to start your turn.")}</div>` +
       `<div class="yz-table" id="yzTable"></div>`;
     ctx.boardEl.appendChild(root);
 
@@ -145,7 +145,7 @@
     // hàng tổng
     const totalRow = document.createElement("div");
     totalRow.className = "yz-row yz-total";
-    totalRow.innerHTML = `<span class="yz-cat">TỔNG ĐIỂM</span>` +
+    totalRow.innerHTML = `<span class="yz-cat">${ctx.t("TỔNG ĐIỂM", "TOTAL")}</span>` +
       `<span class="yz-v p1" id="yzTot0">0</span>` +
       `<span class="yz-v p2" id="yzTot1">0</span>`;
     tableEl.appendChild(totalRow);
@@ -238,14 +238,15 @@
       rollBtn.classList.toggle("yz-spent", rollsLeft <= 0);
       // phát hiện Yahtzee để khoe
       if (ofAKind(dice, 5)) {
-        hintEl.innerHTML = "⭐ <b>YAHTZEE!</b> 5 viên giống nhau — ghi vào ô ⭐ để ăn 50 điểm!";
+        hintEl.innerHTML = ctx.t("⭐ <b>YAHTZEE!</b> 5 viên giống nhau — ghi vào ô ⭐ để ăn 50 điểm!",
+          "⭐ <b>YAHTZEE!</b> Five of a kind — score the ⭐ row for 50 points!");
         hintEl.classList.add("yz-celebrate");
         ctx.sound("win");
       } else {
         hintEl.classList.remove("yz-celebrate");
         hintEl.textContent = rollsLeft > 0
-          ? "Bấm xúc xắc để GIỮ, rồi gieo tiếp — hoặc chọn ô điểm."
-          : "Hết lượt gieo — chọn một ô điểm để ghi.";
+          ? ctx.t("Bấm xúc xắc để GIỮ, rồi gieo tiếp — hoặc chọn ô điểm.", "Click dice to HOLD, then roll again — or pick a score box.")
+          : ctx.t("Hết lượt gieo — chọn một ô điểm để ghi.", "No rolls left — pick a score box.");
       }
     }
 
@@ -268,8 +269,8 @@
       ctx.setTurn(turn);
       renderDice();
       renderTable();
-      hintEl.textContent = "Bấm Gieo để bắt đầu lượt.";
-      ctx.setStatus(`Lượt Người chơi ${turn + 1}.`);
+      hintEl.textContent = ctx.t("Bấm Gieo để bắt đầu lượt.", "Press Roll to start your turn.");
+      ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1}.`, `Player ${turn + 1}'s turn.`));
     }
 
     function upperSum(p) { return UPPER.reduce((s, id) => s + (scores[p][id] || 0), 0); }
@@ -282,9 +283,9 @@
       over = true;
       ctx.setTurn(-1);
       const a = total(0), b = total(1);
-      if (a > b) { ctx.incScore(0); ctx.setStatus(`🎉 Người chơi 1 thắng ${a}–${b}!`); }
-      else if (b > a) { ctx.incScore(1); ctx.setStatus(`🎉 Người chơi 2 thắng ${b}–${a}!`); }
-      else ctx.setStatus(`🤝 Hòa ${a}–${b}!`);
+      if (a > b) { ctx.incScore(0); ctx.setStatus(ctx.t(`🎉 Người chơi 1 thắng ${a}–${b}!`, `🎉 Player 1 wins ${a}–${b}!`)); }
+      else if (b > a) { ctx.incScore(1); ctx.setStatus(ctx.t(`🎉 Người chơi 2 thắng ${b}–${a}!`, `🎉 Player 2 wins ${b}–${a}!`)); }
+      else ctx.setStatus(ctx.t(`🤝 Hòa ${a}–${b}!`, `🤝 Draw ${a}–${b}!`));
       renderTable();
     }
 
@@ -340,7 +341,8 @@
     renderDice();
     renderTable();
     rollBtn.disabled = !myTurn();
-    ctx.setStatus("Lượt Người chơi 1 — bấm Gieo để bắt đầu (mỗi lượt gieo tối đa 3 lần).");
+    ctx.setStatus(ctx.t("Lượt Người chơi 1 — bấm Gieo để bắt đầu (mỗi lượt gieo tối đa 3 lần).",
+      "Player 1's turn — press Roll to start (up to 3 rolls per turn)."));
     return { applyMove };
   }
 

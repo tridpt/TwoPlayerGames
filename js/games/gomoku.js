@@ -57,13 +57,14 @@
         over = true;
         line.forEach(([rr, cc]) => cellEls[rr][cc].classList.add("win"));
         ctx.incScore(p);
-        ctx.setStatus(`🎉 Người chơi ${p + 1} (${p === 0 ? "X" : "O"}) thắng!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${p + 1} (${p === 0 ? "X" : "O"}) thắng!`,
+          `🎉 Player ${p + 1} (${p === 0 ? "X" : "O"}) wins!`));
         ctx.setTurn(-1);
         return;
       }
       if (board.every((row) => row.every((v) => v !== null))) {
         over = true;
-        ctx.setStatus("🤝 Hòa! Bàn cờ đã đầy.");
+        ctx.setStatus(ctx.t("🤝 Hòa! Bàn cờ đã đầy.", "🤝 Draw! The board is full."));
         ctx.setTurn(-1);
         return;
       }
@@ -159,13 +160,15 @@
       lastCell = m.prev;
       if (lastCell) cellEls[lastCell[0]][lastCell[1]].classList.add("last");
       ctx.setTurn(turn);
-      ctx.setStatus(`Lượt Người chơi ${turn + 1} (${turn === 0 ? "X" : "O"}).`);
+      ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} (${turn === 0 ? "X" : "O"}).`,
+        `Player ${turn + 1}'s turn (${turn === 0 ? "X" : "O"}).`));
       return true;
     }
 
-    ctx.setNames("Người chơi 1 (X)", "Người chơi 2 (O)");
+    ctx.setNames(ctx.t("Người chơi 1 (X)", "Player 1 (X)"), ctx.t("Người chơi 2 (O)", "Player 2 (O)"));
     ctx.setTurn(0);
-    ctx.setStatus(`X đi trước. Nối ${NEED} quân liên tiếp để thắng.`);
+    ctx.setStatus(ctx.t(`X đi trước. Nối ${NEED} quân liên tiếp để thắng.`,
+      `X goes first. Connect ${NEED} in a row to win.`));
     return { applyMove, undo, aiMove };
   }
 

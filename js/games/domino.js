@@ -25,11 +25,11 @@
     root.innerHTML =
       `<div class="dom-info" id="domInfo"></div>` +
       `<div class="dom-line-wrap"><div class="dom-line" id="domLine"></div></div>` +
-      `<div class="dom-hand-label">Quân của bạn:</div>` +
+      `<div class="dom-hand-label">${ctx.t("Quân của bạn:", "Your tiles:")}</div>` +
       `<div class="dom-hand" id="domHand"></div>` +
       `<div class="dom-actions">` +
-      `<button class="btn" id="domDraw">🎴 Bốc nọc</button>` +
-      `<button class="btn" id="domPass">⏭️ Bỏ lượt</button>` +
+      `<button class="btn" id="domDraw">${ctx.t("🎴 Bốc nọc", "🎴 Draw")}</button>` +
+      `<button class="btn" id="domPass">${ctx.t("⏭️ Bỏ lượt", "⏭️ Pass")}</button>` +
       `</div>`;
     ctx.boardEl.appendChild(root);
 
@@ -97,13 +97,13 @@
     drawBtn.addEventListener("click", () => {
       if (!myTurn() || over) return;
       if (boneyard.length === 0) return;
-      if (handCanPlay(turn)) { ctx.setStatus("Bạn còn quân đánh được — không cần bốc."); return; }
+      if (handCanPlay(turn)) { ctx.setStatus(ctx.t("Bạn còn quân đánh được — không cần bốc.", "You still have a playable tile — no need to draw.")); return; }
       applyMove({ kind: "draw" }, false);
     });
     passBtn.addEventListener("click", () => {
       if (!myTurn() || over) return;
-      if (handCanPlay(turn)) { ctx.setStatus("Bạn còn quân đánh được — không được bỏ lượt."); return; }
-      if (boneyard.length > 0) { ctx.setStatus("Còn nọc — phải bốc trước khi bỏ lượt."); return; }
+      if (handCanPlay(turn)) { ctx.setStatus(ctx.t("Bạn còn quân đánh được — không được bỏ lượt.", "You still have a playable tile — you can't pass.")); return; }
+      if (boneyard.length > 0) { ctx.setStatus(ctx.t("Còn nọc — phải bốc trước khi bỏ lượt.", "Boneyard not empty — you must draw before passing.")); return; }
       applyMove({ kind: "pass" }, false);
     });
 
@@ -132,7 +132,7 @@
         removeFromHand(turn, t);
         passes = 0;
         ctx.sound("place");
-        if (hands[turn].length === 0) return finish(turn, "hết quân");
+        if (hands[turn].length === 0) return finish(turn, ctx.t("hết quân", "out of tiles"));
         nextTurn();
         return;
       }
@@ -146,7 +146,7 @@
         }
         // bốc xong vẫn lượt của mình; render lại
         render();
-        ctx.setStatus(`Người chơi ${turn + 1} bốc một quân từ nọc.`);
+        ctx.setStatus(ctx.t(`Người chơi ${turn + 1} bốc một quân từ nọc.`, `Player ${turn + 1} drew a tile from the boneyard.`));
         ctx.setTurn(turn); // cùng lượt — để máy (nếu đấu máy) cân nhắc đánh/bốc tiếp
         return;
       }
@@ -156,7 +156,7 @@
         passes++;
         ctx.sound("error");
         if (passes >= 2) return finishBlocked();
-        nextTurn(`⏭️ Người chơi ${turn + 1} bỏ lượt.`);
+        nextTurn(ctx.t(`⏭️ Người chơi ${turn + 1} bỏ lượt.`, `⏭️ Player ${turn + 1} passed.`));
       }
     }
 
@@ -184,8 +184,9 @@
       turn = 1 - turn;
       ctx.setTurn(turn);
       render();
-      if (msg) ctx.setStatus(`${msg} Lượt Người chơi ${turn + 1}.`);
-      else ctx.setStatus(`Lượt Người chơi ${turn + 1} — nối quân khớp số chấm ở hai đầu.`);
+      if (msg) ctx.setStatus(ctx.t(`${msg} Lượt Người chơi ${turn + 1}.`, `${msg} Player ${turn + 1}'s turn.`));
+      else ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} — nối quân khớp số chấm ở hai đầu.`,
+        `Player ${turn + 1}'s turn — play a tile matching an open end.`));
     }
 
     function pipsSum(seat) { return hands[seat].reduce((s, t) => s + t[0] + t[1], 0); }
@@ -221,7 +222,7 @@
       over = true;
       ctx.setTurn(-1);
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng (${reason})!`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng (${reason})!`, `🎉 Player ${winner + 1} wins (${reason})!`));
       render();
     }
 
@@ -229,16 +230,18 @@
       over = true;
       ctx.setTurn(-1);
       const a = pipsSum(0), b = pipsSum(1);
-      if (a < b) { ctx.incScore(0); ctx.setStatus(`🔒 Bí cờ! Người chơi 1 ít điểm hơn (${a} so ${b}) — thắng!`); }
-      else if (b < a) { ctx.incScore(1); ctx.setStatus(`🔒 Bí cờ! Người chơi 2 ít điểm hơn (${b} so ${a}) — thắng!`); }
-      else ctx.setStatus(`🔒 Bí cờ — hòa (${a} điểm)!`);
+      if (a < b) { ctx.incScore(0); ctx.setStatus(ctx.t(`🔒 Bí cờ! Người chơi 1 ít điểm hơn (${a} so ${b}) — thắng!`, `🔒 Blocked! Player 1 has fewer pips (${a} vs ${b}) — wins!`)); }
+      else if (b < a) { ctx.incScore(1); ctx.setStatus(ctx.t(`🔒 Bí cờ! Người chơi 2 ít điểm hơn (${b} so ${a}) — thắng!`, `🔒 Blocked! Player 2 has fewer pips (${b} vs ${a}) — wins!`)); }
+      else ctx.setStatus(ctx.t(`🔒 Bí cờ — hòa (${a} điểm)!`, `🔒 Blocked — draw (${a} pips)!`));
       render();
     }
 
     function render() {
       // thông tin
-      infoEl.textContent = `Nọc: ${boneyard.length} quân • P1: ${hands[0].length} quân • P2: ${hands[1].length} quân`
-        + (line.length ? ` • Hai đầu: ${pips(leftEnd)} … ${pips(rightEnd)}` : "");
+      infoEl.textContent = ctx.t(
+        `Nọc: ${boneyard.length} quân • P1: ${hands[0].length} quân • P2: ${hands[1].length} quân`,
+        `Boneyard: ${boneyard.length} • P1: ${hands[0].length} tiles • P2: ${hands[1].length} tiles`)
+        + (line.length ? ctx.t(` • Hai đầu: ${pips(leftEnd)} … ${pips(rightEnd)}`, ` • Ends: ${pips(leftEnd)} … ${pips(rightEnd)}`) : "");
 
       // chuỗi quân đã đánh — xếp kiểu rắn bò (serpentine): hàng xen kẽ chiều,
       // quân ở chỗ rẽ cuối hàng để dọc, các quân khác để ngang.
@@ -285,7 +288,8 @@
 
     ctx.setTurn(0);
     render();
-    ctx.setStatus("Nối quân khớp số chấm ở hai đầu chuỗi. Hết quân trước (hoặc bí mà ít điểm hơn) sẽ thắng!");
+    ctx.setStatus(ctx.t("Nối quân khớp số chấm ở hai đầu chuỗi. Hết quân trước (hoặc bí mà ít điểm hơn) sẽ thắng!",
+      "Play tiles matching the open ends. First to empty your hand (or fewest pips if blocked) wins!"));
     return { applyMove, aiMove };
   }
 

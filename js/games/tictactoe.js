@@ -175,7 +175,9 @@
         over = true;
         line.forEach((idx) => cells[idx].classList.add("win"));
         ctx.incScore(p);
-        ctx.setStatus(`🎉 ${p === 0 ? "Người chơi 1 (X)" : "Người chơi 2 (O)"} thắng!`);
+        ctx.setStatus(ctx.t(
+          `🎉 ${p === 0 ? "Người chơi 1 (X)" : "Người chơi 2 (O)"} thắng!`,
+          `🎉 ${p === 0 ? "Player 1 (X)" : "Player 2 (O)"} wins!`));
         ctx.setTurn(-1);
         render();
         updateHud();
@@ -185,7 +187,7 @@
       if (!MOVE_MODE) {
         if (board.every((v) => v !== null)) {
           over = true;
-          ctx.setStatus("🤝 Hòa!");
+          ctx.setStatus(ctx.t("🤝 Hòa!", "🤝 Draw!"));
           ctx.setTurn(-1);
           render();
           updateHud();
@@ -193,7 +195,9 @@
         }
       } else if (phase === "move" && moveCount >= MOVE_DRAW_LIMIT) {
         over = true;
-        ctx.setStatus(`🤝 Hòa! Đã ${MOVE_DRAW_LIMIT} nước di chuyển mà chưa ai thắng.`);
+        ctx.setStatus(ctx.t(
+          `🤝 Hòa! Đã ${MOVE_DRAW_LIMIT} nước di chuyển mà chưa ai thắng.`,
+          `🤝 Draw! ${MOVE_DRAW_LIMIT} moves with no winner.`));
         ctx.setTurn(-1);
         render();
         updateHud();
@@ -285,18 +289,24 @@
     function updateHud() {
       sx.classList.toggle("turn", !over && turn === 0);
       so.classList.toggle("turn", !over && turn === 1);
-      if (over) { badge.textContent = "Kết thúc"; return; }
-      badge.innerHTML = `Lượt <b>${symbol(turn)}</b>`;
+      if (over) { badge.textContent = ctx.t("Kết thúc", "Finished"); return; }
+      badge.innerHTML = ctx.t("Lượt", "Turn") + ` <b>${symbol(turn)}</b>`;
       if (MOVE_MODE) {
         if (phase === "place") {
-          ctx.setStatus(`Đặt quân (${symbol(turn)}): còn ${3 - placed[turn]} quân để đặt. Mỗi bên 3 quân.`);
+          ctx.setStatus(ctx.t(
+            `Đặt quân (${symbol(turn)}): còn ${3 - placed[turn]} quân để đặt. Mỗi bên 3 quân.`,
+            `Place a piece (${symbol(turn)}): ${3 - placed[turn]} left to place. 3 pieces each.`));
         } else {
           ctx.setStatus(selected !== null
-            ? `Chọn ô trống KỀ để di chuyển quán ${symbol(turn)} (ô sáng).`
-            : `Lượt ${symbol(turn)} — bấm 1 quân của bạn rồi đẩy sang ô kề trống.`);
+            ? ctx.t(`Chọn ô trống KỀ để di chuyển quân ${symbol(turn)} (ô sáng).`,
+                    `Pick an adjacent empty cell to move your ${symbol(turn)} (highlighted).`)
+            : ctx.t(`Lượt ${symbol(turn)} — bấm 1 quân của bạn rồi đẩy sang ô kề trống.`,
+                    `${symbol(turn)}'s turn — click one of your pieces then slide it to an adjacent empty cell.`));
         }
       } else {
-        ctx.setStatus(`Lượt ${symbol(turn)} — xếp 3 ô thẳng hàng để thắng.`);
+        ctx.setStatus(ctx.t(
+          `Lượt ${symbol(turn)} — xếp 3 ô thẳng hàng để thắng.`,
+          `${symbol(turn)}'s turn — line up 3 in a row to win.`));
       }
     }
 

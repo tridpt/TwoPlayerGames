@@ -281,6 +281,7 @@
       getScore(idx) { return scores[idx]; },
       sendMove(move) { if (online && !sessionLocked) { replayMoves.push(move); Net.send("move", { move }); } },
       sound(name) { window.Sound && Sound.play(name); },
+      t(vi, en) { return (window.I18n && I18n.getLang() === "en" && en != null) ? en : vi; },
     };
   }
 
@@ -2144,6 +2145,7 @@
       getScore(idx) { return rscores[idx]; },
       sendMove() {},
       sound() {},
+      t(vi, en) { return (window.I18n && I18n.getLang() === "en" && en != null) ? en : vi; },
     };
   }
 
