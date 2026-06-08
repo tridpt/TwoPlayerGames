@@ -2330,6 +2330,13 @@ body.theme-light .profile-view > .back-btn:hover {
 .pr-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .pr-info b { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pr-info small { color: var(--muted); font-size: 0.76rem; }
+.pr-wait {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--accent);
+  font-weight: 700;
+  animation: bs-pending 1.2s ease-in-out infinite;
+}
 .pr-join { flex: 0 0 auto; }
 body.theme-light .public-room { background: linear-gradient(160deg, #ffffff, #f1f4fd); border-color: rgba(20,30,80,0.08); }
 .lobby-options {

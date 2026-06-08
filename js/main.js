@@ -54,6 +54,7 @@
     publicToggle: $("publicToggle"),
     refreshRoomsBtn: $("refreshRoomsBtn"),
     publicRoomsList: $("publicRoomsList"),
+    publicRoomsTitle: $("publicRoomsTitle"),
     gameView: $("gameView"),
     gameTitle: $("gameTitle"),
     boardWrap: $("boardWrap"),
@@ -1506,6 +1507,10 @@
 
   function renderPublicRooms(list) {
     if (!el.publicRoomsList) return;
+    const n = list ? list.length : 0;
+    if (el.publicRoomsTitle) el.publicRoomsTitle.textContent = n
+      ? `🌐 Phòng công khai đang mở (${n})`
+      : "🌐 Phòng công khai đang mở";
     if (!list || !list.length) {
       el.publicRoomsList.innerHTML = `<div class="public-empty">Chưa có phòng công khai nào đang chờ. Tạo một phòng để mời người khác!</div>`;
       return;
@@ -1517,7 +1522,7 @@
       row.className = "public-room";
       row.innerHTML = `<div class="pr-poster">${g ? gameAvatarHtml(g) : ""}</div>` +
         `<div class="pr-info"><b>${escapeHtml(g ? g.name : r.gameId)}</b>` +
-        `<small>👤 ${escapeHtml(r.hostName)} · mã ${escapeHtml(r.code)}</small></div>`;
+        `<small>👤 ${escapeHtml(r.hostName)} · mã ${escapeHtml(r.code)} <span class="pr-wait">⏳ đang chờ</span></small></div>`;
       const btn = document.createElement("button");
       btn.className = "btn small primary pr-join";
       btn.type = "button";
