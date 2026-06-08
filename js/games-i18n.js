@@ -2,7 +2,7 @@
    Bản dịch tiếng Anh cho TÊN + MÔ TẢ của từng game.
    main.js dùng khi ngôn ngữ = "en". Không có thì tự về tiếng Việt.
    ============================================================ */
-window.GAMES_EN = {
+var GAMES_EN_DATA = {
   tictactoe: { name: "Tic-Tac-Toe", description: "The classic 3-in-a-row. Place X/O, with last-move and winning-line highlights, plus optional larger boards and 3-piece move mode." },
   gomoku: { name: "Gomoku (Five in a Row)", description: "Place stones on a 15x15 board; the first to line up five in a row wins." },
   connectfour: { name: "Connect Four", description: "Drop discs into columns with a bouncy fall animation. First to line up four in a row wins." },
@@ -51,3 +51,9 @@ window.GAMES_EN = {
   yahtzee: { name: "Yahtzee", description: "Roll and lock dice to score combinations across the scorecard." },
   domino: { name: "Dominoes", description: "Match pip counts to chain dominoes from both ends. First to run out of tiles wins." },
 };
+
+if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
+if (typeof module !== "undefined" && module.exports) module.exports = GAMES_EN_DATA;
+
+if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
+if (typeof module !== "undefined" && module.exports) module.exports = GAMES_EN_DATA;

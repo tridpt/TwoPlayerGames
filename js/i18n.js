@@ -3,7 +3,7 @@
    Dùng data-i18n (textContent), data-i18n-ph (placeholder),
    data-i18n-title (title). Văn bản trong từng game vẫn giữ tiếng Việt.
    ============================================================ */
-window.I18n = (function () {
+var I18nModule = (function () {
   const STORE_KEY = "tpg_lang";
   const DICT = {
     vi: {
@@ -213,6 +213,7 @@ window.I18n = (function () {
   function onChange(fn) { if (typeof fn === "function") listeners.push(fn); }
 
   function apply(root) {
+    if (typeof document === "undefined") return;
     const scope = root || document;
     scope.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.getAttribute("data-i18n")); });
     scope.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });
@@ -220,5 +221,8 @@ window.I18n = (function () {
     try { document.documentElement.lang = lang; } catch (e) { /* ignore */ }
   }
 
-  return { t, getLang, setLang, toggle, onChange, apply };
+  return { t, getLang, setLang, toggle, onChange, apply, DICT };
 })();
+
+if (typeof window !== "undefined") window.I18n = I18nModule;
+if (typeof module !== "undefined" && module.exports) module.exports = I18nModule;
