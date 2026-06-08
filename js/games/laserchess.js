@@ -20,7 +20,7 @@
 
     const bar = document.createElement("div");
     bar.className = "lc-bar";
-    bar.innerHTML = `<span class="lc-turn"></span><button class="btn small lc-rotate" type="button">↻ Xoay gương đã chọn</button>`;
+    bar.innerHTML = `<span class="lc-turn"></span><button class="btn small lc-rotate" type="button">${ctx.t("↻ Xoay gương đã chọn", "↻ Rotate selected mirror")}</button>`;
     root.appendChild(bar);
     const turnEl = bar.querySelector(".lc-turn");
     const rotateBtn = bar.querySelector(".lc-rotate");
@@ -127,8 +127,8 @@
         ctx.incScore(shot.winner);
         ctx.setTurn(-1);
         ctx.setStatus(shot.selfHit
-          ? `🎉 Người chơi ${shot.winner + 1} thắng! Đối thủ tự bắn trúng lõi của mình.`
-          : `🎉 Người chơi ${shot.winner + 1} thắng! Laser bắn trúng lõi đối thủ.`);
+          ? ctx.t(`🎉 Người chơi ${shot.winner + 1} thắng! Đối thủ tự bắn trúng lõi của mình.`, `🎉 Player ${shot.winner + 1} wins! The opponent shot their own core.`)
+          : ctx.t(`🎉 Người chơi ${shot.winner + 1} thắng! Laser bắn trúng lõi đối thủ.`, `🎉 Player ${shot.winner + 1} wins! The laser hit the enemy core.`));
         return;
       }
 
@@ -292,16 +292,16 @@
     function updateStatus(looped = false) {
       renderBar();
       if (over) return;
-      if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus("Đối thủ đang tính nước..."); return; }
-      const extra = looped ? " (Tia vừa bị vòng lặp và tan biến.)" : "";
-      ctx.setStatus(`Người chơi ${turn + 1}: bấm một gương của mình để CHỌN, bấm lần nữa để XOAY, hoặc bấm ô trống kề bên để DI CHUYỂN. Xong là pháo tự bắn.${extra}`);
+      if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus(ctx.t("Đối thủ đang tính nước...", "Opponent is thinking...")); return; }
+      const extra = looped ? ctx.t(" (Tia vừa bị vòng lặp và tan biến.)", " (The beam just looped and dissipated.)") : "";
+      ctx.setStatus(ctx.t(`Người chơi ${turn + 1}: bấm một gương của mình để CHỌN, bấm lần nữa để XOAY, hoặc bấm ô trống kề bên để DI CHUYỂN. Xong là pháo tự bắn.${extra}`, `Player ${turn + 1}: click one of your mirrors to SELECT, click again to ROTATE, or click an adjacent empty cell to MOVE. Then the cannon fires automatically.${extra}`));
     }
 
     function renderBar() {
       const me = ctx.isOnline ? ctx.mySeat : -1;
       turnEl.innerHTML = over
-        ? `<b class="lc-tag">Kết thúc</b>`
-        : `<b class="lc-tag p${turn + 1}">${turn === 0 ? "🔴 Đỏ" : "🔵 Xanh"}${me === turn ? " (bạn)" : ""}</b> đang đi`;
+        ? `<b class="lc-tag">${ctx.t("Kết thúc", "Game over")}</b>`
+        : `<b class="lc-tag p${turn + 1}">${turn === 0 ? ctx.t("🔴 Đỏ", "🔴 Red") : ctx.t("🔵 Xanh", "🔵 Blue")}${me === turn ? ctx.t(" (bạn)", " (you)") : ""}</b>${ctx.t(" đang đi", " to move")}`;
       rotateBtn.disabled = !canAct() || selected < 0;
     }
 
@@ -339,7 +339,7 @@
       renderBar();
     }
 
-    ctx.setNames("Người chơi 1 (Đỏ)", "Người chơi 2 (Xanh)");
+    ctx.setNames(ctx.t("Người chơi 1 (Đỏ)", "Player 1 (Red)"), ctx.t("Người chơi 2 (Xanh)", "Player 2 (Blue)"));
     ctx.setTurn(0);
     updateStatus();
     render();

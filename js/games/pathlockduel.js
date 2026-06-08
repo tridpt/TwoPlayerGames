@@ -17,6 +17,9 @@
   function create(ctx) {
     const o = ctx.options || {};
     const N = [5, 7, 9].includes(Number(o.size)) ? Number(o.size) : 7;
+    // bản dịch nhãn hình tile (SHAPES là hằng module-level)
+    const SHAPE_LABEL_EN = { straight: "Straight", corner: "Corner", tee: "Tee", cross: "Cross" };
+    const shapeLabel = (shape) => ctx.t(SHAPES[shape].label, SHAPE_LABEL_EN[shape] || SHAPES[shape].label);
     const LOCKS = o.tools === "few" ? 2 : o.tools === "many" ? 5 : 3;
     const BOMBS = o.tools === "few" ? 1 : o.tools === "many" ? 3 : 2;
 
@@ -35,9 +38,9 @@
     root.innerHTML = `
       <div class="pld-toolbar">
         <div class="pld-tools"></div>
-        <button class="btn small pld-rotate" type="button">↻ Xoay</button>
-        <button class="btn small pld-lock" type="button">🔒 Khóa</button>
-        <button class="btn small pld-bomb" type="button">💥 Phá</button>
+        <button class="btn small pld-rotate" type="button">${ctx.t("↻ Xoay", "↻ Rotate")}</button>
+        <button class="btn small pld-lock" type="button">${ctx.t("🔒 Khóa", "🔒 Lock")}</button>
+        <button class="btn small pld-bomb" type="button">${ctx.t("💥 Phá", "💥 Bomb")}</button>
       </div>
       <div class="pld-info"></div>
       <div class="pld-board"></div>
@@ -165,7 +168,7 @@
         ctx.incScore(winner);
         ctx.setTurn(-1);
         render();
-        ctx.setStatus(`🎉 Người chơi ${winner + 1} nối được đường hoàn chỉnh!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} nối được đường hoàn chỉnh!`, `🎉 Player ${winner + 1} completed a full path!`));
         return;
       }
 
@@ -369,31 +372,31 @@
 
     function updateStatus() {
       if (over) return;
-      if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus("Đối thủ đang ghép đường..."); return; }
-      const goal = turn === 0 ? "nối TRÁI → PHẢI" : "nối TRÊN → DƯỚI";
-      const m = mode === "lock" ? "🔒 đang chọn ô để KHÓA" : mode === "bomb" ? "💥 đang chọn tile để PHÁ" : "đặt/xoay tile";
-      ctx.setStatus(`Người chơi ${turn + 1} (${goal}) — ${m}.`);
+      if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus(ctx.t("Đối thủ đang ghép đường...", "Opponent is building a path...")); return; }
+      const goal = turn === 0 ? ctx.t("nối TRÁI → PHẢI", "connect LEFT → RIGHT") : ctx.t("nối TRÊN → DƯỚI", "connect TOP → BOTTOM");
+      const m = mode === "lock" ? ctx.t("🔒 đang chọn ô để KHÓA", "🔒 picking a cell to LOCK") : mode === "bomb" ? ctx.t("💥 đang chọn tile để PHÁ", "💥 picking a tile to BOMB") : ctx.t("đặt/xoay tile", "place/rotate a tile");
+      ctx.setStatus(ctx.t(`Người chơi ${turn + 1} (${goal}) — ${m}.`, `Player ${turn + 1} (${goal}) — ${m}.`));
     }
 
     function render() {
       const sample = glyph(currentBits());
       Object.entries(buttons).forEach(([shape, btn]) => {
         btn.classList.toggle("active", mode === "tile" && shape === selectedShape);
-        btn.innerHTML = `${SHAPES[shape].label} <b class="pld-gly">${shape === selectedShape ? sample : glyph(SHAPES[shape].base)}</b>`;
+        btn.innerHTML = `${shapeLabel(shape)} <b class="pld-gly">${shape === selectedShape ? sample : glyph(SHAPES[shape].base)}</b>`;
       });
-      rotateBtn.innerHTML = `↻ Xoay <b class="pld-gly">${sample}</b>`;
-      lockBtn.textContent = `🔒 Khóa (${locks[turn]})`;
+      rotateBtn.innerHTML = `${ctx.t("↻ Xoay", "↻ Rotate")} <b class="pld-gly">${sample}</b>`;
+      lockBtn.textContent = ctx.t(`🔒 Khóa (${locks[turn]})`, `🔒 Lock (${locks[turn]})`);
       lockBtn.classList.toggle("active", mode === "lock");
       lockBtn.disabled = !canAct() || locks[turn] <= 0;
-      bombBtn.textContent = `💥 Phá (${bombs[turn]})`;
+      bombBtn.textContent = ctx.t(`💥 Phá (${bombs[turn]})`, `💥 Bomb (${bombs[turn]})`);
       bombBtn.classList.toggle("active", mode === "bomb");
       bombBtn.disabled = !canAct() || bombs[turn] <= 0;
 
       const net0 = network(0).net;
       const net1 = network(1).net;
       infoEl.innerHTML = `
-        <span class="pld-side p1 ${turn === 0 && !over ? "active" : ""}">🟥 P1 ↔ ${net0.size} đoạn · 🔒${locks[0]} 💥${bombs[0]}</span>
-        <span class="pld-side p2 ${turn === 1 && !over ? "active" : ""}">🟦 P2 ↕ ${net1.size} đoạn · 🔒${locks[1]} 💥${bombs[1]}</span>
+        <span class="pld-side p1 ${turn === 0 && !over ? "active" : ""}">${ctx.t(`🟥 P1 ↔ ${net0.size} đoạn`, `🟥 P1 ↔ ${net0.size} segs`)} · 🔒${locks[0]} 💥${bombs[0]}</span>
+        <span class="pld-side p2 ${turn === 1 && !over ? "active" : ""}">${ctx.t(`🟦 P2 ↕ ${net1.size} đoạn`, `🟦 P2 ↕ ${net1.size} segs`)} · 🔒${locks[1]} 💥${bombs[1]}</span>
       `;
 
       cellEls.forEach((el, i) => {
@@ -427,7 +430,7 @@
       });
     }
 
-    ctx.setNames("Người chơi 1 (trái-phải)", "Người chơi 2 (trên-dưới)");
+    ctx.setNames(ctx.t("Người chơi 1 (trái-phải)", "Player 1 (left-right)"), ctx.t("Người chơi 2 (trên-dưới)", "Player 2 (top-bottom)"));
     ctx.setTurn(0);
     updateStatus();
     render();
