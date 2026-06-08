@@ -12204,3 +12204,27 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   0%, 100% { background: #3a4180; }
   50% { background: #ffd166; }
 }
+
+
+/* ---------- Tôn trọng người dùng muốn giảm chuyển động ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .game-card { animation: none !important; }
+  .bs-cell.scan::before,
+  .sbx-cell.scanned::after,
+  .bs-cell.hit.sunk,
+  .sbx-cell.hit.sunk,
+  .sh-cell.sh-final,
+  .sh-cell.sh-sub,
+  .sh-noise-zone,
+  .sh-decoy-zone,
+  .bs-cell.aim,
+  .sbx-cell.aim,
+  .sh-cell.sh-target,
+  .pr-wait { animation: none !important; }
+}

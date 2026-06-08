@@ -2287,6 +2287,14 @@
   if (el.tourNext) el.tourNext.addEventListener("click", nextTourStep);
   if (el.tourSkip) el.tourSkip.addEventListener("click", endTour);
 
+  // Phím Escape đóng overlay đang mở (ưu tiên từ trên xuống)
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (el.tourOverlay && !el.tourOverlay.classList.contains("hidden")) { endTour(); return; }
+    if (el.replayOverlay && !el.replayOverlay.classList.contains("hidden")) { closeReplay(); return; }
+    if (el.helpOverlay && !el.helpOverlay.classList.contains("hidden")) { el.helpOverlay.classList.add("hidden"); return; }
+  });
+
   function maybeStartTour() {
     let done = "1";
     try { done = localStorage.getItem(TOUR_KEY); } catch (e) { /* ignore */ }

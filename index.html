@@ -288,7 +288,7 @@
 
   <!-- Overlay xem lại ván online -->
   <div class="replay-overlay hidden" id="replayOverlay">
-    <div class="replay-modal">
+    <div class="replay-modal" role="dialog" aria-modal="true" aria-labelledby="replayTitle">
       <div class="replay-head">
         <h3 id="replayTitle">🎬 Xem lại ván</h3>
         <button class="modal-close" id="replayClose" title="Đóng">✕</button>
@@ -308,7 +308,7 @@
   <!-- Tour hướng dẫn lần đầu -->
   <div class="tour-overlay hidden" id="tourOverlay">
     <div class="tour-ring" id="tourRing"></div>
-    <div class="tour-card" id="tourCard">
+    <div class="tour-card" id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
       <h3 id="tourTitle"></h3>
       <p id="tourText"></p>
       <div class="tour-actions">
