@@ -169,7 +169,7 @@
     }
 
     function applyPower(pu, ball) {
-      ctx.sound("capture");
+      ctx.sound("powerup");
       if (pu.type === "multi") {
         // tách thêm 2 bóng từ bóng hiện tại
         const sp = Math.hypot(ball.vx, ball.vy) || BALL_SPEED;

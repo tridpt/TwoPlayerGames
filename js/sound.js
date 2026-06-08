@@ -1,7 +1,8 @@
 /* ============================================================
    Sound: hiệu ứng âm thanh sinh bằng Web Audio API (không cần file)
    Dùng: Sound.play("place" | "capture" | "win" | "lose" | "draw"
-                     | "error" | "select" | "rotate" | "shot" | "miss")
+                     | "error" | "select" | "rotate" | "shot" | "miss"
+                     | "explode" | "flip" | "score" | "powerup" | "drop" | "coin")
    ============================================================ */
 window.Sound = (function () {
   let ctxAudio = null;
@@ -84,6 +85,18 @@ window.Sound = (function () {
     lose()    { [392, 330, 262].forEach((f, i) => tone(f, 0.22, "sine", 0.18, i * 0.12)); },
     draw()    { tone(440, 0.15, "sine", 0.15); tone(440, 0.15, "sine", 0.12, 0.16); },
     notify()  { tone(880, 0.08, "sine", 0.16); tone(1175, 0.1, "sine", 0.16, 0.09); },
+    // Hiệu ứng riêng phong phú hơn
+    explode() {
+      noise(0.45, 0.32, 0, 380);
+      tone(90, 0.35, "sawtooth", 0.22);
+      tone(60, 0.5, "sine", 0.18, 0.02);
+      noise(0.18, 0.18, 0.04, 1600);
+    },
+    flip()    { tone(520, 0.05, "sine", 0.10); tone(760, 0.06, "triangle", 0.12, 0.05); },
+    score()   { [784, 1047, 1319].forEach((f, i) => tone(f, 0.12, "triangle", 0.16, i * 0.06)); },
+    powerup() { [440, 587, 740, 988].forEach((f, i) => tone(f, 0.1, "square", 0.12, i * 0.05)); },
+    drop()    { tone(300, 0.05, "sine", 0.12); tone(180, 0.12, "triangle", 0.16, 0.05); noise(0.06, 0.08, 0.04, 1200); },
+    coin()    { tone(988, 0.07, "square", 0.12); tone(1319, 0.1, "square", 0.12, 0.06); },
   };
 
   function play(name) {

@@ -414,7 +414,7 @@
       trail.length = 0;
       if (impact) {
         detonate(weapon, impact.x, impact.y, blast, maxDmg);
-        ctx.sound("capture");
+        ctx.sound("explode");
       } else {
         ctx.sound("miss");
       }

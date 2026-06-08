@@ -93,7 +93,7 @@
       cell.classList.add("dropping");
       setTimeout(() => cell.classList.remove("dropping"), 480);
 
-      ctx.sound("place");
+      ctx.sound("drop");
 
       if (!fromRemote && ctx.isOnline) ctx.sendMove(c);
 

@@ -364,7 +364,7 @@
       explosions.push({ x, y, r: 8, max: blast, color });
       spawnParticles(x, y, color, blast);
       shake = Math.min(16, shake + blast * 0.14);
-      ctx.sound("capture");
+      ctx.sound("explode");
 
       players.forEach((pl) => {
         if (pl.hp <= 0) return;

@@ -423,7 +423,7 @@
         shot.scored += 1;
         shot.pocketed.push(b.number);
         addFloater(b.x, b.y, "+1", turn === 0 ? "#ff91a2" : "#8be6f0");
-        ctx.sound("capture");
+        ctx.sound("score");
       } else if (b.kind === "cue") {
         shot.foul = true;
         addFloater(b.x, b.y, "LỖI", "#ff5d73");
@@ -487,7 +487,7 @@
         b.vx += dx / d * force;
         b.vy += dy / d * force;
       });
-      ctx.sound("capture");
+      ctx.sound("explode");
     }
 
     function spawnSparks(x, y, color, n) {

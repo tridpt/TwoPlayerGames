@@ -126,7 +126,7 @@
       if (!fromRemote && ctx.isOnline) ctx.sendMove(i);
 
       showFace(i, true);
-      ctx.sound("select");
+      ctx.sound("flip");
 
       if (firstIdx === null) {
         firstIdx = i;
@@ -144,7 +144,7 @@
         if (combo[turn] > bestCombo[turn]) bestCombo[turn] = combo[turn];
         firstIdx = null;
         ctx.incScore(turn);
-        ctx.sound("capture");
+        ctx.sound("score");
         updateHud();
         if (matchedCount === EMOJIS.length) return finish();
         const cb = combo[turn] >= 2 ? ` 🔥 Combo x${combo[turn]}!` : "";
