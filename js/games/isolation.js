@@ -130,7 +130,8 @@
         over = true;
         ctx.incScore(player);
         ctx.setTurn(-1);
-        ctx.setStatus(`🎉 Người chơi ${player + 1} thắng! Đối thủ không còn nước đi.`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${player + 1} thắng! Đối thủ không còn nước đi.`,
+          `🎉 Player ${player + 1} wins! Opponent has no moves left.`));
         render();
         return;
       }
@@ -143,14 +144,17 @@
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus(`Đối thủ đang đi... (P1 ${legalMoves(0).length} nước · P2 ${legalMoves(1).length} nước)`);
+        ctx.setStatus(ctx.t(`Đối thủ đang đi... (P1 ${legalMoves(0).length} nước · P2 ${legalMoves(1).length} nước)`,
+          `Opponent is moving... (P1 ${legalMoves(0).length} moves · P2 ${legalMoves(1).length} moves)`));
         return;
       }
       if (MODE === "choose" && phase === "block") {
-        ctx.setStatus(`Người chơi ${turn + 1}: chọn một ô TRỐNG bất kỳ để KHÓA (chặn đường đối thủ).`);
+        ctx.setStatus(ctx.t(`Người chơi ${turn + 1}: chọn một ô TRỐNG bất kỳ để KHÓA (chặn đường đối thủ).`,
+          `Player ${turn + 1}: pick any EMPTY cell to BLOCK (cut off your opponent).`));
         return;
       }
-      ctx.setStatus(`Người chơi ${turn + 1}: chọn ô để di chuyển (ngang/dọc/chéo). Còn ${legalMoves(turn).length} nước.`);
+      ctx.setStatus(ctx.t(`Người chơi ${turn + 1}: chọn ô để di chuyển (ngang/dọc/chéo). Còn ${legalMoves(turn).length} nước.`,
+        `Player ${turn + 1}: pick a cell to move (orthogonal/diagonal). ${legalMoves(turn).length} moves left.`));
     }
 
     // ----- AI -----
@@ -211,12 +215,12 @@
       const maxM = Math.max(1, m0, m1);
       hud.innerHTML = `
         <div class="iso-side p1 ${turn === 0 && !over ? "active" : ""}">
-          <span>🔴 Người chơi 1</span><b>${m0} nước</b>
+          <span>🔴 ${ctx.t("Người chơi 1", "Player 1")}</span><b>${m0} ${ctx.t("nước", "moves")}</b>
           <i class="iso-bar p1"><i style="width:${m0 / maxM * 100}%"></i></i>
         </div>
-        <div class="iso-mid">${over ? "🏁" : (MODE === "choose" && phase === "block" ? "🔒 chọn ô khóa" : "⚔️")}</div>
+        <div class="iso-mid">${over ? "🏁" : (MODE === "choose" && phase === "block" ? ctx.t("🔒 chọn ô khóa", "🔒 pick a block") : "⚔️")}</div>
         <div class="iso-side p2 ${turn === 1 && !over ? "active" : ""}">
-          <span>🔵 Người chơi 2</span><b>${m1} nước</b>
+          <span>🔵 ${ctx.t("Người chơi 2", "Player 2")}</span><b>${m1} ${ctx.t("nước", "moves")}</b>
           <i class="iso-bar p2"><i style="width:${m1 / maxM * 100}%"></i></i>
         </div>
       `;
@@ -240,7 +244,7 @@
       });
     }
 
-    ctx.setNames("Người chơi 1 (Đỏ)", "Người chơi 2 (Xanh)");
+    ctx.setNames(ctx.t("Người chơi 1 (Đỏ)", "Player 1 (Red)"), ctx.t("Người chơi 2 (Xanh)", "Player 2 (Blue)"));
     ctx.setTurn(0);
     updateStatus();
     render();

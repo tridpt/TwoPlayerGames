@@ -37,7 +37,7 @@
     // Bộ chọn ký hiệu
     const picker = document.createElement("div");
     picker.className = "oc-picker";
-    picker.innerHTML = `<span class="oc-picker-label">Đặt:</span>`;
+    picker.innerHTML = `<span class="oc-picker-label">${ctx.t("Đặt:", "Place:")}</span>`;
     const xBtn = document.createElement("button");
     xBtn.type = "button";
     xBtn.className = "oc-sym-btn x active";
@@ -87,7 +87,8 @@
         el.classList.remove("x", "o");
         el.classList.add(s === "X" ? "x" : "o");
         el.textContent = s;
-        ctx.setStatus(`Bấm LẦN NỮA vào ô đã chọn để xác nhận đặt "${s}". Hoặc chọn ô khác.`);
+        ctx.setStatus(ctx.t(`Bấm LẦN NỮA vào ô đã chọn để xác nhận đặt "${s}". Hoặc chọn ô khác.`,
+          `Click the chosen cell AGAIN to confirm placing "${s}". Or pick another cell.`));
       }
     }
 
@@ -109,7 +110,8 @@
       el.classList.remove("ghost");
       el.classList.add("pending", chosen === "X" ? "x" : "o");
       el.textContent = chosen;
-      ctx.setStatus(`Bấm LẦN NỮA vào ô đó để xác nhận đặt "${chosen}". (chống bấm nhầm)`);
+      ctx.setStatus(ctx.t(`Bấm LẦN NỮA vào ô đó để xác nhận đặt "${chosen}". (chống bấm nhầm)`,
+        `Click that cell AGAIN to confirm placing "${chosen}". (mis-tap guard)`));
     }
 
     function onHover(r, c, on) {
@@ -163,7 +165,8 @@
         ctx.setTurn(-1);
         picker.classList.add("disabled");
         renderHeader();
-        ctx.setStatus(`🎉 Order (Người chơi 1) thắng — tạo được chuỗi ${NEED}!`);
+        ctx.setStatus(ctx.t(`🎉 Order (Người chơi 1) thắng — tạo được chuỗi ${NEED}!`,
+          `🎉 Order (Player 1) wins — made a run of ${NEED}!`));
         return;
       }
       if (count === N * N) {
@@ -172,7 +175,8 @@
         ctx.setTurn(-1);
         picker.classList.add("disabled");
         renderHeader();
-        ctx.setStatus(`🎉 Chaos (Người chơi 2) thắng — bàn đầy, không có chuỗi ${NEED}!`);
+        ctx.setStatus(ctx.t(`🎉 Chaos (Người chơi 2) thắng — bàn đầy, không có chuỗi ${NEED}!`,
+          `🎉 Chaos (Player 2) wins — board full with no run of ${NEED}!`));
         return;
       }
 
@@ -295,17 +299,17 @@
       const runPct = run / NEED * 100;
       const fillPct = count / (N * N) * 100;
       const roleBadge = over
-        ? `<span class="oc-role">Kết thúc</span>`
-        : `<span class="oc-role ${turn === 0 ? "order" : "chaos"}">${turn === 0 ? "🏆 ORDER" : "🌀 CHAOS"} · Người chơi ${turn + 1}</span>`;
+        ? `<span class="oc-role">${ctx.t("Kết thúc", "Finished")}</span>`
+        : `<span class="oc-role ${turn === 0 ? "order" : "chaos"}">${turn === 0 ? "🏆 ORDER" : "🌀 CHAOS"} · ${ctx.t("Người chơi", "Player")} ${turn + 1}</span>`;
       header.innerHTML = `
         ${roleBadge}
         <div class="oc-meters">
           <div class="oc-meter">
-            <span>Chuỗi dài nhất ${run}/${NEED}</span>
+            <span>${ctx.t("Chuỗi dài nhất", "Longest run")} ${run}/${NEED}</span>
             <i class="oc-bar order"><i style="width:${runPct}%"></i></i>
           </div>
           <div class="oc-meter">
-            <span>Bàn đầy ${count}/${N * N}</span>
+            <span>${ctx.t("Bàn đầy", "Board filled")} ${count}/${N * N}</span>
             <i class="oc-bar chaos"><i style="width:${fillPct}%"></i></i>
           </div>
         </div>
@@ -314,11 +318,12 @@
 
     function updateStatus() {
       if (over) return;
-      const role = turn === 0 ? "Order — tạo chuỗi để thắng" : "Chaos — chặn không cho đủ chuỗi";
+      const role = turn === 0 ? ctx.t("Order — tạo chuỗi để thắng", "Order — make a run to win") : ctx.t("Chaos — chặn không cho đủ chuỗi", "Chaos — block any full run");
       if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus(`Đối thủ đang đi (${role}).`);
+        ctx.setStatus(ctx.t(`Đối thủ đang đi (${role}).`, `Opponent is playing (${role}).`));
       } else {
-        ctx.setStatus(`Lượt Người chơi ${turn + 1} (${role}). Chọn X hoặc O rồi đặt vào ô trống.`);
+        ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} (${role}). Chọn X hoặc O rồi đặt vào ô trống.`,
+          `Player ${turn + 1}'s turn (${role}). Pick X or O then place on an empty cell.`));
       }
     }
 

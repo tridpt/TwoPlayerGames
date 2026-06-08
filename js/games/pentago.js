@@ -71,7 +71,8 @@
       render();
       ctx.sound("place");
       setRotEnabled(true);
-      ctx.setStatus("Đã đặt bi. Giờ chọn một ô vuông con để XOAY (↺ hoặc ↻).");
+      ctx.setStatus(ctx.t("Đã đặt bi. Giờ chọn một ô vuông con để XOAY (↺ hoặc ↻).",
+        "Marble placed. Now pick a quadrant to ROTATE (↺ or ↻)."));
     }
 
     function onRotate(q, dir) {
@@ -128,11 +129,11 @@
           setRotEnabled(false);
           // cả hai cùng đạt 5 (hiếm) -> hòa; ngược lại người trong winners thắng
           if (winners.includes(0) && winners.includes(1)) {
-            ctx.setStatus("🤝 Cả hai cùng có 5 bi thẳng hàng — hòa!");
+            ctx.setStatus(ctx.t("🤝 Cả hai cùng có 5 bi thẳng hàng — hòa!", "🤝 Both made five in a row — draw!"));
           } else {
             const w = winners[0];
             ctx.incScore(w);
-            ctx.setStatus(`🎉 Người chơi ${w + 1} có 5 bi thẳng hàng — chiến thắng!`);
+            ctx.setStatus(ctx.t(`🎉 Người chơi ${w + 1} có 5 bi thẳng hàng — chiến thắng!`, `🎉 Player ${w + 1} got five in a row — wins!`));
           }
           highlightWin();
           return;
@@ -141,14 +142,14 @@
           over = true;
           ctx.setTurn(-1);
           setRotEnabled(false);
-          ctx.setStatus("🤝 Bàn đầy — hòa!");
+          ctx.setStatus(ctx.t("🤝 Bàn đầy — hòa!", "🤝 Board full — draw!"));
           return;
         }
 
         turn = 1 - turn;
         ctx.setTurn(turn);
         setRotEnabled(false);
-        ctx.setStatus(`Lượt Người chơi ${turn + 1} — đặt một bi vào ô trống.`);
+        ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} — đặt một bi vào ô trống.`, `Player ${turn + 1}'s turn — place a marble on an empty cell.`));
       });
     }
 
@@ -289,7 +290,8 @@
     ctx.setTurn(0);
     setRotEnabled(false);
     render();
-    ctx.setStatus("Đặt một bi vào ô trống, sau đó xoay một ô vuông con. Ai có 5 bi thẳng hàng trước sẽ thắng.");
+    ctx.setStatus(ctx.t("Đặt một bi vào ô trống, sau đó xoay một ô vuông con. Ai có 5 bi thẳng hàng trước sẽ thắng.",
+      "Place a marble, then rotate a quadrant. First to five in a row wins."));
     return { applyMove, aiMove };
   }
 

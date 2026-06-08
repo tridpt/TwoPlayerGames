@@ -72,7 +72,8 @@
         winSet = new Set(path);
         render();
         ctx.incScore(p);
-        ctx.setStatus(`🎉 Người chơi ${p + 1} (${p === 0 ? "Đỏ" : "Xanh"}) đã nối thông — chiến thắng!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${p + 1} (${p === 0 ? "Đỏ" : "Xanh"}) đã nối thông — chiến thắng!`,
+          `🎉 Player ${p + 1} (${p === 0 ? "Red" : "Blue"}) connected through — wins!`));
         ctx.setTurn(-1);
         return;
       }
@@ -162,9 +163,9 @@
 
     function renderHeader() {
       header.innerHTML = `
-        <div class="hex-side p1 ${turn === 0 && !over ? "active" : ""}">🔴 Đỏ · nối TRÊN ↕ DƯỚI</div>
+        <div class="hex-side p1 ${turn === 0 && !over ? "active" : ""}">${ctx.t("🔴 Đỏ · nối TRÊN ↕ DƯỚI", "🔴 Red · link TOP ↕ BOTTOM")}</div>
         <div class="hex-vs">${over ? "🏁" : "VS"}</div>
-        <div class="hex-side p2 ${turn === 1 && !over ? "active" : ""}">🔵 Xanh · nối TRÁI ↔ PHẢI</div>
+        <div class="hex-side p2 ${turn === 1 && !over ? "active" : ""}">${ctx.t("🔵 Xanh · nối TRÁI ↔ PHẢI", "🔵 Blue · link LEFT ↔ RIGHT")}</div>
       `;
     }
 
@@ -185,18 +186,21 @@
     function updateStatus() {
       renderHeader();
       if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus(`Đối thủ đang suy nghĩ... (${turn === 0 ? "Đỏ" : "Xanh"} đi)`);
+        ctx.setStatus(ctx.t(`Đối thủ đang suy nghĩ... (${turn === 0 ? "Đỏ" : "Xanh"} đi)`,
+          `Opponent is thinking... (${turn === 0 ? "Red" : "Blue"} to move)`));
       } else {
-        const who = turn === 0 ? "Đỏ — nối trên ↕ dưới" : "Xanh — nối trái ↔ phải";
-        ctx.setStatus(`Lượt Người chơi ${turn + 1}: ${who}. Bấm một ô trống để đặt quân.`);
+        const who = turn === 0 ? ctx.t("Đỏ — nối trên ↕ dưới", "Red — link top ↕ bottom") : ctx.t("Xanh — nối trái ↔ phải", "Blue — link left ↔ right");
+        ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1}: ${who}. Bấm một ô trống để đặt quân.`,
+          `Player ${turn + 1}'s turn: ${who}. Click an empty cell to place.`));
       }
     }
 
-    ctx.setNames("Người chơi 1 (Đỏ)", "Người chơi 2 (Xanh)");
+    ctx.setNames(ctx.t("Người chơi 1 (Đỏ)", "Player 1 (Red)"), ctx.t("Người chơi 2 (Xanh)", "Player 2 (Blue)"));
     ctx.setTurn(0);
     renderHeader();
     render();
-    ctx.setStatus("🔴 Đỏ nối cạnh TRÊN–DƯỚI. 🔵 Xanh nối cạnh TRÁI–PHẢI. Đỏ đi trước. Quân nối được về cạnh nhà sẽ phát sáng.");
+    ctx.setStatus(ctx.t("🔴 Đỏ nối cạnh TRÊN–DƯỚI. 🔵 Xanh nối cạnh TRÁI–PHẢI. Đỏ đi trước. Quân nối được về cạnh nhà sẽ phát sáng.",
+      "🔴 Red links TOP–BOTTOM. 🔵 Blue links LEFT–RIGHT. Red goes first. Stones connected to your edge glow."));
     return { applyMove, undo };
   }
 

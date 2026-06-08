@@ -127,7 +127,8 @@
         highlight(turn);
         ctx.incScore(turn);
         ctx.setTurn(-1);
-        ctx.setStatus(`🎉 Người chơi ${turn + 1} xếp 3 quân thẳng hàng — chiến thắng!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${turn + 1} xếp 3 quân thẳng hàng — chiến thắng!`,
+          `🎉 Player ${turn + 1} lined up 3 — wins!`));
         render();
         return;
       }
@@ -135,7 +136,8 @@
       if (phase === "move" && moveCount >= DRAW_LIMIT) {
         over = true;
         ctx.setTurn(-1);
-        ctx.setStatus(`🤝 Hòa! Đã ${DRAW_LIMIT} nước di chuyển mà chưa ai xếp được hàng.`);
+        ctx.setStatus(ctx.t(`🤝 Hòa! Đã ${DRAW_LIMIT} nước di chuyển mà chưa ai xếp được hàng.`,
+          `🤝 Draw! ${DRAW_LIMIT} moves with no line formed.`));
         render();
         return;
       }
@@ -172,19 +174,19 @@
 
     function renderHud() {
       const me = ctx.isOnline ? ctx.mySeat : -1;
-      const phaseTxt = over ? "Kết thúc" : phase === "place" ? "📥 Đặt quân" : "🔀 Di chuyển";
+      const phaseTxt = over ? ctx.t("Kết thúc", "Finished") : phase === "place" ? ctx.t("📥 Đặt quân", "📥 Place") : ctx.t("🔀 Di chuyển", "🔀 Move");
       const note = (n) => {
         if (over) return "";
-        if (phase === "place") return `còn đặt ${3 - placed[n]}`;
+        if (phase === "place") return ctx.t(`còn đặt ${3 - placed[n]}`, `${3 - placed[n]} to place`);
         return "";
       };
       hud.innerHTML = `
         <div class="mor-side p1 ${turn === 0 && !over ? "active" : ""}">
-          <span>🔴 Người chơi 1${me === 0 ? " (bạn)" : ""}</span><small>${note(0)}</small>
+          <span>🔴 ${ctx.t("Người chơi 1", "Player 1")}${me === 0 ? ctx.t(" (bạn)", " (you)") : ""}</span><small>${note(0)}</small>
         </div>
-        <div class="mor-phase">${phaseTxt}${phase === "move" && !over ? `<i>${DRAW_LIMIT - moveCount} nước tới hòa</i>` : ""}</div>
+        <div class="mor-phase">${phaseTxt}${phase === "move" && !over ? `<i>${DRAW_LIMIT - moveCount} ${ctx.t("nước tới hòa", "moves to draw")}</i>` : ""}</div>
         <div class="mor-side p2 ${turn === 1 && !over ? "active" : ""}">
-          <span>🔵 Người chơi 2${me === 1 ? " (bạn)" : ""}</span><small>${note(1)}</small>
+          <span>🔵 ${ctx.t("Người chơi 2", "Player 2")}${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}</span><small>${note(1)}</small>
         </div>
       `;
     }
@@ -221,11 +223,13 @@
 
     function updateStatus() {
       if (over) return;
-      if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus("Đối thủ đang đi..."); return; }
+      if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus(ctx.t("Đối thủ đang đi...", "Opponent is moving...")); return; }
       if (phase === "place") {
-        ctx.setStatus(`Giai đoạn ĐẶT QUÂN — Người chơi ${turn + 1} còn ${3 - placed[turn]} quân để đặt.`);
+        ctx.setStatus(ctx.t(`Giai đoạn ĐẶT QUÂN — Người chơi ${turn + 1} còn ${3 - placed[turn]} quân để đặt.`,
+          `PLACING phase — Player ${turn + 1} has ${3 - placed[turn]} pieces left to place.`));
       } else {
-        ctx.setStatus(`Giai đoạn DI CHUYỂN — Người chơi ${turn + 1}: chọn quân của mình rồi đi tới điểm ${FREE ? "trống bất kỳ" : "kề trống"}.`);
+        ctx.setStatus(ctx.t(`Giai đoạn DI CHUYỂN — Người chơi ${turn + 1}: chọn quân của mình rồi đi tới điểm ${FREE ? "trống bất kỳ" : "kề trống"}.`,
+          `MOVING phase — Player ${turn + 1}: pick your piece then move to ${FREE ? "any empty point" : "an adjacent empty point"}.`));
       }
     }
 
@@ -292,7 +296,7 @@
       return pick;
     }
 
-    ctx.setNames("Người chơi 1 (Đỏ)", "Người chơi 2 (Xanh)");
+    ctx.setNames(ctx.t("Người chơi 1 (Đỏ)", "Player 1 (Red)"), ctx.t("Người chơi 2 (Xanh)", "Player 2 (Blue)"));
     ctx.setTurn(0);
     render();
     updateStatus();

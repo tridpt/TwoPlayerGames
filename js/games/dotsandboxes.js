@@ -112,11 +112,12 @@
       moveStack.push({ m, turnBefore: turn, boxes: gained.boxes, el });
       if (gained.count > 0) {
         if (filled === W * H) return finish();
-        const extra = gained.bonus > 0 ? ` (+${gained.bonus} thưởng ⭐)` : "";
+        const extra = gained.bonus > 0 ? ctx.t(` (+${gained.bonus} thưởng ⭐)`, ` (+${gained.bonus} bonus ⭐)`) : "";
         const combo = gained.count >= 2 ? `COMBO ×${gained.count}! ` : "";
         renderHeader();
         ctx.setTurn(turn); // giữ lượt
-        ctx.setStatus(`✅ ${combo}Người chơi ${turn + 1} chiếm ${gained.count} ô${extra} — đi tiếp!`);
+        ctx.setStatus(ctx.t(`✅ ${combo}Người chơi ${turn + 1} chiếm ${gained.count} ô${extra} — đi tiếp!`,
+          `✅ ${combo}Player ${turn + 1} claimed ${gained.count} box(es)${extra} — go again!`));
       } else {
         turn = 1 - turn;
         renderHeader();
@@ -163,22 +164,22 @@
       const me = ctx.isOnline ? ctx.mySeat : -1;
       header.innerHTML = `
         <div class="dnb-score p1 ${turn === 0 && !over ? "active" : ""}">
-          <span>🟥 Người chơi 1${me === 0 ? " (bạn)" : ""}</span><b>${points[0]}</b>
+          <span>🟥 ${ctx.t("Người chơi 1", "Player 1")}${me === 0 ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${points[0]}</b>
         </div>
         <div class="dnb-mid">
-          <span>${W}×${H} ô · còn ${W * H - filled}</span>
-          ${stars.size ? `<small>⭐ ô thưởng = 2 điểm</small>` : ""}
+          <span>${W}×${H} ${ctx.t("ô · còn", "boxes · left")} ${W * H - filled}</span>
+          ${stars.size ? `<small>${ctx.t("⭐ ô thưởng = 2 điểm", "⭐ bonus box = 2 pts")}</small>` : ""}
         </div>
         <div class="dnb-score p2 ${turn === 1 && !over ? "active" : ""}">
-          <span>🟦 Người chơi 2${me === 1 ? " (bạn)" : ""}</span><b>${points[1]}</b>
+          <span>🟦 ${ctx.t("Người chơi 2", "Player 2")}${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${points[1]}</b>
         </div>
       `;
     }
 
     function updateStatus() {
       if (over) return;
-      if (ctx.isOnline && turn !== ctx.mySeat) ctx.setStatus(`Đối thủ đang nối cạnh... (P1 ${points[0]} – P2 ${points[1]})`);
-      else ctx.setStatus(`Lượt Người chơi ${turn + 1}: bấm một cạnh trống để nối.`);
+      if (ctx.isOnline && turn !== ctx.mySeat) ctx.setStatus(ctx.t(`Đối thủ đang nối cạnh... (P1 ${points[0]} – P2 ${points[1]})`, `Opponent is drawing... (P1 ${points[0]} – P2 ${points[1]})`));
+      else ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1}: bấm một cạnh trống để nối.`, `Player ${turn + 1}'s turn: click an empty edge to draw.`));
     }
 
     function finish() {
@@ -186,9 +187,9 @@
       renderHeader();
       ctx.setTurn(-1);
       const a = points[0], b = points[1];
-      if (a > b) ctx.setStatus(`🎉 Người chơi 1 thắng ${a}–${b}!`);
-      else if (b > a) ctx.setStatus(`🎉 Người chơi 2 thắng ${b}–${a}!`);
-      else ctx.setStatus(`🤝 Hòa ${a}–${b}!`);
+      if (a > b) ctx.setStatus(ctx.t(`🎉 Người chơi 1 thắng ${a}–${b}!`, `🎉 Player 1 wins ${a}–${b}!`));
+      else if (b > a) ctx.setStatus(ctx.t(`🎉 Người chơi 2 thắng ${b}–${a}!`, `🎉 Player 2 wins ${b}–${a}!`));
+      else ctx.setStatus(ctx.t(`🤝 Hòa ${a}–${b}!`, `🤝 Draw ${a}–${b}!`));
     }
 
     function clampInt(v, min, max, def) {

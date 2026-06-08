@@ -191,7 +191,8 @@
       let nextTurn;
       if (lastIdx === myStore(mover)) {
         nextTurn = mover;
-        ctx.setStatus(`✨ Người chơi ${mover + 1} rơi vào kho — được đi tiếp!`);
+        ctx.setStatus(ctx.t(`✨ Người chơi ${mover + 1} rơi vào kho — được đi tiếp!`,
+          `✨ Player ${mover + 1} landed in the store — go again!`));
       } else {
         nextTurn = 1 - mover;
       }
@@ -221,9 +222,9 @@
       render();
       ctx.setTurn(-1);
       const a = pits[STORE0], b = pits[STORE1];
-      if (a > b) { ctx.incScore(0); ctx.setStatus(`🎉 Người chơi 1 thắng ${a}–${b}!`); }
-      else if (b > a) { ctx.incScore(1); ctx.setStatus(`🎉 Người chơi 2 thắng ${b}–${a}!`); }
-      else ctx.setStatus(`🤝 Hòa ${a}–${b}!`);
+      if (a > b) { ctx.incScore(0); ctx.setStatus(ctx.t(`🎉 Người chơi 1 thắng ${a}–${b}!`, `🎉 Player 1 wins ${a}–${b}!`)); }
+      else if (b > a) { ctx.incScore(1); ctx.setStatus(ctx.t(`🎉 Người chơi 2 thắng ${b}–${a}!`, `🎉 Player 2 wins ${b}–${a}!`)); }
+      else ctx.setStatus(ctx.t(`🤝 Hòa ${a}–${b}!`, `🤝 Draw ${a}–${b}!`));
     }
 
     function render() {
@@ -236,8 +237,9 @@
     }
 
     function updateStatus() {
-      if (ctx.isOnline && turn !== ctx.mySeat) ctx.setStatus(`Đối thủ đang gieo sỏi...`);
-      else ctx.setStatus(`Lượt Người chơi ${turn + 1} — chọn một hốc bên phía mình để gieo sỏi.`);
+      if (ctx.isOnline && turn !== ctx.mySeat) ctx.setStatus(ctx.t(`Đối thủ đang gieo sỏi...`, `Opponent is sowing...`));
+      else ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} — chọn một hốc bên phía mình để gieo sỏi.`,
+        `Player ${turn + 1}'s turn — pick a pit on your side to sow.`));
     }
 
     // ----- AI: minimax mô phỏng gieo sỏi -----
@@ -322,10 +324,11 @@
     });
     observer.observe(ctx.boardEl.parentNode || document.body, { childList: true, subtree: true });
 
-    ctx.setNames("Người chơi 1 (dưới)", "Người chơi 2 (trên)");
+    ctx.setNames(ctx.t("Người chơi 1 (dưới)", "Player 1 (bottom)"), ctx.t("Người chơi 2 (trên)", "Player 2 (top)"));
     ctx.setTurn(0);
     render();
-    ctx.setStatus("Chọn một hốc bên mình, gieo sỏi ngược chiều kim đồng hồ. Nhiều sỏi trong kho hơn sẽ thắng.");
+    ctx.setStatus(ctx.t("Chọn một hốc bên mình, gieo sỏi ngược chiều kim đồng hồ. Nhiều sỏi trong kho hơn sẽ thắng.",
+      "Pick a pit on your side and sow counter-clockwise. Most seeds in your store wins."));
     return { applyMove, aiMove };
   }
 

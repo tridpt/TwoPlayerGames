@@ -226,7 +226,7 @@
           addLog(`${pieceName(att)} bắt được Cờ đối thủ.`);
           selected = null;
           render();
-          return endGame(att.owner, "Cờ đã bị bắt!");
+          return endGame(att.owner, ctx.t("Cờ đã bị bắt!", "The flag was captured!"));
         }
         if (result === "win") {
           att.moved = true;
@@ -247,7 +247,7 @@
       selected = null;
 
       const loser = noMoves();
-      if (loser !== -1) return endGame(1 - loser, "Đối thủ không còn quân có thể di chuyển.");
+      if (loser !== -1) return endGame(1 - loser, ctx.t("Đối thủ không còn quân có thể di chuyển.", "Opponent has no movable pieces left."));
 
       turn = 1 - turn;
       ctx.setTurn(turn);
@@ -288,7 +288,7 @@
       ctx.setTurn(-1);
       render();
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng! ${msg}`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng! ${msg}`, `🎉 Player ${winner + 1} wins! ${msg}`));
     }
 
     function visibleToMe(p) {
@@ -370,17 +370,17 @@
       const counts = [countArmy(0), countArmy(1)];
       info.innerHTML = `
         <div class="st-player ${turn === 0 && !over ? "active" : ""}">
-          <b>Người chơi 1</b>
-          <span>${counts[0].alive} quân · ${counts[0].mobile} cơ động</span>
+          <b>${ctx.t("Người chơi 1", "Player 1")}</b>
+          <span>${counts[0].alive} ${ctx.t("quân", "pieces")} · ${counts[0].mobile} ${ctx.t("cơ động", "mobile")}</span>
         </div>
         <div class="st-mid">
-          <b>${over ? "Kết thúc" : "Lượt " + (turn + 1)}</b>
-          <span>Bàn 10x10 · 20 quân mỗi bên · chỉ 2 hàng quân</span>
+          <b>${over ? ctx.t("Kết thúc", "Finished") : ctx.t("Lượt", "Turn") + " " + (turn + 1)}</b>
+          <span>${ctx.t("Bàn 10x10 · 20 quân mỗi bên · chỉ 2 hàng quân", "10x10 board · 20 pieces each · only 2 rows")}</span>
           <small>${log[0] || ""}</small>
         </div>
         <div class="st-player ${turn === 1 && !over ? "active" : ""}">
-          <b>Người chơi 2</b>
-          <span>${counts[1].alive} quân · ${counts[1].mobile} cơ động</span>
+          <b>${ctx.t("Người chơi 2", "Player 2")}</b>
+          <span>${counts[1].alive} ${ctx.t("quân", "pieces")} · ${counts[1].mobile} ${ctx.t("cơ động", "mobile")}</span>
         </div>
       `;
     }
@@ -410,15 +410,17 @@
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus("Đối thủ đang đi. Quân đã từng di chuyển sẽ có dấu xanh lá để bạn đọc dấu vết.");
+        ctx.setStatus(ctx.t("Đối thủ đang đi. Quân đã từng di chuyển sẽ có dấu xanh lá để bạn đọc dấu vết.",
+          "Opponent is moving. Pieces that have moved get a green mark so you can read their trail."));
         return;
       }
-      ctx.setStatus("Chọn quân của bạn rồi chọn ô hợp lệ. Bàn rộng hơn đội hình, quân đã di chuyển được đánh dấu xanh lá.");
+      ctx.setStatus(ctx.t("Chọn quân của bạn rồi chọn ô hợp lệ. Bàn rộng hơn đội hình, quân đã di chuyển được đánh dấu xanh lá.",
+        "Pick your piece then a legal cell. The board is larger than the armies; moved pieces are marked green."));
     }
 
     if (ctx.isOnline) {
-      ctx.setNames(`Người chơi 1${ctx.mySeat === 0 ? " (bạn)" : ""}`,
-                   `Người chơi 2${ctx.mySeat === 1 ? " (bạn)" : ""}`);
+      ctx.setNames(ctx.t(`Người chơi 1${ctx.mySeat === 0 ? " (bạn)" : ""}`, `Player 1${ctx.mySeat === 0 ? " (you)" : ""}`),
+                   ctx.t(`Người chơi 2${ctx.mySeat === 1 ? " (bạn)" : ""}`, `Player 2${ctx.mySeat === 1 ? " (you)" : ""}`));
     }
     ctx.setTurn(0);
     render();

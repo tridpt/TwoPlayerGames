@@ -47,8 +47,8 @@
     const actions = document.createElement("div");
     actions.className = "nim-actions";
     actions.innerHTML = `
-      <button class="btn nim-clear" type="button">Bỏ chọn</button>
-      <button class="btn primary nim-take" type="button" disabled>Bốc</button>
+      <button class="btn nim-clear" type="button">${ctx.t("Bỏ chọn", "Clear")}</button>
+      <button class="btn primary nim-take" type="button" disabled>${ctx.t("Bốc", "Take")}</button>
     `;
     root.appendChild(actions);
     const takeBtn = actions.querySelector(".nim-take");
@@ -64,17 +64,17 @@
       const me = ctx.isOnline ? ctx.mySeat : -1;
       header.innerHTML = `
         <div class="nim-turn ${over ? "" : "p" + (turn + 1)}">
-          ${over ? "Kết thúc" : `Lượt: Người chơi ${turn + 1}${me === turn ? " (bạn)" : ""}`}
+          ${over ? ctx.t("Kết thúc", "Finished") : ctx.t(`Lượt: Người chơi ${turn + 1}${me === turn ? " (bạn)" : ""}`, `Turn: Player ${turn + 1}${me === turn ? " (you)" : ""}`)}
         </div>
         <div class="nim-rule">
-          ${misere ? "🔁 Ngược: bốc viên CUỐI sẽ THUA" : "🏆 Thường: bốc viên CUỐI sẽ THẮNG"}
-          ${LIMIT > 0 ? ` · tối đa ${LIMIT}/lượt` : ""}
+          ${misere ? ctx.t("🔁 Ngược: bốc viên CUỐI sẽ THUA", "🔁 Misère: taking the LAST stone LOSES") : ctx.t("🏆 Thường: bốc viên CUỐI sẽ THẮNG", "🏆 Normal: taking the LAST stone WINS")}
+          ${LIMIT > 0 ? ctx.t(` · tối đa ${LIMIT}/lượt`, ` · max ${LIMIT}/turn`) : ""}
         </div>
       `;
 
       rows.forEach((n, r) => {
         const rowEl = rowEls[r];
-        rowEl.querySelector(".nim-label").textContent = `Hàng ${r + 1}`;
+        rowEl.querySelector(".nim-label").textContent = ctx.t(`Hàng ${r + 1}`, `Row ${r + 1}`);
         rowEl.querySelector(".nim-count").textContent = n;
         const tray = rowEl.querySelector(".nim-tray");
         tray.innerHTML = "";
@@ -113,7 +113,8 @@
       selRow = r;
       selCount = count;
       render();
-      ctx.setStatus(`Đang chọn: bốc ${count} viên ở Hàng ${r + 1}. Bấm "Bốc" để xác nhận.`);
+      ctx.setStatus(ctx.t(`Đang chọn: bốc ${count} viên ở Hàng ${r + 1}. Bấm "Bốc" để xác nhận.`,
+        `Selecting: take ${count} from Row ${r + 1}. Press "Take" to confirm.`));
     }
 
     function confirmTake() {
@@ -142,9 +143,9 @@
         ctx.incScore(winner);
         ctx.setTurn(-1);
         const reason = misere
-          ? `Người chơi ${turn + 1} buộc phải bốc viên cuối`
-          : `Người chơi ${turn + 1} bốc viên cuối`;
-        ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng — ${reason}!`);
+          ? ctx.t(`Người chơi ${turn + 1} buộc phải bốc viên cuối`, `Player ${turn + 1} was forced to take the last stone`)
+          : ctx.t(`Người chơi ${turn + 1} bốc viên cuối`, `Player ${turn + 1} took the last stone`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng — ${reason}!`, `🎉 Player ${winner + 1} wins — ${reason}!`));
         render();
         return;
       }
@@ -157,10 +158,11 @@
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus(`Đối thủ đang bốc... (${totalStones()} viên còn lại)`);
+        ctx.setStatus(ctx.t(`Đối thủ đang bốc... (${totalStones()} viên còn lại)`, `Opponent is taking... (${totalStones()} stones left)`));
       } else {
-        const tip = misere ? "Tránh phải bốc viên cuối!" : "Cố bốc được viên cuối!";
-        ctx.setStatus(`Người chơi ${turn + 1}: chọn số viên bốc từ MỘT hàng rồi bấm "Bốc". ${tip}`);
+        const tip = misere ? ctx.t("Tránh phải bốc viên cuối!", "Avoid taking the last stone!") : ctx.t("Cố bốc được viên cuối!", "Try to take the last stone!");
+        ctx.setStatus(ctx.t(`Người chơi ${turn + 1}: chọn số viên bốc từ MỘT hàng rồi bấm "Bốc". ${tip}`,
+          `Player ${turn + 1}: pick how many to take from ONE row then press "Take". ${tip}`));
       }
     }
 

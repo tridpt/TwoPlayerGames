@@ -39,8 +39,8 @@
     const bar = document.createElement("div");
     bar.className = "qd-bar";
     bar.innerHTML =
-      `<button class="btn small qd-mode active" id="qdMove">🏃 Di chuyển</button>` +
-      `<button class="btn small qd-mode" id="qdWall">🧱 Đặt tường</button>` +
+      `<button class="btn small qd-mode active" id="qdMove">${ctx.t("🏃 Di chuyển", "🏃 Move")}</button>` +
+      `<button class="btn small qd-mode" id="qdWall">${ctx.t("🧱 Đặt tường", "🧱 Wall")}</button>` +
       `<span class="qd-walls" id="qdWalls"></span>`;
     wrap.appendChild(bar);
 
@@ -203,15 +203,15 @@
       const pips = (n) => "🧱".repeat(Math.min(n, 14));
       info.innerHTML = `
         <div class="qd-player p1 ${turn === 0 && !over ? "active" : ""}">
-          <span>🔴 Người chơi 1${me === 0 ? " (bạn)" : ""}</span>
-          <b>còn ${Number.isFinite(d0) ? d0 : "?"} bước</b>
-          <small>${wallsLeft[0]} tường ${pips(wallsLeft[0])}</small>
+          <span>🔴 ${ctx.t("Người chơi 1", "Player 1")}${me === 0 ? ctx.t(" (bạn)", " (you)") : ""}</span>
+          <b>${ctx.t("còn", "")} ${Number.isFinite(d0) ? d0 : "?"} ${ctx.t("bước", "steps left")}</b>
+          <small>${wallsLeft[0]} ${ctx.t("tường", "walls")} ${pips(wallsLeft[0])}</small>
         </div>
-        <div class="qd-vs">${over ? "Kết thúc" : "VS"}</div>
+        <div class="qd-vs">${over ? ctx.t("Kết thúc", "Finished") : "VS"}</div>
         <div class="qd-player p2 ${turn === 1 && !over ? "active" : ""}">
-          <span>🔵 Người chơi 2${me === 1 ? " (bạn)" : ""}</span>
-          <b>còn ${Number.isFinite(d1) ? d1 : "?"} bước</b>
-          <small>${wallsLeft[1]} tường ${pips(wallsLeft[1])}</small>
+          <span>🔵 ${ctx.t("Người chơi 2", "Player 2")}${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}</span>
+          <b>${ctx.t("còn", "")} ${Number.isFinite(d1) ? d1 : "?"} ${ctx.t("bước", "steps left")}</b>
+          <small>${wallsLeft[1]} ${ctx.t("tường", "walls")} ${pips(wallsLeft[1])}</small>
         </div>
       `;
     }
@@ -257,7 +257,8 @@
       if (orient === "h") { if (ic > WALL_SLOTS - 1) ic = WALL_SLOTS - 1; }
       else { if (ir > WALL_SLOTS - 1) ir = WALL_SLOTS - 1; }
       if (!wallLegal(orient, ir, ic)) {
-        ctx.setStatus("⛔ Không đặt được tường ở đây (chồng tường hoặc bịt kín đường về đích).");
+        ctx.setStatus(ctx.t("⛔ Không đặt được tường ở đây (chồng tường hoặc bịt kín đường về đích).",
+          "⛔ Can't place a wall here (overlap or it fully blocks a path to goal)."));
         return;
       }
       applyMove({ t: "wall", o: orient, r: ir, c: ic }, false);
@@ -293,14 +294,15 @@
       over = true;
       ctx.setTurn(-1);
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} đã về đích — chiến thắng!`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} đã về đích — chiến thắng!`, `🎉 Player ${winner + 1} reached the goal — wins!`));
       render();
     }
 
     function updateStatus() {
       wallsLabel.textContent = `🧱 P1: ${wallsLeft[0]} · P2: ${wallsLeft[1]}`;
-      const mineNote = ctx.isOnline ? (turn === ctx.mySeat ? " (lượt bạn)" : " (đối thủ)") : "";
-      ctx.setStatus(`Lượt Người chơi ${turn + 1}${mineNote}. Di chuyển quân hoặc đặt tường.`);
+      const mineNote = ctx.isOnline ? (turn === ctx.mySeat ? ctx.t(" (lượt bạn)", " (your turn)") : ctx.t(" (đối thủ)", " (opponent)")) : "";
+      ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1}${mineNote}. Di chuyển quân hoặc đặt tường.`,
+        `Player ${turn + 1}'s turn${mineNote}. Move your pawn or place a wall.`));
     }
 
     function render() {
@@ -444,8 +446,8 @@
     }
 
     if (ctx.isOnline) {
-      ctx.setNames(`Người chơi 1${ctx.mySeat === 0 ? " (bạn)" : ""}`,
-                   `Người chơi 2${ctx.mySeat === 1 ? " (bạn)" : ""}`);
+      ctx.setNames(ctx.t(`Người chơi 1${ctx.mySeat === 0 ? " (bạn)" : ""}`, `Player 1${ctx.mySeat === 0 ? " (you)" : ""}`),
+                   ctx.t(`Người chơi 2${ctx.mySeat === 1 ? " (bạn)" : ""}`, `Player 2${ctx.mySeat === 1 ? " (you)" : ""}`));
     }
     ctx.setTurn(0);
     updateStatus();
