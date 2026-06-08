@@ -501,9 +501,37 @@
       `;
     }
 
+    // ----- AI (đấu máy): định giá theo khoảng ước tính + đọc tin đồn -----
+    function aiMove(level) {
+      if (over) return null;
+      if (phase === "result") return { kind: "next" }; // tự sang phiên sau
+      if (phase !== "bidding") return null;
+      const seat = 1; // máy luôn cầm Người chơi 2 khi đấu máy
+      if (bids[seat] !== null) return null;
+      const item = currentItem();
+      if (!item) return null;
+      const max = cash[seat];
+      const mid = (item.low + item.high) / 2;
+      let est;
+      if (level === "easy") {
+        est = item.low + Math.random() * (item.high - item.low); // đoán bừa trong khoảng
+      } else if (level === "hard") {
+        est = item.trueValue * (0.9 + Math.random() * 0.08);     // tinh: bám sát giá thật
+      } else {
+        est = mid; // chuẩn: đọc tin đồn để lệch ước tính
+        if (CLUES.high.includes(item.clue)) est = mid + (item.high - mid) * 0.6;
+        else if (CLUES.low.includes(item.clue)) est = mid - (mid - item.low) * 0.6;
+      }
+      // trả thấp hơn ước tính một chút để có biên lời; món quá rẻ thì bỏ qua
+      let bid = Math.floor(est * (level === "hard" ? 0.88 : 0.8));
+      if (est < 8) bid = 0;
+      bid = Math.max(0, Math.min(max, bid));
+      return { kind: "bid", seat, amount: bid };
+    }
+
     updateTurnAndStatus();
     render();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -512,6 +540,7 @@
     emoji: "🔨",
     description: "Đấu giá kín tài sản, bluff giá, quản lý tiền và ăn bonus bộ sưu tập. Trả quá tay là mua hớ.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "rounds", label: "Số phiên đấu giá", default: 10,

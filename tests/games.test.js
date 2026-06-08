@@ -189,3 +189,12 @@ test("Domino: AI mở màn trả về nước đánh hợp lệ", () => {
   assert.ok(mv && mv.kind === "play", "đầu ván luôn đánh được");
   assert.ok(Array.isArray(mv.tile) && mv.tile.length === 2);
 });
+
+test("Auction War: AI đặt giá hợp lệ trong khả năng chi", () => {
+  const cfg = loadGame("auctionwar");
+  const ctx = makeCtx({ rounds: 8, cash: 140 });
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("normal");
+  assert.ok(mv && mv.kind === "bid" && mv.seat === 1);
+  assert.ok(mv.amount >= 0 && mv.amount <= 140, "giá thầu không vượt tiền mặt");
+});
