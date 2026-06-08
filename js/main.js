@@ -2066,8 +2066,9 @@
       steps.map((s) => `<li>${s}</li>`).join("") +
       "</ol>";
     el.helpOverlay.classList.remove("hidden");
+    focusOverlay(el.helpOverlay);
   }
-  function closeHelp() { el.helpOverlay.classList.add("hidden"); }
+  function closeHelp() { el.helpOverlay.classList.add("hidden"); restoreFocus(); }
 
   el.helpBtn.addEventListener("click", openHelp);
   el.helpClose.addEventListener("click", closeHelp);
@@ -2177,6 +2178,7 @@
     if (el.replayTitle) el.replayTitle.textContent = `🎬 Xem lại — ${game ? game.name : ""}`;
     el.replayOverlay.classList.remove("hidden");
     rebuildReplay(0);
+    focusOverlay(el.replayOverlay);
   }
   function closeReplay() {
     stopReplayPlay();
@@ -2186,6 +2188,7 @@
     replayInstance = null;
     el.replayBoard.innerHTML = "";
     el.replayOverlay.classList.add("hidden");
+    restoreFocus();
   }
 
   if (el.winReplay) el.winReplay.addEventListener("click", openReplay);
@@ -2333,6 +2336,7 @@
     el.tourOverlay.classList.add("hidden");
     try { localStorage.setItem(TOUR_KEY, "1"); } catch (e) { /* ignore */ }
     window.removeEventListener("resize", positionTourStep);
+    restoreFocus();
   }
 
   function startTour() {
@@ -2345,6 +2349,7 @@
     el.tourOverlay.classList.remove("hidden");
     positionTourStep();
     window.addEventListener("resize", positionTourStep);
+    focusOverlay(el.tourCard);
   }
 
   if (el.tourNext) el.tourNext.addEventListener("click", nextTourStep);
@@ -2443,12 +2448,76 @@
   if (el.importDataFile) el.importDataFile.addEventListener("change", (e) => { const f = e.target.files[0]; if (f) importData(f); e.target.value = ""; });
   if (el.clearDataBtn) el.clearDataBtn.addEventListener("click", clearData);
 
+  // ---- Điều hướng lưới game bằng phím mũi tên ----
+  if (el.gameGrid) {
+    el.gameGrid.addEventListener("keydown", (e) => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+      const cards = [...el.gameGrid.querySelectorAll(".game-card")];
+      if (!cards.length) return;
+      const cur = document.activeElement;
+      const idx = cards.indexOf(cur);
+      if (idx < 0) { cards[0].focus(); e.preventDefault(); return; }
+      let next = idx;
+      if (e.key === "ArrowLeft") next = idx - 1;
+      else if (e.key === "ArrowRight") next = idx + 1;
+      else {
+        // lên/xuống: nhảy theo hàng dựa vào vị trí thực tế
+        const r = cur.getBoundingClientRect();
+        const sameCol = (c) => Math.abs(c.getBoundingClientRect().left - r.left) < 8;
+        const below = e.key === "ArrowDown";
+        const candidates = cards
+          .map((c, i) => ({ c, i, top: c.getBoundingClientRect().top }))
+          .filter((o) => (below ? o.top > r.top + 4 : o.top < r.top - 4) && sameCol(o.c));
+        if (candidates.length) {
+          candidates.sort((a, b) => below ? a.top - b.top : b.top - a.top);
+          next = candidates[0].i;
+        }
+      }
+      if (next >= 0 && next < cards.length && next !== idx) {
+        cards[next].focus();
+        e.preventDefault();
+      }
+    });
+  }
+
+  // ---- Bẫy focus trong overlay (Tab vòng trong) ----
+  let lastFocusBeforeOverlay = null;
+  function focusableIn(container) {
+    return [...container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+      .filter((node) => !node.disabled && node.offsetParent !== null);
+  }
+  function trapFocus(e) {
+    if (e.key !== "Tab") return;
+    const container = (el.tourOverlay && !el.tourOverlay.classList.contains("hidden")) ? el.tourCard
+      : (el.replayOverlay && !el.replayOverlay.classList.contains("hidden")) ? el.replayOverlay
+      : (el.helpOverlay && !el.helpOverlay.classList.contains("hidden")) ? el.helpOverlay
+      : null;
+    if (!container) return;
+    const items = focusableIn(container);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+    else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+  }
+  document.addEventListener("keydown", trapFocus);
+  function focusOverlay(container) {
+    lastFocusBeforeOverlay = document.activeElement;
+    const items = focusableIn(container);
+    if (items.length) setTimeout(() => items[0].focus(), 30);
+  }
+  function restoreFocus() {
+    if (lastFocusBeforeOverlay && typeof lastFocusBeforeOverlay.focus === "function") {
+      try { lastFocusBeforeOverlay.focus(); } catch (e) { /* ignore */ }
+    }
+    lastFocusBeforeOverlay = null;
+  }
+
   // Phím Escape đóng overlay đang mở (ưu tiên từ trên xuống)
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (el.tourOverlay && !el.tourOverlay.classList.contains("hidden")) { endTour(); return; }
     if (el.replayOverlay && !el.replayOverlay.classList.contains("hidden")) { closeReplay(); return; }
-    if (el.helpOverlay && !el.helpOverlay.classList.contains("hidden")) { el.helpOverlay.classList.add("hidden"); return; }
+    if (el.helpOverlay && !el.helpOverlay.classList.contains("hidden")) { closeHelp(); return; }
   });
 
   function maybeStartTour() {
