@@ -79,6 +79,7 @@
     avatarPicker: $("avatarPicker"),
     profileStats: $("profileStats"),
     achGrid: $("achGrid"),
+    histList: $("histList"),
     volRange: $("volRange"),
     sfxToggle: $("sfxToggle"),
     musicToggle: $("musicToggle"),
@@ -198,6 +199,7 @@
           if (!resultRecorded && selectedGame && selectedGame.id) {
             resultRecorded = true;
             recordStat(selectedGame.id, kind === "draw" ? "draw" : "win", lastWinner);
+            recordHistory(selectedGame.id, kind === "draw" ? "draw" : "win", lastWinner);
             recordOutcomeFlags(kind);
           }
           if (el.winOverlay.classList.contains("hidden")) {
@@ -633,11 +635,59 @@
       const done = ac.done(a);
       return `<div class="ach ${done ? "done" : "locked"}"><span class="ach-ic">${done ? ac.icon : "🔒"}</span><div class="ach-txt"><b>${ac.title}</b><small>${ac.desc}</small></div></div>`;
     }).join("");
+    renderHistory();
     // cài đặt âm thanh
     if (el.volRange) el.volRange.value = String(Math.round(Sound.getVolume() * 100));
     if (el.sfxToggle) el.sfxToggle.checked = Sound.isEnabled();
     if (el.musicToggle) el.musicToggle.checked = Sound.isMusicOn();
     show("profileView");
+  }
+
+  function timeAgo(ts) {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return "vừa xong";
+    const m = Math.floor(s / 60);
+    if (m < 60) return m + " phút trước";
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + " giờ trước";
+    const d = Math.floor(h / 24);
+    if (d < 7) return d + " ngày trước";
+    return new Date(ts).toLocaleDateString("vi-VN");
+  }
+  const MODE_LABEL = { local: "👥 Chung máy", ai: "🤖 Đấu máy", online: "🌐 Online" };
+  function renderHistory() {
+    if (!el.histList) return;
+    const list = getHistory();
+    if (!list.length) {
+      el.histList.innerHTML = `<div class="hist-empty">Chưa có ván nào. Chơi xong một ván sẽ hiện ở đây.</div>`;
+      return;
+    }
+    el.histList.innerHTML = list.map((h) => {
+      const g = getGameById(h.id);
+      const name = g ? g.name : h.id;
+      // Kết quả theo góc nhìn người chơi
+      let res, cls;
+      if (h.kind === "draw") { res = "🤝 Hòa"; cls = "draw"; }
+      else if (h.mode === "ai") {
+        const win = h.winner === 0;
+        res = win ? "🎉 Bạn thắng" : "💀 Máy thắng";
+        cls = win ? "win" : "lose";
+      } else if (h.mode === "online" && typeof h.seat === "number") {
+        const win = h.winner === h.seat;
+        res = win ? "🎉 Bạn thắng" : "💀 Thua";
+        cls = win ? "win" : "lose";
+      } else {
+        res = `🏆 Người chơi ${(h.winner ?? 0) + 1} thắng`;
+        cls = "win";
+      }
+      const modeTxt = MODE_LABEL[h.mode] || "";
+      const lvl = h.level ? ` · ${h.level === "easy" ? "Dễ" : h.level === "hard" ? "Khó" : "Vừa"}` : "";
+      return `<div class="hist-item ${cls}">
+        <span class="hist-game">${escapeHtml(name)}</span>
+        <span class="hist-res">${res}</span>
+        <span class="hist-meta">${modeTxt}${lvl} · ${timeAgo(h.ts)}</span>
+      </div>`;
+    }).join("");
   }
   function getStats() { try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {}; } catch (e) { return {}; } }
   function statOf(id) { return getStats()[id] || { played: 0, p1: 0, p2: 0, draw: 0 }; }
@@ -650,6 +700,18 @@
     else if (winner === 1) s.p2++;
     all[id] = s;
     try { localStorage.setItem(STATS_KEY, JSON.stringify(all)); } catch (e) { /* ignore */ }
+  }
+
+  const HISTORY_KEY = "tpg_history";
+  function getHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch (e) { return []; } }
+  function recordHistory(id, kind, winner) {
+    const mode = online ? "online" : vsAI ? "ai" : "local";
+    const entry = { id, kind, winner, mode, ts: Date.now() };
+    if (online) entry.seat = online.seat;
+    if (vsAI) entry.level = aiLevel;
+    const list = getHistory();
+    list.unshift(entry);
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 50))); } catch (e) { /* ignore */ }
   }
   function isHot(id) {
     const plays = getPlays();
