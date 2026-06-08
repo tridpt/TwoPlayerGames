@@ -24,6 +24,14 @@
     const o = ctx.options || {};
     const usePowerups = o.powerups === undefined ? true : !!Number(o.powerups);
 
+    // bản dịch tên hạm đội & vật phẩm (FLEET/ABILITIES là hằng module-level)
+    const FLEET_NAME_EN = ["Carrier", "Battleship", "Cruiser", "Submarine", "Destroyer"];
+    const ABILITY_NAME_EN = { normal: "Normal shot", radar: "Radar", bomb: "Cluster bomb", torpedo: "Torpedo" };
+    const ABILITY_HINT_EN = { normal: "1 cell", radar: "scan 2×2", bomb: "blast 2×2", torpedo: "4-cell line" };
+    const fleetName = (id) => ctx.t(FLEET[id].name, FLEET_NAME_EN[id] || FLEET[id].name);
+    const abilityName = (k) => ctx.t(ABILITIES[k].name, ABILITY_NAME_EN[k] || ABILITIES[k].name);
+    const abilityHint = (k) => ctx.t(ABILITIES[k].hint, ABILITY_HINT_EN[k] || ABILITIES[k].hint);
+
     // ----- trạng thái -----
     let phase = "placing";       // placing | playing | over
     let iReady = false, oppReady = false;
@@ -74,10 +82,10 @@
     const placeActions = document.createElement("div");
     placeActions.className = "bs-controls";
     placeActions.innerHTML = `
-      <button class="btn" data-act="rotate" type="button">↻ Xoay (R)</button>
-      <button class="btn" data-act="random" type="button">🔀 Ngẫu nhiên</button>
-      <button class="btn" data-act="clear" type="button">🗑️ Xóa hết</button>
-      <button class="btn primary" data-act="ready" type="button">✓ Sẵn sàng</button>
+      <button class="btn" data-act="rotate" type="button">${ctx.t("↻ Xoay (R)", "↻ Rotate (R)")}</button>
+      <button class="btn" data-act="random" type="button">${ctx.t("🔀 Ngẫu nhiên", "🔀 Random")}</button>
+      <button class="btn" data-act="clear" type="button">${ctx.t("🗑️ Xóa hết", "🗑️ Clear all")}</button>
+      <button class="btn primary" data-act="ready" type="button">${ctx.t("✓ Sẵn sàng", "✓ Ready")}</button>
     `;
     place.appendChild(placeActions);
 
@@ -85,8 +93,8 @@
     boards.className = "bs-boards";
     root.appendChild(boards);
 
-    const myWrap = makeBoard("🛡️ Hạm đội của bạn");
-    const oppWrap = makeBoard("🎯 Vùng biển đối thủ");
+    const myWrap = makeBoard(ctx.t("🛡️ Hạm đội của bạn", "🛡️ Your fleet"));
+    const oppWrap = makeBoard(ctx.t("🎯 Vùng biển đối thủ", "🎯 Enemy waters"));
     boards.appendChild(myWrap.wrap);
     boards.appendChild(oppWrap.wrap);
 
@@ -191,7 +199,7 @@
         iReady = true;
         ctx.sendMove({ kind: "ready" });
         if (oppReady) beginPlay();
-        else { ctx.setStatus("Đã sẵn sàng. Đang chờ đối thủ xếp tàu..."); render(); }
+        else { ctx.setStatus(ctx.t("Đã sẵn sàng. Đang chờ đối thủ xếp tàu...", "Ready. Waiting for the opponent to place ships...")); render(); }
         return;
       }
       render();
@@ -315,10 +323,10 @@
     }
 
     function waitText(ab) {
-      if (ab === "radar") return "📡 Đang quét radar, chờ dữ liệu...";
-      if (ab === "bomb") return "💥 Đã thả bom chùm, chờ kết quả...";
-      if (ab === "torpedo") return "🚀 Ngư lôi đang lao đi...";
-      return "🎯 Đã bắn, chờ kết quả...";
+      if (ab === "radar") return ctx.t("📡 Đang quét radar, chờ dữ liệu...", "📡 Scanning radar, awaiting data...");
+      if (ab === "bomb") return ctx.t("💥 Đã thả bom chùm, chờ kết quả...", "💥 Cluster bomb dropped, awaiting result...");
+      if (ab === "torpedo") return ctx.t("🚀 Ngư lôi đang lao đi...", "🚀 Torpedo incoming...");
+      return ctx.t("🎯 Đã bắn, chờ kết quả...", "🎯 Fired, awaiting result...");
     }
 
     function selectAbility(ab) {
@@ -327,10 +335,10 @@
       ability = ab;
       render();
       const tip = {
-        normal: "Bấm 1 ô để bắn.",
-        radar: "Bấm để quét vùng 2×2 — chỉ đếm số ô tàu, không gây sát thương.",
-        bomb: "Bấm để thả bom chùm phủ 2×2 (4 phát cùng lúc).",
-        torpedo: `Ngư lôi tia 4 ô theo ${torpedoAxis === "row" ? "HÀNG" : "CỘT"} — bấm để phóng.`,
+        normal: ctx.t("Bấm 1 ô để bắn.", "Click a cell to fire."),
+        radar: ctx.t("Bấm để quét vùng 2×2 — chỉ đếm số ô tàu, không gây sát thương.", "Click to scan a 2×2 area — only counts ship cells, no damage."),
+        bomb: ctx.t("Bấm để thả bom chùm phủ 2×2 (4 phát cùng lúc).", "Click to drop a cluster bomb over 2×2 (4 shots at once)."),
+        torpedo: ctx.t(`Ngư lôi tia 4 ô theo ${torpedoAxis === "row" ? "HÀNG" : "CỘT"} — bấm để phóng.`, `Torpedo line of 4 along ${torpedoAxis === "row" ? "ROW" : "COLUMN"} — click to launch.`),
       };
       ctx.setStatus(tip[ab] || "");
     }
@@ -341,7 +349,7 @@
       if (move.kind === "ready") {
         oppReady = true;
         if (iReady) beginPlay();
-        else { ctx.setStatus("Đối thủ đã sẵn sàng. Hãy xếp tàu và bấm \"Sẵn sàng\"."); }
+        else { ctx.setStatus(ctx.t("Đối thủ đã sẵn sàng. Hãy xếp tàu và bấm \"Sẵn sàng\".", "Opponent is ready. Place your ships and press \"Ready\".")); }
         return;
       }
       if (move.kind === "fire") {
@@ -354,7 +362,7 @@
         ctx.setTurn(turn);
         render();
         updateStatus();
-        if (move.ability === "radar") ctx.setStatus("📡 Đối thủ vừa quét radar. Tới lượt bạn!");
+        if (move.ability === "radar") ctx.setStatus(ctx.t("📡 Đối thủ vừa quét radar. Tới lượt bạn!", "📡 The opponent just used radar. Your turn!"));
         return;
       }
       if (move.kind === "result") { handleResult(move); return; }
@@ -400,7 +408,7 @@
         ctx.setTurn(turn);
         render();
         ctx.sound("notify");
-        ctx.setStatus(`📡 Radar phát hiện ${move.radarCount} ô tàu trong vùng quét. Tới lượt đối thủ.`);
+        ctx.setStatus(ctx.t(`📡 Radar phát hiện ${move.radarCount} ô tàu trong vùng quét. Tới lượt đối thủ.`, `📡 Radar found ${move.radarCount} ship cell(s) in the scan area. Opponent's turn.`));
         return;
       }
       // dọn pending
@@ -417,18 +425,18 @@
       ctx.setTurn(turn);
       render();
       ctx.sound(hitAny ? "shot" : "miss");
-      const label = move.ability === "bomb" ? "💥 Bom chùm: " : move.ability === "torpedo" ? "🚀 Ngư lôi: " : "";
-      if (sunkAny) ctx.setStatus(`${label}💥 Trúng và ĐÁNH CHÌM tàu địch! Tới lượt đối thủ.`);
-      else if (hitAny) ctx.setStatus(`${label}Bắn trúng! Tới lượt đối thủ.`);
-      else ctx.setStatus(`${label}🌊 Trượt cả. Tới lượt đối thủ.`);
+      const label = move.ability === "bomb" ? ctx.t("💥 Bom chùm: ", "💥 Cluster bomb: ") : move.ability === "torpedo" ? ctx.t("🚀 Ngư lôi: ", "🚀 Torpedo: ") : "";
+      if (sunkAny) ctx.setStatus(ctx.t(`${label}💥 Trúng và ĐÁNH CHÌM tàu địch! Tới lượt đối thủ.`, `${label}💥 Hit and SANK an enemy ship! Opponent's turn.`));
+      else if (hitAny) ctx.setStatus(ctx.t(`${label}Bắn trúng! Tới lượt đối thủ.`, `${label}Hit! Opponent's turn.`));
+      else ctx.setStatus(ctx.t(`${label}🌊 Trượt cả. Tới lượt đối thủ.`, `${label}🌊 All missed. Opponent's turn.`));
     }
 
     function endGame(iWon) {
       phase = "over";
       ctx.setTurn(-1);
       abilityBar.classList.add("bs-hidden");
-      if (iWon) { ctx.incScore(ctx.mySeat); ctx.setStatus("🎉 Bạn thắng — đã đánh chìm toàn bộ hạm đội đối thủ!"); }
-      else { ctx.incScore(1 - ctx.mySeat); ctx.setStatus("💀 Bạn thua — hạm đội của bạn đã bị đánh chìm."); }
+      if (iWon) { ctx.incScore(ctx.mySeat); ctx.setStatus(ctx.t("🎉 Bạn thắng — đã đánh chìm toàn bộ hạm đội đối thủ!", "🎉 You win — you sank the entire enemy fleet!")); }
+      else { ctx.incScore(1 - ctx.mySeat); ctx.setStatus(ctx.t("💀 Bạn thua — hạm đội của bạn đã bị đánh chìm.", "💀 You lose — your fleet has been sunk.")); }
       render();
     }
 
@@ -442,15 +450,15 @@
     function renderPlace() {
       if (phase !== "placing") return;
       placeHint.innerHTML = iReady
-        ? "✓ Đã sẵn sàng — đang chờ đối thủ..."
-        : `Hướng đặt: <b>${orient === "h" ? "Ngang ↔" : "Dọc ↕"}</b> · Bấm tàu để chọn, bấm bàn để đặt, bấm tàu đã đặt để chỉnh lại.`;
+        ? ctx.t("✓ Đã sẵn sàng — đang chờ đối thủ...", "✓ Ready — waiting for the opponent...")
+        : ctx.t(`Hướng đặt: <b>${orient === "h" ? "Ngang ↔" : "Dọc ↕"}</b> · Bấm tàu để chọn, bấm bàn để đặt, bấm tàu đã đặt để chỉnh lại.`, `Orientation: <b>${orient === "h" ? "Horizontal ↔" : "Vertical ↕"}</b> · Click a ship to select, click the board to place, click a placed ship to adjust.`);
       fleet.innerHTML = FLEET.map((s, id) => {
         const done = !!ships[id];
         const sel = selShip === id;
         const blocks = "▪".repeat(s.size);
         return `<button class="bs-ship-btn ${done ? "done" : ""} ${sel ? "sel" : ""}" data-ship="${id}" type="button">
           <span class="bs-ship-ic">${s.icon}</span>
-          <b>${s.name}</b>
+          <b>${fleetName(id)}</b>
           <small>${blocks} ${done ? "✓" : "(" + s.size + ")"}</small>
         </button>`;
       }).join("");
@@ -526,13 +534,13 @@
         const off = !myTurn || (k !== "normal" && charges[k] <= 0);
         return `<button class="bs-ability ${ability === k ? "active" : ""}" data-ab="${k}" type="button" ${off ? "disabled" : ""}>
           <span class="bs-ab-ic">${a.icon}</span>
-          <b>${a.name}</b>
-          <small>${a.hint}</small>
+          <b>${abilityName(k)}</b>
+          <small>${abilityHint(k)}</small>
           <i class="bs-ab-left">${left}</i>
         </button>`;
       }).join("");
       html += `<button class="bs-torp-axis ${ability === "torpedo" ? "" : "dim"}" data-axis="1" type="button" ${ability === "torpedo" && myTurn ? "" : "disabled"}>
-        Ngư lôi: <b>${torpedoAxis === "row" ? "Hàng ↔" : "Cột ↕"}</b></button>`;
+        ${ctx.t("Ngư lôi:", "Torpedo:")} <b>${torpedoAxis === "row" ? ctx.t("Hàng ↔", "Row ↔") : ctx.t("Cột ↕", "Column ↕")}</b></button>`;
       abilityBar.innerHTML = html;
       abilityBar.querySelectorAll("[data-ab]").forEach((btn) => {
         btn.addEventListener("click", () => selectAbility(btn.dataset.ab));
@@ -541,26 +549,26 @@
       if (axisBtn) axisBtn.addEventListener("click", () => {
         torpedoAxis = torpedoAxis === "row" ? "col" : "row";
         render();
-        ctx.setStatus(`Ngư lôi xuyên cả ${torpedoAxis === "row" ? "HÀNG" : "CỘT"} — bấm để phóng.`);
+        ctx.setStatus(ctx.t(`Ngư lôi xuyên cả ${torpedoAxis === "row" ? "HÀNG" : "CỘT"} — bấm để phóng.`, `Torpedo runs the whole ${torpedoAxis === "row" ? "ROW" : "COLUMN"} — click to launch.`));
       });
     }
 
     function updateStatus() {
       if (phase !== "playing") return;
       ctx.setStatus(turn === ctx.mySeat
-        ? "🎯 Lượt bạn — chọn vật phẩm rồi bấm bàn đối thủ để bắn!"
-        : "⏳ Đối thủ đang ngắm bắn...");
+        ? ctx.t("🎯 Lượt bạn — chọn vật phẩm rồi bấm bàn đối thủ để bắn!", "🎯 Your turn — pick an ability then click the enemy board to fire!")
+        : ctx.t("⏳ Đối thủ đang ngắm bắn...", "⏳ Opponent is aiming..."));
     }
 
     // ----- khởi tạo -----
     if (!ctx.isOnline) {
       place.classList.add("bs-hidden");
-      ctx.setStatus("⚠️ Bắn Tàu chỉ chơi được ở chế độ online.");
+      ctx.setStatus(ctx.t("⚠️ Bắn Tàu chỉ chơi được ở chế độ online.", "⚠️ Battleship can only be played online."));
       return { applyMove: () => {}, destroy: () => document.removeEventListener("keydown", onKey) };
     }
     placeRandom();
     render();
-    ctx.setStatus("Xếp hạm đội: chọn tàu, xoay (R / chuột phải) rồi đặt. Hoặc bấm 🔀 Ngẫu nhiên. Xong thì Sẵn sàng.");
+    ctx.setStatus(ctx.t("Xếp hạm đội: chọn tàu, xoay (R / chuột phải) rồi đặt. Hoặc bấm 🔀 Ngẫu nhiên. Xong thì Sẵn sàng.", "Place your fleet: pick a ship, rotate (R / right-click), then place. Or press 🔀 Random. When done, press Ready."));
     return { applyMove, destroy: () => document.removeEventListener("keydown", onKey) };
   }
 
