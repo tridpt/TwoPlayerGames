@@ -120,6 +120,14 @@
     replayPlay: $("replayPlay"),
     replayNext: $("replayNext"),
     replayProgress: $("replayProgress"),
+    tourOverlay: $("tourOverlay"),
+    tourRing: $("tourRing"),
+    tourCard: $("tourCard"),
+    tourTitle: $("tourTitle"),
+    tourText: $("tourText"),
+    tourStep: $("tourStep"),
+    tourSkip: $("tourSkip"),
+    tourNext: $("tourNext"),
   };
 
   // ---- Trạng thái phiên ----
@@ -2208,8 +2216,90 @@
     el.loadMoreBtn.addEventListener("click", () => { shownCount += PAGE_SIZE; applyListView(); });
   }
 
+  // ====================== Tour hướng dẫn lần đầu ======================
+  const TOUR_KEY = "tpg_onboarded";
+  const TOUR_STEPS = [
+    { sel: "#catSidebar", title: "🗂️ Chọn thể loại", text: "Lọc game theo nhóm ở thanh bên trái: cờ, bản đồ, hành động, suy luận, may rủi... cùng mục Yêu thích & Chơi gần đây." },
+    { sel: "#gameSearch", title: "🔎 Tìm game", text: "Gõ tên hoặc mô tả để tìm nhanh trong số 47 trò chơi." },
+    { sel: "#dailyBanner", title: "⭐ Thử thách hôm nay", text: "Mỗi ngày một game khác nhau. Chơi xong để giữ chuỗi ngày và mở huy hiệu chuyên cần." },
+    { sel: "#profileChip", title: "👤 Hồ sơ của bạn", text: "Bấm vào đây để đổi tên, chọn avatar, xem thống kê, thành tích, bảng xếp hạng và lịch sử ván đấu." },
+    { sel: "#openOnlineHubBtn", title: "🌐 Chơi online", text: "Tạo phòng (công khai để người khác tìm thấy) hoặc vào phòng bằng mã. Có chat, xem lại ván và kết nối lại khi rớt mạng." },
+  ];
+  let tourIdx = 0;
+  let tourList = [];
+
+  function positionTourStep() {
+    const step = tourList[tourIdx];
+    const target = document.querySelector(step.sel);
+    if (!target) { nextTourStep(); return; }
+    const r = target.getBoundingClientRect();
+    const pad = 8;
+    const ring = el.tourRing;
+    ring.style.top = (r.top - pad) + "px";
+    ring.style.left = (r.left - pad) + "px";
+    ring.style.width = (r.width + pad * 2) + "px";
+    ring.style.height = (r.height + pad * 2) + "px";
+    el.tourTitle.textContent = step.title;
+    el.tourText.textContent = step.text;
+    el.tourStep.textContent = `${tourIdx + 1}/${tourList.length}`;
+    el.tourNext.textContent = tourIdx >= tourList.length - 1 ? "Xong" : "Tiếp";
+    // đặt thẻ tour: dưới nếu còn chỗ, không thì trên
+    const card = el.tourCard;
+    card.style.visibility = "hidden";
+    card.style.display = "block";
+    requestAnimationFrame(() => {
+      const ch = card.offsetHeight;
+      const cw = card.offsetWidth;
+      let top = r.bottom + 14;
+      if (top + ch > window.innerHeight - 10) top = Math.max(10, r.top - ch - 14);
+      let left = r.left + r.width / 2 - cw / 2;
+      left = Math.max(10, Math.min(window.innerWidth - cw - 10, left));
+      card.style.top = top + "px";
+      card.style.left = left + "px";
+      card.style.visibility = "visible";
+    });
+  }
+
+  function nextTourStep() {
+    tourIdx++;
+    if (tourIdx >= tourList.length) { endTour(); return; }
+    positionTourStep();
+  }
+
+  function endTour() {
+    el.tourOverlay.classList.add("hidden");
+    try { localStorage.setItem(TOUR_KEY, "1"); } catch (e) { /* ignore */ }
+    window.removeEventListener("resize", positionTourStep);
+  }
+
+  function startTour() {
+    tourList = TOUR_STEPS.filter((s) => {
+      const t = document.querySelector(s.sel);
+      return t && t.offsetParent !== null;
+    });
+    if (!tourList.length) return;
+    tourIdx = 0;
+    el.tourOverlay.classList.remove("hidden");
+    positionTourStep();
+    window.addEventListener("resize", positionTourStep);
+  }
+
+  if (el.tourNext) el.tourNext.addEventListener("click", nextTourStep);
+  if (el.tourSkip) el.tourSkip.addEventListener("click", endTour);
+
+  function maybeStartTour() {
+    let done = "1";
+    try { done = localStorage.getItem(TOUR_KEY); } catch (e) { /* ignore */ }
+    if (done) return;
+    // chỉ chạy khi đang ở menu
+    if (el.menu && !el.menu.classList.contains("hidden")) {
+      setTimeout(startTour, 700);
+    }
+  }
+
   renderMenu();
   handleRoute();
   updateProfileChip();
+  maybeStartTour();
   if (window.Sound && Sound.isMusicOn()) Sound.startMusic();
 })();

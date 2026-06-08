@@ -305,6 +305,20 @@
     </div>
   </div>
 
+  <!-- Tour hướng dẫn lần đầu -->
+  <div class="tour-overlay hidden" id="tourOverlay">
+    <div class="tour-ring" id="tourRing"></div>
+    <div class="tour-card" id="tourCard">
+      <h3 id="tourTitle"></h3>
+      <p id="tourText"></p>
+      <div class="tour-actions">
+        <span class="tour-step" id="tourStep"></span>
+        <button class="btn small" id="tourSkip" type="button">Bỏ qua</button>
+        <button class="btn small primary" id="tourNext" type="button">Tiếp</button>
+      </div>
+    </div>
+  </div>
+
   <!-- registry PHẢI nạp trước các file game -->
   <script src="js/registry.js"></script>
   <script src="js/sound.js"></script>

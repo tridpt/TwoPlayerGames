@@ -2700,6 +2700,37 @@ body.theme-light .public-room { background: linear-gradient(160deg, #ffffff, #f1
   z-index: 100;
 }
 
+/* ---------- Tour hướng dẫn lần đầu ---------- */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: auto;
+}
+.tour-ring {
+  position: fixed;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 9999px rgba(6, 8, 20, 0.72), 0 0 18px rgba(255, 209, 102, 0.6);
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+  pointer-events: none;
+}
+.tour-card {
+  position: fixed;
+  width: min(320px, 86vw);
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  box-shadow: var(--glow);
+  padding: 16px 18px;
+  z-index: 201;
+}
+.tour-card h3 { margin: 0 0 6px; font-family: var(--font-head); font-size: 1.1rem; }
+.tour-card p { margin: 0 0 14px; color: var(--muted); line-height: 1.5; font-size: 0.92rem; }
+.tour-actions { display: flex; align-items: center; gap: 8px; }
+.tour-step { margin-right: auto; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
+body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0 0 18px rgba(255, 170, 90, 0.6); }
+
 /* ---------- Overlay xem lại ván ---------- */
 .replay-overlay {
   position: fixed;
