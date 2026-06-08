@@ -79,6 +79,7 @@ body {
 .sound-toggle:active { transform: scale(0.94); }
 .sound-toggle.muted { opacity: 0.6; }
 .theme-toggle { right: 74px; }
+.lang-toggle { right: 128px; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.5px; }
 
 /* ---------- Chip hồ sơ ---------- */
 .profile-chip {

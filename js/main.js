@@ -74,6 +74,7 @@
     homeBtn: $("homeBtn"),
     soundToggle: $("soundToggle"),
     themeToggle: $("themeToggle"),
+    langToggle: $("langToggle"),
     profileChip: $("profileChip"),
     chipAvatar: $("chipAvatar"),
     chipName: $("chipName"),
@@ -1808,7 +1809,7 @@
     } else {
       el.onlineBadge.classList.add("hidden");
       setGameRoomState("", "info");
-      el.restartBtn.textContent = "↻ Chơi lại";
+      el.restartBtn.textContent = window.I18n ? I18n.t("restart") : "↻ Chơi lại";
       el.chatPanel.classList.add("hidden");
     }
 
@@ -2242,7 +2243,9 @@
     el.tourTitle.textContent = step.title;
     el.tourText.textContent = step.text;
     el.tourStep.textContent = `${tourIdx + 1}/${tourList.length}`;
-    el.tourNext.textContent = tourIdx >= tourList.length - 1 ? "Xong" : "Tiếp";
+    el.tourNext.textContent = tourIdx >= tourList.length - 1
+      ? (window.I18n ? (I18n.getLang() === "en" ? "Done" : "Xong") : "Xong")
+      : (window.I18n ? I18n.t("tourNext") : "Tiếp");
     // đặt thẻ tour: dưới nếu còn chỗ, không thì trên
     const card = el.tourCard;
     card.style.visibility = "hidden";
@@ -2303,6 +2306,22 @@
     if (el.menu && !el.menu.classList.contains("hidden")) {
       setTimeout(startTour, 700);
     }
+  }
+
+  // ---- Ngôn ngữ (i18n) ----
+  function updateLangBtn() {
+    if (el.langToggle && window.I18n) el.langToggle.textContent = I18n.getLang() === "en" ? "EN" : "VI";
+  }
+  if (window.I18n) {
+    I18n.apply();
+    updateLangBtn();
+    I18n.onChange(() => {
+      updateLangBtn();
+      renderMenu();
+      updateProfileChip();
+      if (el.profileView && !el.profileView.classList.contains("hidden")) openProfile();
+    });
+    if (el.langToggle) el.langToggle.addEventListener("click", () => I18n.toggle());
   }
 
   renderMenu();

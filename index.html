@@ -18,14 +18,15 @@
 </head>
 <body>
   <header class="app-header">
-    <button class="profile-chip" id="profileChip" title="Hồ sơ của bạn" aria-label="Mở hồ sơ của bạn">
+    <button class="profile-chip" id="profileChip" data-i18n-title="profileTitle" title="Hồ sơ của bạn" aria-label="Mở hồ sơ của bạn">
       <span class="chip-avatar" id="chipAvatar">🎮</span>
       <span class="chip-name" id="chipName">Bạn</span>
     </button>
     <h1 class="logo" id="homeBtn">🎮 Game 2 Người</h1>
-    <p class="tagline">Chơi chung một máy hoặc online qua mạng</p>
-    <button class="sound-toggle theme-toggle" id="themeToggle" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện sáng/tối">🌙</button>
-    <button class="sound-toggle" id="soundToggle" title="Bật/tắt âm thanh" aria-label="Bật hoặc tắt âm thanh">🔊</button>
+    <p class="tagline" data-i18n="tagline">Chơi chung một máy hoặc online qua mạng</p>
+    <button class="sound-toggle lang-toggle" id="langToggle" data-i18n-title="langTitle" title="Đổi ngôn ngữ (Việt/Anh)" aria-label="Đổi ngôn ngữ">VI</button>
+    <button class="sound-toggle theme-toggle" id="themeToggle" data-i18n-title="themeTitle" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện sáng/tối">🌙</button>
+    <button class="sound-toggle" id="soundToggle" data-i18n-title="soundTitle" title="Bật/tắt âm thanh" aria-label="Bật hoặc tắt âm thanh">🔊</button>
   </header>
 
   <main id="app">
@@ -34,76 +35,76 @@
       <div class="daily-banner hidden" id="dailyBanner"></div>
       <div class="online-entry">
         <div>
-          <h2>🌐 Sảnh online</h2>
-          <p>Tạo phòng từ một game bất kỳ hoặc nhập mã phòng để tự vào đúng game mà chủ phòng đã tạo.</p>
+          <h2 data-i18n="onlineHubH">🌐 Sảnh online</h2>
+          <p data-i18n="onlineHubP">Tạo phòng từ một game bất kỳ hoặc nhập mã phòng để tự vào đúng game mà chủ phòng đã tạo.</p>
         </div>
-        <button class="btn primary" id="openOnlineHubBtn">Tạo / vào phòng</button>
+        <button class="btn primary" id="openOnlineHubBtn" data-i18n="openOnlineHub">Tạo / vào phòng</button>
       </div>
       <div class="browse">
         <aside class="cat-sidebar" id="catSidebar"><!-- thể loại render bằng JS --></aside>
         <div class="cat-content">
           <div class="search-bar">
             <span class="search-ic">🔎</span>
-            <input type="search" id="gameSearch" class="search-input" placeholder="Tìm trò chơi theo tên hoặc mô tả..." autocomplete="off" />
+            <input type="search" id="gameSearch" class="search-input" data-i18n-ph="searchPh" placeholder="Tìm trò chơi theo tên hoặc mô tả..." autocomplete="off" />
           </div>
           <div class="cat-head" id="catHead"><!-- tiêu đề + mô tả thể loại --></div>
           <div class="list-controls">
             <div class="filter-chips">
-              <button type="button" class="chip" id="chipOnline">🌐 Online</button>
-              <button type="button" class="chip" id="chipAI">🤖 Đấu máy</button>
+              <button type="button" class="chip" id="chipOnline" data-i18n="chipOnline">🌐 Online</button>
+              <button type="button" class="chip" id="chipAI" data-i18n="chipAI">🤖 Đấu máy</button>
             </div>
-            <label class="sort-wrap">Sắp xếp:
+            <label class="sort-wrap"><span data-i18n="sortLabel">Sắp xếp:</span>
               <select class="option-select sort-select" id="sortSelect">
-                <option value="popular">Phổ biến</option>
-                <option value="az">Tên A→Z</option>
-                <option value="new">Mới nhất</option>
+                <option value="popular" data-i18n="sortPopular">Phổ biến</option>
+                <option value="az" data-i18n="sortAZ">Tên A→Z</option>
+                <option value="new" data-i18n="sortNew">Mới nhất</option>
               </select>
             </label>
           </div>
           <div class="game-section-grid" id="gameGrid"><!-- thẻ game render bằng JS --></div>
-          <button type="button" class="btn load-more hidden" id="loadMoreBtn">Xem thêm</button>
+          <button type="button" class="btn load-more hidden" id="loadMoreBtn" data-i18n="loadMore">Xem thêm</button>
         </div>
       </div>
     </section>
 
     <!-- Trang hồ sơ / thống kê -->
     <section id="profileView" class="profile-view hidden">
-      <button class="btn back-btn" id="profileBackBtn">← Về danh sách</button>
+      <button class="btn back-btn" id="profileBackBtn" data-i18n="backList">← Về danh sách</button>
       <div class="profile-card">
         <div class="profile-avatar" id="profileAvatar">🎮</div>
         <div class="profile-id">
-          <label class="option-label" for="profileName">Tên của bạn</label>
-          <input id="profileName" class="player-name-input" maxlength="24" placeholder="Nhập tên..." autocomplete="nickname" />
+          <label class="option-label" for="profileName" data-i18n="yourName">Tên của bạn</label>
+          <input id="profileName" class="player-name-input" maxlength="24" data-i18n-ph="namePh" placeholder="Nhập tên..." autocomplete="nickname" />
           <div class="avatar-picker" id="avatarPicker"></div>
         </div>
       </div>
       <div class="profile-stats" id="profileStats"></div>
-      <h3 class="profile-h">🏆 Bảng xếp hạng game của bạn</h3>
+      <h3 class="profile-h" data-i18n="leaderboardH">🏆 Bảng xếp hạng game của bạn</h3>
       <div class="lead-list" id="leadList"></div>
-      <h3 class="profile-h">⚙️ Cài đặt</h3>
+      <h3 class="profile-h" data-i18n="settingsH">⚙️ Cài đặt</h3>
       <div class="settings-box">
         <label class="set-row">
-          <span>🔊 Âm lượng</span>
+          <span data-i18n="volume">🔊 Âm lượng</span>
           <input type="range" id="volRange" min="0" max="100" step="5" />
         </label>
         <label class="set-row set-switch">
-          <span>🎚️ Hiệu ứng âm thanh</span>
+          <span data-i18n="sfx">🎚️ Hiệu ứng âm thanh</span>
           <input type="checkbox" id="sfxToggle" />
         </label>
         <label class="set-row set-switch">
-          <span>🎵 Nhạc nền</span>
+          <span data-i18n="music">🎵 Nhạc nền</span>
           <input type="checkbox" id="musicToggle" />
         </label>
       </div>
-      <h3 class="profile-h">🏅 Thành tích</h3>
+      <h3 class="profile-h" data-i18n="achievementsH">🏅 Thành tích</h3>
       <div class="ach-grid" id="achGrid"></div>
-      <h3 class="profile-h">📜 Lịch sử ván đấu</h3>
+      <h3 class="profile-h" data-i18n="historyH">📜 Lịch sử ván đấu</h3>
       <div class="hist-list" id="histList"></div>
     </section>
 
     <!-- Trang chi tiết game -->
     <section id="detailView" class="detail-view hidden">
-      <button class="btn back-btn" id="detailBackBtn">← Về danh sách</button>
+      <button class="btn back-btn" id="detailBackBtn" data-i18n="backList">← Về danh sách</button>
       <div class="detail-card">
         <div class="detail-poster" id="detailPoster"><!-- poster --></div>
         <div class="detail-info">
@@ -111,91 +112,91 @@
           <div class="detail-badges" id="detailBadges"></div>
           <p class="detail-desc" id="detailDesc"></p>
           <div class="detail-stats" id="detailStats"></div>
-          <button class="btn primary detail-play" id="detailPlayBtn">▶ Chơi ngay</button>
+          <button class="btn primary detail-play" id="detailPlayBtn" data-i18n="playNow">▶ Chơi ngay</button>
         </div>
       </div>
       <div class="detail-howto">
-        <h3>📖 Cách chơi</h3>
+        <h3 data-i18n="howToH">📖 Cách chơi</h3>
         <ol id="detailHowto"></ol>
       </div>
     </section>
 
     <!-- Chọn chế độ chơi -->
     <section id="modeView" class="mode-view hidden">
-      <button class="btn back-btn" id="modeBackBtn">← Về menu</button>
+      <button class="btn back-btn" id="modeBackBtn" data-i18n="backMenu">← Về menu</button>
       <h2 class="mode-title" id="modeTitle"></h2>
       <div class="options-panel hidden" id="optionsPanel">
-        <h3 class="options-title">⚙️ Tùy chỉnh ván chơi</h3>
+        <h3 class="options-title" data-i18n="optionsTitle">⚙️ Tùy chỉnh ván chơi</h3>
         <div class="options-list" id="optionsList"></div>
       </div>
       <div class="mode-cards">
         <div class="mode-card" id="modeLocal">
           <div class="mode-icon mode-icon-local" aria-hidden="true"></div>
-          <h3>Chơi chung máy</h3>
-          <p>Hai người luân phiên trên cùng một thiết bị.</p>
+          <h3 data-i18n="modeLocalH">Chơi chung máy</h3>
+          <p data-i18n="modeLocalP">Hai người luân phiên trên cùng một thiết bị.</p>
         </div>
         <div class="mode-card" id="modeAI">
           <div class="mode-icon mode-icon-ai" aria-hidden="true">🤖</div>
-          <h3>Đấu với máy</h3>
-          <p>Chơi một mình với máy tính (AI). Bạn cầm quân đi trước.</p>
-          <select class="option-select ai-level-select" id="aiLevel" title="Mức độ khó">
-            <option value="easy">🟢 Dễ</option>
-            <option value="normal" selected>🟡 Vừa</option>
-            <option value="hard">🔴 Khó</option>
+          <h3 data-i18n="modeAIH">Đấu với máy</h3>
+          <p data-i18n="modeAIP">Chơi một mình với máy tính (AI). Bạn cầm quân đi trước.</p>
+          <select class="option-select ai-level-select" id="aiLevel" data-i18n-title="aiLevelTitle" title="Mức độ khó">
+            <option value="easy" data-i18n="aiEasy">🟢 Dễ</option>
+            <option value="normal" selected data-i18n="aiNormal">🟡 Vừa</option>
+            <option value="hard" data-i18n="aiHard">🔴 Khó</option>
           </select>
         </div>
         <div class="mode-card" id="modeOnline">
           <div class="mode-icon mode-icon-online" aria-hidden="true"></div>
-          <h3>Chơi online</h3>
-          <p>Hai người ở hai máy khác nhau, kết nối qua mã phòng.</p>
+          <h3 data-i18n="modeOnlineH">Chơi online</h3>
+          <p data-i18n="modeOnlineP">Hai người ở hai máy khác nhau, kết nối qua mã phòng.</p>
         </div>
       </div>
     </section>
 
     <!-- Sảnh chờ online -->
     <section id="lobbyView" class="lobby-view hidden">
-      <button class="btn back-btn" id="lobbyBackBtn">← Quay lại</button>
+      <button class="btn back-btn" id="lobbyBackBtn" data-i18n="backReturn">← Quay lại</button>
       <h2 class="mode-title" id="lobbyTitle"></h2>
       <div class="room-state hidden" id="lobbyState"></div>
       <div class="lobby-cards">
         <div class="lobby-panel">
-          <h3>Tạo phòng mới</h3>
-          <p>Chọn game, chỉnh luật nếu có, rồi gửi mã phòng cho bạn bè.</p>
-          <label class="option-label" for="createNameInput">Tên của bạn</label>
+          <h3 data-i18n="createRoomH">Tạo phòng mới</h3>
+          <p data-i18n="createRoomP">Chọn game, chỉnh luật nếu có, rồi gửi mã phòng cho bạn bè.</p>
+          <label class="option-label" for="createNameInput" data-i18n="yourName">Tên của bạn</label>
           <input class="player-name-input" id="createNameInput" maxlength="24"
-                 placeholder="Ví dụ: Nam" autocomplete="nickname" />
-          <label class="option-label" for="lobbyGameSelect">Game tạo phòng</label>
+                 data-i18n-ph="egName1" placeholder="Ví dụ: Nam" autocomplete="nickname" />
+          <label class="option-label" for="lobbyGameSelect" data-i18n="gameToCreate">Game tạo phòng</label>
           <select class="option-select lobby-game-select" id="lobbyGameSelect"></select>
           <div class="options-panel lobby-options hidden" id="lobbyOptionsPanel">
-            <h3 class="options-title">⚙️ Tùy chỉnh ván chơi</h3>
+            <h3 class="options-title" data-i18n="optionsTitle">⚙️ Tùy chỉnh ván chơi</h3>
             <div class="options-list" id="lobbyOptionsList"></div>
           </div>
           <label class="set-row set-switch lobby-public">
-            <span>🌐 Phòng công khai (cho người khác tìm thấy)</span>
+            <span data-i18n="publicLabel">🌐 Phòng công khai (cho người khác tìm thấy)</span>
             <input type="checkbox" id="publicToggle" checked />
           </label>
-          <button class="btn primary" id="createRoomBtn">Tạo phòng</button>
+          <button class="btn primary" id="createRoomBtn" data-i18n="createRoom">Tạo phòng</button>
           <div class="room-code hidden" id="roomCodeBox">
-            <span class="room-code-label">Mã phòng của bạn</span>
+            <span class="room-code-label" data-i18n="yourRoomCode">Mã phòng của bạn</span>
             <span class="room-code-val" id="roomCodeVal">----</span>
-            <button class="btn small" id="copyCodeBtn">📋 Sao chép</button>
-            <p class="waiting" id="waitingMsg">Đang chờ người chơi thứ hai...</p>
+            <button class="btn small" id="copyCodeBtn" data-i18n="copyCode">📋 Sao chép</button>
+            <p class="waiting" id="waitingMsg" data-i18n="waiting">Đang chờ người chơi thứ hai...</p>
           </div>
         </div>
         <div class="lobby-panel">
-          <h3>Vào phòng có sẵn</h3>
-          <p>Nhập mã phòng (4 chữ số) mà bạn của bạn gửi cho.</p>
-          <label class="option-label" for="joinNameInput">Tên của bạn</label>
+          <h3 data-i18n="joinRoomH">Vào phòng có sẵn</h3>
+          <p data-i18n="joinRoomP">Nhập mã phòng (4 chữ số) mà bạn của bạn gửi cho.</p>
+          <label class="option-label" for="joinNameInput" data-i18n="yourName">Tên của bạn</label>
           <input class="player-name-input" id="joinNameInput" maxlength="24"
-                 placeholder="Ví dụ: Linh" autocomplete="nickname" />
+                 data-i18n-ph="egName2" placeholder="Ví dụ: Linh" autocomplete="nickname" />
           <input class="code-input" id="joinCodeInput" maxlength="4" inputmode="numeric"
                  placeholder="0000" />
-          <button class="btn primary" id="joinRoomBtn">Vào phòng</button>
+          <button class="btn primary" id="joinRoomBtn" data-i18n="joinRoom">Vào phòng</button>
           <p class="lobby-error" id="lobbyError"></p>
           <div class="public-rooms">
             <div class="public-rooms-head">
               <span id="publicRoomsTitle">🌐 Phòng công khai đang mở</span>
-              <button class="btn small" id="refreshRoomsBtn" type="button">🔄 Làm mới</button>
+              <button class="btn small" id="refreshRoomsBtn" type="button" data-i18n="refresh">🔄 Làm mới</button>
             </div>
             <div class="public-rooms-list" id="publicRoomsList"></div>
           </div>
@@ -206,12 +207,12 @@
     <!-- Khu vực chơi game -->
     <section id="gameView" class="game-view hidden">
       <div class="game-bar">
-        <button class="btn back-btn" id="backBtn">← Thoát</button>
+        <button class="btn back-btn" id="backBtn" data-i18n="exit">← Thoát</button>
         <h2 class="game-title" id="gameTitle"></h2>
         <div class="game-bar-right">
-          <button class="btn icon-btn" id="helpBtn" title="Hướng dẫn chơi">?</button>
-          <button class="btn hidden" id="undoBtn" title="Hoàn tác nước đi">↶ Hoàn tác</button>
-          <button class="btn" id="restartBtn">↻ Chơi lại</button>
+          <button class="btn icon-btn" id="helpBtn" data-i18n-title="helpTitle" title="Hướng dẫn chơi">?</button>
+          <button class="btn hidden" id="undoBtn" data-i18n="undo" data-i18n-title="undoTitle" title="Hoàn tác nước đi">↶ Hoàn tác</button>
+          <button class="btn" id="restartBtn" data-i18n="restart">↻ Chơi lại</button>
         </div>
       </div>
 
@@ -254,7 +255,7 @@
   </main>
 
   <footer class="app-footer">
-    <span id="footerText">Made with ❤️ — chơi chung máy hoặc online</span>
+    <span id="footerText" data-i18n="footer">Made with ❤️ — chơi chung máy hoặc online</span>
   </footer>
 
   <!-- Màn hình chúc mừng chiến thắng -->
@@ -265,9 +266,9 @@
       <h2 class="win-title" id="winTitle">Chiến thắng!</h2>
       <p class="win-sub" id="winSub"></p>
       <div class="win-actions">
-        <button class="btn primary" id="winAgain">↻ Chơi lại</button>
-        <button class="btn hidden" id="winReplay">🎬 Xem lại ván</button>
-        <button class="btn" id="winMenu">← Về menu</button>
+        <button class="btn primary" id="winAgain" data-i18n="restart">↻ Chơi lại</button>
+        <button class="btn hidden" id="winReplay" data-i18n="winReplay">🎬 Xem lại ván</button>
+        <button class="btn" id="winMenu" data-i18n="backMenu">← Về menu</button>
       </div>
     </div>
   </div>
@@ -277,11 +278,11 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
       <div class="modal-header">
         <h3 id="helpTitle">Hướng dẫn</h3>
-        <button class="modal-close" id="helpClose" title="Đóng">✕</button>
+        <button class="modal-close" id="helpClose" data-i18n-title="closeTitle" title="Đóng">✕</button>
       </div>
       <div class="modal-body" id="helpBody"></div>
       <div class="modal-footer">
-        <button class="btn primary" id="helpOk">Đã hiểu, chơi thôi!</button>
+        <button class="btn primary" id="helpOk" data-i18n="helpOk">Đã hiểu, chơi thôi!</button>
       </div>
     </div>
   </div>
@@ -290,8 +291,8 @@
   <div class="replay-overlay hidden" id="replayOverlay">
     <div class="replay-modal" role="dialog" aria-modal="true" aria-labelledby="replayTitle">
       <div class="replay-head">
-        <h3 id="replayTitle">🎬 Xem lại ván</h3>
-        <button class="modal-close" id="replayClose" title="Đóng">✕</button>
+        <h3 id="replayTitle" data-i18n="replayTitle">🎬 Xem lại ván</h3>
+        <button class="modal-close" id="replayClose" data-i18n-title="closeTitle" title="Đóng">✕</button>
       </div>
       <div class="replay-board" id="replayBoard"></div>
       <div class="replay-status" id="replayStatus"></div>
@@ -313,7 +314,7 @@
       <p id="tourText"></p>
       <div class="tour-actions">
         <span class="tour-step" id="tourStep"></span>
-        <button class="btn small" id="tourSkip" type="button">Bỏ qua</button>
+        <button class="btn small" id="tourSkip" type="button" data-i18n="tourSkip">Bỏ qua</button>
         <button class="btn small primary" id="tourNext" type="button">Tiếp</button>
       </div>
     </div>
@@ -321,6 +322,7 @@
 
   <!-- registry PHẢI nạp trước các file game -->
   <script src="js/registry.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/sound.js"></script>
   <script src="js/vi-dict.js"></script>
   <script src="js/net.js"></script>
