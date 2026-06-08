@@ -1,0 +1,109 @@
+"use strict";
+const { test } = require("node:test");
+const assert = require("node:assert");
+const { installGlobals, loadGame, makeCtx } = require("./helpers");
+
+installGlobals();
+
+function boardGrid(ctx, cls) {
+  const root = ctx.boardEl.children[0];
+  if (root.classList.contains(cls)) return root;
+  return root.children.find((c) => c.classList && c.classList.contains(cls)) || root;
+}
+
+test("Tic-Tac-Toe: X thắng hàng ngang", () => {
+  const cfg = loadGame("tictactoe");
+  const ctx = makeCtx({ mode: "classic" });
+  cfg.create(ctx);
+  const grid = boardGrid(ctx, "ttt-board");
+  const cells = grid.children;
+  cells[0].fire("click"); cells[3].fire("click");
+  cells[1].fire("click"); cells[4].fire("click");
+  cells[2].fire("click");
+  assert.match(ctx.status, /thắng/);
+  assert.strictEqual(ctx.scores[0], 1);
+});
+
+test("Tic-Tac-Toe: AI Khó chặn nước thắng", () => {
+  const cfg = loadGame("tictactoe");
+  const ctx = makeCtx({ mode: "classic" });
+  const api = cfg.create(ctx);
+  api.applyMove({ k: "p", i: 0 });
+  api.applyMove({ k: "p", i: 3 });
+  api.applyMove({ k: "p", i: 1 });
+  const mv = api.aiMove("hard");
+  assert.strictEqual(mv.i, 2, "AI phải chặn ở ô 2");
+});
+
+test("Connect Four: thắng dọc + undo", () => {
+  const cfg = loadGame("connectfour");
+  const ctx = makeCtx({});
+  const api = cfg.create(ctx);
+  const cols = ctx.boardEl.children[0].children;
+  cols[0].fire("click"); cols[1].fire("click");
+  cols[0].fire("click"); cols[1].fire("click");
+  cols[0].fire("click"); cols[1].fire("click");
+  cols[0].fire("click"); // P1 dọc 4
+  assert.match(ctx.status, /thắng/);
+  // undo từ instance khác
+  const ctx2 = makeCtx({});
+  const api2 = cfg.create(ctx2);
+  const cols2 = ctx2.boardEl.children[0].children;
+  cols2[3].fire("click");
+  const t = ctx2.turn;
+  assert.strictEqual(api2.undo(), true);
+  assert.notStrictEqual(ctx2.turn, t);
+});
+
+test("Nim: AI hard chọn nước tối ưu (xor=0) từ [3,5,7]", () => {
+  const cfg = loadGame("nim");
+  const ctx = makeCtx({ preset: "classic", mode: "normal", limit: 0 });
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("hard");
+  // áp dụng -> trạng thái còn lại phải có nim-sum = 0
+  const rows = [3, 5, 7];
+  rows[mv.row] -= mv.count;
+  const xor = rows.reduce((a, b) => a ^ b, 0);
+  assert.strictEqual(xor, 0, "Nim AI hard phải để lại nim-sum = 0");
+});
+
+test("Reversi: lật quân + undo khôi phục", () => {
+  const cfg = loadGame("reversi");
+  const ctx = makeCtx({ hints: "off" });
+  const api = cfg.create(ctx);
+  const boardEl = ctx.boardEl.children[0].children.find((c) => c.classList.contains("rv-board"));
+  function discs() { let n = 0; for (const cell of boardEl.children) if (cell.children.some((ch) => ch.className && ch.className.includes("rv-disc") && !ch.className.includes("ghost"))) n++; return n; }
+  api.applyMove({ r: 2, c: 3 });
+  assert.strictEqual(discs(), 5);
+  assert.strictEqual(api.undo(), true);
+  assert.strictEqual(discs(), 4);
+});
+
+test("Gomoku: thắng 5 quân ngang", () => {
+  const cfg = loadGame("gomoku");
+  const ctx = makeCtx({ size: 15, need: 5 });
+  const api = cfg.create(ctx);
+  api.applyMove({ r: 7, c: 7 }); api.applyMove({ r: 0, c: 0 });
+  api.applyMove({ r: 7, c: 8 }); api.applyMove({ r: 0, c: 1 });
+  api.applyMove({ r: 7, c: 9 }); api.applyMove({ r: 0, c: 2 });
+  api.applyMove({ r: 7, c: 10 }); api.applyMove({ r: 0, c: 3 });
+  api.applyMove({ r: 7, c: 11 });
+  assert.match(ctx.status, /thắng/);
+});
+
+test("Morris: AI mở màn đánh tâm", () => {
+  const cfg = loadGame("morris");
+  const ctx = makeCtx({ move: "adjacent" });
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("hard");
+  assert.strictEqual(mv.type, "place");
+  assert.strictEqual(mv.to, 4, "tâm bàn là nước mạnh nhất");
+});
+
+test("Dots & Boxes: AI trả về cạnh hợp lệ", () => {
+  const cfg = loadGame("dotsandboxes");
+  const ctx = makeCtx({ cols: 4, rows: 4, bonus: "off" });
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("normal");
+  assert.ok(mv && (mv.type === "h" || mv.type === "v"));
+});
