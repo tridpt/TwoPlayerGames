@@ -11777,3 +11777,26 @@ body.theme-light .status { color: #b06a00; }
   line-height: 1;
   cursor: pointer;
 }
+
+/* ---------- Gợi ý & độ khó: Hangman / Nối Từ / Dò Mìn ---------- */
+.hm-hintbar { display: flex; justify-content: center; margin-top: 6px; min-height: 1px; }
+.hm-hint { font-size: 0.85rem; }
+.hm-key.hint-reveal {
+  background: #ffd166; color: #1a1a1a; opacity: 1;
+  box-shadow: 0 0 0 2px rgba(255,209,102,0.5);
+}
+.nt-hint { font-size: 0.85rem; background: rgba(255,209,102,0.16); border-color: rgba(255,209,102,0.4); }
+.nt-hint:hover:not(:disabled) { background: rgba(255,209,102,0.28); }
+.nt-judge-warn { color: var(--accent, #ffd166); }
+
+.ms-hintrow { display: flex; justify-content: center; margin-top: 10px; }
+.ms-hint-btn { font-size: 0.88rem; }
+.ms-cell.ms-hint {
+  animation: ms-hint-flash 0.5s ease-in-out 3;
+  box-shadow: 0 0 0 2px #ffd166, 0 0 14px rgba(255,209,102,0.8);
+  z-index: 2;
+}
+@keyframes ms-hint-flash {
+  0%, 100% { background: #3a4180; }
+  50% { background: #ffd166; }
+}

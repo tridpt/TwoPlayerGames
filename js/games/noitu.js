@@ -61,7 +61,8 @@
 
   function create(ctx) {
     const o = ctx.options || {};
-    const TIME = o.time || 20;
+    const TIME = Number.isFinite(Number(o.time)) ? Number(o.time) : 20;
+    let hintsLeft = o.hints === "off" ? 0 : o.hints === "many" ? 5 : 2;
 
     const used = new Set();
     let turn = 0;
@@ -80,6 +81,7 @@
       `<div class="nt-inputrow">` +
       `<input class="nt-input" id="ntInput" placeholder="nhập từ 2 tiếng..." autocomplete="off">` +
       `<button class="btn primary" id="ntSend">Nối</button>` +
+      `<button class="btn nt-hint" id="ntHint">💡 Gợi ý</button>` +
       `<button class="btn nt-challenge" id="ntChallenge">⚖️ Phản đối</button>` +
       `<button class="btn nt-give">🏳️ Chịu thua</button>` +
       `</div>` +
@@ -92,6 +94,7 @@
     const input = root.querySelector("#ntInput");
     const sendBtn = root.querySelector("#ntSend");
     const challengeBtn = root.querySelector("#ntChallenge");
+    const hintBtn = root.querySelector("#ntHint");
     const giveBtn = root.querySelector(".nt-give");
     const errEl = root.querySelector("#ntErr");
     const chainEl = root.querySelector("#ntChain");
@@ -138,6 +141,7 @@
       if (!myTurn() || over) return;
       applyMove({ kind: "challenge" }, false);
     });
+    hintBtn.addEventListener("click", onHint);
     giveBtn.addEventListener("click", () => {
       if (!myTurn() || over) return;
       applyMove({ kind: "timeout" }, false);
@@ -151,6 +155,27 @@
       errEl.textContent = "";
       input.value = "";
       applyMove({ kind: "word", phrase }, false);
+    }
+
+    // 💡 Gợi ý: tra từ điển tìm một từ hợp lệ nối tiếp, điền sẵn vào ô nhập.
+    // Chi phí: giảm số gợi ý còn lại và bị trừ thời gian ngay lượt này.
+    function onHint() {
+      if (!myTurn() || over || hintsLeft <= 0) return;
+      const need = lastWord;
+      if (!need || !window.VI_DICT) { errEl.textContent = "Chưa thể gợi ý lúc này."; return; }
+      let found = null;
+      for (const w of window.VI_DICT) {
+        const sy = syllables(w);
+        if (sy.length === 2 && sy[0] === need && !used.has(w)) { found = w; break; }
+      }
+      if (!found) { flashJudge(`💡 Không có từ nào trong từ điển bắt đầu bằng "${need}". Bạn tự nghĩ nhé!`, true); return; }
+      hintsLeft--;
+      if (TIME > 0) { timeLeft = Math.max(1, timeLeft - PENALTY); renderTimer(); }
+      input.value = found;
+      input.focus();
+      ctx.sound("notify");
+      flashJudge(`💡 Gợi ý: "${found}" — còn ${hintsLeft} lần${TIME > 0 ? `, bị trừ ${PENALTY}s` : ""}. Bấm Nối để dùng.`, true);
+      updateUI();
     }
 
     function applyMove(move, fromRemote) {
@@ -255,6 +280,9 @@
       const canChallenge = mine && last && last.by !== null && last.by !== turn;
       challengeBtn.disabled = !canChallenge;
       challengeBtn.classList.toggle("hidden", !last || last.by === null);
+      hintBtn.disabled = !mine || hintsLeft <= 0 || !lastWord;
+      hintBtn.textContent = `💡 Gợi ý (${hintsLeft})`;
+      hintBtn.classList.toggle("hidden", o.hints === "off");
       if (mine) input.focus();
       ctx.setStatus(`Lượt Người chơi ${turn + 1} nối từ.`);
     }
@@ -287,6 +315,14 @@
           { value: 30, label: "30 giây (thong thả)" },
         ],
       },
+      {
+        id: "hints", label: "Số lần gợi ý", default: "two",
+        choices: [
+          { value: "off", label: "Tắt (khó)" },
+          { value: "two", label: "2 lần" },
+          { value: "many", label: "5 lần (dễ)" },
+        ],
+      },
     ],
     howTo: [
       "Mở màn bằng một từ gợi ý. Người tiếp theo nối bằng từ 2 tiếng bắt đầu bằng TIẾNG CUỐI của từ trước (ví dụ 'học sinh' → 'sinh viên').",
@@ -294,6 +330,7 @@
       "Từ được nối khá tự do (chỉ chặn gõ bậy). Nếu bạn NGHI từ đối thủ vừa nối là vô nghĩa, bấm '⚖️ Phản đối'.",
       "Trọng tài là từ điển tiếng Việt: nếu từ đó KHÔNG có trong từ điển, người nối sai phải nối lại và bị TRỪ 5 giây mỗi lượt từ đó về sau.",
       "Nhưng nếu từ đó CÓ trong từ điển (phản đối sai), thì CHÍNH BẠN bị trừ 5 giây mỗi lượt. Vậy nên chỉ phản đối khi chắc chắn!",
+      "Bí từ? Bấm '💡 Gợi ý' để được từ điển mách một từ nối tiếp hợp lệ — nhưng số lần có hạn và bị trừ thời gian, nên đừng lạm dụng.",
       "Thời gian mỗi lượt không bao giờ xuống dưới 5 giây. Ai hết giờ hoặc chịu thua sẽ thua.",
     ],
     create,

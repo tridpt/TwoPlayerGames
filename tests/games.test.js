@@ -149,3 +149,24 @@ test("Path Lock Duel: AI trả về nước hợp lệ", () => {
   const mv = api.aiMove("hard");
   assert.ok(mv && ["place", "rotate", "lock", "bomb"].includes(mv.t), "AI phải trả về nước hợp lệ");
 });
+
+test("Hangman: dựng được với tùy chọn độ khó + gợi ý", () => {
+  const cfg = loadGame("hangman");
+  const ctx = makeCtx({ lives: 4, hints: "many" });
+  const api = cfg.create(ctx);
+  assert.ok(api && typeof api.applyMove === "function");
+});
+
+test("Minesweeper: dựng được với tùy chọn gợi ý", () => {
+  const cfg = loadGame("minesweeper");
+  const ctx = makeCtx({ size: 12, mines: 25, hints: "some" });
+  const api = cfg.create(ctx);
+  assert.ok(api && typeof api.applyMove === "function");
+});
+
+test("Nối Từ: dựng được với tùy chọn gợi ý (không hẹn giờ)", () => {
+  const cfg = loadGame("noitu");
+  const ctx = makeCtx({ time: 0, hints: "two" }); // time:0 để không tạo setInterval treo test
+  const api = cfg.create(ctx);
+  assert.ok(api && typeof api.applyMove === "function");
+});

@@ -8,6 +8,7 @@
     const N = o.size || 16;          // bàn N×N
     const MINES = o.mines || 40;     // tổng số mìn
     const NEED = Math.floor(MINES / 2) + 1; // số mìn cần để thắng
+    let hintsLeft = o.hints === "off" ? 0 : o.hints === "many" ? 6 : 3;
 
     // ----- sinh bãi mìn tất định theo seed -----
     const total = N * N;
@@ -51,7 +52,51 @@
     grid.className = "ms-grid";
     grid.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
     wrap.appendChild(grid);
+    const hintRow = document.createElement("div");
+    hintRow.className = "ms-hintrow";
+    const hintBtn = document.createElement("button");
+    hintBtn.className = "btn small ms-hint-btn";
+    hintRow.appendChild(hintBtn);
+    if (hintsLeft === 0) hintRow.classList.add("hidden");
+    wrap.appendChild(hintRow);
     ctx.boardEl.appendChild(wrap);
+
+    hintBtn.addEventListener("click", onHint);
+    function updateHintBtn() {
+      hintBtn.textContent = `💡 Gợi ý ô khả nghi (còn ${hintsLeft})`;
+      hintBtn.disabled = over || hintsLeft <= 0 || (ctx.isOnline && turn !== ctx.mySeat);
+    }
+
+    // ước lượng xác suất một ô là mìn dựa trên các số đã lộ xung quanh
+    function onHint() {
+      if (over || hintsLeft <= 0) return;
+      if (ctx.isOnline && turn !== ctx.mySeat) return;
+      let bestI = -1, bestP = -1;
+      for (let i = 0; i < total; i++) {
+        if (revealed[i]) continue;
+        let p = 0, known = false;
+        for (const j of neighbors(i)) {
+          if (!revealed[j] || isMine[j]) continue; // chỉ xét ô số đã lộ
+          if (counts[j] <= 0) continue;
+          const nb = neighbors(j);
+          const flagged = nb.filter((k) => revealed[k] && isMine[k]).length;
+          const hidden = nb.filter((k) => !revealed[k]).length;
+          const remain = counts[j] - flagged;
+          if (hidden > 0 && remain > 0) { p = Math.max(p, remain / hidden); known = true; }
+        }
+        if (!known) p = 0.001; // không có manh mối -> xác suất nền rất thấp
+        if (p > bestP) { bestP = p; bestI = i; }
+      }
+      if (bestI < 0) return;
+      hintsLeft--;
+      cellEls[bestI].classList.add("ms-hint");
+      ctx.sound("notify");
+      setTimeout(() => cellEls[bestI] && cellEls[bestI].classList.remove("ms-hint"), 1600);
+      ctx.setStatus(bestP > 0.5
+        ? "💡 Ô đang nháy nhiều khả năng có mìn — thử lật để ghi điểm!"
+        : "💡 Chưa đủ manh mối chắc chắn; ô gợi ý chỉ là phỏng đoán.");
+      updateHintBtn();
+    }
 
     const cellEls = [];
     for (let i = 0; i < total; i++) {
@@ -145,6 +190,7 @@
         `<span class="ms-s p1">🚩 P1: ${scores[0]}</span>` +
         `<span class="ms-need">Cần ${NEED} để thắng • Tổng ${MINES} mìn</span>` +
         `<span class="ms-s p2">P2: ${scores[1]} 🚩</span>`;
+      updateHintBtn();
     }
 
     ctx.setTurn(0);
@@ -176,12 +222,20 @@
           { value: 60, label: "60 (nhiều)" },
         ],
       },
+      {
+        id: "hints", label: "Gợi ý ô khả nghi", default: "some",
+        choices: [
+          { value: "off", label: "Tắt (khó)" },
+          { value: "some", label: "3 lần" },
+          { value: "many", label: "6 lần (dễ)" },
+        ],
+      },
     ],
     howTo: [
       "Cả hai cùng chơi trên MỘT bãi mìn chung. Thay nhau lật ô.",
       "Lật trúng MÌN: bạn cắm cờ (ghi 1 điểm) và được lật tiếp.",
       "Lật trúng ô THƯỜNG: ô hiện số mìn xung quanh (ô số 0 sẽ tự mở rộng vùng trống), rồi chuyển lượt cho đối thủ.",
-      "Dùng các con số làm manh mối để suy ra ô nào có mìn.",
+      "Dùng các con số làm manh mối để suy ra ô nào có mìn. Bí quá thì bấm '💡 Gợi ý ô khả nghi' (có giới hạn) để máy nháy ô nhiều khả năng có mìn nhất.",
       "Ai cắm cờ trúng nhiều hơn một nửa số mìn trước sẽ thắng.",
     ],
     create,

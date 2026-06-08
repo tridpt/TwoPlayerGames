@@ -25,6 +25,8 @@ function mkEl(tag) {
     appendChild(c) { el.children.push(c); return c; },
     removeChild(c) { el.children = el.children.filter((x) => x !== c); },
     remove() {},
+    focus() {},
+    blur() {},
     fire(ev) { (el._ev[ev] || []).forEach((f) => f()); },
     getBoundingClientRect() { return { height: 50, width: 50, top: 0, left: 0 }; },
     _qs: {},

@@ -5,7 +5,6 @@
      { kind:"setword", mask } (độ dài/khoảng trắng) ,
      { kind:"guess", ch } , { kind:"result", ch, hits:[vị trí], win, lose }. */
 (function () {
-  const MAX_WRONG = 6;
   const PARTS = ["đầu", "thân", "tay trái", "tay phải", "chân trái", "chân phải"];
 
   function stripCombining(s) {
@@ -14,6 +13,9 @@
   }
 
   function create(ctx) {
+    const o = ctx.options || {};
+    const MAX_WRONG = [4, 6, 8].includes(Number(o.lives)) ? Number(o.lives) : 6;
+    let hintsLeft = o.hints === "off" ? 0 : o.hints === "many" ? 3 : 1;
     let phase = "set";  // set | play | over
     let secret = "";    // đáp án (đã chuẩn hóa hiển thị)
     let secretKey = ""; // dạng không dấu, chữ thường để so khớp
@@ -71,8 +73,10 @@
         `<div class="hm-gallows" id="hmGallows"></div>` +
         `<div class="hm-word" id="hmWord"></div>` +
         `<div class="hm-status" id="hmWrong"></div>` +
-        `<div class="hm-keys" id="hmKeys"></div>`;
+        `<div class="hm-keys" id="hmKeys"></div>` +
+        `<div class="hm-hintbar" id="hmHintBar"></div>`;
       buildKeyboard();
+      buildHintBar();
       if (maskFromRemote) {
         revealed = maskFromRemote.map((c) => c !== "_");
         secretMaskLen = maskFromRemote;
@@ -80,6 +84,48 @@
       renderWord();
       renderWrong();
       updateStatus();
+    }
+
+    // Gợi ý: chỉ dùng được khi chơi chung máy (người ra đề ngồi cùng máy biết đáp án).
+    function buildHintBar() {
+      const bar = root.querySelector("#hmHintBar");
+      if (!bar) return;
+      if (ctx.isOnline) { bar.classList.add("hidden"); return; }
+      bar.innerHTML = `<button class="btn small hm-hint" id="hmHint"></button>`;
+      const btn = bar.querySelector("#hmHint");
+      btn.addEventListener("click", onHint);
+      updateHintBtn();
+    }
+    function updateHintBtn() {
+      const btn = root.querySelector("#hmHint");
+      if (!btn) return;
+      btn.textContent = `💡 Gợi ý (còn ${hintsLeft}) — lộ 1 chữ, tốn 1 lượt sai`;
+      btn.disabled = phase !== "play" || hintsLeft <= 0 || wrong >= MAX_WRONG - 1;
+    }
+    function onHint() {
+      if (phase !== "play" || hintsLeft <= 0 || ctx.isOnline) return;
+      if (wrong >= MAX_WRONG - 1) return; // tránh thua vì gợi ý
+      // tìm các chữ cái chưa đoán còn ẩn trong đáp án
+      const candidates = new Set();
+      [...secretKey].forEach((c, i) => {
+        if (!revealed[i] && /[a-z]/.test(c) && !guessed.has(c)) candidates.add(c);
+      });
+      if (!candidates.size) return;
+      const pool = [...candidates];
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      hintsLeft--;
+      wrong++; // chi phí: 1 lượt sai
+      guessed.add(pick);
+      const hits = [];
+      [...secretKey].forEach((c, i) => { if (c === pick) { revealed[i] = true; hits.push(i); } });
+      if (keyEls[pick]) { keyEls[pick].disabled = true; keyEls[pick].classList.add("hint-reveal"); }
+      ctx.sound("notify");
+      renderWord();
+      renderWrong();
+      updateHintBtn();
+      if (revealed.every(Boolean)) return endGame(guesserSeat, "đoán ra đáp án (có dùng gợi ý)");
+      if (wrong >= MAX_WRONG) return endGame(setterSeat, "người đoán đã hết lượt sai");
+      ctx.setStatus(`💡 Đã lộ chữ "${pick.toUpperCase()}". Còn ${MAX_WRONG - wrong} lượt sai.`);
     }
 
     let secretMaskLen = null; // dùng cho phía người đoán (online) khi chưa biết đáp án
@@ -139,6 +185,7 @@
       // thắng/thua
       if (revealed.every(Boolean)) return endGame(guesserSeat, "đoán ra đáp án");
       if (wrong >= MAX_WRONG) return endGame(setterSeat, "người đoán đã hết lượt sai");
+      updateHintBtn();
       updateStatus();
     }
 
@@ -251,13 +298,33 @@
     id: "hangman",
     name: "Đoán Chữ (Hangman)",
     emoji: "🪢",
-    description: "Một người ra từ bí mật, người kia đoán từng chữ cái. Sai quá 6 lần là thua.",
+    description: "Một người ra từ bí mật, người kia đoán từng chữ cái. Sai quá số lần cho phép là thua. Có chọn độ khó và gợi ý.",
     onlineReady: true,
+    options: [
+      {
+        id: "lives", label: "Số lần sai cho phép", default: 6,
+        choices: [
+          { value: 8, label: "8 (dễ)" },
+          { value: 6, label: "6 (chuẩn)" },
+          { value: 4, label: "4 (khó)" },
+        ],
+      },
+      {
+        id: "hints", label: "Gợi ý (chung máy)", default: "one",
+        choices: [
+          { value: "off", label: "Tắt" },
+          { value: "one", label: "1 lần" },
+          { value: "many", label: "3 lần" },
+        ],
+      },
+    ],
     howTo: [
       "Một người ra đề: nhập một từ hoặc cụm từ bí mật (đối thủ chỉ thấy số ô trống và dấu cách).",
       "Người kia đoán từng CHỮ CÁI bằng bàn phím trên màn hình.",
       "Đoán đúng: tất cả vị trí của chữ đó được lộ ra. Đoán sai: hình người treo cổ thêm một bộ phận.",
-      "Đoán sai quá 6 lần thì người đoán THUA. Đoán ra hết các chữ trước đó thì người đoán THẮNG.",
+      "Chọn ĐỘ KHÓ ở tùy chọn: số lần sai cho phép (4 khó · 6 chuẩn · 8 dễ).",
+      "Khi chơi chung máy có thể bấm '💡 Gợi ý' để lộ sẵn một chữ — nhưng tốn 1 lượt sai, nên dùng khi thật bí.",
+      "Đoán sai quá số lần cho phép thì người đoán THUA. Đoán ra hết các chữ trước đó thì người đoán THẮNG.",
       "Lưu ý: đoán theo chữ cái KHÔNG DẤU (ví dụ 'mèo' đoán bằng m, e, o). Dấu cách được hiện sẵn.",
     ],
     create,
