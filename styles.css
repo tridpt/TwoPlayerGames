@@ -202,6 +202,33 @@ body {
   .hist-meta { grid-column: 1 / -1; text-align: left; }
 }
 body.theme-light .hist-item { background: linear-gradient(160deg, #ffffff, #f1f4fd); border-color: rgba(20,30,80,0.08); }
+
+/* ---------- Bảng xếp hạng ---------- */
+.lead-list { display: flex; flex-direction: column; gap: 6px; }
+.lead-empty {
+  padding: 20px; text-align: center; color: var(--muted);
+  border: 1px dashed rgba(255,255,255,0.14); border-radius: 14px; background: rgba(255,255,255,0.03);
+}
+.lead-item {
+  display: grid;
+  grid-template-columns: 36px minmax(0,1fr) auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: 11px;
+  background: linear-gradient(160deg, rgba(42,48,96,0.5), rgba(24,28,58,0.7));
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.lead-rank { font-size: 1.2rem; text-align: center; }
+.lead-num { color: var(--muted); font-size: 0.95rem; }
+.lead-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lead-stat { font-size: 0.84rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.lead-rate { color: var(--accent); min-width: 42px; text-align: right; }
+body.theme-light .lead-item { background: linear-gradient(160deg, #ffffff, #f1f4fd); border-color: rgba(20,30,80,0.08); }
+@media (max-width: 520px) {
+  .lead-item { grid-template-columns: 30px 1fr auto auto; }
+  .lead-item .lead-rate { display: none; }
+}
 .settings-box {
   display: flex;
   flex-direction: column;

@@ -81,6 +81,7 @@
     profileName: $("profileName"),
     avatarPicker: $("avatarPicker"),
     profileStats: $("profileStats"),
+    leadList: $("leadList"),
     achGrid: $("achGrid"),
     histList: $("histList"),
     volRange: $("volRange"),
@@ -634,6 +635,7 @@
       ["📈", decided ? rate + "%" : "—", "Tỉ lệ thắng P1"],
       ["⭐", topName, "Chơi nhiều nhất"],
     ].map(([ic, v, lb]) => `<div class="pstat"><span class="pstat-ic">${ic}</span><b>${v}</b><small>${lb}</small></div>`).join("");
+    renderLeaderboard();
     // achievements
     el.achGrid.innerHTML = ACHIEVEMENTS.map((ac) => {
       const done = ac.done(a);
@@ -658,6 +660,35 @@
     if (d < 7) return d + " ngày trước";
     return new Date(ts).toLocaleDateString("vi-VN");
   }
+  function renderLeaderboard() {
+    if (!el.leadList) return;
+    const stats = getStats();
+    const rows = Object.keys(stats)
+      .map((id) => ({ id, ...stats[id] }))
+      .filter((r) => r.played > 0)
+      .sort((a, b) => (b.p1 - a.p1) || ((b.bestStreak || 0) - (a.bestStreak || 0)) || (b.played - a.played))
+      .slice(0, 10);
+    if (!rows.length) {
+      el.leadList.innerHTML = `<div class="lead-empty">Chưa có dữ liệu. Thắng vài ván để lên bảng xếp hạng!</div>`;
+      return;
+    }
+    const medals = ["🥇", "🥈", "🥉"];
+    el.leadList.innerHTML = rows.map((r, i) => {
+      const g = getGameById(r.id);
+      const name = g ? g.name : r.id;
+      const decided = r.p1 + r.p2;
+      const rate = decided ? Math.round(r.p1 / decided * 100) : 0;
+      const rank = medals[i] || `<b class="lead-num">${i + 1}</b>`;
+      return `<div class="lead-item">
+        <span class="lead-rank">${rank}</span>
+        <span class="lead-name">${escapeHtml(name)}</span>
+        <span class="lead-stat" title="Thắng (P1)">🏆 ${r.p1}</span>
+        <span class="lead-stat" title="Chuỗi thắng tốt nhất">🔥 ${r.bestStreak || 0}</span>
+        <span class="lead-stat lead-rate" title="Tỉ lệ thắng P1">${rate}%</span>
+      </div>`;
+    }).join("");
+  }
+
   const MODE_LABEL = { local: "👥 Chung máy", ai: "🤖 Đấu máy", online: "🌐 Online" };
   function renderHistory() {
     if (!el.histList) return;
@@ -697,11 +728,11 @@
   function statOf(id) { return getStats()[id] || { played: 0, p1: 0, p2: 0, draw: 0 }; }
   function recordStat(id, kind, winner) {
     const all = getStats();
-    const s = all[id] || { played: 0, p1: 0, p2: 0, draw: 0 };
+    const s = all[id] || { played: 0, p1: 0, p2: 0, draw: 0, streak: 0, bestStreak: 0 };
     s.played++;
-    if (kind === "draw") s.draw++;
-    else if (winner === 0) s.p1++;
-    else if (winner === 1) s.p2++;
+    if (kind === "draw") { s.draw++; s.streak = 0; }
+    else if (winner === 0) { s.p1++; s.streak = (s.streak || 0) + 1; if (s.streak > (s.bestStreak || 0)) s.bestStreak = s.streak; }
+    else if (winner === 1) { s.p2++; s.streak = 0; }
     all[id] = s;
     try { localStorage.setItem(STATS_KEY, JSON.stringify(all)); } catch (e) { /* ignore */ }
   }
