@@ -107,11 +107,11 @@
     let wind = nextWind();
 
     const ITEM_DEFS = {
-      heal:    { icon: "❤️", color: "#6ee7b7", label: "Hồi máu +35" },
-      bigshot: { icon: "💥", color: "#ffd166", label: "Đạn nổ lớn" },
-      shield:  { icon: "🛡️", color: "#8be6f0", label: "Khiên đỡ đòn" },
-      fuel:    { icon: "⛽", color: "#c9a98a", label: "Nạp nhiên liệu" },
-      ammo:    { icon: "🎯", color: "#ff9f7a", label: "Tiếp đạn đặc biệt" },
+      heal:    { icon: "❤️", color: "#6ee7b7", label: ctx.t("Hồi máu +35", "Heal +35") },
+      bigshot: { icon: "💥", color: "#ffd166", label: ctx.t("Đạn nổ lớn", "Big shot") },
+      shield:  { icon: "🛡️", color: "#8be6f0", label: ctx.t("Khiên đỡ đòn", "Damage shield") },
+      fuel:    { icon: "⛽", color: "#c9a98a", label: ctx.t("Nạp nhiên liệu", "Refuel") },
+      ammo:    { icon: "🎯", color: "#ff9f7a", label: ctx.t("Tiếp đạn đặc biệt", "Resupply ammo") },
     };
     const ITEM_KEYS = ["heal", "bigshot", "shield", "fuel", "ammo"];
     const items = [];
@@ -156,18 +156,18 @@
     const panel = document.createElement("div");
     panel.className = "art-controls";
     panel.innerHTML =
-      `<div class="art-field art-weapons"><label>Đạn</label><div class="art-weapon-row" id="artWeapons"></div></div>` +
-      `<div class="art-field art-move"><label>Di chuyển</label>` +
+      `<div class="art-field art-weapons"><label>${ctx.t("Đạn", "Shell")}</label><div class="art-weapon-row" id="artWeapons"></div></div>` +
+      `<div class="art-field art-move"><label>${ctx.t("Di chuyển", "Move")}</label>` +
       `<button class="btn small" id="artLeft">◄</button>` +
       `<button class="btn small" id="artRight">►</button>` +
       `<span class="art-val" id="artFuelVal"></span></div>` +
-      `<div class="art-field"><label>Góc</label>` +
+      `<div class="art-field"><label>${ctx.t("Góc", "Angle")}</label>` +
       `<input type="range" id="artAngle" min="5" max="85" value="50">` +
       `<span class="art-val" id="artAngleVal">50°</span></div>` +
-      `<div class="art-field"><label>Lực</label>` +
+      `<div class="art-field"><label>${ctx.t("Lực", "Power")}</label>` +
       `<input type="range" id="artPower" min="20" max="100" value="60">` +
       `<span class="art-val" id="artPowerVal">60</span></div>` +
-      `<button class="btn primary" id="artFire">💥 Bắn</button>`;
+      `<button class="btn primary" id="artFire">${ctx.t("💥 Bắn", "💥 Fire")}</button>`;
     ctx.boardEl.appendChild(panel);
 
     const angleInput = panel.querySelector("#artAngle");
@@ -185,7 +185,8 @@
       b.type = "button";
       b.className = "btn small art-weapon-btn";
       b.dataset.weapon = id;
-      b.innerHTML = `<span>${w.icon}</span><b>${w.label}</b><small class="art-ammo"></small>`;
+      const wLabel = ctx.t(w.label, { "Đạn thường": "Standard", "Đạn chùm": "Cluster", "Đạn nặng": "Heavy" }[w.label] || w.label);
+      b.innerHTML = `<span>${w.icon}</span><b>${wLabel}</b><small class="art-ammo"></small>`;
       b.addEventListener("click", () => {
         if (busy || over || !myTurn()) return;
         const pl = players[turn];
@@ -422,11 +423,11 @@
       const dead0 = players[0].hp <= 0, dead1 = players[1].hp <= 0;
       if (dead0 || dead1) {
         over = true;
-        if (dead0 && dead1) ctx.setStatus("🤝 Cả hai cùng nổ tung — hòa!");
+        if (dead0 && dead1) ctx.setStatus(ctx.t("🤝 Cả hai cùng nổ tung — hòa!", "🤝 Both blown up — draw!"));
         else {
           const w = dead0 ? 1 : 0;
           ctx.incScore(w);
-          ctx.setStatus(`🎉 Người chơi ${w + 1} chiến thắng!`);
+          ctx.setStatus(ctx.t(`🎉 Người chơi ${w + 1} chiến thắng!`, `🎉 Player ${w + 1} wins!`));
         }
         ctx.setTurn(-1);
         syncControls();
@@ -445,9 +446,10 @@
     }
 
     function updateStatus() {
-      const dirTxt = wind === 0 ? "lặng gió" : (wind > 0 ? "→ " : "← ") + Math.abs(wind).toFixed(1);
-      const moveTxt = MOVE_BUDGET > 0 ? " Di chuyển (◄ ►)," : "";
-      ctx.setStatus(`Lượt Người chơi ${turn + 1}. Gió: ${dirTxt}.${moveTxt} chọn đạn, chỉnh góc/lực rồi bắn (Space).`);
+      const dirTxt = wind === 0 ? ctx.t("lặng gió", "no wind") : (wind > 0 ? "→ " : "← ") + Math.abs(wind).toFixed(1);
+      const moveTxt = MOVE_BUDGET > 0 ? ctx.t(" Di chuyển (◄ ►),", " Move (◄ ►),") : "";
+      ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1}. Gió: ${dirTxt}.${moveTxt} chọn đạn, chỉnh góc/lực rồi bắn (Space).`,
+        `Player ${turn + 1}'s turn. Wind: ${dirTxt}.${moveTxt} pick a shell, set angle/power and fire (Space).`));
     }
 
     // ---- quỹ đạo dự đoán (chỉ hiển thị, không ảnh hưởng mô phỏng) ----
@@ -590,7 +592,7 @@
       g.fillStyle = "rgba(255,255,255,0.55)";
       g.font = "13px Segoe UI, sans-serif";
       g.textAlign = "left";
-      g.fillText("🗺️ " + STYLE.name, 12, 24);
+      g.fillText("🗺️ " + ctx.t(STYLE.name, { "Đồi thoải": "Rolling Hills", "Núi lởm chởm": "Jagged Mountains", "Thung lũng": "Valley", "Đồi giữa": "Center Hill", "Đồng bằng": "Plains" }[STYLE.name] || STYLE.name), 12, 24);
 
       if (flashItem && flashItem.t > 0) {
         const def = ITEM_DEFS[flashItem.type];
@@ -674,9 +676,9 @@
       g.fillStyle = "rgba(255,255,255,0.75)";
       g.font = "bold 13px Segoe UI, sans-serif";
       g.textAlign = "center";
-      if (wind === 0) { g.fillText("Gió: lặng", cx, cy); return; }
+      if (wind === 0) { g.fillText(ctx.t("Gió: lặng", "Wind: calm"), cx, cy); return; }
       const mag = Math.abs(wind);
-      g.fillText("Gió " + mag.toFixed(1), cx, cy - 8);
+      g.fillText(ctx.t("Gió " + mag.toFixed(1), "Wind " + mag.toFixed(1)), cx, cy - 8);
       const dir = wind > 0 ? 1 : -1;
       const len = 18 + mag * 12;
       g.strokeStyle = wind > 0 ? "#ffd166" : "#8be6f0";

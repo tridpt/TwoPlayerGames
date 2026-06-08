@@ -61,7 +61,12 @@
     let shake = 0;
     let pendingResolve = false;
     let raf = null;
-    let last = "Kéo để ngắm, thả để bắn. Bắn trúng 🛢️ thùng nổ để nổ dây chuyền!";
+    let last = ctx.t("Kéo để ngắm, thả để bắn. Bắn trúng 🛢️ thùng nổ để nổ dây chuyền!",
+      "Drag to aim, release to fire. Hit a 🛢️ TNT barrel for chain explosions!");
+    const SPELL_EN = { "Đá": "Stone", "Cầu lửa": "Fireball", "Bật tường": "Ricochet", "Bùa nhẹ": "Arcane", "Đạn chùm": "Cluster" };
+    const HINT_EN = { "miễn phí": "free", "nổ lớn": "big blast", "nảy nhiều": "many bounces", "bay xa": "flies far", "nổ 3 điểm": "3-point blast" };
+    const spellLabel = (l) => ctx.t(l, SPELL_EN[l] || l);
+    const spellHint = (h) => ctx.t(h, HINT_EN[h] || h);
 
     const root = document.createElement("div");
     root.className = "sling-root";
@@ -89,7 +94,7 @@
         <span class="sling-power"></span>
       </div>
       <div class="sling-spells"></div>
-      <button class="btn primary sling-fire" type="button">Bắn</button>
+      <button class="btn primary sling-fire" type="button">${ctx.t("Bắn", "Fire")}</button>
     `;
     root.appendChild(controls);
 
@@ -104,7 +109,7 @@
       btn.type = "button";
       btn.className = "btn small sling-spell";
       btn.dataset.spell = id;
-      btn.innerHTML = `<span>${def.icon}</span><b>${def.label}</b><small>${def.cost ? def.cost + " mana" : def.hint}</small>`;
+      btn.innerHTML = `<span>${def.icon}</span><b>${spellLabel(def.label)}</b><small>${def.cost ? def.cost + " mana" : spellHint(def.hint)}</small>`;
       btn.addEventListener("click", () => {
         if (!canControl()) return;
         if (players[turn].mana < def.cost) return;
@@ -263,7 +268,7 @@
       busy = true;
       dragging = false;
       selectedSpell = "stone";
-      last = `Người chơi ${turn + 1} bắn ${spell.label}.`;
+      last = ctx.t(`Người chơi ${turn + 1} bắn ${spell.label}.`, `Player ${turn + 1} fired ${spellLabel(spell.label)}.`);
       ctx.sound("shot");
       renderHud();
       syncControls();
@@ -398,7 +403,7 @@
           if (dist(x, y, b.x, b.y) <= blast + b.r) {
             b.active = false;
             floaters.push({ x: b.x, y: b.y - 22, text: "💥", color: "#ffae5d", life: 32 });
-            last = `💥 Người chơi ${owner + 1} kích nổ dây chuyền!`;
+            last = ctx.t(`💥 Người chơi ${owner + 1} kích nổ dây chuyền!`, `💥 Player ${owner + 1} triggered a chain explosion!`);
             detonate(b.x, b.y, b.blast, b.dmg, "#ff8a3d", owner, (depth || 0) + 1);
           }
         });
@@ -452,11 +457,11 @@
       if (dead0 || dead1) {
         over = true;
         ctx.setTurn(-1);
-        if (dead0 && dead1) ctx.setStatus("🤝 Hai bên cùng gục - hòa!");
+        if (dead0 && dead1) ctx.setStatus(ctx.t("🤝 Hai bên cùng gục - hòa!", "🤝 Both knocked out — draw!"));
         else {
           const winner = dead0 ? 1 : 0;
           ctx.incScore(winner);
-          ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng Slingshot Battle!`);
+          ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng Slingshot Battle!`, `🎉 Player ${winner + 1} wins Slingshot Battle!`));
         }
         syncControls();
         renderHud();
@@ -476,7 +481,7 @@
       hud.innerHTML = `
         ${playerHud(0)}
         <div class="sling-mid">
-          <b>${over ? "Kết thúc" : busy ? "Đạn đang bay" : "Lượt Người chơi " + (turn + 1)}</b>
+          <b>${over ? ctx.t("Kết thúc", "Finished") : busy ? ctx.t("Đạn đang bay", "Shot in flight") : ctx.t("Lượt Người chơi ", "Player ") + (turn + 1) + ctx.t("", "'s turn")}</b>
           <span>${windText()} · 🛢️ ${barrels.filter((b) => b.active).length} · 📦 ${crates.filter((c) => c.active).length}</span>
           <small>${last}</small>
         </div>
@@ -491,7 +496,7 @@
         `<i class="${i < pl.mana ? "on" : ""}"></i>`).join("");
       return `
         <div class="sling-player p${idx + 1} ${turn === idx && !over ? "active" : ""}">
-          <span>Người chơi ${idx + 1}</span>
+          <span>${ctx.t("Người chơi", "Player")} ${idx + 1}</span>
           <b>${pl.hp}/${MAX_HP} HP</b>
           <em>Mana ${pl.mana}/${MAX_MANA}</em>
           <div class="sling-meter"><i style="width:${hpPct}%"></i></div>
@@ -521,14 +526,15 @@
 
     function updateStatus() {
       if (over) return;
-      if (busy) ctx.setStatus("Đạn đang bay, chờ nổ xong rồi đổi lượt.");
-      else if (ctx.isOnline && turn !== ctx.mySeat) ctx.setStatus(`Đối thủ đang kéo ngắm. ${last}`);
-      else ctx.setStatus(`Người chơi ${turn + 1}: kéo từ nhân vật để ngắm, chọn phép rồi thả hoặc bấm Bắn.`);
+      if (busy) ctx.setStatus(ctx.t("Đạn đang bay, chờ nổ xong rồi đổi lượt.", "Shot in flight — wait for it to land, then turns switch."));
+      else if (ctx.isOnline && turn !== ctx.mySeat) ctx.setStatus(ctx.t(`Đối thủ đang kéo ngắm. ${last}`, `Opponent is aiming. ${last}`));
+      else ctx.setStatus(ctx.t(`Người chơi ${turn + 1}: kéo từ nhân vật để ngắm, chọn phép rồi thả hoặc bấm Bắn.`,
+        `Player ${turn + 1}: drag from your hero to aim, pick a spell, then release or press Fire.`));
     }
 
     function windText() {
-      if (windLevel === 0 || Math.abs(wind) < 0.001) return "Gió lặng";
-      return `Gió ${wind > 0 ? "→" : "←"} ${Math.abs(wind * 100).toFixed(1)}`;
+      if (windLevel === 0 || Math.abs(wind) < 0.001) return ctx.t("Gió lặng", "Calm");
+      return ctx.t(`Gió ${wind > 0 ? "→" : "←"} ${Math.abs(wind * 100).toFixed(1)}`, `Wind ${wind > 0 ? "→" : "←"} ${Math.abs(wind * 100).toFixed(1)}`);
     }
 
     function draw() {

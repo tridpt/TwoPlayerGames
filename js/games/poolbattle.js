@@ -75,7 +75,10 @@
     const particles = [];
     const floaters = [];
     let shake = 0;
-    let last = "Ngắm hướng, chỉnh lực rồi chọc bi.";
+    let last = ctx.t("Ngắm hướng, chỉnh lực rồi chọc bi.", "Aim, set power, then strike the cue ball.");
+    const MODE_EN = { "Chọc thường": "Normal", "Bóng nổ": "Bomb ball", "Siêu lực": "Power", "Lỗ to": "Wide pocket" };
+    const MHINT_EN = { "không tốn": "free", "va chạm đầu": "first contact", "bắn cực mạnh": "extra strong", "lỗ rộng cú này": "wider pockets this shot" };
+    const modeLabel = (l) => ctx.t(l, MODE_EN[l] || l);
 
     const root = document.createElement("div");
     root.className = "pool-root";
@@ -98,10 +101,10 @@
     const legend = document.createElement("div");
     legend.className = "pool-legend";
     legend.innerHTML =
-      `<b>Power-up (đổi mới mỗi vòng — nhặt khi bi chạm):</b>` +
+      `<b>${ctx.t("Power-up (đổi mới mỗi vòng — nhặt khi bi chạm):", "Power-ups (refresh each round — grab by touching with a ball):")}</b>` +
       Object.keys(TOKEN_DEFS).map((id) => {
         const d = TOKEN_DEFS[id];
-        return `<span class="pool-legend-item"><i class="pool-mini" style="background:${d.color}">${d.letter}</i>${d.label}</span>`;
+        return `<span class="pool-legend-item"><i class="pool-mini" style="background:${d.color}">${d.letter}</i>${ctx.t(d.label, MODE_EN[d.label] || d.label)}</span>`;
       }).join("");
     root.appendChild(legend);
 
@@ -109,17 +112,17 @@
     controls.className = "pool-controls";
     controls.innerHTML = `
       <div class="pool-field">
-        <label>Hướng</label>
+        <label>${ctx.t("Hướng", "Direction")}</label>
         <input class="pool-angle" type="range" min="0" max="359" value="0">
         <span class="pool-val pool-angle-val">0°</span>
       </div>
       <div class="pool-field">
-        <label>Lực</label>
+        <label>${ctx.t("Lực", "Power")}</label>
         <input class="pool-power" type="range" min="20" max="100" value="64">
         <span class="pool-val pool-power-val">64</span>
       </div>
       <div class="pool-modes"></div>
-      <button class="btn primary pool-shoot" type="button">Chọc bi</button>
+      <button class="btn primary pool-shoot" type="button">${ctx.t("Chọc bi", "Strike")}</button>
     `;
     root.appendChild(controls);
 
@@ -136,7 +139,7 @@
       btn.type = "button";
       btn.className = "btn small pool-mode";
       btn.dataset.mode = id;
-      btn.innerHTML = `<span>${def.icon}</span><b>${def.label}</b><small>${def.hint}</small>`;
+      btn.innerHTML = `<span>${def.icon}</span><b>${modeLabel(def.label)}</b><small>${ctx.t(def.hint, MHINT_EN[def.hint] || def.hint)}</small>`;
       btn.addEventListener("click", () => {
         if (!canControl()) return;
         if (id !== "normal" && inventory[turn][id] <= 0) return;
@@ -343,8 +346,8 @@
       settledFrames = 0;
       selectedMode = "normal";
       last = mode === "normal"
-        ? `Người chơi ${turn + 1} chọc bi.`
-        : `Người chơi ${turn + 1} dùng ${MODE_DEFS[mode].label}.`;
+        ? ctx.t(`Người chơi ${turn + 1} chọc bi.`, `Player ${turn + 1} strikes.`)
+        : ctx.t(`Người chơi ${turn + 1} dùng ${MODE_DEFS[mode].label}.`, `Player ${turn + 1} uses ${modeLabel(MODE_DEFS[mode].label)}.`);
       ctx.sound(mode === "normal" ? "shot" : "capture");
       renderHud();
       syncControls();
@@ -426,7 +429,7 @@
         ctx.sound("score");
       } else if (b.kind === "cue") {
         shot.foul = true;
-        addFloater(b.x, b.y, "LỖI", "#ff5d73");
+        addFloater(b.x, b.y, ctx.t("LỖI", "FOUL"), "#ff5d73");
         ctx.sound("miss");
       }
       renderHud();
@@ -527,12 +530,12 @@
           scores[turn] += 1; // thưởng combo
           const cue = cueBall();
           addFloater(cue ? cue.x : W / 2, cue ? cue.y - 30 : H / 2, `COMBO x${shot.scored} +1`, "#ffd166");
-          bits.push(`COMBO x${shot.scored} (+1 thưởng)`);
+          bits.push(ctx.t(`COMBO x${shot.scored} (+1 thưởng)`, `COMBO x${shot.scored} (+1 bonus)`));
         }
-        if (shot.pocketed.length) bits.push(`ăn ${shot.pocketed.length} bi`);
-        if (shot.foul) bits.push("lỗi bi cái, đối thủ +1");
-        if (shot.gained.length) bits.push(`nhặt ${shot.gained.length} power-up`);
-        last = bits.length ? `Người chơi ${turn + 1} ${bits.join(", ")}.` : `Người chơi ${turn + 1} chưa ăn được bi.`;
+        if (shot.pocketed.length) bits.push(ctx.t(`ăn ${shot.pocketed.length} bi`, `potted ${shot.pocketed.length}`));
+        if (shot.foul) bits.push(ctx.t("lỗi bi cái, đối thủ +1", "cue foul, opponent +1"));
+        if (shot.gained.length) bits.push(ctx.t(`nhặt ${shot.gained.length} power-up`, `grabbed ${shot.gained.length} power-up(s)`));
+        last = bits.length ? ctx.t(`Người chơi ${turn + 1} ${bits.join(", ")}.`, `Player ${turn + 1} ${bits.join(", ")}.`) : ctx.t(`Người chơi ${turn + 1} chưa ăn được bi.`, `Player ${turn + 1} didn't pot anything.`);
       }
 
       busy = false;
@@ -565,12 +568,13 @@
       over = true;
       ctx.setTurn(-1);
       if (scores[0] === scores[1]) {
-        ctx.setStatus(`🤝 Hòa ${scores[0]}-${scores[1]}!`);
+        ctx.setStatus(ctx.t(`🤝 Hòa ${scores[0]}-${scores[1]}!`, `🤝 Draw ${scores[0]}-${scores[1]}!`));
         return true;
       }
       const winner = scores[0] > scores[1] ? 0 : 1;
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng Pool Battle ${scores[0]}-${scores[1]}!`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng Pool Battle ${scores[0]}-${scores[1]}!`,
+        `🎉 Player ${winner + 1} wins Pool Battle ${scores[0]}-${scores[1]}!`));
       return true;
     }
 
@@ -612,8 +616,8 @@
       hud.innerHTML = `
         ${playerHud(0)}
         <div class="pool-mid">
-          <b>${over ? "Kết thúc" : busy ? "Bi đang lăn" : "Lượt Người chơi " + (turn + 1)}</b>
-          <span>Đích ${TARGET} điểm · Còn ${activeObjects()} bi</span>
+          <b>${over ? ctx.t("Kết thúc", "Finished") : busy ? ctx.t("Bi đang lăn", "Balls rolling") : ctx.t("Lượt Người chơi ", "Player ") + (turn + 1) + ctx.t("", "'s turn")}</b>
+          <span>${ctx.t(`Đích ${TARGET} điểm · Còn ${activeObjects()} bi`, `Target ${TARGET} pts · ${activeObjects()} balls left`)}</span>
           <small>${last}</small>
         </div>
         ${playerHud(1)}
@@ -624,8 +628,8 @@
       const inv = inventory[idx];
       return `
         <div class="pool-player p${idx + 1} ${idx === turn && !over ? "active" : ""}">
-          <span>Người chơi ${idx + 1}</span>
-          <b>${scores[idx]} điểm</b>
+          <span>${ctx.t("Người chơi", "Player")} ${idx + 1}</span>
+          <b>${scores[idx]} ${ctx.t("điểm", "pts")}</b>
           <em>
             <i class="pool-mini bomb">B</i>${inv.bomb}
             <i class="pool-mini power">P</i>${inv.power}
@@ -665,13 +669,15 @@
     function updateStatus() {
       if (over) return;
       if (busy) {
-        ctx.setStatus("Bi đang lăn, chờ bàn dừng lại.");
+        ctx.setStatus(ctx.t("Bi đang lăn, chờ bàn dừng lại.", "Balls rolling — wait for the table to settle."));
       } else if (ballInHand && (!ctx.isOnline || turn === ctx.mySeat)) {
-        ctx.setStatus("🖐️ Bi trong tay: đối thủ đã làm rớt bi cái! Bấm lên bàn để đặt bi ở vị trí bất kỳ, rồi kéo để bắn.");
+        ctx.setStatus(ctx.t("🖐️ Bi trong tay: đối thủ đã làm rớt bi cái! Bấm lên bàn để đặt bi ở vị trí bất kỳ, rồi kéo để bắn.",
+          "🖐️ Ball in hand: opponent scratched! Click the table to place the cue ball anywhere, then drag to shoot."));
       } else if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus(`Đối thủ đang ngắm. ${last}`);
+        ctx.setStatus(ctx.t(`Đối thủ đang ngắm. ${last}`, `Opponent is aiming. ${last}`));
       } else {
-        ctx.setStatus(`Người chơi ${turn + 1}: kéo trên bàn hoặc chỉnh hướng/lực, chọn power-up rồi chọc bi.`);
+        ctx.setStatus(ctx.t(`Người chơi ${turn + 1}: kéo trên bàn hoặc chỉnh hướng/lực, chọn power-up rồi chọc bi.`,
+          `Player ${turn + 1}: drag on the table or set direction/power, pick a power-up, then strike.`));
       }
     }
 
@@ -700,7 +706,7 @@
       g.fillStyle = "rgba(255,209,102,0.95)";
       g.font = "900 14px Segoe UI, sans-serif";
       g.textAlign = "center";
-      g.fillText("🖐️ Đặt bi cái: bấm vào bàn ở vị trí bất kỳ", W / 2, TOP + 18);
+      g.fillText(ctx.t("🖐️ Đặt bi cái: bấm vào bàn ở vị trí bất kỳ", "🖐️ Place cue ball: click anywhere on the table"), W / 2, TOP + 18);
       g.textAlign = "left";
       const p = placePoint;
       if (p && cue) {
@@ -850,7 +856,7 @@
       // tên ngắn dưới ô để dễ hiểu
       g.fillStyle = "rgba(255,255,255,0.92)";
       g.font = "700 9px Segoe UI, sans-serif";
-      g.fillText(def.label, t.x, t.y + 26);
+      g.fillText(modeLabel(def.label), t.x, t.y + 26);
       g.textAlign = "left";
     }
 
@@ -1003,7 +1009,7 @@
         g.fillStyle = TOKEN_DEFS[selectedMode].color;
         g.font = "800 13px Segoe UI, sans-serif";
         g.textAlign = "center";
-        g.fillText(MODE_DEFS[selectedMode].label, cue.x, cue.y - 28);
+        g.fillText(modeLabel(MODE_DEFS[selectedMode].label), cue.x, cue.y - 28);
         g.textAlign = "left";
       }
     }
