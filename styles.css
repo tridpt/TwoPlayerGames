@@ -2692,6 +2692,58 @@ body.theme-light .public-room { background: linear-gradient(160deg, #ffffff, #f1
   padding: 20px;
   z-index: 100;
 }
+
+/* ---------- Overlay xem lại ván ---------- */
+.replay-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 24, 0.82);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 120;
+}
+.replay-modal {
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  box-shadow: var(--glow);
+  width: min(640px, 100%);
+  max-height: 92vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px 18px;
+  animation: pop 0.25s ease;
+}
+.replay-head { display: flex; align-items: center; justify-content: space-between; }
+.replay-head h3 { margin: 0; font-family: var(--font-head); font-size: 1.15rem; }
+.replay-board {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  pointer-events: none;
+}
+.replay-status { text-align: center; color: var(--muted); font-size: 0.9rem; min-height: 1.2em; }
+.replay-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.replay-progress {
+  margin-left: 6px;
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.9rem;
+  min-width: 52px;
+  text-align: center;
+}
 .modal {
   background: var(--panel);
   border: 1px solid rgba(255, 255, 255, 0.08);

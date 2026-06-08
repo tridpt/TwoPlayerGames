@@ -108,6 +108,17 @@
     winSub: $("winSub"),
     winAgain: $("winAgain"),
     winMenu: $("winMenu"),
+    winReplay: $("winReplay"),
+    replayOverlay: $("replayOverlay"),
+    replayBoard: $("replayBoard"),
+    replayStatus: $("replayStatus"),
+    replayTitle: $("replayTitle"),
+    replayClose: $("replayClose"),
+    replayStart: $("replayStart"),
+    replayPrev: $("replayPrev"),
+    replayPlay: $("replayPlay"),
+    replayNext: $("replayNext"),
+    replayProgress: $("replayProgress"),
   };
 
   // ---- Trạng thái phiên ----
@@ -139,6 +150,14 @@
   const PAGE_SIZE = 24;
   let resultRecorded = false;  // đã ghi thống kê cho ván hiện tại chưa
   let lastWinner = -1;         // người thắng gần nhất (theo incScore)
+
+  // ----- Replay (xem lại ván online) -----
+  let replayMoves = [];        // chuỗi nước đi của ván online hiện tại
+  let replaySeed = 0;          // seed của ván để dựng lại
+  let replayMeta = null;       // {gameId, firstSeat, round, options}
+  let replayInstance = null;   // instance đang phát lại
+  let replayIdx = 0;           // số nước đã phát
+  let replayTimer = null;      // bộ đếm tự phát
 
   const PLAYER_NAME_KEY = "tpg_player_name";
 
@@ -239,7 +258,7 @@
       incScore(idx) { scores[idx]++; lastWinner = idx; renderScores(); },
       decScore(idx) { scores[idx] = Math.max(0, scores[idx] - 1); renderScores(); },
       getScore(idx) { return scores[idx]; },
-      sendMove(move) { if (online && !sessionLocked) Net.send("move", { move }); },
+      sendMove(move) { if (online && !sessionLocked) { replayMoves.push(move); Net.send("move", { move }); } },
       sound(name) { window.Sound && Sound.play(name); },
     };
   }
@@ -1579,6 +1598,7 @@
 
   Net.on("move", (m) => {
     if (sessionLocked) return;
+    replayMoves.push(m.move);
     if (instance && instance.applyMove) instance.applyMove(m.move, true);
   });
 
@@ -1758,6 +1778,9 @@
     scores = [0, 0];
     resultRecorded = false;
     lastWinner = -1;
+    replayMoves = [];
+    replaySeed = seed;
+    replayMeta = online ? { gameId: selectedGame.id, firstSeat: online.firstSeat, round: online.round, options: currentOptions } : null;
     renderScores();
     setGameHeading(el.gameTitle, selectedGame);
 
@@ -1812,6 +1835,7 @@
   }
 
   function teardownInstance() {
+    if (typeof closeReplay === "function") closeReplay();
     if (instance && typeof instance.destroy === "function") {
       try { instance.destroy(); } catch (e) { /* ignore */ }
     }
@@ -1997,6 +2021,7 @@
       el.winTitle.textContent = "Chiến thắng!";
     }
     el.winSub.textContent = msg;
+    if (el.winReplay) el.winReplay.classList.toggle("hidden", !(replayMeta && replayMoves.length));
     el.winOverlay.classList.remove("hidden");
     if (kind !== "lose") startConfetti();
   }
@@ -2005,6 +2030,96 @@
     el.winOverlay.classList.add("hidden");
     stopConfetti();
   }
+
+  // ====================== Xem lại ván (replay) ======================
+  function makeReplayContext(seed) {
+    const rscores = [0, 0];
+    return {
+      boardEl: el.replayBoard,
+      isOnline: true,
+      mySeat: -1,            // -1 => không tương tác được (chế độ xem)
+      roomSeat: -1,
+      firstSeat: replayMeta ? replayMeta.firstSeat : 0,
+      round: replayMeta ? replayMeta.round : 1,
+      rng: window.makeRng(seed || 1),
+      options: replayMeta ? replayMeta.options : {},
+      setStatus(text) { if (el.replayStatus) el.replayStatus.textContent = text || ""; },
+      setTurn() {},
+      setNames() {},
+      incScore(idx) { rscores[idx]++; },
+      decScore(idx) { rscores[idx] = Math.max(0, rscores[idx] - 1); },
+      getScore(idx) { return rscores[idx]; },
+      sendMove() {},
+      sound() {},
+    };
+  }
+
+  function rebuildReplay(n) {
+    if (replayInstance && typeof replayInstance.destroy === "function") {
+      try { replayInstance.destroy(); } catch (e) { /* ignore */ }
+    }
+    replayInstance = null;
+    el.replayBoard.innerHTML = "";
+    const game = getGameById(replayMeta.gameId);
+    if (!game) return;
+    const ctx = makeReplayContext(replaySeed);
+    replayInstance = game.create(ctx);
+    const count = Math.max(0, Math.min(n, replayMoves.length));
+    for (let i = 0; i < count; i++) {
+      try { replayInstance.applyMove(replayMoves[i], true); } catch (e) { /* ignore */ }
+    }
+    replayIdx = count;
+    updateReplayUi();
+  }
+
+  function updateReplayUi() {
+    if (el.replayProgress) el.replayProgress.textContent = `${replayIdx}/${replayMoves.length}`;
+    if (el.replayPrev) el.replayPrev.disabled = replayIdx <= 0;
+    if (el.replayNext) el.replayNext.disabled = replayIdx >= replayMoves.length;
+  }
+
+  function replayStepForward() {
+    if (replayIdx >= replayMoves.length) { stopReplayPlay(); return; }
+    try { replayInstance.applyMove(replayMoves[replayIdx], true); } catch (e) { /* ignore */ }
+    replayIdx++;
+    updateReplayUi();
+    if (replayIdx >= replayMoves.length) stopReplayPlay();
+  }
+
+  function stopReplayPlay() {
+    if (replayTimer) { clearInterval(replayTimer); replayTimer = null; }
+    if (el.replayPlay) el.replayPlay.textContent = "▶ Phát";
+  }
+  function toggleReplayPlay() {
+    if (replayTimer) { stopReplayPlay(); return; }
+    if (replayIdx >= replayMoves.length) rebuildReplay(0);
+    el.replayPlay.textContent = "⏸ Dừng";
+    replayTimer = setInterval(replayStepForward, 950);
+  }
+
+  function openReplay() {
+    if (!replayMeta || !replayMoves.length) return;
+    const game = getGameById(replayMeta.gameId);
+    if (el.replayTitle) el.replayTitle.textContent = `🎬 Xem lại — ${game ? game.name : ""}`;
+    el.replayOverlay.classList.remove("hidden");
+    rebuildReplay(0);
+  }
+  function closeReplay() {
+    stopReplayPlay();
+    if (replayInstance && typeof replayInstance.destroy === "function") {
+      try { replayInstance.destroy(); } catch (e) { /* ignore */ }
+    }
+    replayInstance = null;
+    el.replayBoard.innerHTML = "";
+    el.replayOverlay.classList.add("hidden");
+  }
+
+  if (el.winReplay) el.winReplay.addEventListener("click", openReplay);
+  if (el.replayClose) el.replayClose.addEventListener("click", closeReplay);
+  if (el.replayStart) el.replayStart.addEventListener("click", () => { stopReplayPlay(); rebuildReplay(0); });
+  if (el.replayPrev) el.replayPrev.addEventListener("click", () => { stopReplayPlay(); rebuildReplay(replayIdx - 1); });
+  if (el.replayNext) el.replayNext.addEventListener("click", () => { stopReplayPlay(); replayStepForward(); });
+  if (el.replayPlay) el.replayPlay.addEventListener("click", toggleReplayPlay);
 
   function startConfetti() {
     const cv = el.winConfetti;

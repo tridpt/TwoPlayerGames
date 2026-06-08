@@ -266,6 +266,7 @@
       <p class="win-sub" id="winSub"></p>
       <div class="win-actions">
         <button class="btn primary" id="winAgain">↻ Chơi lại</button>
+        <button class="btn hidden" id="winReplay">🎬 Xem lại ván</button>
         <button class="btn" id="winMenu">← Về menu</button>
       </div>
     </div>
@@ -281,6 +282,25 @@
       <div class="modal-body" id="helpBody"></div>
       <div class="modal-footer">
         <button class="btn primary" id="helpOk">Đã hiểu, chơi thôi!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay xem lại ván online -->
+  <div class="replay-overlay hidden" id="replayOverlay">
+    <div class="replay-modal">
+      <div class="replay-head">
+        <h3 id="replayTitle">🎬 Xem lại ván</h3>
+        <button class="modal-close" id="replayClose" title="Đóng">✕</button>
+      </div>
+      <div class="replay-board" id="replayBoard"></div>
+      <div class="replay-status" id="replayStatus"></div>
+      <div class="replay-controls">
+        <button class="btn small" id="replayStart" title="Về đầu">⏮</button>
+        <button class="btn small" id="replayPrev" title="Lùi 1 nước">◀</button>
+        <button class="btn primary" id="replayPlay" title="Phát/Dừng">▶ Phát</button>
+        <button class="btn small" id="replayNext" title="Tới 1 nước">▶|</button>
+        <span class="replay-progress" id="replayProgress">0/0</span>
       </div>
     </div>
   </div>
