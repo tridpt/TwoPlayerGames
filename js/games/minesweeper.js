@@ -63,7 +63,7 @@
 
     hintBtn.addEventListener("click", onHint);
     function updateHintBtn() {
-      hintBtn.textContent = `💡 Gợi ý ô khả nghi (còn ${hintsLeft})`;
+      hintBtn.textContent = ctx.t(`💡 Gợi ý ô khả nghi (còn ${hintsLeft})`, `💡 Hint a suspicious cell (${hintsLeft} left)`);
       hintBtn.disabled = over || hintsLeft <= 0 || (ctx.isOnline && turn !== ctx.mySeat);
     }
 
@@ -93,8 +93,8 @@
       ctx.sound("notify");
       setTimeout(() => cellEls[bestI] && cellEls[bestI].classList.remove("ms-hint"), 1600);
       ctx.setStatus(bestP > 0.5
-        ? "💡 Ô đang nháy nhiều khả năng có mìn — thử lật để ghi điểm!"
-        : "💡 Chưa đủ manh mối chắc chắn; ô gợi ý chỉ là phỏng đoán.");
+        ? ctx.t("💡 Ô đang nháy nhiều khả năng có mìn — thử lật để ghi điểm!", "💡 The flashing cell likely has a mine — try it to score!")
+        : ctx.t("💡 Chưa đủ manh mối chắc chắn; ô gợi ý chỉ là phỏng đoán.", "💡 Not enough clues yet; the hint is just a guess."));
       updateHintBtn();
     }
 
@@ -133,7 +133,7 @@
         if (scores[turn] >= NEED || scores[0] + scores[1] >= MINES) return finish();
         renderCell(idx);
         updateScores();
-        ctx.setStatus(`💣 Người chơi ${turn + 1} tìm thấy mìn — được đi tiếp!`);
+        ctx.setStatus(ctx.t(`💣 Người chơi ${turn + 1} tìm thấy mìn — được đi tiếp!`, `💣 Player ${turn + 1} found a mine — go again!`));
         return;
       }
 
@@ -143,7 +143,7 @@
       turn = 1 - turn;
       ctx.setTurn(turn);
       updateScores();
-      ctx.setStatus(`Lượt Người chơi ${turn + 1} — tìm mìn để ghi điểm.`);
+      ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} — tìm mìn để ghi điểm.`, `Player ${turn + 1}'s turn — find mines to score.`));
     }
 
     function floodReveal(start) {
@@ -164,9 +164,9 @@
       renderAll();
       ctx.setTurn(-1);
       const [a, b] = scores;
-      if (a > b) ctx.setStatus(`🎉 Người chơi 1 thắng — ${a} mìn so với ${b}!`);
-      else if (b > a) ctx.setStatus(`🎉 Người chơi 2 thắng — ${b} mìn so với ${a}!`);
-      else ctx.setStatus(`🤝 Hòa — mỗi người ${a} mìn!`);
+      if (a > b) ctx.setStatus(ctx.t(`🎉 Người chơi 1 thắng — ${a} mìn so với ${b}!`, `🎉 Player 1 wins — ${a} mines vs ${b}!`));
+      else if (b > a) ctx.setStatus(ctx.t(`🎉 Người chơi 2 thắng — ${b} mìn so với ${a}!`, `🎉 Player 2 wins — ${b} mines vs ${a}!`));
+      else ctx.setStatus(ctx.t(`🤝 Hòa — mỗi người ${a} mìn!`, `🤝 Draw — ${a} mines each!`));
       updateScores();
     }
 
@@ -188,14 +188,14 @@
     function updateScores() {
       scoreRow.innerHTML =
         `<span class="ms-s p1">🚩 P1: ${scores[0]}</span>` +
-        `<span class="ms-need">Cần ${NEED} để thắng • Tổng ${MINES} mìn</span>` +
+        `<span class="ms-need">${ctx.t(`Cần ${NEED} để thắng • Tổng ${MINES} mìn`, `Need ${NEED} to win • ${MINES} mines total`)}</span>` +
         `<span class="ms-s p2">P2: ${scores[1]} 🚩</span>`;
       updateHintBtn();
     }
 
     ctx.setTurn(0);
     updateScores();
-    ctx.setStatus("Lật ô để dò mìn. Trúng mìn thì ghi điểm và được đi tiếp!");
+    ctx.setStatus(ctx.t("Lật ô để dò mìn. Trúng mìn thì ghi điểm và được đi tiếp!", "Reveal cells to find mines. Hit a mine to score and go again!"));
     return { applyMove };
   }
 

@@ -48,17 +48,17 @@
       `<div class="bc-meters" id="bcMeters"></div>` +
       `<div class="bc-guessrow">` +
       `<input class="bc-input" id="bcGuess" maxlength="${LEN}" inputmode="numeric" placeholder="${"•".repeat(LEN)}">` +
-      `<button class="btn primary" id="bcGuessBtn">Đoán</button></div>` +
+      `<button class="btn primary" id="bcGuessBtn">${ctx.t("Đoán", "Guess")}</button></div>` +
       `<div class="bc-keypad" id="bcKeypad"></div>` +
       `<div class="bc-hints" id="bcHints"></div>` +
       `<p class="bc-err" id="bcGuessErr"></p>` +
       `<div class="bc-notepad" id="bcNotepad">` +
-      `<div class="bc-np-title">📝 Ghi chú của bạn <span>(bấm số: ✓ có trong đáp án · ✗ loại · trống = chưa rõ)</span></div>` +
+      `<div class="bc-np-title">${ctx.t("📝 Ghi chú của bạn <span>(bấm số: ✓ có trong đáp án · ✗ loại · trống = chưa rõ)</span>", "📝 Your notes <span>(tap a digit: ✓ in answer · ✗ ruled out · blank = unknown)</span>")}</div>` +
       `<div class="bc-np-grid" id="bcNpGrid"></div>` +
       `</div>` +
       `<div class="bc-cols">` +
-      `<div class="bc-col"><h4>Bạn đoán</h4><div class="bc-log" id="bcMine"></div></div>` +
-      `<div class="bc-col"><h4>Đối thủ đoán</h4><div class="bc-log" id="bcOpp"></div></div>` +
+      `<div class="bc-col"><h4>${ctx.t("Bạn đoán", "Your guesses")}</h4><div class="bc-log" id="bcMine"></div></div>` +
+      `<div class="bc-col"><h4>${ctx.t("Đối thủ đoán", "Opponent's guesses")}</h4><div class="bc-log" id="bcOpp"></div></div>` +
       `</div>`;
     root.appendChild(playBox);
 
@@ -118,8 +118,8 @@
     }
 
     function validCode(s) {
-      if (s.length !== LEN) return "Phải đủ " + LEN + " chữ số.";
-      if (UNIQUE && new Set(s).size !== LEN) return "Các chữ số phải khác nhau.";
+      if (s.length !== LEN) return ctx.t("Phải đủ " + LEN + " chữ số.", "Must be exactly " + LEN + " digits.");
+      if (UNIQUE && new Set(s).size !== LEN) return ctx.t("Các chữ số phải khác nhau.", "Digits must all be different.");
       return null;
     }
     function evaluate(guess, secret) {
@@ -160,11 +160,11 @@
     const secrets = [null, null]; // dùng cho hot-seat
     function showSetUI(seat, online) {
       setBox.innerHTML =
-        `<h3>${online ? "Bạn" : "Người chơi " + (seat + 1)}: đặt dãy số bí mật (${LEN} chữ số${UNIQUE ? ", không trùng" : ""})</h3>` +
+        `<h3>${online ? ctx.t("Bạn", "You") : ctx.t("Người chơi ", "Player ") + (seat + 1)}${ctx.t(": đặt dãy số bí mật (", ": set your secret number (")}${LEN}${ctx.t(" chữ số", " digits")}${UNIQUE ? ctx.t(", không trùng", ", no repeats") : ""})</h3>` +
         `<input class="bc-input" id="bcSecret" maxlength="${LEN}" inputmode="numeric" placeholder="${"•".repeat(LEN)}">` +
-        `<button class="btn primary" id="bcSetBtn">✓ Khóa dãy số</button>` +
+        `<button class="btn primary" id="bcSetBtn">${ctx.t("✓ Khóa dãy số", "✓ Lock number")}</button>` +
         `<p class="bc-err" id="bcSetErr"></p>` +
-        `<p class="bc-note">💡 Đối thủ sẽ đoán dãy này. Hai người đoán song song nhưng không ai được dẫn quá 1 lượt.</p>`;
+        `<p class="bc-note">${ctx.t("💡 Đối thủ sẽ đoán dãy này. Hai người đoán song song nhưng không ai được dẫn quá 1 lượt.", "💡 Your opponent will guess this. Both guess in parallel but no one may lead by more than 1 turn.")}</p>`;
       const inp = setBox.querySelector("#bcSecret");
       const btn = setBox.querySelector("#bcSetBtn");
       const err = setBox.querySelector("#bcSetErr");
@@ -181,7 +181,7 @@
       if (online) {
         mySecret = value;
         iReady = true;
-        setBox.innerHTML = `<h3>✓ Đã khóa dãy số bí mật</h3><p class="bc-wait">Đang chờ đối thủ...</p>`;
+        setBox.innerHTML = `<h3>${ctx.t("✓ Đã khóa dãy số bí mật", "✓ Secret number locked")}</h3><p class="bc-wait">${ctx.t("Đang chờ đối thủ...", "Waiting for opponent...")}</p>`;
         ctx.sendMove({ kind: "ready" });
         if (oppReady) beginPlay();
       } else {
@@ -200,7 +200,7 @@
       renderMeters();
       ctx.setTurn(0);
       updateInput();
-      ctx.setStatus("Cùng đoán! Đoán nhanh & ít trợ giúp để được điểm cao.");
+      ctx.setStatus(ctx.t("Cùng đoán! Đoán nhanh & ít trợ giúp để được điểm cao.", "Guess away! Guess fast with fewer hints for a higher score."));
       guessInput.focus();
       // bắt đầu tính giờ cho người được đoán đầu tiên
       startClock(ctx.isOnline ? (canGuess(ctx.mySeat) ? ctx.mySeat : null) : currentLocalSeat());
@@ -248,7 +248,7 @@
         awaiting = true;
         updateInput();
         ctx.sendMove({ kind: "guess", digits });
-        ctx.setStatus("Đã gửi, chờ chấm...");
+        ctx.setStatus(ctx.t("Đã gửi, chờ chấm...", "Sent, awaiting scoring..."));
       } else {
         const { bulls, cows } = evaluate(digits, secrets[1 - seat]);
         applyGuessResult(seat, digits, bulls, cows);
@@ -270,8 +270,8 @@
 
     // ====================== Trợ giúp ======================
     const HINTS = {
-      reveal: { label: "🔍 Lộ 1 vị trí", desc: "tiết lộ chữ số đúng tại 1 vị trí" },
-      count: { label: "🧮 Đếm số đúng", desc: "đếm bao nhiêu chữ số của dãy mình đoán gần nhất là 'có trong' đáp án" },
+      reveal: { label: ctx.t("🔍 Lộ 1 vị trí", "🔍 Reveal 1 spot"), desc: ctx.t("tiết lộ chữ số đúng tại 1 vị trí", "reveal the correct digit at one position") },
+      count: { label: ctx.t("🧮 Đếm số đúng", "🧮 Count matches"), desc: ctx.t("đếm bao nhiêu chữ số của dãy mình đoán gần nhất là 'có trong' đáp án", "count how many digits of your last guess appear in the answer") },
     };
     function buildHintButtons() {
       hintsEl.innerHTML = "";
@@ -293,7 +293,7 @@
         ctx.sendMove({ kind: "hint", htype });
         hintsLeft[seat]--;
         renderMeters();
-        ctx.setStatus("Đang xin trợ giúp...");
+        ctx.setStatus(ctx.t("Đang xin trợ giúp...", "Requesting a hint..."));
       } else {
         const payload = computeHint(htype, seat, secrets[1 - seat]);
         hintsLeft[seat]--;
@@ -329,11 +329,13 @@
     function showHintResult(seat, htype, payload) {
       let msg;
       if (htype === "reveal") {
-        msg = payload.none ? "Không có gì để lộ." :
-          `🔍 Vị trí ${payload.pos + 1} của đáp án là số <b>${payload.digit}</b>.`;
+        msg = payload.none ? ctx.t("Không có gì để lộ.", "Nothing to reveal.") :
+          ctx.t(`🔍 Vị trí ${payload.pos + 1} của đáp án là số <b>${payload.digit}</b>.`,
+                `🔍 Position ${payload.pos + 1} of the answer is <b>${payload.digit}</b>.`);
       } else {
-        msg = payload.none ? "Bạn cần đoán ít nhất 1 lần trước đã." :
-          `🧮 Trong dãy "${payload.guess}", có <b>${payload.inSecret}</b> chữ số xuất hiện trong đáp án.`;
+        msg = payload.none ? ctx.t("Bạn cần đoán ít nhất 1 lần trước đã.", "Make at least one guess first.") :
+          ctx.t(`🧮 Trong dãy "${payload.guess}", có <b>${payload.inSecret}</b> chữ số xuất hiện trong đáp án.`,
+                `🧮 In "${payload.guess}", <b>${payload.inSecret}</b> digit(s) appear in the answer.`);
       }
       const box = document.createElement("div");
       box.className = "bc-hint-res";
@@ -393,15 +395,16 @@
       } else if (won[0]) winner = 0;
       else if (won[1]) winner = 1;
       renderMeters(true);
-      if (winner === -1) ctx.setStatus(`🤝 Hòa! Cả hai cùng giỏi (P1 ${s0}đ – P2 ${s1}đ).`);
+      if (winner === -1) ctx.setStatus(ctx.t(`🤝 Hòa! Cả hai cùng giỏi (P1 ${s0}đ – P2 ${s1}đ).`, `🤝 Draw! Both played well (P1 ${s0}pts – P2 ${s1}pts).`));
       else {
         ctx.incScore(winner);
         if (ctx.isOnline) {
           ctx.setStatus(winner === ctx.mySeat
-            ? `🎉 Bạn thắng! (${winner === 0 ? s0 : s1} điểm)`
-            : `💀 Bạn thua. Đối thủ đoán ra trước.`);
+            ? ctx.t(`🎉 Bạn thắng! (${winner === 0 ? s0 : s1} điểm)`, `🎉 You win! (${winner === 0 ? s0 : s1} points)`)
+            : ctx.t(`💀 Bạn thua. Đối thủ đoán ra trước.`, `💀 You lose. Opponent guessed first.`));
         } else {
-          ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng! (${winner === 0 ? s0 : s1} điểm)`);
+          ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng! (${winner === 0 ? s0 : s1} điểm)`,
+            `🎉 Player ${winner + 1} wins! (${winner === 0 ? s0 : s1} points)`));
         }
       }
     }
@@ -432,12 +435,13 @@
       if (over) return;
       if (ctx.isOnline) {
         const me = ctx.mySeat;
-        if (won[me]) ctx.setStatus("Bạn đã đoán ra! Chờ đối thủ hết lượt gỡ...");
-        else if (rounds[me] > rounds[1 - me]) ctx.setStatus("⏳ Bạn đang dẫn 1 lượt — chờ đối thủ đoán cho công bằng.");
-        else ctx.setStatus("Tới lượt bạn — đoán đi!");
+        if (won[me]) ctx.setStatus(ctx.t("Bạn đã đoán ra! Chờ đối thủ hết lượt gỡ...", "You cracked it! Waiting for the opponent's final turn..."));
+        else if (rounds[me] > rounds[1 - me]) ctx.setStatus(ctx.t("⏳ Bạn đang dẫn 1 lượt — chờ đối thủ đoán cho công bằng.", "⏳ You're 1 turn ahead — wait for the opponent to keep it fair."));
+        else ctx.setStatus(ctx.t("Tới lượt bạn — đoán đi!", "Your turn — guess!"));
       } else {
         const seat = currentLocalSeat();
-        ctx.setStatus(`Lượt đoán của Người chơi ${seat + 1} (đoán song song, không ai dẫn quá 1 lượt).`);
+        ctx.setStatus(ctx.t(`Lượt đoán của Người chơi ${seat + 1} (đoán song song, không ai dẫn quá 1 lượt).`,
+          `Player ${seat + 1}'s guess (parallel guessing, no one leads by more than 1 turn).`));
       }
     }
 
@@ -450,13 +454,13 @@
       const meSeat = ctx.isOnline ? ctx.mySeat : -1;
       metersEl.innerHTML = [0, 1].map((p) => {
         const ticking = tickSeat === p && !over;
-        const main = showScore ? `${score(p)}đ` : `⏱️ ${fmtTime(liveTime(p))}`;
-        const youTag = (meSeat === p) ? " (bạn)" : "";
+        const main = showScore ? ctx.t(`${score(p)}đ`, `${score(p)}pts`) : `⏱️ ${fmtTime(liveTime(p))}`;
+        const youTag = (meSeat === p) ? ctx.t(" (bạn)", " (you)") : "";
         const wonTag = won[p] ? " ✅" : "";
         return `<div class="bc-meter bc-p${p + 1}${ticking ? " ticking" : ""}">
-          <span class="bc-meter-name">Người chơi ${p + 1}${youTag}${wonTag}</span>
+          <span class="bc-meter-name">${ctx.t("Người chơi", "Player")} ${p + 1}${youTag}${wonTag}</span>
           <b class="bc-meter-main">${main}</b>
-          <small>Lượt ${rounds[p]} · 💡 ${hintsLeft[p]}/${MAX_HINTS}</small>
+          <small>${ctx.t("Lượt", "Turn")} ${rounds[p]} · 💡 ${hintsLeft[p]}/${MAX_HINTS}</small>
         </div>`;
       }).join("");
     }
@@ -529,10 +533,10 @@
     // ----- khởi tạo -----
     if (ctx.isOnline) {
       showSetUI(ctx.mySeat, true);
-      ctx.setStatus("Đặt dãy số bí mật để bắt đầu.");
+      ctx.setStatus(ctx.t("Đặt dãy số bí mật để bắt đầu.", "Set your secret number to begin."));
     } else {
       showSetUI(0, false);
-      ctx.setStatus("Người chơi 1: đặt dãy số bí mật.");
+      ctx.setStatus(ctx.t("Người chơi 1: đặt dãy số bí mật.", "Player 1: set your secret number."));
     }
 
     return { applyMove };
