@@ -256,15 +256,15 @@
       },
       setTurn(idx) {
         if (idx === -1) {
-          el.turnBanner.textContent = "Kết thúc";
+          el.turnBanner.textContent = tt("ended");
           el.turnBanner.style.color = "var(--text)";
           el.scoreP1.classList.remove("active");
           el.scoreP2.classList.remove("active");
           return;
         }
         const name = idx === 0 ? el.p1Name.textContent : el.p2Name.textContent;
-        let label = "Lượt: " + name;
-        if (online) label += idx === online.seat ? " (bạn)" : " (đối thủ)";
+        let label = tt("turnPrefix") + name;
+        if (online) label += idx === online.seat ? tt("youSuffix") : tt("oppSuffix");
         el.turnBanner.textContent = label;
         el.turnBanner.style.color = idx === 0 ? "var(--p1)" : "var(--p2)";
         // sáng đèn thẻ điểm của người đang tới lượt
@@ -349,7 +349,7 @@
   }
 
   function defaultSeatName(seat) {
-    return `Người chơi ${seat + 1}`;
+    return tt(seat === 0 ? "player1" : "player2");
   }
 
   function seatName(seat) {
@@ -357,7 +357,7 @@
   }
 
   function opponentName() {
-    return online ? seatName(1 - online.seat) : "Đối thủ";
+    return online ? seatName(1 - online.seat) : tt("opponentWord");
   }
 
   function labelWithPlayerName(seat, label) {
@@ -381,8 +381,8 @@
       el.p1Name.textContent = (online.seat === 0 ? av : "") + seatName(0);
       el.p2Name.textContent = (online.seat === 1 ? av : "") + seatName(1);
     } else {
-      el.p1Name.textContent = av + "Người chơi 1";
-      el.p2Name.textContent = "Người chơi 2";
+      el.p1Name.textContent = av + tt("player1");
+      el.p2Name.textContent = tt("player2");
     }
   }
 
@@ -391,10 +391,9 @@
       setGameRoomState("", "info");
       return;
     }
-    const room = online.code ? `Mã phòng ${online.code}` : "Phòng online";
     const text = kind === "waiting"
-      ? `${room}: đang chờ đối thủ.`
-      : `${room}: đang chơi với ${opponentName()}.`;
+      ? tt("roomWaiting").replace("{code}", online.code || "")
+      : tt("roomPlaying").replace("{code}", online.code || "").replace("{opp}", opponentName());
     setGameRoomState(text, kind);
   }
 
@@ -468,7 +467,7 @@
     el.restartBtn.disabled = true;
     el.winAgain.disabled = true;
     el.status.textContent = message;
-    el.turnBanner.textContent = "Ván đã dừng";
+    el.turnBanner.textContent = tt("stopped");
     el.scoreP1.classList.remove("active");
     el.scoreP2.classList.remove("active");
     if (instance && typeof instance.destroy === "function") instance.destroy();
@@ -1121,8 +1120,8 @@
     if (sessionLocked) {
       el.restartBtn.disabled = true;
       el.winAgain.disabled = true;
-      el.restartBtn.textContent = "Ván đã dừng";
-      el.winAgain.textContent = "Ván đã dừng";
+      el.restartBtn.textContent = tt("stopped");
+      el.winAgain.textContent = tt("stopped");
       return;
     }
 
@@ -1878,8 +1877,8 @@
 
     if (online) {
       el.onlineBadge.classList.remove("hidden");
-      const orderText = online.seat === 0 ? "đi trước" : "đi sau";
-      el.onlineBadge.textContent = `Online — bạn là ${seatName(online.seat)} (${orderText})`;
+      const orderText = online.seat === 0 ? tt("goFirst") : tt("goSecond");
+      el.onlineBadge.textContent = tt("onlineBadge").replace("{name}", seatName(online.seat)).replace("{order}", orderText);
       describeOnlineGameState("live");
       el.chatPanel.classList.remove("hidden", "collapsed");
       el.chatToggle.textContent = "▾";
@@ -2107,11 +2106,11 @@
     el.winEmoji.textContent = "";
     el.winEmoji.className = "win-emoji win-" + kind;
     if (kind === "draw") {
-      el.winTitle.textContent = "Hòa!";
+      el.winTitle.textContent = tt("drawTitle");
     } else if (kind === "lose") {
-      el.winTitle.textContent = "Thua mất rồi!";
+      el.winTitle.textContent = tt("loseTitle");
     } else {
-      el.winTitle.textContent = "Chiến thắng!";
+      el.winTitle.textContent = tt("winTitle");
     }
     el.winSub.textContent = msg;
     lastWinSummary = (el.winTitle.textContent || "").replace(/!$/, "");
