@@ -1,5 +1,7 @@
 # 🎮 Game 2 Người
 
+[![CI](https://github.com/tridpt/TwoPlayerGames/actions/workflows/ci.yml/badge.svg)](https://github.com/tridpt/TwoPlayerGames/actions/workflows/ci.yml)
+
 Bộ trò chơi đối kháng cho 2 người chơi, hỗ trợ **chơi chung một máy** (hot-seat) hoặc **chơi online qua mạng** bằng mã phòng. Viết bằng HTML/CSS/JavaScript thuần ở phía client, server Node.js nhỏ gọn lo phần phục vụ web và relay nước đi qua WebSocket.
 
 ## ✨ Tính năng
