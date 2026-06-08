@@ -2208,6 +2208,65 @@ body.theme-light .profile-view > .back-btn:hover {
 .lobby-game-select {
   width: 100%;
 }
+
+/* ---------- Phòng công khai ---------- */
+.lobby-public {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 4px 0;
+}
+.lobby-public input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+.public-rooms {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 12px;
+}
+.public-rooms-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+.public-rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.public-empty {
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-align: center;
+  padding: 18px 10px;
+  border: 1px dashed rgba(255,255,255,0.12);
+  border-radius: 12px;
+}
+.public-room {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(42,48,96,0.55), rgba(24,28,58,0.75));
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.pr-poster { flex: 0 0 auto; width: 56px; }
+.pr-poster .game-poster { height: 40px; border-radius: 8px; }
+.pr-poster .poster-emoji { font-size: 1.5rem; }
+.pr-poster .poster-mark { display: none; }
+.pr-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.pr-info b { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-info small { color: var(--muted); font-size: 0.76rem; }
+.pr-join { flex: 0 0 auto; }
+body.theme-light .public-room { background: linear-gradient(160deg, #ffffff, #f1f4fd); border-color: rgba(20,30,80,0.08); }
 .lobby-options {
   margin-top: 0;
   padding: 12px;

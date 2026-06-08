@@ -167,6 +167,10 @@
             <h3 class="options-title">⚙️ Tùy chỉnh ván chơi</h3>
             <div class="options-list" id="lobbyOptionsList"></div>
           </div>
+          <label class="set-row set-switch lobby-public">
+            <span>🌐 Phòng công khai (cho người khác tìm thấy)</span>
+            <input type="checkbox" id="publicToggle" checked />
+          </label>
           <button class="btn primary" id="createRoomBtn">Tạo phòng</button>
           <div class="room-code hidden" id="roomCodeBox">
             <span class="room-code-label">Mã phòng của bạn</span>
@@ -185,6 +189,13 @@
                  placeholder="0000" />
           <button class="btn primary" id="joinRoomBtn">Vào phòng</button>
           <p class="lobby-error" id="lobbyError"></p>
+          <div class="public-rooms">
+            <div class="public-rooms-head">
+              <span>🌐 Phòng công khai đang mở</span>
+              <button class="btn small" id="refreshRoomsBtn" type="button">🔄 Làm mới</button>
+            </div>
+            <div class="public-rooms-list" id="publicRoomsList"></div>
+          </div>
         </div>
       </div>
     </section>

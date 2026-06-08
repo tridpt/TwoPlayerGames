@@ -208,7 +208,7 @@ wss.on("connection", (ws) => {
         const firstSeat = Math.random() < 0.5 ? 0 : 1;
         const playerName = cleanPlayerName(msg.playerName, "Người chơi 1");
         const token0 = makeToken();
-        rooms.set(code, { players: [ws, null], names: [playerName, null], tokens: [token0, null], history: [], dcTimers: [null, null], gameId: msg.gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options });
+        rooms.set(code, { players: [ws, null], names: [playerName, null], tokens: [token0, null], history: [], dcTimers: [null, null], gameId: msg.gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options, public: !!msg.public });
         ws.roomCode = code;
         ws.seat = 0;
         send(ws, "created", { code, seat: 0, token: token0, gameId: msg.gameId, seed, firstSeat, round: 1, options, playerNames: [playerName, null] });
@@ -283,6 +283,19 @@ wss.on("connection", (ws) => {
         leaveRoom(ws);
         ws.roomCode = null;
         ws.seat = null;
+        break;
+      }
+
+      case "listRooms": {
+        if (!rateLimit(ws, "list", 30, 60_000)) return;
+        const list = [];
+        for (const [code, room] of rooms) {
+          if (room.public && room.players[0] && !room.players[1]) {
+            list.push({ code, gameId: room.gameId, hostName: room.names[0] || "Người chơi 1", round: room.round || 1 });
+          }
+          if (list.length >= 40) break;
+        }
+        send(ws, "roomList", { rooms: list });
         break;
       }
 

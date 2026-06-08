@@ -50,6 +50,9 @@
     joinCodeInput: $("joinCodeInput"),
     joinRoomBtn: $("joinRoomBtn"),
     lobbyError: $("lobbyError"),
+    publicToggle: $("publicToggle"),
+    refreshRoomsBtn: $("refreshRoomsBtn"),
+    publicRoomsList: $("publicRoomsList"),
     gameView: $("gameView"),
     gameTitle: $("gameTitle"),
     boardWrap: $("boardWrap"),
@@ -110,6 +113,7 @@
   let lobbySelectedGame = null;
   let lobbyReturnView = "menu";
   let pendingRoomCode = null;
+  let roomPollTimer = null;
   let instance = null;
   let scores = [0, 0];
   let restartReadySeats = [];
@@ -1309,6 +1313,7 @@
     el.joinCodeInput.value = "";
     setLobbyState("Sẵn sàng tạo phòng hoặc vào phòng bằng mã.", "info");
     show("lobbyView");
+    startRoomPolling();
   }
 
   async function ensureConnected() {
@@ -1348,7 +1353,7 @@
     currentOptions = readOptions(lobbySelectedGame, "lobby_opt_");
     const playerName = readPlayerName(el.createNameInput, "Người chơi 1");
     setLobbyState("Đang tạo phòng...", "waiting");
-    Net.send("create", { gameId: lobbySelectedGame.id, options: currentOptions, playerName });
+    Net.send("create", { gameId: lobbySelectedGame.id, options: currentOptions, playerName, public: el.publicToggle ? el.publicToggle.checked : true });
   });
 
   el.joinRoomBtn.addEventListener("click", async () => {
@@ -1374,6 +1379,63 @@
   el.joinCodeInput.addEventListener("input", (e) => {
     e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4);
   });
+
+  // ---- Phòng công khai ----
+  async function refreshPublicRooms(showLoading) {
+    if (!el.publicRoomsList) return;
+    if (showLoading) el.publicRoomsList.innerHTML = `<div class="public-empty">Đang tải danh sách phòng...</div>`;
+    if (!(await ensureConnected())) {
+      el.publicRoomsList.innerHTML = `<div class="public-empty">Không kết nối được server. Hãy chạy bằng 'npm start'.</div>`;
+      return;
+    }
+    Net.send("listRooms");
+  }
+
+  function renderPublicRooms(list) {
+    if (!el.publicRoomsList) return;
+    if (!list || !list.length) {
+      el.publicRoomsList.innerHTML = `<div class="public-empty">Chưa có phòng công khai nào đang chờ. Tạo một phòng để mời người khác!</div>`;
+      return;
+    }
+    el.publicRoomsList.innerHTML = "";
+    list.forEach((r) => {
+      const g = getGameById(r.gameId);
+      const row = document.createElement("div");
+      row.className = "public-room";
+      row.innerHTML = `<div class="pr-poster">${g ? gameAvatarHtml(g) : ""}</div>` +
+        `<div class="pr-info"><b>${escapeHtml(g ? g.name : r.gameId)}</b>` +
+        `<small>👤 ${escapeHtml(r.hostName)} · mã ${escapeHtml(r.code)}</small></div>`;
+      const btn = document.createElement("button");
+      btn.className = "btn small primary pr-join";
+      btn.type = "button";
+      btn.textContent = "Vào chơi";
+      btn.addEventListener("click", () => quickJoinRoom(r.code));
+      row.appendChild(btn);
+      el.publicRoomsList.appendChild(row);
+    });
+  }
+
+  async function quickJoinRoom(code) {
+    el.lobbyError.textContent = "";
+    if (!(await ensureConnected())) return;
+    const playerName = readPlayerName(el.joinNameInput, "Người chơi 2");
+    setLobbyState("Đang vào phòng...", "waiting");
+    Net.send("join", { code, playerName });
+  }
+
+  function startRoomPolling() {
+    stopRoomPolling();
+    refreshPublicRooms(true);
+    roomPollTimer = setInterval(() => {
+      if (!pendingRoomCode && !online && Net.isOpen()) Net.send("listRooms");
+    }, 4500);
+  }
+  function stopRoomPolling() {
+    if (roomPollTimer) { clearInterval(roomPollTimer); roomPollTimer = null; }
+  }
+
+  if (el.refreshRoomsBtn) el.refreshRoomsBtn.addEventListener("click", () => refreshPublicRooms(true));
+  Net.on("roomList", (m) => renderPublicRooms(m.rooms));
 
   // ---- Sự kiện từ server ----
   Net.on("created", (m) => {
@@ -1743,6 +1805,7 @@
 
   // ---- Điều hướng màn hình ----
   function show(viewId) {
+    if (viewId !== "lobbyView") stopRoomPolling();
     if (viewId === "menu" && menuCategories.length) {
       refreshDynamicCategories();
       buildCatSidebar();
