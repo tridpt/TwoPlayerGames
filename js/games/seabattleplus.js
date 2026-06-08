@@ -23,6 +23,23 @@
     const startTorpedo = opts.torpedo === undefined ? 2 : Number(opts.torpedo);
     const startBomb = opts.bomb === undefined ? 1 : Number(opts.bomb);
 
+    // bản dịch tên & ghi chú hạm đội (FLEET là hằng module-level)
+    const FLEET_NAME_EN = { carrier: "Flagship", battleship: "Battleship", submarine: "Submarine", minelayer: "Minelayer", scout: "Scout" };
+    const FLEET_NOTE_EN = {
+      carrier: "Sunk → lose all remaining torpedoes.",
+      battleship: "Has 1 armor layer; you must hit that cell again to pierce.",
+      submarine: "Radar won't count it unless you scan its exact center.",
+      minelayer: "Represents your hidden minefield.",
+      scout: "Sunk → lose all remaining radar.",
+    };
+    const fleetName = (id) => ctx.t(FLEET[id].name, FLEET_NAME_EN[FLEET[id].key] || FLEET[id].name);
+    const fleetNote = (id) => ctx.t(FLEET[id].note, FLEET_NOTE_EN[FLEET[id].key] || FLEET[id].note);
+    // dịch tên tàu nhận qua mạng (chuỗi VN) sang ngôn ngữ hiện tại
+    const fleetNameByName = (vnName) => {
+      const tpl = FLEET.find((f) => f.name === vnName);
+      return tpl ? ctx.t(tpl.name, FLEET_NAME_EN[tpl.key] || tpl.name) : vnName;
+    };
+
     let phase = "placing";
     let iReady = false, oppReady = false;
     let turn = 0;
@@ -67,15 +84,15 @@
     setupBar.className = "sbx-setup";
     setupBar.innerHTML = `
       <div class="sbx-modes">
-        <button class="btn small sbx-mode active" data-mode="ship" type="button">⚓ Đặt tàu</button>
-        <button class="btn small sbx-mode" data-mode="mine" type="button">💣 Đặt mìn</button>
+        <button class="btn small sbx-mode active" data-mode="ship" type="button">${ctx.t("⚓ Đặt tàu", "⚓ Place ships")}</button>
+        <button class="btn small sbx-mode" data-mode="mine" type="button">${ctx.t("💣 Đặt mìn", "💣 Place mines")}</button>
       </div>
       <div class="sbx-setup-btns">
-        <button class="btn small" data-act="rotate" type="button">↻ Xoay (R)</button>
-        <button class="btn small" data-act="randomShips" type="button">🔀 Tàu</button>
-        <button class="btn small" data-act="randomMines" type="button">💣 Mìn</button>
-        <button class="btn small" data-act="clear" type="button">🗑️ Xóa</button>
-        <button class="btn primary" data-act="ready" type="button">✓ Sẵn sàng</button>
+        <button class="btn small" data-act="rotate" type="button">${ctx.t("↻ Xoay (R)", "↻ Rotate (R)")}</button>
+        <button class="btn small" data-act="randomShips" type="button">${ctx.t("🔀 Tàu", "🔀 Ships")}</button>
+        <button class="btn small" data-act="randomMines" type="button">${ctx.t("💣 Mìn", "💣 Mines")}</button>
+        <button class="btn small" data-act="clear" type="button">${ctx.t("🗑️ Xóa", "🗑️ Clear")}</button>
+        <button class="btn primary" data-act="ready" type="button">${ctx.t("✓ Sẵn sàng", "✓ Ready")}</button>
       </div>
     `;
     root.appendChild(setupBar);
@@ -97,8 +114,8 @@
     boards.className = "sbx-boards";
     root.appendChild(boards);
 
-    const myWrap = makeBoard("🛡️ Biển của bạn", "Tàu, mìn & phát bắn của đối thủ");
-    const oppWrap = makeBoard("🎯 Biển đối thủ", "Bắn / radar / torpedo / bom");
+    const myWrap = makeBoard(ctx.t("🛡️ Biển của bạn", "🛡️ Your waters"), ctx.t("Tàu, mìn & phát bắn của đối thủ", "Ships, mines & enemy shots"));
+    const oppWrap = makeBoard(ctx.t("🎯 Biển đối thủ", "🎯 Enemy waters"), ctx.t("Bắn / radar / torpedo / bom", "Shot / radar / torpedo / bomb"));
     boards.appendChild(myWrap.wrap);
     boards.appendChild(oppWrap.wrap);
 
@@ -178,7 +195,7 @@
     function toggleMine(r, c) {
       if (myBoard[r][c] !== null) { ctx.sound("error"); return; }
       if (mineBoard[r][c]) { mineBoard[r][c] = false; ctx.sound("select"); return; }
-      if (minesPlaced() >= mineCount) { lastInfo = `Chỉ được đặt tối đa ${mineCount} mìn.`; ctx.sound("error"); return; }
+      if (minesPlaced() >= mineCount) { lastInfo = ctx.t(`Chỉ được đặt tối đa ${mineCount} mìn.`, `You can place at most ${mineCount} mines.`); ctx.sound("error"); return; }
       mineBoard[r][c] = true;
       ctx.sound("select");
     }
@@ -235,8 +252,8 @@
 
     function doReady() {
       if (iReady) return;
-      if (!allShipsPlaced()) { lastInfo = "Bạn cần đặt đủ 5 tàu trước khi sẵn sàng."; render(); return; }
-      if (minesPlaced() !== mineCount) { lastInfo = `Hãy đặt đúng ${mineCount} mìn (hiện ${minesPlaced()}). Có thể bấm 💣 Mìn để rải ngẫu nhiên.`; render(); return; }
+      if (!allShipsPlaced()) { lastInfo = ctx.t("Bạn cần đặt đủ 5 tàu trước khi sẵn sàng.", "You must place all 5 ships before getting ready."); render(); return; }
+      if (minesPlaced() !== mineCount) { lastInfo = ctx.t(`Hãy đặt đúng ${mineCount} mìn (hiện ${minesPlaced()}). Có thể bấm 💣 Mìn để rải ngẫu nhiên.`, `Place exactly ${mineCount} mines (now ${minesPlaced()}). Tap 💣 Mines to scatter randomly.`); render(); return; }
       iReady = true;
       mineTriggered = matrix(false);
       oppShotsOnMe = matrix(0);
@@ -245,7 +262,7 @@
       oppRadarOnMe.length = 0;
       ctx.sendMove({ kind: "ready" });
       if (oppReady) beginPlay();
-      else { ctx.setStatus("Đã sẵn sàng. Đang chờ đối thủ bố trí hạm đội & mìn..."); render(); }
+      else { ctx.setStatus(ctx.t("Đã sẵn sàng. Đang chờ đối thủ bố trí hạm đội & mìn...", "Ready. Waiting for the opponent to set up fleet & mines...")); render(); }
     }
 
     // ----- sự kiện trên bàn -----
@@ -305,7 +322,7 @@
       actionBar.classList.remove("sbx-hidden");
       selectedAction = "shot";
       ctx.setTurn(turn);
-      lastInfo = "Đã sẵn sàng. Dùng radar dò tìm rồi bắn, phóng torpedo hoặc thả bom chùm.";
+      lastInfo = ctx.t("Đã sẵn sàng. Dùng radar dò tìm rồi bắn, phóng torpedo hoặc thả bom chùm.", "Ready. Use radar to scan, then shoot, launch torpedoes or drop cluster bombs.");
       render();
       updateStatus();
     }
@@ -335,13 +352,13 @@
 
     function takeLocalAction(r, c) {
       if (selectedAction === "radar") {
-        if (radarCharges <= 0) { ctx.setStatus("Radar đã hết lượt."); return; }
+        if (radarCharges <= 0) { ctx.setStatus(ctx.t("Radar đã hết lượt.", "Radar is out of charges.")); return; }
         radarCharges--;
         awaiting = true;
         aimHover = null;
         radarHints[r][c] = { pending: true };
         ctx.sendMove({ kind: "radar", r, c });
-        lastInfo = `Đang quét radar tại ${coord(r, c)}...`;
+        lastInfo = ctx.t(`Đang quét radar tại ${coord(r, c)}...`, `Scanning radar at ${coord(r, c)}...`);
         render();
         updateStatus();
         return;
@@ -349,12 +366,12 @@
 
       const targets = actionTargets(selectedAction, r, c);
       const usable = targets.filter(([rr, cc]) => canAttackStatus(myShots[rr][cc]));
-      if (!usable.length) { ctx.setStatus("Khu vực này đã bị bắn hết mục tiêu."); return; }
+      if (!usable.length) { ctx.setStatus(ctx.t("Khu vực này đã bị bắn hết mục tiêu.", "This area has no targets left.")); return; }
       if (selectedAction === "torpedo") {
-        if (torpedoCharges <= 0) { ctx.setStatus("Torpedo đã hết."); return; }
+        if (torpedoCharges <= 0) { ctx.setStatus(ctx.t("Torpedo đã hết.", "No torpedoes left.")); return; }
         torpedoCharges--;
       } else if (selectedAction === "bomb") {
-        if (bombCharges <= 0) { ctx.setStatus("Bom chùm đã hết."); return; }
+        if (bombCharges <= 0) { ctx.setStatus(ctx.t("Bom chùm đã hết.", "No cluster bombs left.")); return; }
         bombCharges--;
       }
 
@@ -362,8 +379,8 @@
       aimHover = null;
       usable.forEach(([rr, cc]) => { myShots[rr][cc] = "pending"; });
       ctx.sendMove({ kind: "attack", action: selectedAction, cells: usable.map(([rr, cc]) => ({ r: rr, c: cc })) });
-      const verb = selectedAction === "torpedo" ? "phóng torpedo vào" : selectedAction === "bomb" ? "thả bom chùm xuống" : "bắn vào";
-      lastInfo = `Đã ${verb} ${usable.map(([rr, cc]) => coord(rr, cc)).join(", ")}.`;
+      const verb = selectedAction === "torpedo" ? ctx.t("phóng torpedo vào", "launched a torpedo at") : selectedAction === "bomb" ? ctx.t("thả bom chùm xuống", "dropped a cluster bomb on") : ctx.t("bắn vào", "fired at");
+      lastInfo = ctx.t(`Đã ${verb} ${usable.map(([rr, cc]) => coord(rr, cc)).join(", ")}.`, `${verb} ${usable.map(([rr, cc]) => coord(rr, cc)).join(", ")}.`);
       render();
       updateStatus();
     }
@@ -374,7 +391,7 @@
       if (move.kind === "ready") {
         oppReady = true;
         if (iReady) beginPlay();
-        else ctx.setStatus("Đối thủ đã sẵn sàng. Bố trí hạm đội & mìn rồi bấm Sẵn sàng.");
+        else ctx.setStatus(ctx.t("Đối thủ đã sẵn sàng. Bố trí hạm đội & mìn rồi bấm Sẵn sàng.", "Opponent is ready. Set up your fleet & mines then press Ready."));
         render();
         return;
       }
@@ -389,7 +406,7 @@
         turn = result.extraTurn ? 1 - ctx.mySeat : ctx.mySeat;
         ctx.setTurn(turn);
         lastInfo = result.extraTurn
-          ? "Bạn đang bị phạt bỏ lượt do dính mìn, đối thủ được đi tiếp."
+          ? ctx.t("Bạn đang bị phạt bỏ lượt do dính mìn, đối thủ được đi tiếp.", "You're skipping a turn from a mine hit; the opponent goes again.")
           : describeEnemyAttack(result);
         render();
         updateStatus();
@@ -419,8 +436,8 @@
         turn = scan.extraTurn ? 1 - ctx.mySeat : ctx.mySeat;
         ctx.setTurn(turn);
         lastInfo = scan.extraTurn
-          ? "Bạn đang bị phạt bỏ lượt do dính mìn, đối thủ được đi tiếp."
-          : `Đối thủ vừa quét radar tại ${coord(move.r, move.c)}.`;
+          ? ctx.t("Bạn đang bị phạt bỏ lượt do dính mìn, đối thủ được đi tiếp.", "You're skipping a turn from a mine hit; the opponent goes again.")
+          : ctx.t(`Đối thủ vừa quét radar tại ${coord(move.r, move.c)}.`, `The opponent just scanned radar at ${coord(move.r, move.c)}.`);
         render();
         updateStatus();
         return;
@@ -431,8 +448,8 @@
         radarHints[move.r][move.c] = { shipCount: move.shipCount, mineCount: move.mineCount, stealthPing: move.stealthPing };
         turn = move.extraTurn ? ctx.mySeat : 1 - ctx.mySeat;
         ctx.setTurn(turn);
-        lastInfo = `Radar ${coord(move.r, move.c)}: ${move.shipCount} ô tàu, ${move.mineCount} mìn`
-          + (move.stealthPing ? ", có tín hiệu tàu ngầm ngay tâm." : ".");
+        lastInfo = ctx.t(`Radar ${coord(move.r, move.c)}: ${move.shipCount} ô tàu, ${move.mineCount} mìn`, `Radar ${coord(move.r, move.c)}: ${move.shipCount} ship cells, ${move.mineCount} mines`)
+          + (move.stealthPing ? ctx.t(", có tín hiệu tàu ngầm ngay tâm.", ", submarine signal at the center.") : ".");
         render();
         updateStatus();
       }
@@ -511,11 +528,11 @@
       const armor = result.cells.some((c) => c.armor);
       const mines = result.cells.some((c) => c.mine);
       const sunk = result.cells.find((c) => c.sunk);
-      if (sunk) return `Đối thủ đã đánh chìm ${sunk.shipName} của bạn.`;
-      if (armor) return "Đối thủ bắn trúng lớp giáp thiết giáp hạm.";
-      if (hits) return `Đối thủ bắn trúng ${hits} ô tàu của bạn.`;
-      if (mines) return "Đối thủ đã dính mìn của bạn và sẽ bị phạt bỏ lượt!";
-      return "Đối thủ bắn trượt.";
+      if (sunk) return ctx.t(`Đối thủ đã đánh chìm ${sunk.shipName} của bạn.`, `The opponent sank your ${fleetNameByName(sunk.shipName)}.`);
+      if (armor) return ctx.t("Đối thủ bắn trúng lớp giáp thiết giáp hạm.", "The opponent hit the battleship's armor.");
+      if (hits) return ctx.t(`Đối thủ bắn trúng ${hits} ô tàu của bạn.`, `The opponent hit ${hits} of your ship cells.`);
+      if (mines) return ctx.t("Đối thủ đã dính mìn của bạn và sẽ bị phạt bỏ lượt!", "The opponent hit your mine and will skip a turn!");
+      return ctx.t("Đối thủ bắn trượt.", "The opponent missed.");
     }
 
     function describeMyAttack(result) {
@@ -524,12 +541,12 @@
       const hits = result.cells.filter((c) => c.hit).length;
       const mines = result.cells.some((c) => c.mine);
       let text;
-      if (sunk) text = `💥 Đánh chìm ${sunk.shipName}!`;
-      else if (armor) text = "Trúng lớp giáp — cần bắn lại ô đó để xuyên.";
-      else if (hits) text = `Trúng ${hits} ô tàu.`;
-      else if (mines) text = "Bạn dính mìn ẩn! Sau lượt đối thủ, bạn bị bỏ lượt.";
-      else text = "Trượt.";
-      if (result.extraTurn) text += " Đối thủ đang bị phạt, bạn được đi tiếp.";
+      if (sunk) text = ctx.t(`💥 Đánh chìm ${sunk.shipName}!`, `💥 Sank the ${fleetNameByName(sunk.shipName)}!`);
+      else if (armor) text = ctx.t("Trúng lớp giáp — cần bắn lại ô đó để xuyên.", "Hit the armor — fire that cell again to pierce.");
+      else if (hits) text = ctx.t(`Trúng ${hits} ô tàu.`, `Hit ${hits} ship cell(s).`);
+      else if (mines) text = ctx.t("Bạn dính mìn ẩn! Sau lượt đối thủ, bạn bị bỏ lượt.", "You hit a hidden mine! After the opponent's turn, you skip yours.");
+      else text = ctx.t("Trượt.", "Miss.");
+      if (result.extraTurn) text += ctx.t(" Đối thủ đang bị phạt, bạn được đi tiếp.", " The opponent is penalized; you go again.");
       return text;
     }
 
@@ -537,8 +554,8 @@
       phase = "over";
       awaiting = false;
       ctx.setTurn(-1);
-      if (iWon) { ctx.incScore(ctx.mySeat); ctx.setStatus("🎉 Bạn thắng - đã đánh chìm toàn bộ hạm đội đặc biệt của đối thủ!"); }
-      else { ctx.incScore(1 - ctx.mySeat); ctx.setStatus("💀 Bạn thua - hạm đội đặc biệt của bạn đã bị đánh chìm."); }
+      if (iWon) { ctx.incScore(ctx.mySeat); ctx.setStatus(ctx.t("🎉 Bạn thắng - đã đánh chìm toàn bộ hạm đội đặc biệt của đối thủ!", "🎉 You win — you sank the opponent's entire special fleet!")); }
+      else { ctx.incScore(1 - ctx.mySeat); ctx.setStatus(ctx.t("💀 Bạn thua - hạm đội đặc biệt của bạn đã bị đánh chìm.", "💀 You lose — your special fleet has been sunk.")); }
       render();
     }
 
@@ -562,16 +579,16 @@
       if (phase !== "placing") return;
       setupBar.querySelectorAll("[data-mode]").forEach((b) => b.classList.toggle("active", b.dataset.mode === placeMode));
       const hintTxt = iReady
-        ? "Đã sẵn sàng — chờ đối thủ."
+        ? ctx.t("Đã sẵn sàng — chờ đối thủ.", "Ready — waiting for the opponent.")
         : placeMode === "mine"
-          ? `Chế độ MÌN: bấm ô trống để đặt/gỡ mìn (${minesPlaced()}/${mineCount}).`
-          : `Chế độ TÀU — hướng <b>${orient === "h" ? "Ngang ↔" : "Dọc ↕"}</b>. Bấm tàu để chọn, bấm bàn để đặt, bấm tàu đã đặt để chỉnh.`;
+          ? ctx.t(`Chế độ MÌN: bấm ô trống để đặt/gỡ mìn (${minesPlaced()}/${mineCount}).`, `MINE mode: click empty cells to add/remove mines (${minesPlaced()}/${mineCount}).`)
+          : ctx.t(`Chế độ TÀU — hướng <b>${orient === "h" ? "Ngang ↔" : "Dọc ↕"}</b>. Bấm tàu để chọn, bấm bàn để đặt, bấm tàu đã đặt để chỉnh.`, `SHIP mode — orientation <b>${orient === "h" ? "Horizontal ↔" : "Vertical ↕"}</b>. Click a ship to select, the board to place, a placed ship to adjust.`);
       fleetTray.innerHTML = `<div class="sbx-tray-hint">${hintTxt}</div>` + FLEET.map((s, id) => {
         const done = !!ships[id];
         const sel = selShip === id && placeMode === "ship";
-        return `<button class="sbx-ship-btn ${done ? "done" : ""} ${sel ? "sel" : ""}" data-ship="${id}" type="button" title="${s.note}">
+        return `<button class="sbx-ship-btn ${done ? "done" : ""} ${sel ? "sel" : ""}" data-ship="${id}" type="button" title="${fleetNote(id)}">
           <span class="sbx-ship-ic">${s.icon}</span>
-          <b>${s.name}</b>
+          <b>${fleetName(id)}</b>
           <small>${"▪".repeat(s.size)} ${done ? "✓" : "(" + s.size + ")"}</small>
         </button>`;
       }).join("");
@@ -583,10 +600,10 @@
       if (phase !== "playing") { actionBar.innerHTML = ""; return; }
       const myTurn = isMyTurn();
       const defs = [
-        ["shot", "🎯", "Bắn", "1 ô", Infinity],
-        ["radar", "📡", "Radar", "quét 3×3", radarCharges],
-        ["torpedo", "🚀", "Torpedo", "3 ô thẳng", torpedoCharges],
-        ["bomb", "💥", "Bom chùm", "nổ 2×2", bombCharges],
+        ["shot", "🎯", ctx.t("Bắn", "Shoot"), ctx.t("1 ô", "1 cell"), Infinity],
+        ["radar", "📡", ctx.t("Radar", "Radar"), ctx.t("quét 3×3", "scan 3×3"), radarCharges],
+        ["torpedo", "🚀", ctx.t("Torpedo", "Torpedo"), ctx.t("3 ô thẳng", "3 in a line"), torpedoCharges],
+        ["bomb", "💥", ctx.t("Bom chùm", "Cluster bomb"), ctx.t("nổ 2×2", "blast 2×2"), bombCharges],
       ];
       let html = defs.map(([id, ic, label, hint, left]) => {
         const off = !myTurn || (id !== "shot" && left <= 0);
@@ -595,7 +612,7 @@
           <span class="sbx-ab-ic">${ic}</span><b>${label}</b><small>${hint}</small><i class="sbx-ab-left">${leftTxt}</i>
         </button>`;
       }).join("");
-      html += `<button class="sbx-torp-axis ${selectedAction === "torpedo" ? "" : "dim"}" data-dir="1" type="button" ${selectedAction === "torpedo" && myTurn ? "" : "disabled"}>Torpedo: <b>${torpedoDir === "h" ? "Ngang ↔" : "Dọc ↕"}</b></button>`;
+      html += `<button class="sbx-torp-axis ${selectedAction === "torpedo" ? "" : "dim"}" data-dir="1" type="button" ${selectedAction === "torpedo" && myTurn ? "" : "disabled"}>${ctx.t("Torpedo:", "Torpedo:")} <b>${torpedoDir === "h" ? ctx.t("Ngang ↔", "Horizontal ↔") : ctx.t("Dọc ↕", "Vertical ↕")}</b></button>`;
       actionBar.innerHTML = html;
       actionBar.querySelectorAll("[data-action]").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -679,7 +696,7 @@
             if (hint.pending) cell.textContent = "…";
             else if (!cell.textContent) {
               cell.textContent = hint.stealthPing ? "S" : String(hint.shipCount);
-              cell.title = `Tàu: ${hint.shipCount}, mìn: ${hint.mineCount}` + (hint.stealthPing ? ", tàu ngầm ngay tâm" : "");
+              cell.title = ctx.t(`Tàu: ${hint.shipCount}, mìn: ${hint.mineCount}`, `Ships: ${hint.shipCount}, mines: ${hint.mineCount}`) + (hint.stealthPing ? ctx.t(", tàu ngầm ngay tâm", ", submarine at center") : "");
             }
           }
           if (aim[keyOf(r, c)]) cell.classList.add("aim");
@@ -691,22 +708,22 @@
       const fleetHtml = FLEET.map((tpl, id) => {
         const ship = ships[id];
         const hits = ship ? ship.hits.size : 0;
-        const armor = ship && ship.armor > 0 ? ` +giáp${ship.armor}` : "";
-        const status = !ship ? "—" : ship.sunk ? "chìm" : `${hits}/${tpl.size}${armor}`;
+        const armor = ship && ship.armor > 0 ? ctx.t(` +giáp${ship.armor}`, ` +armor${ship.armor}`) : "";
+        const status = !ship ? "—" : ship.sunk ? ctx.t("chìm", "sunk") : `${hits}/${tpl.size}${armor}`;
         return `<li class="${ship && ship.sunk ? "sunk" : ""}">
-          <span class="sbx-ship-code">${tpl.icon}</span><span>${tpl.name}</span><b>${status}</b>
+          <span class="sbx-ship-code">${tpl.icon}</span><span>${fleetName(id)}</span><b>${status}</b>
         </li>`;
       }).join("");
       const defaultHint = phase === "placing"
-        ? "Bố trí tàu & bãi mìn của bạn rồi bấm Sẵn sàng."
-        : "Dùng radar dò tìm, rồi bắn / torpedo / bom chùm.";
+        ? ctx.t("Bố trí tàu & bãi mìn của bạn rồi bấm Sẵn sàng.", "Set up your ships & minefield then press Ready.")
+        : ctx.t("Dùng radar dò tìm, rồi bắn / torpedo / bom chùm.", "Use radar to scan, then shoot / torpedo / cluster bomb.");
       infoPanel.innerHTML = `
         <div class="sbx-resource">
           <span>📡 Radar <b>${radarCharges}</b></span>
           <span>🚀 Torpedo <b>${torpedoCharges}</b></span>
-          <span>💥 Bom <b>${bombCharges}</b></span>
-          <span>💣 Mìn còn ẩn <b>${countMinesLeft()}</b></span>
-          <span>${mySkipNext ? "⚠️ Bị phạt bỏ lượt" : "✅ Sẵn sàng"}</span>
+          <span>💥 ${ctx.t("Bom", "Bomb")} <b>${bombCharges}</b></span>
+          <span>💣 ${ctx.t("Mìn còn ẩn", "Mines hidden")} <b>${countMinesLeft()}</b></span>
+          <span>${mySkipNext ? ctx.t("⚠️ Bị phạt bỏ lượt", "⚠️ Turn skip penalty") : ctx.t("✅ Sẵn sàng", "✅ Ready")}</span>
         </div>
         <ul class="sbx-fleet">${fleetHtml}</ul>
         <div class="sbx-last">${lastInfo || defaultHint}</div>
@@ -721,26 +738,26 @@
 
     function updateStatus() {
       if (phase !== "playing") return;
-      if (awaiting) { ctx.setStatus("Đang chờ đối thủ trả kết quả..."); return; }
-      if (turn !== ctx.mySeat) { ctx.setStatus("Đối thủ đang hành động. Chuẩn bị phòng thủ."); return; }
+      if (awaiting) { ctx.setStatus(ctx.t("Đang chờ đối thủ trả kết quả...", "Waiting for the opponent's result...")); return; }
+      if (turn !== ctx.mySeat) { ctx.setStatus(ctx.t("Đối thủ đang hành động. Chuẩn bị phòng thủ.", "The opponent is acting. Prepare your defense.")); return; }
       const tip = {
-        radar: "Lượt bạn — chọn ô để quét radar 3×3.",
-        torpedo: `Lượt bạn — torpedo đánh 3 ô theo ${torpedoDir === "h" ? "ngang" : "dọc"}.`,
-        bomb: "Lượt bạn — bom chùm nổ vùng 2×2.",
-        shot: "Lượt bạn — chọn ô trên biển đối thủ để bắn.",
+        radar: ctx.t("Lượt bạn — chọn ô để quét radar 3×3.", "Your turn — pick a cell for a 3×3 radar scan."),
+        torpedo: ctx.t(`Lượt bạn — torpedo đánh 3 ô theo ${torpedoDir === "h" ? "ngang" : "dọc"}.`, `Your turn — torpedo hits 3 cells ${torpedoDir === "h" ? "horizontally" : "vertically"}.`),
+        bomb: ctx.t("Lượt bạn — bom chùm nổ vùng 2×2.", "Your turn — cluster bomb blasts a 2×2 area."),
+        shot: ctx.t("Lượt bạn — chọn ô trên biển đối thủ để bắn.", "Your turn — pick a cell on the enemy waters to fire."),
       };
       ctx.setStatus(tip[selectedAction] || tip.shot);
     }
 
     // ----- khởi tạo -----
     if (!ctx.isOnline) {
-      ctx.setStatus("Sea Battle Nâng Cấp chỉ chơi online vì cần giữ bí mật hạm đội và mìn.");
+      ctx.setStatus(ctx.t("Sea Battle Nâng Cấp chỉ chơi online vì cần giữ bí mật hạm đội và mìn.", "Sea Battle Plus is online-only since fleets and mines must stay secret."));
       return { applyMove: () => {}, destroy: () => document.removeEventListener("keydown", onKey) };
     }
     randomShips();
     randomMines();
     render();
-    ctx.setStatus("Bố trí hạm đội & bãi mìn: bấm tàu để chọn, R/chuột phải để xoay, hoặc 🔀/💣 để ngẫu nhiên. Xong thì Sẵn sàng.");
+    ctx.setStatus(ctx.t("Bố trí hạm đội & bãi mìn: bấm tàu để chọn, R/chuột phải để xoay, hoặc 🔀/💣 để ngẫu nhiên. Xong thì Sẵn sàng.", "Set up fleet & minefield: click a ship to select, R/right-click to rotate, or 🔀/💣 for random. Press Ready when done."));
     return { applyMove, destroy: () => document.removeEventListener("keydown", onKey) };
   }
 

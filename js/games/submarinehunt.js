@@ -27,7 +27,8 @@
     let lastNoise = null;
     let finalSub = null;
     const marks = Object.create(null);
-    const log = ["Tàu ngầm phải lẩn qua vùng săn và thoát lên tuyến phía Bắc."];
+    const log = [ctx.t("Tàu ngầm phải lẩn qua vùng săn và thoát lên tuyến phía Bắc.", "The submarine must slip through the hunt zone and escape to the northern line.")];
+    const bearingLabel = (b) => ctx.t(b, { "Bắc": "North", "Nam": "South", "Tây": "West", "Đông": "East" }[b] || b);
 
     const root = document.createElement("div");
     root.className = "sh-root";
@@ -191,7 +192,7 @@
       turn = 0;
       ctx.sendMove({ t: "ready" });
       ctx.setTurn(0);
-      addLog("Tàu ngầm đã lặn. Hãy chọn hướng di chuyển đầu tiên.");
+      addLog(ctx.t("Tàu ngầm đã lặn. Hãy chọn hướng di chuyển đầu tiên.", "The submarine has dived. Choose your first move."));
       render();
       updateStatus();
     }
@@ -200,25 +201,25 @@
       phase = "play";
       turn = 0;
       ctx.setTurn(0);
-      addLog("Tàu ngầm đã lặn. Chờ tín hiệu âm thanh đầu tiên.");
+      addLog(ctx.t("Tàu ngầm đã lặn. Chờ tín hiệu âm thanh đầu tiên.", "The submarine has dived. Wait for the first sound signal."));
       render();
       updateStatus();
     }
 
     function noiseFor(point, silent, decoy) {
       if (silent) {
-        return { silent: true, text: "Tàu ngầm chạy im lặng, không có tín hiệu rõ.", zoneR: -1, zoneC: -1 };
+        return { silent: true, text: ctx.t("Tàu ngầm chạy im lặng, không có tín hiệu rõ.", "The submarine runs silent — no clear signal."), zoneR: -1, zoneC: -1 };
       }
       const zoneR = point.r <= 2 ? 0 : point.r <= 5 ? 1 : 2;
       const zoneC = point.c <= 2 ? 0 : point.c <= 5 ? 1 : 2;
-      const rows = ["Bắc", "Trung tâm", "Nam"];
-      const cols = ["Tây", "giữa", "Đông"];
+      const rows = [ctx.t("Bắc", "North"), ctx.t("Trung tâm", "Center"), ctx.t("Nam", "South")];
+      const cols = [ctx.t("Tây", "West"), ctx.t("giữa", "middle"), ctx.t("Đông", "East")];
       return {
         silent: false,
         decoy: !!decoy,
         zoneR,
         zoneC,
-        text: `${decoy ? "Tín hiệu giả" : "Âm chân vịt"} vọng từ vùng ${rows[zoneR]}-${cols[zoneC]}.`,
+        text: ctx.t(`${decoy ? "Tín hiệu giả" : "Âm chân vịt"} vọng từ vùng ${rows[zoneR]}-${cols[zoneC]}.`, `${decoy ? "A decoy signal" : "Propeller noise"} echoes from the ${rows[zoneR]}-${cols[zoneC]} zone.`),
       };
     }
 
@@ -246,7 +247,7 @@
       addLog(noise.text);
       if (escaped) {
         render();
-        finish(0, "tàu ngầm đã vượt tuyến phía Bắc");
+        finish(0, ctx.t("tàu ngầm đã vượt tuyến phía Bắc", "the submarine crossed the northern line"));
         return;
       }
       turn = 1;
@@ -260,10 +261,10 @@
       if (ctx.mySeat !== 0 || phase !== "play" || turn !== 0 || awaiting || !sub || dives <= 0) return;
       dives -= 1;
       shield = true;
-      const noise = { silent: true, text: "Tàu ngầm lặn sâu — biến mất khỏi sonar.", zoneR: -1, zoneC: -1 };
+      const noise = { silent: true, text: ctx.t("Tàu ngầm lặn sâu — biến mất khỏi sonar.", "The submarine dives deep — vanishing from sonar."), zoneR: -1, zoneC: -1 };
       ctx.sendMove({ t: "subEvent", noise, escaped: false, round, dived: true });
       lastNoise = noise;
-      addLog("Bạn lặn sâu: chặn sát thương quả mìn kế tiếp. Lượt này không di chuyển.");
+      addLog(ctx.t("Bạn lặn sâu: chặn sát thương quả mìn kế tiếp. Lượt này không di chuyển.", "You dive deep: blocking the next mine's damage. No move this turn."));
       turn = 1;
       ctx.sound("select");
       ctx.setTurn(turn);
@@ -274,10 +275,10 @@
     function applySubEvent(move) {
       if (phase !== "play") return;
       lastNoise = move.noise || null;
-      addLog(lastNoise?.text || "Tàu ngầm đổi vị trí.");
+      addLog(lastNoise?.text || ctx.t("Tàu ngầm đổi vị trí.", "The submarine changed position."));
       if (move.escaped) {
         render();
-        finish(0, "tàu ngầm đã vượt tuyến phía Bắc");
+        finish(0, ctx.t("tàu ngầm đã vượt tuyến phía Bắc", "the submarine crossed the northern line"));
         return;
       }
       turn = 1;
@@ -311,7 +312,7 @@
         awaiting = true;
         marks[key(r, c)] = { kind: move.kind, cls: "pending", icon: "⏳", text: labelForTool(move.kind) };
         ctx.sendMove({ t: "hunt", kind: move.kind, r, c });
-        addLog(`${labelForTool(move.kind)} đang quét tọa độ ${r + 1}-${c + 1}...`);
+        addLog(ctx.t(`${labelForTool(move.kind)} đang quét tọa độ ${r + 1}-${c + 1}...`, `${labelForTool(move.kind)} scanning ${r + 1}-${c + 1}...`));
         ctx.sound("select");
         render();
         updateStatus();
@@ -324,7 +325,7 @@
       ctx.sendMove({ t: "huntResult", kind: move.kind, r, c, result });
       if (result.killed) {
         render();
-        finish(1, "mìn sâu đã phá hủy tàu ngầm");
+        finish(1, ctx.t("mìn sâu đã phá hủy tàu ngầm", "a depth charge destroyed the submarine"));
         return;
       }
       turn = 0;
@@ -340,11 +341,11 @@
       if (!result) return;
       if (typeof result.hp === "number") subHp = result.hp;
       marks[key(move.r, move.c)] = result.mark || { kind: move.kind, cls: "miss", icon: "❔", text: "?" };
-      addLog(result.log || "Có kết quả dò âm.");
+      addLog(result.log || ctx.t("Có kết quả dò âm.", "Sonar result received."));
       if (result.killed) {
         finalSub = result.final || null;
         render();
-        finish(1, "mìn sâu đã phá hủy tàu ngầm");
+        finish(1, ctx.t("mìn sâu đã phá hủy tàu ngầm", "a depth charge destroyed the submarine"));
         return;
       }
       turn = 0;
@@ -363,31 +364,31 @@
           return {
             hp: subHp,
             sound: "capture",
-            mark: { kind, cls: "hit", icon: "🎯", text: "KHÓA" },
-            log: "Sonar khóa đúng vị trí tàu ngầm, cần thả mìn sâu để kết liễu.",
+            mark: { kind, cls: "hit", icon: "🎯", text: ctx.t("KHÓA", "LOCK") },
+            log: ctx.t("Sonar khóa đúng vị trí tàu ngầm, cần thả mìn sâu để kết liễu.", "Sonar locked on the submarine's exact position — drop a depth charge to finish it."),
           };
         }
         if (d <= 2) {
           return {
             hp: subHp,
             sound: "shot",
-            mark: { kind, cls: "hot", icon: "🔴", text: "GẦN" },
-            log: "Sonar bắt tín hiệu rất gần mục tiêu.",
+            mark: { kind, cls: "hot", icon: "🔴", text: ctx.t("GẦN", "NEAR") },
+            log: ctx.t("Sonar bắt tín hiệu rất gần mục tiêu.", "Sonar picks up a very close signal."),
           };
         }
         if (d <= 4) {
           return {
             hp: subHp,
             sound: "select",
-            mark: { kind, cls: "mid", icon: "🟡", text: "VỪA" },
-            log: "Sonar có tín hiệu trung bình, tàu ngầm chưa xa.",
+            mark: { kind, cls: "mid", icon: "🟡", text: ctx.t("VỪA", "MID") },
+            log: ctx.t("Sonar có tín hiệu trung bình, tàu ngầm chưa xa.", "Sonar shows a medium signal — the submarine isn't far."),
           };
         }
         return {
           hp: subHp,
           sound: "miss",
-          mark: { kind, cls: "miss", icon: "🔵", text: "XA" },
-          log: "Sonar chỉ nghe tiếng nền xa.",
+          mark: { kind, cls: "miss", icon: "🔵", text: ctx.t("XA", "FAR") },
+          log: ctx.t("Sonar chỉ nghe tiếng nền xa.", "Sonar only hears distant background noise."),
         };
       }
 
@@ -396,16 +397,16 @@
           return {
             hp: subHp,
             sound: "capture",
-            mark: { kind, cls: "hit", icon: "🛰️", text: "THẤY" },
-            log: "Drone dò âm phát hiện tàu ngầm trong vùng 3x3.",
+            mark: { kind, cls: "hit", icon: "🛰️", text: ctx.t("THẤY", "SPOT") },
+            log: ctx.t("Drone dò âm phát hiện tàu ngầm trong vùng 3x3.", "The sonar drone detected the submarine within a 3x3 area."),
           };
         }
         const bearing = bearingFrom(target, sub);
         return {
           hp: subHp,
           sound: "select",
-          mark: { kind, cls: "mid", icon: bearingIcon(bearing), text: bearing },
-          log: `Drone không thấy mục tiêu, nhưng âm lệch về phía ${bearing}.`,
+          mark: { kind, cls: "mid", icon: bearingIcon(bearing), text: bearingLabel(bearing) },
+          log: ctx.t(`Drone không thấy mục tiêu, nhưng âm lệch về phía ${bearing}.`, `Drone didn't see the target, but the sound leans toward the ${bearingLabel(bearing)}.`),
         };
       }
 
@@ -417,8 +418,8 @@
         return {
           hp: subHp,
           sound: "miss",
-          mark: { kind, cls: "miss", icon: "🛡️", text: "CHẶN" },
-          log: "Tàu ngầm đã lặn sâu, quả mìn không gây sát thương!",
+          mark: { kind, cls: "miss", icon: "🛡️", text: ctx.t("CHẶN", "BLOCK") },
+          log: ctx.t("Tàu ngầm đã lặn sâu, quả mìn không gây sát thương!", "The submarine dived deep — the mine dealt no damage!"),
         };
       }
       subHp = Math.max(0, subHp - damage);
@@ -428,8 +429,8 @@
           killed: true,
           final: { r: sub.r, c: sub.c },
           sound: "capture",
-          mark: { kind, cls: "hit", icon: "💥", text: "HẠ" },
-          log: "Mìn sâu nổ trúng và phá hủy tàu ngầm.",
+          mark: { kind, cls: "hit", icon: "💥", text: ctx.t("HẠ", "KILL") },
+          log: ctx.t("Mìn sâu nổ trúng và phá hủy tàu ngầm.", "The depth charge struck and destroyed the submarine."),
         };
       }
       if (damage > 0) {
@@ -437,14 +438,14 @@
           hp: subHp,
           sound: "shot",
           mark: { kind, cls: "hot", icon: "💥", text: `-${damage}` },
-          log: `Mìn sâu nổ sát thân tàu, tàu ngầm còn ${subHp}/${MAX_HP} HP.`,
+          log: ctx.t(`Mìn sâu nổ sát thân tàu, tàu ngầm còn ${subHp}/${MAX_HP} HP.`, `The depth charge hit near the hull — submarine at ${subHp}/${MAX_HP} HP.`),
         };
       }
       return {
         hp: subHp,
         sound: "miss",
-        mark: { kind, cls: "miss", icon: "🌊", text: "TRƯỢT" },
-        log: "Mìn sâu nổ hụt, chỉ khuấy động đáy biển.",
+        mark: { kind, cls: "miss", icon: "🌊", text: ctx.t("TRƯỢT", "MISS") },
+        log: ctx.t("Mìn sâu nổ hụt, chỉ khuấy động đáy biển.", "The depth charge missed, only stirring the seabed."),
       };
     }
 
@@ -456,9 +457,9 @@
     }
 
     function labelForTool(kind) {
-      if (kind === "drone") return "DRONE";
-      if (kind === "charge") return "MÌN";
-      return "SONAR";
+      if (kind === "drone") return ctx.t("DRONE", "DRONE");
+      if (kind === "charge") return ctx.t("MÌN", "MINE");
+      return ctx.t("SONAR", "SONAR");
     }
 
     function applyMove(move, fromRemote) {
@@ -475,8 +476,8 @@
       awaiting = false;
       ctx.setTurn(-1);
       ctx.incScore(winner);
-      if (ctx.mySeat === winner) ctx.setStatus(`🎉 Bạn thắng - ${reason}.`);
-      else ctx.setStatus(`💀 Bạn thua - ${reason}.`);
+      if (ctx.mySeat === winner) ctx.setStatus(ctx.t(`🎉 Bạn thắng - ${reason}.`, `🎉 You win — ${reason}.`));
+      else ctx.setStatus(ctx.t(`💀 Bạn thua - ${reason}.`, `💀 You lose — ${reason}.`));
       render();
     }
 
@@ -493,46 +494,46 @@
       let subSmall;
       if (ctx.mySeat === 0) {
         const dist = sub ? sub.r : null;
-        const escTxt = dist === null ? "" : (dist === 0 ? "🟢 Đã tới tuyến thoát!" : `🧭 Còn ${dist} hàng tới tuyến thoát`);
-        const shieldTxt = shield ? " · 🛡️ đang lặn sâu" : "";
-        subSmall = `${escTxt}${shieldTxt} · 🌀 lặn ${dives}/${divesMax}`;
+        const escTxt = dist === null ? "" : (dist === 0 ? ctx.t("🟢 Đã tới tuyến thoát!", "🟢 Reached the escape line!") : ctx.t(`🧭 Còn ${dist} hàng tới tuyến thoát`, `🧭 ${dist} row(s) to the escape line`));
+        const shieldTxt = shield ? ctx.t(" · 🛡️ đang lặn sâu", " · 🛡️ diving deep") : "";
+        subSmall = ctx.t(`${escTxt}${shieldTxt} · 🌀 lặn ${dives}/${divesMax}`, `${escTxt}${shieldTxt} · 🌀 dives ${dives}/${divesMax}`);
       } else {
-        subSmall = "Mục tiêu đang ẩn dưới biển";
+        subSmall = ctx.t("Mục tiêu đang ẩn dưới biển", "The target is hidden underwater");
       }
       hud.innerHTML = `
         <div class="sh-panel ${subActive ? "active" : ""}">
-          <span>🟡 P1 Tàu ngầm</span>
+          <span>${ctx.t("🟡 P1 Tàu ngầm", "🟡 P1 Submarine")}</span>
           <b>${subHp}/${MAX_HP} HP</b>
           <small>${subSmall}</small>
         </div>
         <div class="sh-mid">
-          <b>${phase === "setup" ? "Chuẩn bị" : over() ? "Kết thúc" : "Pha " + round}</b>
-          <span>${phase === "play" ? (turn === 0 ? "Tàu ngầm di chuyển" : "Thợ săn dò tìm") : "P1 chọn điểm lặn bí mật"}</span>
+          <b>${phase === "setup" ? ctx.t("Chuẩn bị", "Setup") : over() ? ctx.t("Kết thúc", "Game over") : ctx.t(`Pha ${round}`, `Phase ${round}`)}</b>
+          <span>${phase === "play" ? (turn === 0 ? ctx.t("Tàu ngầm di chuyển", "Submarine moves") : ctx.t("Thợ săn dò tìm", "Hunter searches")) : ctx.t("P1 chọn điểm lặn bí mật", "P1 picks a secret dive point")}</span>
           <small>${lastNoise?.text || log[0] || ""}</small>
         </div>
         <div class="sh-panel ${hunterActive ? "active" : ""}">
-          <span>🎯 P2 Thợ săn</span>
-          <b>${drones}/${dronesMax} drone · ${charges}/${chargesMax} mìn</b>
-          <small>${ctx.mySeat === 1 ? "Bạn dùng sonar, drone và mìn sâu" : "Đối thủ đang khoanh vùng bạn"}</small>
+          <span>${ctx.t("🎯 P2 Thợ săn", "🎯 P2 Hunter")}</span>
+          <b>${ctx.t(`${drones}/${dronesMax} drone · ${charges}/${chargesMax} mìn`, `${drones}/${dronesMax} drones · ${charges}/${chargesMax} mines`)}</b>
+          <small>${ctx.mySeat === 1 ? ctx.t("Bạn dùng sonar, drone và mìn sâu", "You use sonar, drones and depth charges") : ctx.t("Đối thủ đang khoanh vùng bạn", "The opponent is narrowing you down")}</small>
         </div>
       `;
     }
 
     function renderControls() {
       if (!ctx.isOnline) {
-        controls.innerHTML = `<div class="sh-help">Submarine Hunt chỉ chơi online để giữ bí mật vị trí tàu ngầm.</div>`;
+        controls.innerHTML = `<div class="sh-help">${ctx.t("Submarine Hunt chỉ chơi online để giữ bí mật vị trí tàu ngầm.", "Submarine Hunt is online-only to keep the submarine's position secret.")}</div>`;
         return;
       }
       if (phase === "setup") {
         if (ctx.mySeat === 0) {
           controls.innerHTML = `
-            <div class="sh-help">Chọn một ô ở 2 hàng dưới để lặn. Vị trí này không gửi cho đối thủ.</div>
-            <button class="btn primary" data-confirm ${pendingStart ? "" : "disabled"}>Xác nhận điểm lặn</button>
+            <div class="sh-help">${ctx.t("Chọn một ô ở 2 hàng dưới để lặn. Vị trí này không gửi cho đối thủ.", "Pick a cell in the bottom 2 rows to dive. This position isn't sent to the opponent.")}</div>
+            <button class="btn primary" data-confirm ${pendingStart ? "" : "disabled"}>${ctx.t("Xác nhận điểm lặn", "Confirm dive point")}</button>
           `;
           const btn = controls.querySelector("[data-confirm]");
           btn?.addEventListener("click", confirmStart);
         } else {
-          controls.innerHTML = `<div class="sh-help">Đang chờ P1 chọn vị trí tàu ngầm bí mật...</div>`;
+          controls.innerHTML = `<div class="sh-help">${ctx.t("Đang chờ P1 chọn vị trí tàu ngầm bí mật...", "Waiting for P1 to choose a secret submarine position...")}</div>`;
         }
         return;
       }
@@ -540,19 +541,19 @@
       if (ctx.mySeat === 0) {
         const disabled = turn !== 0 || over();
         controls.innerHTML = `
-          <button class="btn small sh-mode ${mode === "move" ? "active" : ""}" data-mode="move" ${disabled ? "disabled" : ""}><b>Di chuyển</b><small>đi 1 ô, tạo tiếng ồn vùng</small></button>
-          <button class="btn small sh-mode ${mode === "silent" ? "active" : ""}" data-mode="silent" ${disabled ? "disabled" : ""}><b>Chạy im</b><small>đi 1 ô, không phát vùng</small></button>
-          <button class="btn small sh-mode ${mode === "decoy" ? "active" : ""}" data-mode="decoy" ${disabled ? "disabled" : ""}><b>Mồi âm</b><small>đứng yên, tạo tín hiệu giả</small></button>
-          <button class="btn small sh-mode sh-dive" data-dive="1" ${disabled || dives <= 0 ? "disabled" : ""}><b>🌀 Lặn sâu</b><small>chặn 1 quả mìn · còn ${dives}</small></button>
+          <button class="btn small sh-mode ${mode === "move" ? "active" : ""}" data-mode="move" ${disabled ? "disabled" : ""}><b>${ctx.t("Di chuyển", "Move")}</b><small>${ctx.t("đi 1 ô, tạo tiếng ồn vùng", "move 1 cell, makes zone noise")}</small></button>
+          <button class="btn small sh-mode ${mode === "silent" ? "active" : ""}" data-mode="silent" ${disabled ? "disabled" : ""}><b>${ctx.t("Chạy im", "Silent run")}</b><small>${ctx.t("đi 1 ô, không phát vùng", "move 1 cell, no zone signal")}</small></button>
+          <button class="btn small sh-mode ${mode === "decoy" ? "active" : ""}" data-mode="decoy" ${disabled ? "disabled" : ""}><b>${ctx.t("Mồi âm", "Decoy")}</b><small>${ctx.t("đứng yên, tạo tín hiệu giả", "stay put, emit a fake signal")}</small></button>
+          <button class="btn small sh-mode sh-dive" data-dive="1" ${disabled || dives <= 0 ? "disabled" : ""}><b>${ctx.t("🌀 Lặn sâu", "🌀 Deep dive")}</b><small>${ctx.t(`chặn 1 quả mìn · còn ${dives}`, `block 1 mine · ${dives} left`)}</small></button>
         `;
         const diveBtn = controls.querySelector("[data-dive]");
         diveBtn?.addEventListener("click", doDive);
       } else {
         const disabled = turn !== 1 || awaiting || over();
         controls.innerHTML = `
-          <button class="btn small sh-mode ${mode === "sonar" ? "active" : ""}" data-mode="sonar" ${disabled ? "disabled" : ""}><b>Sonar</b><small>ping khoảng cách</small></button>
-          <button class="btn small sh-mode ${mode === "drone" ? "active" : ""}" data-mode="drone" ${disabled || drones <= 0 ? "disabled" : ""}><b>Drone</b><small>dò vùng 3x3 · còn ${drones}</small></button>
-          <button class="btn small sh-mode ${mode === "charge" ? "active" : ""}" data-mode="charge" ${disabled || charges <= 0 ? "disabled" : ""}><b>Mìn sâu</b><small>gây sát thương · còn ${charges}</small></button>
+          <button class="btn small sh-mode ${mode === "sonar" ? "active" : ""}" data-mode="sonar" ${disabled ? "disabled" : ""}><b>${ctx.t("Sonar", "Sonar")}</b><small>${ctx.t("ping khoảng cách", "ping distance")}</small></button>
+          <button class="btn small sh-mode ${mode === "drone" ? "active" : ""}" data-mode="drone" ${disabled || drones <= 0 ? "disabled" : ""}><b>${ctx.t("Drone", "Drone")}</b><small>${ctx.t(`dò vùng 3x3 · còn ${drones}`, `scan 3x3 · ${drones} left`)}</small></button>
+          <button class="btn small sh-mode ${mode === "charge" ? "active" : ""}" data-mode="charge" ${disabled || charges <= 0 ? "disabled" : ""}><b>${ctx.t("Mìn sâu", "Depth charge")}</b><small>${ctx.t(`gây sát thương · còn ${charges}`, `deals damage · ${charges} left`)}</small></button>
         `;
       }
       controls.querySelectorAll("[data-mode]").forEach((btn) => {
@@ -619,38 +620,38 @@
 
     function renderIntel() {
       intel.innerHTML = `
-        <div class="sh-log"><b>Nhật ký sonar</b>${log.map((x) => `<span>${x}</span>`).join("")}</div>
+        <div class="sh-log"><b>${ctx.t("Nhật ký sonar", "Sonar log")}</b>${log.map((x) => `<span>${x}</span>`).join("")}</div>
         <div class="sh-legend">
-          <span><b>SONAR</b><small>GẦN/VỪA/XA theo khoảng cách.</small></span>
-          <span><b>DRONE</b><small>Quét vùng 3x3 hoặc trả hướng âm.</small></span>
-          <span><b>MÌN</b><small>Trúng gây 2 sát thương, sát cạnh gây 1.</small></span>
-          <span><b>SUB xanh</b><small>Tàu ngầm thoát nếu lên hàng trên cùng.</small></span>
+          <span><b>${ctx.t("SONAR", "SONAR")}</b><small>${ctx.t("GẦN/VỪA/XA theo khoảng cách.", "NEAR/MID/FAR by distance.")}</small></span>
+          <span><b>${ctx.t("DRONE", "DRONE")}</b><small>${ctx.t("Quét vùng 3x3 hoặc trả hướng âm.", "Scan a 3x3 area or return a bearing.")}</small></span>
+          <span><b>${ctx.t("MÌN", "MINE")}</b><small>${ctx.t("Trúng gây 2 sát thương, sát cạnh gây 1.", "Direct hit deals 2 damage, adjacent deals 1.")}</small></span>
+          <span><b>${ctx.t("SUB xanh", "Blue SUB")}</b><small>${ctx.t("Tàu ngầm thoát nếu lên hàng trên cùng.", "The submarine escapes if it reaches the top row.")}</small></span>
         </div>
       `;
     }
 
     function updateStatus() {
       if (!ctx.isOnline) {
-        ctx.setStatus("Submarine Hunt chỉ chơi online để giữ bí mật vị trí tàu ngầm.");
+        ctx.setStatus(ctx.t("Submarine Hunt chỉ chơi online để giữ bí mật vị trí tàu ngầm.", "Submarine Hunt is online-only to keep the submarine's position secret."));
         return;
       }
       if (phase === "setup") {
-        ctx.setStatus(ctx.mySeat === 0 ? "Chọn điểm lặn ở 2 hàng dưới rồi xác nhận." : "Đang chờ tàu ngầm chọn điểm lặn.");
+        ctx.setStatus(ctx.mySeat === 0 ? ctx.t("Chọn điểm lặn ở 2 hàng dưới rồi xác nhận.", "Pick a dive point in the bottom 2 rows and confirm.") : ctx.t("Đang chờ tàu ngầm chọn điểm lặn.", "Waiting for the submarine to choose a dive point."));
         return;
       }
       if (over()) return;
       if (awaiting) {
-        ctx.setStatus("Đang chờ tàu ngầm trả kết quả dò tìm...");
+        ctx.setStatus(ctx.t("Đang chờ tàu ngầm trả kết quả dò tìm...", "Waiting for the submarine to return scan results..."));
         return;
       }
       if (turn !== ctx.mySeat) {
-        ctx.setStatus(turn === 0 ? "Tàu ngầm đang đổi vị trí." : "Thợ săn đang dò tìm.");
+        ctx.setStatus(turn === 0 ? ctx.t("Tàu ngầm đang đổi vị trí.", "The submarine is repositioning.") : ctx.t("Thợ săn đang dò tìm.", "The hunter is searching."));
         return;
       }
       if (ctx.mySeat === 0) {
-        ctx.setStatus(mode === "decoy" ? "Chọn ô quanh tàu để phát tín hiệu giả." : "Chọn ô kề để di chuyển. Hàng trên cùng là tuyến thoát.");
+        ctx.setStatus(mode === "decoy" ? ctx.t("Chọn ô quanh tàu để phát tín hiệu giả.", "Pick a cell around the sub to emit a decoy signal.") : ctx.t("Chọn ô kề để di chuyển. Hàng trên cùng là tuyến thoát.", "Pick an adjacent cell to move. The top row is the escape line."));
       } else {
-        ctx.setStatus("Chọn một ô biển để dùng " + labelForTool(mode).toLowerCase() + ".");
+        ctx.setStatus(ctx.t("Chọn một ô biển để dùng " + labelForTool(mode).toLowerCase() + ".", "Pick a sea cell to use " + labelForTool(mode).toLowerCase() + "."));
       }
     }
 
@@ -660,7 +661,7 @@
       return { applyMove: () => {} };
     }
 
-    ctx.setNames(`P1 Tàu ngầm${ctx.mySeat === 0 ? " (bạn)" : ""}`, `P2 Thợ săn${ctx.mySeat === 1 ? " (bạn)" : ""}`);
+    ctx.setNames(ctx.t(`P1 Tàu ngầm${ctx.mySeat === 0 ? " (bạn)" : ""}`, `P1 Submarine${ctx.mySeat === 0 ? " (you)" : ""}`), ctx.t(`P2 Thợ săn${ctx.mySeat === 1 ? " (bạn)" : ""}`, `P2 Hunter${ctx.mySeat === 1 ? " (you)" : ""}`));
     ctx.setTurn(0);
     render();
     updateStatus();
