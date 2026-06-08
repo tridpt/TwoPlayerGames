@@ -27,6 +27,12 @@
   function create(ctx) {
     const o = ctx.options || {};
     const DURATION = o.duration || 60;
+    // bản dịch tên cá & vật phẩm (FISH/ITEMS/BOSS là hằng module-level)
+    const NAME_EN = {
+      "Cá rô": "Perch", "Cá nhiệt đới": "Tropical fish", "Cá nóc": "Pufferfish", "Mực": "Squid", "Bạch tuộc": "Octopus", "Cá heo": "Dolphin", "Cá mập": "Shark", "Cá Voi Boss": "Whale Boss",
+      "Mồi xịn": "Premium bait", "Sao x2": "x2 Star", "Nam châm": "Magnet", "Ngọc biển": "Sea gem", "Giày rách": "Old boot",
+    };
+    const entName = (def) => ctx.t(def.name, NAME_EN[def.name] || def.name);
     const W = 580, H = 460;
     const WATER_TOP = 78;
     const ANCHOR = { x: W / 2, y: 12 };  // đỉnh cần câu (dây buông xuống từ đây)
@@ -96,7 +102,7 @@
 
     const hint = document.createElement("div");
     hint.className = "fh-hint";
-    hint.textContent = "Lưỡi câu tự đung đưa — bấm PHÍM CÁCH để thả câu xuống. Hộp 🎁 phát sáng là vật phẩm bí ẩn, câu lên mới biết là gì!";
+    hint.textContent = ctx.t("Lưỡi câu tự đung đưa — bấm PHÍM CÁCH để thả câu xuống. Hộp 🎁 phát sáng là vật phẩm bí ẩn, câu lên mới biết là gì!", "The hook swings on its own — press SPACE to drop it. A glowing 🎁 is a mystery item; you only learn what it is after reeling it up!");
     root.appendChild(hint);
 
     function rng() { return Math.random(); }
@@ -184,7 +190,7 @@
       ent.x = tip.x; ent.y = tip.y;
       if (ent.kind === "fish" && magnetNext) {
         magnetNext = false;
-        flash("🧲 Nam châm kéo dính!");
+        flash(ctx.t("🧲 Nam châm kéo dính!", "🧲 Magnet snaps it on!"));
         return reelSuccess();
       }
       hookState = "reel";
@@ -203,8 +209,8 @@
       hookState = "retract";
       if (ent && ent.kind === "fish") {
         let pts = ent.def.pts;
-        if (starNext) { pts *= 2; starNext = false; flash(`⭐ x2 ${ent.def.name}! +${pts}`); }
-        else flash(`${ent.isBoss ? "👑 HẠ BOSS! " : ""}Bắt được ${ent.def.emoji} ${ent.def.name}! +${pts}`);
+        if (starNext) { pts *= 2; starNext = false; flash(ctx.t(`⭐ x2 ${ent.def.name}! +${pts}`, `⭐ x2 ${entName(ent.def)}! +${pts}`)); }
+        else flash(ctx.t(`${ent.isBoss ? "👑 HẠ BOSS! " : ""}Bắt được ${ent.def.emoji} ${ent.def.name}! +${pts}`, `${ent.isBoss ? "👑 BOSS DOWN! " : ""}Caught ${ent.def.emoji} ${entName(ent.def)}! +${pts}`));
         myScore += pts; myCount += 1;
         ctx.sound("capture");
         relayScore(); renderTop();
@@ -225,7 +231,7 @@
       attached = null;
       reel.classList.add("fh-hidden");
       hookState = "retract";
-      flash(ent && ent.kind === "item" ? "Vuột mất vật phẩm!" : `${ent ? ent.def.emoji : "Cá"} sổng mất rồi!`);
+      flash(ent && ent.kind === "item" ? ctx.t("Vuột mất vật phẩm!", "The item got away!") : ctx.t(`${ent ? ent.def.emoji : "Cá"} sổng mất rồi!`, `${ent ? ent.def.emoji : "The fish"} slipped away!`));
       ctx.sound("miss");
       if (ent) ent.dir = rng() < 0.5 ? 1 : -1;
       if (baitNext) baitNext = false;
@@ -233,11 +239,11 @@
     }
 
     function applyItem(def) {
-      if (def.kind === "bait") { baitNext = true; flash("🪱 Mồi xịn: con cá kế kéo dễ hơn!"); }
-      else if (def.kind === "star") { starNext = true; flash("⭐ Sao x2: con cá kế gấp đôi điểm!"); }
-      else if (def.kind === "magnet") { magnetNext = true; flash("🧲 Nam châm: con cá kế tự dính!"); }
-      else if (def.kind === "gem") { myScore += 6; flash("💎 Ngọc biển! +6 điểm"); }
-      else { flash("🥾 Giày rách... chẳng được gì."); }
+      if (def.kind === "bait") { baitNext = true; flash(ctx.t("🪱 Mồi xịn: con cá kế kéo dễ hơn!", "🪱 Premium bait: next fish reels easier!")); }
+      else if (def.kind === "star") { starNext = true; flash(ctx.t("⭐ Sao x2: con cá kế gấp đôi điểm!", "⭐ x2 Star: next fish scores double!")); }
+      else if (def.kind === "magnet") { magnetNext = true; flash(ctx.t("🧲 Nam châm: con cá kế tự dính!", "🧲 Magnet: next fish auto-hooks!")); }
+      else if (def.kind === "gem") { myScore += 6; flash(ctx.t("💎 Ngọc biển! +6 điểm", "💎 Sea gem! +6 points")); }
+      else { flash(ctx.t("🥾 Giày rách... chẳng được gì.", "🥾 Old boot... nothing gained.")); }
       ctx.sound(def.kind === "junk" ? "miss" : "capture");
     }
 
@@ -378,12 +384,12 @@
         g.fillStyle = "rgba(0,0,0,0.42)"; g.fillRect(0, 0, W, H);
         g.fillStyle = "#ffd166"; g.font = "900 76px Segoe UI, sans-serif";
         g.textAlign = "center"; g.textBaseline = "middle";
-        g.fillText(countdown > 0 ? String(countdown) : "CÂU!", W / 2, H / 2);
+        g.fillText(countdown > 0 ? String(countdown) : ctx.t("CÂU!", "FISH!"), W / 2, H / 2);
       } else if (phase === "connect") {
         g.fillStyle = "rgba(0,0,0,0.42)"; g.fillRect(0, 0, W, H);
         g.fillStyle = "#e9ecff"; g.font = "800 22px Segoe UI, sans-serif";
         g.textAlign = "center"; g.textBaseline = "middle";
-        g.fillText("Đang chờ đối thủ...", W / 2, H / 2);
+        g.fillText(ctx.t("Đang chờ đối thủ...", "Waiting for the opponent..."), W / 2, H / 2);
       } else if (phase === "over") {
         // banner HẾT GIỜ — không che kín để cá vẫn bơi phía sau
         const bw = 280, bh = 64, cx = W / 2, cy = H / 2;
@@ -394,9 +400,9 @@
         roundRect(g, cx - bw / 2, cy - bh / 2, bw, bh, 16); g.stroke();
         g.fillStyle = "#ffd166"; g.font = "900 30px Segoe UI, sans-serif";
         g.textAlign = "center"; g.textBaseline = "middle";
-        g.fillText("⏰ HẾT GIỜ!", cx, cy - 9);
+        g.fillText(ctx.t("⏰ HẾT GIỜ!", "⏰ TIME UP!"), cx, cy - 9);
         g.fillStyle = "#e9ecff"; g.font = "700 15px Segoe UI, sans-serif";
-        g.fillText(`Bạn câu được ${myScore} điểm (${myCount} con)`, cx, cy + 16);
+        g.fillText(ctx.t(`Bạn câu được ${myScore} điểm (${myCount} con)`, `You caught ${myScore} points (${myCount} fish)`), cx, cy + 16);
         g.restore();
       }
 
@@ -527,18 +533,18 @@
     function renderTop() {
       top.innerHTML = `
         <div class="fh-score me">
-          <span>🎣 Bạn</span>
-          <b>${myScore} đ</b>
-          <small>🐟 ${myCount} con</small>
+          <span>${ctx.t("🎣 Bạn", "🎣 You")}</span>
+          <b>${ctx.t(`${myScore} đ`, `${myScore} pt`)}</b>
+          <small>${ctx.t(`🐟 ${myCount} con`, `🐟 ${myCount} fish`)}</small>
         </div>
         <div class="fh-timer ${timeLeft <= 10 ? "low" : ""}">
           <b>${Math.max(0, Math.ceil(timeLeft))}</b>
-          <small>giây</small>
+          <small>${ctx.t("giây", "sec")}</small>
         </div>
         <div class="fh-score opp">
-          <span>👤 Đối thủ</span>
-          <b>${oppScore} đ</b>
-          <small>🐟 ${oppCount} con</small>
+          <span>${ctx.t("👤 Đối thủ", "👤 Opponent")}</span>
+          <b>${ctx.t(`${oppScore} đ`, `${oppScore} pt`)}</b>
+          <small>${ctx.t(`🐟 ${oppCount} con`, `🐟 ${oppCount} fish`)}</small>
         </div>
       `;
     }
@@ -548,22 +554,22 @@
       reel.classList.remove("fh-hidden");
       const isItem = attached.kind === "item";
       const w = isItem ? 1 : attached.def.weight;
-      const heavy = "🏋️".repeat(Math.min(w, 7)) || "nhẹ";
+      const heavy = "🏋️".repeat(Math.min(w, 7)) || ctx.t("nhẹ", "light");
       const pct = Math.max(0, Math.min(100, progress));
       const col = pct > 66 ? "#6ee7b7" : pct > 33 ? "#ffd166" : "#ff5d73";
-      const headTxt = isItem ? "🎁 Vật phẩm bí ẩn" : `${attached.def.emoji} ${attached.def.name} <span class="fh-reel-w">${heavy}</span>`;
+      const headTxt = isItem ? ctx.t("🎁 Vật phẩm bí ẩn", "🎁 Mystery item") : `${attached.def.emoji} ${entName(attached.def)} <span class="fh-reel-w">${heavy}</span>`;
       reel.innerHTML = `
         <div class="fh-reel-head">${headTxt}</div>
-        <div class="fh-reel-key">Bấm liên tục phím <kbd>${reelLetter.toUpperCase()}</kbd></div>
+        <div class="fh-reel-key">${ctx.t("Bấm liên tục phím", "Hammer the key")} <kbd>${reelLetter.toUpperCase()}</kbd></div>
         <div class="fh-reel-bar"><i style="width:${pct}%;background:${col}"></i></div>
       `;
     }
 
     function renderBoosts() {
       const tags = [];
-      if (baitNext) tags.push("🪱 mồi xịn");
-      if (starNext) tags.push("⭐ x2");
-      if (magnetNext) tags.push("🧲 nam châm");
+      if (baitNext) tags.push(ctx.t("🪱 mồi xịn", "🪱 bait"));
+      if (starNext) tags.push(ctx.t("⭐ x2", "⭐ x2"));
+      if (magnetNext) tags.push(ctx.t("🧲 nam châm", "🧲 magnet"));
       boosts.innerHTML = tags.length ? tags.map((t) => `<span>${t}</span>`).join("") : "";
     }
 
@@ -572,7 +578,7 @@
       if (phase !== "connect" && ctx.isOnline) return;
       phase = "countdown";
       countdown = 3;
-      ctx.setStatus("Chuẩn bị...");
+      ctx.setStatus(ctx.t("Chuẩn bị...", "Get ready..."));
       renderTop();
       if (!raf) { lastT = performance.now(); raf = requestAnimationFrame(loop); }
       cdInt = setInterval(() => {
@@ -587,7 +593,7 @@
       spawnBoss();
       spawnItem();
       itemAcc = 1.6;
-      ctx.setStatus("Câu nào! PHÍM CÁCH thả câu, bấm phím số hiện ra để kéo cá lên.");
+      ctx.setStatus(ctx.t("Câu nào! PHÍM CÁCH thả câu, bấm phím số hiện ra để kéo cá lên.", "Cast away! SPACE drops the hook, hammer the number key shown to reel fish in."));
       renderTop();
       timerInt = setInterval(() => {
         timeLeft -= 1;
@@ -604,7 +610,7 @@
       reel.classList.add("fh-hidden");
       myDone = true;
       if (ctx.isOnline) ctx.sendMove({ kind: "final", score: myScore, count: myCount });
-      ctx.setStatus("Hết giờ! Đang tổng kết...");
+      ctx.setStatus(ctx.t("Hết giờ! Đang tổng kết...", "Time up! Tallying results..."));
       tryDecide();
       if (ctx.isOnline) setTimeout(() => { if (!decided) decide(); }, 3000);
     }
@@ -619,16 +625,16 @@
       if (decided) return;
       decided = true;
       // KHÔNG dừng vòng lặp: cảnh hồ vẫn sống động, chỉ là không câu được nữa
-      if (!ctx.isOnline) { ctx.setStatus(`🏁 Luyện tập xong — ${myScore} điểm (${myCount} con).`); return; }
+      if (!ctx.isOnline) { ctx.setStatus(ctx.t(`🏁 Luyện tập xong — ${myScore} điểm (${myCount} con).`, `🏁 Practice done — ${myScore} points (${myCount} fish).`)); return; }
       let winner;
       if (myScore === oppScore) winner = -1;
       else if (myScore > oppScore) winner = ctx.mySeat;
       else winner = 1 - ctx.mySeat;
-      if (winner === -1) { ctx.setStatus(`🤝 Hòa! Cả hai cùng ${myScore} điểm.`); return; }
+      if (winner === -1) { ctx.setStatus(ctx.t(`🤝 Hòa! Cả hai cùng ${myScore} điểm.`, `🤝 Draw! Both scored ${myScore} points.`)); return; }
       ctx.incScore(winner);
       ctx.setStatus(winner === ctx.mySeat
-        ? `🎉 Bạn thắng! ${myScore} điểm so với ${oppScore}.`
-        : `💀 Bạn thua. ${myScore} điểm, đối thủ ${oppScore}.`);
+        ? ctx.t(`🎉 Bạn thắng! ${myScore} điểm so với ${oppScore}.`, `🎉 You win! ${myScore} points vs ${oppScore}.`)
+        : ctx.t(`💀 Bạn thua. ${myScore} điểm, đối thủ ${oppScore}.`, `💀 You lose. ${myScore} points, opponent ${oppScore}.`));
     }
 
     function relayScore() {
@@ -665,14 +671,14 @@
     // ----- khởi tạo -----
     renderTop(); renderBoosts(); draw();
     if (ctx.isOnline) {
-      ctx.setNames("🎣 Bạn", "👤 Đối thủ");
+      ctx.setNames(ctx.t("🎣 Bạn", "🎣 You"), ctx.t("👤 Đối thủ", "👤 Opponent"));
       ctx.setTurn(-1);
       iReady = true;
       ctx.sendMove({ kind: "ready" });
       if (oppReady) startCountdown();
-      else ctx.setStatus("Đang chờ đối thủ vào hồ câu...");
+      else ctx.setStatus(ctx.t("Đang chờ đối thủ vào hồ câu...", "Waiting for the opponent to join the pond..."));
     } else {
-      ctx.setStatus("Chế độ luyện tập 1 người. PHÍM CÁCH thả câu, bấm phím số để kéo cá.");
+      ctx.setStatus(ctx.t("Chế độ luyện tập 1 người. PHÍM CÁCH thả câu, bấm phím số để kéo cá.", "Single-player practice. SPACE to cast, hammer the number key to reel fish."));
       startCountdown();
     }
     return { applyMove, destroy: teardown };

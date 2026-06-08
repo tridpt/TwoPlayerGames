@@ -37,14 +37,14 @@
     root.innerHTML = `
       <div class="hs-info">
         <div class="hs-stat hs-st-cap">
-          <span>🏹 Bắt <b class="hs-captured">0/${CAPTURE_TARGET}</b></span>
+          <span>${ctx.t("🏹 Bắt", "🏹 Caught")} <b class="hs-captured">0/${CAPTURE_TARGET}</b></span>
           <i class="hs-bar cap"><i></i></i>
         </div>
         <div class="hs-stat hs-st-left">
-          <span>🐗 Bầy còn <b class="hs-left">${SWARM.length}</b></span>
+          <span>${ctx.t("🐗 Bầy còn", "🐗 Swarm left")} <b class="hs-left">${SWARM.length}</b></span>
         </div>
         <div class="hs-stat hs-st-surv">
-          <span>⏳ Sống sót <b class="hs-survive">0/${SURVIVE_TURNS}</b></span>
+          <span>${ctx.t("⏳ Sống sót", "⏳ Survived")} <b class="hs-survive">0/${SURVIVE_TURNS}</b></span>
           <i class="hs-bar surv"><i></i></i>
         </div>
       </div>
@@ -202,19 +202,19 @@
 
     function checkEnd(lastMover) {
       if (captured >= CAPTURE_TARGET || swarmLeft() === 0) {
-        finish(0, `🎉 Thợ săn thắng! Đã bắt đủ ${CAPTURE_TARGET} quân Bầy đàn.`);
+        finish(0, ctx.t(`🎉 Thợ săn thắng! Đã bắt đủ ${CAPTURE_TARGET} quân Bầy đàn.`, `🎉 Hunters win! Caught all ${CAPTURE_TARGET} Swarm pieces.`));
         return true;
       }
       if (allLegalMoves(0).length === 0) {
-        finish(1, "🎉 Bầy đàn thắng! Cả hai thợ săn đã bị khóa đường.");
+        finish(1, ctx.t("🎉 Bầy đàn thắng! Cả hai thợ săn đã bị khóa đường.", "🎉 Swarm wins! Both hunters are locked in."));
         return true;
       }
       if (allLegalMoves(1).length === 0) {
-        finish(0, "🎉 Thợ săn thắng! Bầy đàn không còn quân nào di chuyển được.");
+        finish(0, ctx.t("🎉 Thợ săn thắng! Bầy đàn không còn quân nào di chuyển được.", "🎉 Hunters win! The Swarm has no legal moves left."));
         return true;
       }
       if (lastMover === 1 && swarmTurns >= SURVIVE_TURNS) {
-        finish(1, `🎉 Bầy đàn thắng! Đã sống sót qua ${SURVIVE_TURNS} lượt mà chưa bị quét sạch.`);
+        finish(1, ctx.t(`🎉 Bầy đàn thắng! Đã sống sót qua ${SURVIVE_TURNS} lượt mà chưa bị quét sạch.`, `🎉 Swarm wins! Survived ${SURVIVE_TURNS} turns without being wiped out.`));
         return true;
       }
       return false;
@@ -231,17 +231,17 @@
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus(`Đối thủ đang đi (${turn === 0 ? "Thợ săn" : "Bầy đàn"})...`);
+        ctx.setStatus(ctx.t(`Đối thủ đang đi (${turn === 0 ? "Thợ săn" : "Bầy đàn"})...`, `Opponent is moving (${turn === 0 ? "Hunters" : "Swarm"})...`));
         return;
       }
       if (selected >= 0) {
         const moves = legalMovesFrom(selected).length;
-        const action = turn === 0 ? "đi (tối đa 2 ô) hoặc bắt quân lẻ" : "áp sát để bao vây/bảo vệ nhau";
-        ctx.setStatus(`${turn === 0 ? "🏹 Thợ săn" : "🐗 Bầy đàn"}: chọn ô đến để ${action}. Có ${moves} nước.`);
+        const action = turn === 0 ? ctx.t("đi (tối đa 2 ô) hoặc bắt quân lẻ", "move (up to 2 cells) or catch a lone piece") : ctx.t("áp sát để bao vây/bảo vệ nhau", "close in to surround/protect each other");
+        ctx.setStatus(ctx.t(`${turn === 0 ? "🏹 Thợ săn" : "🐗 Bầy đàn"}: chọn ô đến để ${action}. Có ${moves} nước.`, `${turn === 0 ? "🏹 Hunters" : "🐗 Swarm"}: pick a destination to ${action}. ${moves} moves available.`));
         return;
       }
-      if (turn === 0) ctx.setStatus(`🏹 Thợ săn: chọn 1 trong 2 quân để săn. Bắt ${captured}/${CAPTURE_TARGET}.`);
-      else ctx.setStatus(`🐗 Bầy đàn: chọn quân để áp sát, bảo vệ nhau (🛡️) và khóa đường. Sống sót ${swarmTurns}/${SURVIVE_TURNS}.`);
+      if (turn === 0) ctx.setStatus(ctx.t(`🏹 Thợ săn: chọn 1 trong 2 quân để săn. Bắt ${captured}/${CAPTURE_TARGET}.`, `🏹 Hunters: pick one of your 2 pieces to hunt. Caught ${captured}/${CAPTURE_TARGET}.`));
+      else ctx.setStatus(ctx.t(`🐗 Bầy đàn: chọn quân để áp sát, bảo vệ nhau (🛡️) và khóa đường. Sống sót ${swarmTurns}/${SURVIVE_TURNS}.`, `🐗 Swarm: pick a piece to close in, protect each other (🛡️) and block paths. Survived ${swarmTurns}/${SURVIVE_TURNS}.`));
     }
 
     function render() {
@@ -293,7 +293,7 @@
       });
     }
 
-    ctx.setNames("Thợ săn 🏹", "Bầy đàn 🐗");
+    ctx.setNames(ctx.t("Thợ săn 🏹", "Hunters 🏹"), ctx.t("Bầy đàn 🐗", "Swarm 🐗"));
     ctx.setTurn(0);
     updateStatus();
     render();
