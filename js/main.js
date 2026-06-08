@@ -704,11 +704,7 @@
   function renderLeaderboard() {
     if (!el.leadList) return;
     const stats = getStats();
-    const rows = Object.keys(stats)
-      .map((id) => ({ id, ...stats[id] }))
-      .filter((r) => r.played > 0)
-      .sort((a, b) => (b.p1 - a.p1) || ((b.bestStreak || 0) - (a.bestStreak || 0)) || (b.played - a.played))
-      .slice(0, 10);
+    const rows = (window.StatsUtil ? StatsUtil.sortLeaderboard(stats) : []).slice(0, 10);
     if (!rows.length) {
       el.leadList.innerHTML = `<div class="lead-empty">Chưa có dữ liệu. Thắng vài ván để lên bảng xếp hạng!</div>`;
       return;
@@ -732,10 +728,7 @@
 
   const MODE_LABEL = { local: "👥 Chung máy", ai: "🤖 Đấu máy", online: "🌐 Online" };
   function histOutcome(h) {
-    if (h.kind === "draw") return "draw";
-    if (h.mode === "ai") return h.winner === 0 ? "win" : "lose";
-    if (h.mode === "online" && typeof h.seat === "number") return h.winner === h.seat ? "win" : "lose";
-    return "win"; // chung máy: tính là có người thắng
+    return window.StatsUtil ? StatsUtil.histOutcome(h) : (h && h.kind === "draw" ? "draw" : "win");
   }
   function renderActivityChart() {
     if (!el.activityChart) return;
@@ -745,13 +738,13 @@
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
-      buckets.push({ label: d.getDate() + "/" + (d.getMonth() + 1), ymd: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`, win: 0, lose: 0, draw: 0 });
+      buckets.push({ label: d.getDate() + "/" + (d.getMonth() + 1), ymd: window.StatsUtil ? StatsUtil.dateKey(d) : (d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate()), win: 0, lose: 0, draw: 0 });
     }
     const byYmd = {};
     buckets.forEach((b) => { byYmd[b.ymd] = b; });
     getHistory().forEach((h) => {
       const d = new Date(h.ts);
-      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const key = window.StatsUtil ? StatsUtil.dateKey(d) : (d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate());
       const b = byYmd[key];
       if (b) b[histOutcome(h)]++;
     });
@@ -858,9 +851,8 @@
   function dailyGameId() {
     const games = GameRegistry.games;
     if (!games.length) return null;
-    const t = todayStr();
-    let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
-    return games[h % games.length].id;
+    const idx = window.StatsUtil ? StatsUtil.dailyIndex(todayStr(), games.length) : 0;
+    return games[idx < 0 ? 0 : idx].id;
   }
   function getDaily() { try { return JSON.parse(localStorage.getItem(DAILY_KEY)) || {}; } catch (e) { return {}; } }
   function saveDaily(d) { try { localStorage.setItem(DAILY_KEY, JSON.stringify(d)); } catch (e) { /* ignore */ } }

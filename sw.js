@@ -4,7 +4,7 @@
      chỉ fallback sang cache khi offline. Tránh tình trạng "kẹt bản cũ".
    - Tài nguyên tĩnh khác (ảnh, icon, font): CACHE-FIRST cho nhanh.
 */
-const CACHE = "tpg-v3";
+const CACHE = "tpg-v4";
 const CORE = [
   "./",
   "./index.html",
@@ -14,6 +14,7 @@ const CORE = [
   "./js/registry.js",
   "./js/sound.js",
   "./js/i18n.js",
+  "./js/stats-util.js",
   "./js/vi-dict.js",
   "./js/net.js",
   "./js/main.js",
