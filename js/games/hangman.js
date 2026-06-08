@@ -34,19 +34,19 @@
       setterSeat = seat; guesserSeat = 1 - seat;
       root.innerHTML =
         `<div class="hm-setbox">` +
-        `<h3>Người chơi ${seat + 1}: nhập từ/cụm từ bí mật để đố</h3>` +
-        `<input class="hm-setinput" id="hmSet" placeholder="ví dụ: con mèo" autocomplete="off">` +
-        `<button class="btn primary" id="hmSetBtn">✓ Khóa đáp án</button>` +
+        `<h3>${ctx.t(`Người chơi ${seat + 1}: nhập từ/cụm từ bí mật để đố`, `Player ${seat + 1}: enter a secret word/phrase`)}</h3>` +
+        `<input class="hm-setinput" id="hmSet" placeholder="${ctx.t("ví dụ: con mèo", "e.g. the cat")}" autocomplete="off">` +
+        `<button class="btn primary" id="hmSetBtn">${ctx.t("✓ Khóa đáp án", "✓ Lock answer")}</button>` +
         `<p class="hm-err" id="hmSetErr"></p>` +
-        `<p class="hm-note">Đối thủ sẽ đoán từng chữ cái. Dấu cách được hiện sẵn.</p>` +
+        `<p class="hm-note">${ctx.t("Đối thủ sẽ đoán từng chữ cái. Dấu cách được hiện sẵn.", "Your opponent guesses letter by letter. Spaces are shown.")}</p>` +
         `</div>`;
       const inp = root.querySelector("#hmSet");
       const btn = root.querySelector("#hmSetBtn");
       const err = root.querySelector("#hmSetErr");
       btn.addEventListener("click", () => {
         const val = inp.value.trim();
-        if (val.replace(/\s/g, "").length < 2) { err.textContent = "Cần ít nhất 2 chữ cái."; return; }
-        if (!/[a-zA-ZÀ-ỹ]/.test(val)) { err.textContent = "Phải có chữ cái."; return; }
+        if (val.replace(/\s/g, "").length < 2) { err.textContent = ctx.t("Cần ít nhất 2 chữ cái.", "Need at least 2 letters."); return; }
+        if (!/[a-zA-ZÀ-ỹ]/.test(val)) { err.textContent = ctx.t("Phải có chữ cái.", "Must contain a letter."); return; }
         lockSecret(val);
       });
     }
@@ -99,7 +99,7 @@
     function updateHintBtn() {
       const btn = root.querySelector("#hmHint");
       if (!btn) return;
-      btn.textContent = `💡 Gợi ý (còn ${hintsLeft}) — lộ 1 chữ, tốn 1 lượt sai`;
+      btn.textContent = ctx.t(`💡 Gợi ý (còn ${hintsLeft}) — lộ 1 chữ, tốn 1 lượt sai`, `💡 Hint (${hintsLeft} left) — reveal 1 letter, costs 1 wrong guess`);
       btn.disabled = phase !== "play" || hintsLeft <= 0 || wrong >= MAX_WRONG - 1;
     }
     function onHint() {
@@ -123,9 +123,10 @@
       renderWord();
       renderWrong();
       updateHintBtn();
-      if (revealed.every(Boolean)) return endGame(guesserSeat, "đoán ra đáp án (có dùng gợi ý)");
-      if (wrong >= MAX_WRONG) return endGame(setterSeat, "người đoán đã hết lượt sai");
-      ctx.setStatus(`💡 Đã lộ chữ "${pick.toUpperCase()}". Còn ${MAX_WRONG - wrong} lượt sai.`);
+      if (revealed.every(Boolean)) return endGame(guesserSeat, ctx.t("đoán ra đáp án (có dùng gợi ý)", "guessed the answer (with a hint)"));
+      if (wrong >= MAX_WRONG) return endGame(setterSeat, ctx.t("người đoán đã hết lượt sai", "guesser ran out of wrong guesses"));
+      ctx.setStatus(ctx.t(`💡 Đã lộ chữ "${pick.toUpperCase()}". Còn ${MAX_WRONG - wrong} lượt sai.`,
+        `💡 Revealed "${pick.toUpperCase()}". ${MAX_WRONG - wrong} wrong guesses left.`));
     }
 
     let secretMaskLen = null; // dùng cho phía người đoán (online) khi chưa biết đáp án
@@ -157,7 +158,7 @@
         ctx.sendMove({ kind: "guess", ch });
         guessed.add(ch);
         if (keyEls[ch]) keyEls[ch].disabled = true;
-        ctx.setStatus("Đã đoán, chờ kết quả...");
+        ctx.setStatus(ctx.t("Đã đoán, chờ kết quả...", "Guessed, awaiting result..."));
       } else {
         resolveGuess(ch);
       }
@@ -183,8 +184,8 @@
       renderWord();
       renderWrong();
       // thắng/thua
-      if (revealed.every(Boolean)) return endGame(guesserSeat, "đoán ra đáp án");
-      if (wrong >= MAX_WRONG) return endGame(setterSeat, "người đoán đã hết lượt sai");
+      if (revealed.every(Boolean)) return endGame(guesserSeat, ctx.t("đoán ra đáp án", "guessed the answer"));
+      if (wrong >= MAX_WRONG) return endGame(setterSeat, ctx.t("người đoán đã hết lượt sai", "guesser ran out of wrong guesses"));
       updateHintBtn();
       updateStatus();
     }
@@ -212,7 +213,7 @@
 
     function renderWrong() {
       const el = root.querySelector("#hmWrong");
-      if (el) el.innerHTML = `❌ Sai: <b>${wrong}/${MAX_WRONG}</b> ` +
+      if (el) el.innerHTML = ctx.t(`❌ Sai: <b>${wrong}/${MAX_WRONG}</b> `, `❌ Wrong: <b>${wrong}/${MAX_WRONG}</b> `) +
         (wrong > 0 ? `(${PARTS.slice(0, wrong).join(", ")})` : "");
       drawGallows();
     }
@@ -235,15 +236,17 @@
       revealed = revealed.map(() => true);
       if (!ctx.isOnline || ctx.mySeat === setterSeat) renderWord();
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng — ${reason}! Đáp án: "${secret || "(ẩn)"}"`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng — ${reason}! Đáp án: "${secret || "(ẩn)"}"`,
+        `🎉 Player ${winner + 1} wins — ${reason}! Answer: "${secret || "(hidden)"}"`));
     }
 
     function updateStatus() {
       if (phase !== "play") return;
       if (ctx.isOnline) {
-        ctx.setStatus(iAmGuesser() ? "Lượt bạn đoán — chọn một chữ cái." : "Đối thủ đang đoán...");
+        ctx.setStatus(iAmGuesser() ? ctx.t("Lượt bạn đoán — chọn một chữ cái.", "Your turn to guess — pick a letter.") : ctx.t("Đối thủ đang đoán...", "Opponent is guessing..."));
       } else {
-        ctx.setStatus(`Người chơi ${guesserSeat + 1} đoán chữ cái. Sai tối đa ${MAX_WRONG} lần.`);
+        ctx.setStatus(ctx.t(`Người chơi ${guesserSeat + 1} đoán chữ cái. Sai tối đa ${MAX_WRONG} lần.`,
+          `Player ${guesserSeat + 1} guesses letters. Max ${MAX_WRONG} wrong.`));
       }
     }
 
@@ -284,14 +287,14 @@
     // ---- khởi tạo ----
     if (ctx.isOnline) {
       // người ghế 0 ra đề trước
-      if (ctx.mySeat === 0) { showSetUI(0); ctx.setStatus("Bạn ra đề — nhập từ bí mật."); }
+      if (ctx.mySeat === 0) { showSetUI(0); ctx.setStatus(ctx.t("Bạn ra đề — nhập từ bí mật.", "You set the word — enter a secret word.")); }
       else {
-        root.innerHTML = `<div class="hm-setbox"><h3>⏳ Đang chờ đối thủ ra đề...</h3></div>`;
-        ctx.setStatus("Chờ đối thủ nhập từ bí mật...");
+        root.innerHTML = `<div class="hm-setbox"><h3>${ctx.t("⏳ Đang chờ đối thủ ra đề...", "⏳ Waiting for opponent to set a word...")}</h3></div>`;
+        ctx.setStatus(ctx.t("Chờ đối thủ nhập từ bí mật...", "Waiting for opponent to enter a secret word..."));
       }
     } else {
       showSetUI(0);
-      ctx.setStatus("Người chơi 1 ra đề — nhập từ bí mật để đố người chơi 2.");
+      ctx.setStatus(ctx.t("Người chơi 1 ra đề — nhập từ bí mật để đố người chơi 2.", "Player 1 sets the word — enter a secret word for Player 2."));
     }
     return { applyMove };
   }

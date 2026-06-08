@@ -79,11 +79,11 @@
       `<div class="nt-need" id="ntNeed"></div>` +
       `<div class="nt-timer" id="ntTimer"></div>` +
       `<div class="nt-inputrow">` +
-      `<input class="nt-input" id="ntInput" placeholder="nhập từ 2 tiếng..." autocomplete="off">` +
-      `<button class="btn primary" id="ntSend">Nối</button>` +
-      `<button class="btn nt-hint" id="ntHint">💡 Gợi ý</button>` +
-      `<button class="btn nt-challenge" id="ntChallenge">⚖️ Phản đối</button>` +
-      `<button class="btn nt-give">🏳️ Chịu thua</button>` +
+      `<input class="nt-input" id="ntInput" placeholder="${ctx.t("nhập từ 2 tiếng...", "enter a 2-word phrase...")}" autocomplete="off">` +
+      `<button class="btn primary" id="ntSend">${ctx.t("Nối", "Link")}</button>` +
+      `<button class="btn nt-hint" id="ntHint">${ctx.t("💡 Gợi ý", "💡 Hint")}</button>` +
+      `<button class="btn nt-challenge" id="ntChallenge">${ctx.t("⚖️ Phản đối", "⚖️ Challenge")}</button>` +
+      `<button class="btn nt-give">${ctx.t("🏳️ Chịu thua", "🏳️ Give up")}</button>` +
       `</div>` +
       `<p class="nt-err" id="ntErr"></p>` +
       `<div class="nt-chain" id="ntChain"></div>`;
@@ -107,7 +107,7 @@
 
     function startTimer() {
       stopTimer();
-      if (TIME <= 0) { timerEl.textContent = "Không giới hạn giờ"; return; }
+      if (TIME <= 0) { timerEl.textContent = ctx.t("Không giới hạn giờ", "No time limit"); return; }
       timeLeft = effTime();
       renderTimer();
       timerId = setInterval(() => {
@@ -121,17 +121,17 @@
     }
     function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
     function renderTimer() {
-      const pen = penalty[turn] > 0 ? ` (−${penalty[turn]}s phạt)` : "";
-      timerEl.textContent = TIME > 0 ? `⏱️ ${Math.max(0, timeLeft)}s${pen}` : "Không giới hạn giờ";
+      const pen = penalty[turn] > 0 ? ctx.t(` (−${penalty[turn]}s phạt)`, ` (−${penalty[turn]}s penalty)`) : "";
+      timerEl.textContent = TIME > 0 ? `⏱️ ${Math.max(0, timeLeft)}s${pen}` : ctx.t("Không giới hạn giờ", "No time limit");
       timerEl.classList.toggle("low", TIME > 0 && timeLeft <= 5);
     }
 
     function validate(phrase) {
       const sy = syllables(phrase);
-      if (sy.length !== 2) return "Phải là từ GỒM 2 TIẾNG (ví dụ: học sinh).";
-      if (!validVietnamese(phrase)) return "Không phải tiếng Việt — đừng gõ bậy nhé!";
-      if (lastWord && sy[0] !== lastWord) return `Phải bắt đầu bằng tiếng "${lastWord}".`;
-      if (used.has(sy.join(" "))) return "Từ này đã được dùng rồi.";
+      if (sy.length !== 2) return ctx.t("Phải là từ GỒM 2 TIẾNG (ví dụ: học sinh).", "Must be a TWO-WORD phrase (e.g. 'học sinh').");
+      if (!validVietnamese(phrase)) return ctx.t("Không phải tiếng Việt — đừng gõ bậy nhé!", "Not valid Vietnamese — no gibberish, please!");
+      if (lastWord && sy[0] !== lastWord) return ctx.t(`Phải bắt đầu bằng tiếng "${lastWord}".`, `Must start with the word "${lastWord}".`);
+      if (used.has(sy.join(" "))) return ctx.t("Từ này đã được dùng rồi.", "This phrase has already been used.");
       return null;
     }
 
@@ -162,19 +162,19 @@
     function onHint() {
       if (!myTurn() || over || hintsLeft <= 0) return;
       const need = lastWord;
-      if (!need || !window.VI_DICT) { errEl.textContent = "Chưa thể gợi ý lúc này."; return; }
+      if (!need || !window.VI_DICT) { errEl.textContent = ctx.t("Chưa thể gợi ý lúc này.", "No hint available right now."); return; }
       let found = null;
       for (const w of window.VI_DICT) {
         const sy = syllables(w);
         if (sy.length === 2 && sy[0] === need && !used.has(w)) { found = w; break; }
       }
-      if (!found) { flashJudge(`💡 Không có từ nào trong từ điển bắt đầu bằng "${need}". Bạn tự nghĩ nhé!`, true); return; }
+      if (!found) { flashJudge(ctx.t(`💡 Không có từ nào trong từ điển bắt đầu bằng "${need}". Bạn tự nghĩ nhé!`, `💡 No dictionary word starts with "${need}". Think of one yourself!`), true); return; }
       hintsLeft--;
       if (TIME > 0) { timeLeft = Math.max(1, timeLeft - PENALTY); renderTimer(); }
       input.value = found;
       input.focus();
       ctx.sound("notify");
-      flashJudge(`💡 Gợi ý: "${found}" — còn ${hintsLeft} lần${TIME > 0 ? `, bị trừ ${PENALTY}s` : ""}. Bấm Nối để dùng.`, true);
+      flashJudge(ctx.t(`💡 Gợi ý: "${found}" — còn ${hintsLeft} lần${TIME > 0 ? `, bị trừ ${PENALTY}s` : ""}. Bấm Nối để dùng.`, `💡 Hint: "${found}" — ${hintsLeft} left${TIME > 0 ? `, −${PENALTY}s` : ""}. Press Link to use.`), true);
       updateUI();
     }
 
@@ -184,7 +184,7 @@
       if (move.kind === "timeout") {
         if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
         stopTimer();
-        return endGame(1 - turn, `Người chơi ${turn + 1} hết giờ / chịu thua`);
+        return endGame(1 - turn, ctx.t(`Người chơi ${turn + 1} hết giờ / chịu thua`, `Player ${turn + 1} ran out of time / gave up`));
       }
 
       if (move.kind === "word") {
@@ -226,13 +226,13 @@
           lastWord = target.prevLast;
           penalty[target.by] += PENALTY;
           ctx.sound("error");
-          flashJudge(`⚖️ "${target.phrase}" KHÔNG có trong từ điển! Người chơi ${target.by + 1} nối sai, bị trừ ${PENALTY}s và phải nối lại.`, false);
+          flashJudge(ctx.t(`⚖️ "${target.phrase}" KHÔNG có trong từ điển! Người chơi ${target.by + 1} nối sai, bị trừ ${PENALTY}s và phải nối lại.`, `⚖️ "${target.phrase}" is NOT in the dictionary! Player ${target.by + 1} was wrong, −${PENALTY}s and must link again.`), false);
           turn = target.by;            // người sai nối lại
         } else {
           // người phản đối (turn) SAI -> phạt người phản đối
           penalty[turn] += PENALTY;
           ctx.sound("error");
-          flashJudge(`⚖️ "${target.phrase}" CÓ trong từ điển — phản đối sai! Người chơi ${turn + 1} bị trừ ${PENALTY}s.`, true);
+          flashJudge(ctx.t(`⚖️ "${target.phrase}" CÓ trong từ điển — phản đối sai! Người chơi ${turn + 1} bị trừ ${PENALTY}s.`, `⚖️ "${target.phrase}" IS in the dictionary — wrong challenge! Player ${turn + 1} gets −${PENALTY}s.`), true);
           // turn giữ nguyên: người phản đối vẫn phải nối
         }
         ctx.setTurn(turn);
@@ -264,13 +264,13 @@
       ctx.setTurn(-1);
       input.disabled = true; sendBtn.disabled = true; challengeBtn.disabled = true; giveBtn.disabled = true;
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng — ${reason}!`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng — ${reason}!`, `🎉 Player ${winner + 1} wins — ${reason}!`));
     }
 
     function updateUI() {
       needEl.innerHTML = lastWord
-        ? `Nối tiếp từ tiếng: <b>"${lastWord}"</b>`
-        : `Mở màn — gợi ý: <b>${opener}</b>`;
+        ? ctx.t(`Nối tiếp từ tiếng: <b>"${lastWord}"</b>`, `Continue from the word: <b>"${lastWord}"</b>`)
+        : ctx.t(`Mở màn — gợi ý: <b>${opener}</b>`, `Opening — suggestion: <b>${opener}</b>`);
       const mine = myTurn() && !over;
       input.disabled = !mine;
       sendBtn.disabled = !mine;
@@ -281,10 +281,10 @@
       challengeBtn.disabled = !canChallenge;
       challengeBtn.classList.toggle("hidden", !last || last.by === null);
       hintBtn.disabled = !mine || hintsLeft <= 0 || !lastWord;
-      hintBtn.textContent = `💡 Gợi ý (${hintsLeft})`;
+      hintBtn.textContent = ctx.t(`💡 Gợi ý (${hintsLeft})`, `💡 Hint (${hintsLeft})`);
       hintBtn.classList.toggle("hidden", o.hints === "off");
       if (mine) input.focus();
-      ctx.setStatus(`Lượt Người chơi ${turn + 1} nối từ.`);
+      ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} nối từ.`, `Player ${turn + 1}'s turn to link a word.`));
     }
 
     // mở màn: thêm từ gợi ý vào chuỗi như "hệ thống" (by = null), không bị phản đối
@@ -295,7 +295,7 @@
     ctx.setTurn(0);
     updateUI();
     startTimer();
-    ctx.setStatus("Nối từ 2 tiếng theo tiếng cuối. Nghi từ đối thủ vô nghĩa? Bấm '⚖️ Phản đối' để trọng tài chấm!");
+    ctx.setStatus(ctx.t("Nối từ 2 tiếng theo tiếng cuối. Nghi từ đối thủ vô nghĩa? Bấm '⚖️ Phản đối' để trọng tài chấm!", "Link 2-word phrases by the last word. Suspect a nonsense word? Press '⚖️ Challenge' to let the referee judge!"));
     return { applyMove };
   }
 
