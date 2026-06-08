@@ -1,5 +1,10 @@
-/* Service worker: cache app shell + runtime cache để chơi offline */
-const CACHE = "tpg-v1";
+/* Service worker: cache app shell + runtime cache để chơi offline.
+   Chiến lược:
+   - HTML/CSS/JS (mã nguồn app): NETWORK-FIRST → luôn lấy bản mới nhất khi có mạng,
+     chỉ fallback sang cache khi offline. Tránh tình trạng "kẹt bản cũ".
+   - Tài nguyên tĩnh khác (ảnh, icon, font): CACHE-FIRST cho nhanh.
+*/
+const CACHE = "tpg-v2";
 const CORE = [
   "./",
   "./index.html",
@@ -27,21 +32,35 @@ self.addEventListener("activate", (e) => {
   );
 });
 
+// File mã nguồn app cần luôn cập nhật khi có mạng
+function isAppCode(url) {
+  return url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css") ||
+    url.pathname.endsWith(".html") ||
+    url.pathname.endsWith(".webmanifest");
+}
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // bỏ qua tài nguyên ngoài (font Google...)
 
-  // điều hướng (mở app): trả index.html khi offline
-  if (req.mode === "navigate") {
+  // điều hướng (mở app) + mã nguồn app: NETWORK-FIRST
+  if (req.mode === "navigate" || isAppCode(url)) {
     e.respondWith(
-      fetch(req).catch(() => caches.match("./index.html"))
+      fetch(req).then((res) => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      }).catch(() => caches.match(req).then((hit) => hit || caches.match("./index.html")))
     );
     return;
   }
 
-  // cache-first + lưu runtime cho file cùng origin
+  // tài nguyên tĩnh khác: CACHE-FIRST + lưu runtime
   e.respondWith(
     caches.match(req).then((hit) => {
       if (hit) return hit;
