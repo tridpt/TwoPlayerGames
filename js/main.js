@@ -502,6 +502,18 @@
     return GameRegistry.games.find((g) => g.id === id) || null;
   }
 
+  // Tên/mô tả game theo ngôn ngữ (en nếu có bản dịch, không thì tiếng Việt gốc)
+  function gameName(g) {
+    if (!g) return "";
+    if (window.I18n && I18n.getLang() === "en" && window.GAMES_EN && GAMES_EN[g.id]) return GAMES_EN[g.id].name;
+    return g.name;
+  }
+  function gameDesc(g) {
+    if (!g) return "";
+    if (window.I18n && I18n.getLang() === "en" && window.GAMES_EN && GAMES_EN[g.id]) return GAMES_EN[g.id].description;
+    return g.description || "";
+  }
+
   const GAME_MARKS = {
     auctionwar: "AW",
     artillery: "AR",
@@ -716,7 +728,7 @@
     const medals = ["🥇", "🥈", "🥉"];
     el.leadList.innerHTML = rows.map((r, i) => {
       const g = getGameById(r.id);
-      const name = g ? g.name : r.id;
+      const name = gameName(g) || r.id;
       const decided = r.p1 + r.p2;
       const rate = decided ? Math.round(r.p1 / decided * 100) : 0;
       const rank = medals[i] || `<b class="lead-num">${i + 1}</b>`;
@@ -770,7 +782,7 @@
     const opts = [`<option value="">${tt("filterAllGames")}</option>`].concat(
       ids.map((id) => {
         const g = getGameById(id);
-        return `<option value="${escapeHtml(id)}">${escapeHtml(g ? g.name : id)}</option>`;
+        return `<option value="${escapeHtml(id)}">${escapeHtml(gameName(g) || id)}</option>`;
       }));
     el.histGameFilter.innerHTML = opts.join("");
     if (ids.includes(prev) || prev === "") el.histGameFilter.value = prev;
@@ -792,7 +804,7 @@
     }
     el.histList.innerHTML = list.map((h) => {
       const g = getGameById(h.id);
-      const name = g ? g.name : h.id;
+      const name = gameName(g) || h.id;
       // Kết quả theo góc nhìn người chơi
       let res, cls;
       if (h.kind === "draw") { res = "🤝 Hòa"; cls = "draw"; }
@@ -890,7 +902,7 @@
         `<div class="daily-poster">${gameAvatarHtml(game)}</div>` +
         `<div class="daily-text">` +
           `<span class="daily-tag">⭐ Thử thách hôm nay${streak ? ` · 🔥 chuỗi ${streak} ngày` : ""}</span>` +
-          `<b>${escapeHtml(game.name)}</b>` +
+          `<b>${escapeHtml(gameName(game))}</b>` +
           `<small>${done ? "✅ Đã hoàn thành hôm nay — quay lại vào ngày mai!" : "Chơi xong một ván để giữ chuỗi ngày."}</small>` +
         `</div>` +
       `</div>` +
@@ -1281,8 +1293,10 @@
   function runSearch(query) {
     const q = (query || "").trim().toLowerCase();
     if (!q) { renderCategory(currentCategory); return; }
-    baseList = GameRegistry.games.filter((g) =>
-      g.name.toLowerCase().includes(q) || (g.description || "").toLowerCase().includes(q));
+    baseList = GameRegistry.games.filter((g) => {
+      const hay = `${g.name} ${g.description || ""} ${gameName(g)} ${gameDesc(g)}`.toLowerCase();
+      return hay.includes(q);
+    });
     shownCount = PAGE_SIZE;
     currentEmptyKind = "search";
     el.catHead.innerHTML =
@@ -1304,7 +1318,7 @@
       .forEach((game) => {
         const option = document.createElement("option");
         option.value = game.id;
-        option.textContent = game.name;
+        option.textContent = gameName(game);
         el.lobbyGameSelect.appendChild(option);
       });
 
@@ -1335,7 +1349,7 @@
     card.className = "game-card";
     card.setAttribute("tabindex", "0");
     card.setAttribute("role", "button");
-    card.setAttribute("aria-label", `${g.name}. ${g.description || ""}`);
+    card.setAttribute("aria-label", `${gameName(g)}. ${gameDesc(g)}`);
     const tags = [];
     if (g.onlineReady === false) tags.push("chỉ chung máy");
     if (g.localReady === false) tags.push("chỉ online");
@@ -1351,8 +1365,8 @@
         `<div class="card-badges">${badges.join("")}</div>` +
         `<button type="button" class="fav-btn${isFav(g.id) ? " on" : ""}" title="Yêu thích" aria-label="Yêu thích">♥</button>` +
       `</div>` +
-      `<h3>${g.name}</h3>` +
-      `<p>${g.description}</p>` +
+      `<h3>${escapeHtml(gameName(g))}</h3>` +
+      `<p>${escapeHtml(gameDesc(g))}</p>` +
       statLineHtml(g.id) +
       tags.map((tag) => `<span class="tag-local">${tag}</span>`).join("");
 
@@ -1376,14 +1390,14 @@
   function openDetail(game) {
     selectedGame = game;
     el.detailPoster.innerHTML = gameAvatarHtml(game);
-    el.detailTitle.textContent = (game.emoji ? game.emoji + " " : "") + game.name;
+    el.detailTitle.textContent = (game.emoji ? game.emoji + " " : "") + gameName(game);
     const badges = [];
     if (isHot(game.id)) badges.push(`<span class="badge badge-hot">🔥 Hot</span>`);
     if (isNew(game.id)) badges.push(`<span class="badge badge-new">✦ Mới</span>`);
     if (game.onlineReady !== false) badges.push(`<span class="badge badge-online">🌐 Online</span>`);
     if (game.supportsAI) badges.push(`<span class="badge badge-ai">🤖 Đấu máy</span>`);
     el.detailBadges.innerHTML = badges.join("");
-    el.detailDesc.textContent = game.description || "";
+    el.detailDesc.textContent = gameDesc(game);
     const s = statOf(game.id);
     el.detailStats.innerHTML = s.played
       ? `<span>🎮 ${s.played} ván đã chơi</span><span>🏆 P1 ${s.p1} – ${s.p2} P2</span>${s.draw ? `<span>🤝 ${s.draw} hòa</span>` : ""}`
@@ -1589,7 +1603,7 @@
       const row = document.createElement("div");
       row.className = "public-room";
       row.innerHTML = `<div class="pr-poster">${g ? gameAvatarHtml(g) : ""}</div>` +
-        `<div class="pr-info"><b>${escapeHtml(g ? g.name : r.gameId)}</b>` +
+        `<div class="pr-info"><b>${escapeHtml(gameName(g) || r.gameId)}</b>` +
         `<small>👤 ${escapeHtml(r.hostName)} · mã ${escapeHtml(r.code)} <span class="pr-wait">⏳ đang chờ</span></small></div>`;
       const btn = document.createElement("button");
       btn.className = "btn small primary pr-join";
