@@ -22,7 +22,7 @@
     let turn = 0;
     let selectedId = null;
     let over = false;
-    let last = "Chọn một quân xúc xắc của bạn để di chuyển hoặc tấn công.";
+    let last = ctx.t("Chọn một quân xúc xắc của bạn để di chuyển hoặc tấn công.", "Select one of your dice units to move or attack.");
     let justRolled = new Set(); // id quân vừa đổi mặt (để chạy hoạt ảnh lăn)
     let lastCells = [];          // ô của hành động cuối (highlight)
     let pendingFloat = [];       // chữ nổi (sát thương/hồi máu) chờ vẽ
@@ -38,7 +38,7 @@
     toolbar.className = "db-toolbar";
     const focusBtn = document.createElement("button");
     focusBtn.className = "btn small db-focus";
-    focusBtn.innerHTML = `<span>REROLL</span><b>Tập trung</b><small>đổi mặt + hồi 1 HP</small>`;
+    focusBtn.innerHTML = `<span>REROLL</span><b>${ctx.t("Tập trung", "Focus")}</b><small>${ctx.t("đổi mặt + hồi 1 HP", "reroll + heal 1 HP")}</small>`;
     focusBtn.addEventListener("click", () => focusSelected());
     toolbar.appendChild(focusBtn);
     root.appendChild(toolbar);
@@ -46,12 +46,12 @@
     const legend = document.createElement("div");
     legend.className = "db-legend";
     legend.innerHTML = `
-      <span><i class="db-leg-die p1"></i> Đội đỏ</span>
-      <span><i class="db-leg-die p2"></i> Đội xanh</span>
-      <span><i class="db-leg-rock"></i> Đá chắn</span>
-      <span><i class="db-leg-power"></i> Ô năng lượng</span>
-      <span><i class="db-leg-move"></i> Có thể đi</span>
-      <span><i class="db-leg-attack"></i> Có thể đánh</span>
+      <span><i class="db-leg-die p1"></i> ${ctx.t("Đội đỏ", "Red team")}</span>
+      <span><i class="db-leg-die p2"></i> ${ctx.t("Đội xanh", "Blue team")}</span>
+      <span><i class="db-leg-rock"></i> ${ctx.t("Đá chắn", "Rock")}</span>
+      <span><i class="db-leg-power"></i> ${ctx.t("Ô năng lượng", "Power tile")}</span>
+      <span><i class="db-leg-move"></i> ${ctx.t("Có thể đi", "Can move")}</span>
+      <span><i class="db-leg-attack"></i> ${ctx.t("Có thể đánh", "Can attack")}</span>
     `;
     root.appendChild(legend);
 
@@ -238,10 +238,10 @@
         unit.face = Math.min(6, unit.face + 1);
         justRolled.add(unit.id);
         floatText(unit.r, unit.c, "+2", "heal");
-        last = `${nameOf(unit)} đi từ ${old} đến ô năng lượng ${coord(unit.r, unit.c)}: +2 HP, tăng mặt xúc xắc.`;
+        last = ctx.t(`${nameOf(unit)} đi từ ${old} đến ô năng lượng ${coord(unit.r, unit.c)}: +2 HP, tăng mặt xúc xắc.`, `${nameOf(unit)} moves from ${old} to power tile ${coord(unit.r, unit.c)}: +2 HP, die face up.`);
         ctx.sound("capture");
       } else {
-        last = `${nameOf(unit)} đi từ ${old} đến ${coord(unit.r, unit.c)}.`;
+        last = ctx.t(`${nameOf(unit)} đi từ ${old} đến ${coord(unit.r, unit.c)}.`, `${nameOf(unit)} moves from ${old} to ${coord(unit.r, unit.c)}.`);
         ctx.sound("select");
       }
       lastCells = [[unit.r, unit.c]];
@@ -264,23 +264,23 @@
       justRolled.add(a.id);
       justRolled.add(d.id);
       lastCells = [[a.r, a.c], [d.r, d.c]];
-      const flankTxt = flank ? ` +${flank} hợp vây` : "";
+      const flankTxt = flank ? ctx.t(` +${flank} hợp vây`, ` +${flank} flank`) : "";
 
       if (atk >= def) {
         let dmg = Math.max(2, atk - def + 2);
         if (crit) dmg += 3; // chí mạng cộng thêm sát thương
         d.hp = Math.max(0, d.hp - dmg);
         a.hp = Math.min(MAX_HP, a.hp + 1);
-        floatText(d.r, d.c, (crit ? "CHÍ MẠNG " : "") + "-" + dmg, crit ? "dmg crit" : "dmg");
-        last = `${nameOf(a)} roll ${ar} (${atk}${flankTxt})${crit ? " ⚡CHÍ MẠNG" : ""} thắng ${nameOf(d)} roll ${dr} (${def}), gây ${dmg} sát thương.`;
-        if (d.hp <= 0) last += ` ${nameOf(d)} bị loại!`;
+        floatText(d.r, d.c, (crit ? ctx.t("CHÍ MẠNG ", "CRIT ") : "") + "-" + dmg, crit ? "dmg crit" : "dmg");
+        last = ctx.t(`${nameOf(a)} roll ${ar} (${atk}${flankTxt})${crit ? " ⚡CHÍ MẠNG" : ""} thắng ${nameOf(d)} roll ${dr} (${def}), gây ${dmg} sát thương.`, `${nameOf(a)} rolls ${ar} (${atk}${flankTxt})${crit ? " ⚡CRIT" : ""} beats ${nameOf(d)} roll ${dr} (${def}), deals ${dmg} damage.`);
+        if (d.hp <= 0) last += ctx.t(` ${nameOf(d)} bị loại!`, ` ${nameOf(d)} eliminated!`);
         ctx.sound(d.hp <= 0 ? "capture" : "shot");
       } else {
         const dmg = Math.max(1, def - atk);
         a.hp = Math.max(0, a.hp - dmg);
         floatText(a.r, a.c, "-" + dmg, "dmg");
-        last = `${nameOf(a)} roll ${ar} (${atk}${flankTxt}) thua phòng thủ ${dr} (${def}), bị phản đòn ${dmg}.`;
-        if (a.hp <= 0) last += ` ${nameOf(a)} bị loại!`;
+        last = ctx.t(`${nameOf(a)} roll ${ar} (${atk}${flankTxt}) thua phòng thủ ${dr} (${def}), bị phản đòn ${dmg}.`, `${nameOf(a)} rolls ${ar} (${atk}${flankTxt}) loses to defense ${dr} (${def}), takes ${dmg} counter damage.`);
+        if (a.hp <= 0) last += ctx.t(` ${nameOf(a)} bị loại!`, ` ${nameOf(a)} eliminated!`);
         ctx.sound(a.hp <= 0 ? "capture" : "miss");
       }
 
@@ -298,7 +298,7 @@
       justRolled.add(unit.id);
       lastCells = [[unit.r, unit.c]];
       floatText(unit.r, unit.c, "+1", "heal");
-      last = `${nameOf(unit)} tập trung: đổi sang mặt ${r} và hồi 1 HP.`;
+      last = ctx.t(`${nameOf(unit)} tập trung: đổi sang mặt ${r} và hồi 1 HP.`, `${nameOf(unit)} focuses: rerolls to face ${r} and heals 1 HP.`);
       ctx.sound("select");
       endTurn();
       return true;
@@ -350,11 +350,11 @@
       selectedId = null;
       ctx.setTurn(-1);
       if (!alive0 && !alive1) {
-        ctx.setStatus("🤝 Hai đội xúc xắc cùng bị loại - hòa!");
+        ctx.setStatus(ctx.t("🤝 Hai đội xúc xắc cùng bị loại - hòa!", "🤝 Both dice teams eliminated — draw!"));
       } else {
         const winner = alive0 ? 0 : 1;
         ctx.incScore(winner);
-        ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng Dice Battle!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng Dice Battle!`, `🎉 Player ${winner + 1} wins Dice Battle!`));
       }
     }
 
@@ -399,8 +399,8 @@
       hud.innerHTML = `
         ${playerPanel(0)}
         <div class="db-turn">
-          <b>${over ? "Kết thúc" : "Lượt Người chơi " + (turn + 1)}</b>
-          <span>${sel ? `${nameOf(sel)} • mặt ${sel.face} • đi ${moveRange(sel)} ô` : "Chọn quân để hành động"}</span>
+          <b>${over ? ctx.t("Kết thúc", "Game over") : ctx.t(`Lượt Người chơi ${turn + 1}`, `Player ${turn + 1}'s turn`)}</b>
+          <span>${sel ? ctx.t(`${nameOf(sel)} • mặt ${sel.face} • đi ${moveRange(sel)} ô`, `${nameOf(sel)} • face ${sel.face} • move ${moveRange(sel)} cells`) : ctx.t("Chọn quân để hành động", "Select a unit to act")}</span>
           <small>${last}</small>
         </div>
         ${playerPanel(1)}
@@ -415,9 +415,9 @@
       const dice = alive.map((u) => `<span class="db-mini-face">${u.face}</span>`).join("");
       return `
         <div class="db-player p${owner + 1} ${turn === owner && !over ? "active" : ""}">
-          <span>Người chơi ${owner + 1}</span>
-          <b>${alive.length}/${TEAM} quân</b>
-          <em>${dice || "hết quân"}</em>
+          <span>${ctx.t(`Người chơi ${owner + 1}`, `Player ${owner + 1}`)}</span>
+          <b>${alive.length}/${TEAM} ${ctx.t("quân", "units")}</b>
+          <em>${dice || ctx.t("hết quân", "no units")}</em>
           <i style="width:${Math.max(0, totalHp / maxTotal * 100)}%"></i>
         </div>
       `;
@@ -435,15 +435,15 @@
     }
 
     function nameOf(unit) {
-      return `Xúc xắc ${unit.owner + 1}-${unit.id.split("_")[1]}`;
+      return ctx.t(`Xúc xắc ${unit.owner + 1}-${unit.id.split("_")[1]}`, `Die ${unit.owner + 1}-${unit.id.split("_")[1]}`);
     }
 
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus(`Đối thủ đang đi. ${last}`);
+        ctx.setStatus(ctx.t(`Đối thủ đang đi. ${last}`, `Opponent's turn. ${last}`));
       } else {
-        ctx.setStatus("Click quân của bạn, rồi chọn ô xanh để đi hoặc ô đỏ cạnh bên để đánh. Tập trung để reroll.");
+        ctx.setStatus(ctx.t("Click quân của bạn, rồi chọn ô xanh để đi hoặc ô đỏ cạnh bên để đánh. Tập trung để reroll.", "Click your unit, then a green cell to move or an adjacent red cell to attack. Focus to reroll."));
       }
     }
 

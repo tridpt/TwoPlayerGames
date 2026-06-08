@@ -39,7 +39,12 @@
     let ap = START_AP;
     let selected = "move";
     let over = false;
-    let last = "Chiếm vị trí, nhặt item, rồi tìm góc bắn.";
+    let last = ctx.t("Chiếm vị trí, nhặt item, rồi tìm góc bắn.", "Take position, grab items, then find a firing angle.");
+    // bản dịch nhãn/mô tả item (ITEM_DEFS là hằng module-level)
+    const ITEM_LABEL_EN = { repair: "Repair", armor: "Armor", rocket: "Rocket", mine: "Mine" };
+    const ITEM_DESC_EN = { repair: "heal 30 HP", armor: "reduce next hit's damage", rocket: "+1 rocket", mine: "+1 trap mine" };
+    const itemLabel = (type) => ctx.t(ITEM_DEFS[type].label, ITEM_LABEL_EN[type] || ITEM_DEFS[type].label);
+    const itemDesc = (type) => ctx.t(ITEM_DEFS[type].desc, ITEM_DESC_EN[type] || ITEM_DEFS[type].desc);
     let pendingFx = []; // hiệu ứng nổ chờ vẽ sau render
     let pendingBeam = []; // hiệu ứng tia đạn chờ vẽ sau render
 
@@ -52,14 +57,14 @@
 
     const bar = document.createElement("div");
     bar.className = "ta-actions";
-    const moveBtn = actionButton("Di chuyển", "move", "MOVE", "1 AP / ô");
-    const shootBtn = actionButton("Bắn", "shoot", "FIRE", "2 AP");
-    const pierceBtn = actionButton("Bắn xuyên", "pierce", "PRC", "3 AP");
+    const moveBtn = actionButton(ctx.t("Di chuyển", "Move"), "move", "MOVE", ctx.t("1 AP / ô", "1 AP / cell"));
+    const shootBtn = actionButton(ctx.t("Bắn", "Shoot"), "shoot", "FIRE", "2 AP");
+    const pierceBtn = actionButton(ctx.t("Bắn xuyên", "Pierce"), "pierce", "PRC", "3 AP");
     const rocketBtn = actionButton("Rocket", "rocket", "RKT", "3 AP");
-    const mineBtn = actionButton("Đặt mìn", "mine", "MINE", "1 AP");
+    const mineBtn = actionButton(ctx.t("Đặt mìn", "Lay mine"), "mine", "MINE", "1 AP");
     const endBtn = document.createElement("button");
     endBtn.className = "btn small ta-action-card";
-    endBtn.innerHTML = `<span class="ta-action-icon">END</span><span><b>Kết thúc</b><small>nhường lượt</small></span>`;
+    endBtn.innerHTML = `<span class="ta-action-icon">END</span><span><b>${ctx.t("Kết thúc", "End")}</b><small>${ctx.t("nhường lượt", "pass turn")}</small></span>`;
     endBtn.addEventListener("click", () => applyMove({ t: "end" }, false));
     bar.appendChild(moveBtn);
     bar.appendChild(shootBtn);
@@ -72,13 +77,13 @@
     const legend = document.createElement("div");
     legend.className = "ta-legend";
     legend.innerHTML = `
-      <span><i class="ta-legend-tank p1"></i> Xe bạn</span>
-      <span><i class="ta-legend-wall"></i> Tường chắn</span>
-      <span><i class="ta-legend-water"></i> Nước (đạn bay qua)</span>
-      <span><i class="ta-legend-forest"></i> Bụi cây (ẩn nấp, chắn đạn)</span>
-      <span><i class="ta-legend-crate"></i> Thùng vật phẩm</span>
-      <span><i class="ta-legend-item">+</i> Item</span>
-      <span><i class="ta-legend-mine"></i> Mìn đã đặt</span>
+      <span><i class="ta-legend-tank p1"></i> ${ctx.t("Xe bạn", "Your tank")}</span>
+      <span><i class="ta-legend-wall"></i> ${ctx.t("Tường chắn", "Wall")}</span>
+      <span><i class="ta-legend-water"></i> ${ctx.t("Nước (đạn bay qua)", "Water (shots pass over)")}</span>
+      <span><i class="ta-legend-forest"></i> ${ctx.t("Bụi cây (ẩn nấp, chắn đạn)", "Bushes (cover, block shots)")}</span>
+      <span><i class="ta-legend-crate"></i> ${ctx.t("Thùng vật phẩm", "Item crate")}</span>
+      <span><i class="ta-legend-item">+</i> ${ctx.t("Item", "Item")}</span>
+      <span><i class="ta-legend-mine"></i> ${ctx.t("Mìn đã đặt", "Placed mine")}</span>
     `;
     root.appendChild(legend);
 
@@ -251,7 +256,7 @@
         if (over) return true;
       }
       ap -= cost;
-      last = `Người chơi ${turn + 1} di chuyển ${cost} ô.`;
+      last = ctx.t(`Người chơi ${turn + 1} di chuyển ${cost} ô.`, `Player ${turn + 1} moves ${cost} cell(s).`);
       ctx.sound("select");
       if (ap <= 0) endTurn();
       return true;
@@ -310,7 +315,7 @@
       else if (type === "armor") pl.armor = true;
       else if (type === "rocket") pl.rockets++;
       else if (type === "mine") pl.mines++;
-      last = `Người chơi ${turn + 1} nhặt ${ITEM_DEFS[type].label}: ${ITEM_DEFS[type].desc}.`;
+      last = ctx.t(`Người chơi ${turn + 1} nhặt ${ITEM_DEFS[type].label}: ${ITEM_DEFS[type].desc}.`, `Player ${turn + 1} picks up ${itemLabel(type)}: ${itemDesc(type)}.`);
       ctx.sound("capture");
     }
 
@@ -318,7 +323,7 @@
       const mine = mines[r][c];
       if (!mine || mine.owner === turn) return;
       mines[r][c] = null;
-      last = `Người chơi ${turn + 1} cán mìn!`;
+      last = ctx.t(`Người chơi ${turn + 1} cán mìn!`, `Player ${turn + 1} hit a mine!`);
       damageTank(turn, 28);
       ctx.sound("shot");
     }
@@ -342,23 +347,23 @@
       if (hit.type === "tank") {
         damageTank(hit.player, 32);
         fx(hit.r, hit.c, true);
-        last = `Người chơi ${turn + 1} bắn trúng xe tăng đối thủ.`;
+        last = ctx.t(`Người chơi ${turn + 1} bắn trúng xe tăng đối thủ.`, `Player ${turn + 1} hit the enemy tank.`);
         ctx.sound("shot");
       } else if (hit.type === "crate") {
         breakCrate(hit.r, hit.c);
         fx(hit.r, hit.c, false);
-        last = `Người chơi ${turn + 1} phá thùng vật phẩm.`;
+        last = ctx.t(`Người chơi ${turn + 1} phá thùng vật phẩm.`, `Player ${turn + 1} destroyed an item crate.`);
         ctx.sound("capture");
       } else if (hit.type === "forest") {
         fx(hit.r, hit.c, false);
-        last = "Đạn bị bụi cây cản lại.";
+        last = ctx.t("Đạn bị bụi cây cản lại.", "The shot was stopped by bushes.");
         ctx.sound("miss");
       } else if (hit.type === "wall") {
         fx(hit.r, hit.c, false);
-        last = "Đạn ghim vào tường chắn.";
+        last = ctx.t("Đạn ghim vào tường chắn.", "The shot lodged into a wall.");
         ctx.sound("miss");
       } else {
-        last = "Bắn trượt.";
+        last = ctx.t("Bắn trượt.", "Missed.");
         ctx.sound("miss");
       }
       if (!over && ap <= 0) endTurn();
@@ -410,8 +415,8 @@
       checkEnd();
       fxBeam(beam, turn === 0 ? "p1" : "p2");
       last = hitsTank
-        ? `Người chơi ${turn + 1} bắn xuyên trúng xe tăng đối thủ!`
-        : (brokeCrate ? `Đạn xuyên phá thùng dọc đường.` : `Đạn xuyên của Người chơi ${turn + 1} quét một hàng.`);
+        ? ctx.t(`Người chơi ${turn + 1} bắn xuyên trúng xe tăng đối thủ!`, `Player ${turn + 1} pierced the enemy tank!`)
+        : (brokeCrate ? ctx.t(`Đạn xuyên phá thùng dọc đường.`, `The piercing shot broke crates along the way.`) : ctx.t(`Đạn xuyên của Người chơi ${turn + 1} quét một hàng.`, `Player ${turn + 1}'s piercing shot swept a line.`));
       ctx.sound("shot");
       if (!over && ap <= 0) endTurn();
       return true;
@@ -453,8 +458,8 @@
       }
       checkEnd();
       last = damaged.length
-        ? `Rocket nổ tại vùng mục tiêu, gây sát thương xe tăng.`
-        : `Rocket phá khu vực ${coord(r, c)}.`;
+        ? ctx.t(`Rocket nổ tại vùng mục tiêu, gây sát thương xe tăng.`, `Rocket exploded on the target area, damaging tanks.`)
+        : ctx.t(`Rocket phá khu vực ${coord(r, c)}.`, `Rocket blasted the ${coord(r, c)} area.`);
       ctx.sound("shot");
       if (!over && ap <= 0) endTurn();
       return true;
@@ -469,7 +474,7 @@
       mines[r][c] = { owner: turn };
       pl.mines--;
       ap--;
-      last = `Người chơi ${turn + 1} đặt một quả mìn chiến thuật.`;
+      last = ctx.t(`Người chơi ${turn + 1} đặt một quả mìn chiến thuật.`, `Player ${turn + 1} laid a tactical mine.`);
       ctx.sound("select");
       if (ap <= 0) endTurn();
       return true;
@@ -477,7 +482,7 @@
 
     function doEnd(fromRemote) {
       if (!canAct(fromRemote)) return false;
-      last = `Người chơi ${turn + 1} kết thúc lượt.`;
+      last = ctx.t(`Người chơi ${turn + 1} kết thúc lượt.`, `Player ${turn + 1} ended the turn.`);
       endTurn();
       return true;
     }
@@ -508,11 +513,11 @@
       over = true;
       ctx.setTurn(-1);
       if (dead0 && dead1) {
-        ctx.setStatus("🤝 Cả hai xe tăng cùng bị hạ - hòa!");
+        ctx.setStatus(ctx.t("🤝 Cả hai xe tăng cùng bị hạ - hòa!", "🤝 Both tanks destroyed — draw!"));
       } else {
         const winner = dead0 ? 1 : 0;
         ctx.incScore(winner);
-        ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng Tank Arena!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng Tank Arena!`, `🎉 Player ${winner + 1} wins Tank Arena!`));
       }
     }
 
@@ -605,8 +610,8 @@
       rocketBtn.disabled = lock || ap < 3 || players[turn].rockets <= 0;
       mineBtn.disabled = lock || ap < 1 || players[turn].mines <= 0;
       endBtn.disabled = lock;
-      rocketBtn.querySelector("small").textContent = `3 AP • còn ${players[turn].rockets}`;
-      mineBtn.querySelector("small").textContent = `1 AP • còn ${players[turn].mines}`;
+      rocketBtn.querySelector("small").textContent = ctx.t(`3 AP • còn ${players[turn].rockets}`, `3 AP • ${players[turn].rockets} left`);
+      mineBtn.querySelector("small").textContent = ctx.t(`1 AP • còn ${players[turn].mines}`, `1 AP • ${players[turn].mines} left`);
     }
 
     function render() {
@@ -633,7 +638,7 @@
             const item = ITEM_DEFS[items[r][c]];
             cell.classList.add("item", "item-" + item.tone);
             cell.innerHTML = `<span class="ta-item-badge" aria-hidden="true">${item.icon}</span>`;
-            cell.title += ` - ${item.label}`;
+            cell.title += ` - ${itemLabel(items[r][c])}`;
           }
           if (mines[r][c]) {
             cell.classList.add("mine");
@@ -654,7 +659,7 @@
 
       hud.innerHTML = `
         <div class="ta-player p1 ${turn === 0 && !over ? "active" : ""}">
-          <span><i class="ta-mini-tank p1"></i>Người chơi 1</span>
+          <span><i class="ta-mini-tank p1"></i>${ctx.t("Người chơi 1", "Player 1")}</span>
           <b>${players[0].hp}/${MAX_HP}</b>
           <em>${loadoutText(0)}</em>
           <i style="width:${Math.max(0, players[0].hp / MAX_HP * 100)}%"></i>
@@ -666,7 +671,7 @@
           <small>${last}</small>
         </div>
         <div class="ta-player p2 ${turn === 1 && !over ? "active" : ""}">
-          <span><i class="ta-mini-tank p2"></i>Người chơi 2</span>
+          <span><i class="ta-mini-tank p2"></i>${ctx.t("Người chơi 2", "Player 2")}</span>
           <b>${players[1].hp}/${MAX_HP}</b>
           <em>${loadoutText(1)}</em>
           <i style="width:${Math.max(0, players[1].hp / MAX_HP * 100)}%"></i>
@@ -699,7 +704,7 @@
 
     function loadoutText(idx) {
       const p = players[idx];
-      return `${p.armor ? "Giáp bật" : "Không giáp"} • R${p.rockets} • M${p.mines}`;
+      return ctx.t(`${p.armor ? "Giáp bật" : "Không giáp"} • R${p.rockets} • M${p.mines}`, `${p.armor ? "Armored" : "No armor"} • R${p.rockets} • M${p.mines}`);
     }
 
     function apPips() {
@@ -711,19 +716,19 @@
     }
 
     function selectedLabel() {
-      if (selected === "move") return "Di chuyển tốn AP theo số ô.";
-      if (selected === "shoot") return "Bắn thẳng hàng/cột, tốn 2 AP.";
-      if (selected === "pierce") return "Bắn xuyên: xuyên bụi cây & phá thùng, trúng mọi xe trên đường, tốn 3 AP.";
-      if (selected === "rocket") return `Rocket nổ 3x3, tầm ${ROCKET_RANGE}, tốn 3 AP.`;
-      return "Đặt mìn ở ô kề bên, tốn 1 AP.";
+      if (selected === "move") return ctx.t("Di chuyển tốn AP theo số ô.", "Moving costs AP per cell.");
+      if (selected === "shoot") return ctx.t("Bắn thẳng hàng/cột, tốn 2 AP.", "Shoot straight along row/column, costs 2 AP.");
+      if (selected === "pierce") return ctx.t("Bắn xuyên: xuyên bụi cây & phá thùng, trúng mọi xe trên đường, tốn 3 AP.", "Pierce: goes through bushes & breaks crates, hits every tank in line, costs 3 AP.");
+      if (selected === "rocket") return ctx.t(`Rocket nổ 3x3, tầm ${ROCKET_RANGE}, tốn 3 AP.`, `Rocket explodes 3x3, range ${ROCKET_RANGE}, costs 3 AP.`);
+      return ctx.t("Đặt mìn ở ô kề bên, tốn 1 AP.", "Lay a mine on an adjacent cell, costs 1 AP.");
     }
 
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus(`Đối thủ đang đi. ${last}`);
+        ctx.setStatus(ctx.t(`Đối thủ đang đi. ${last}`, `Opponent's turn. ${last}`));
       } else {
-        ctx.setStatus(`Lượt Người chơi ${turn + 1}. Còn ${ap} AP. ${selectedLabel()}`);
+        ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1}. Còn ${ap} AP. ${selectedLabel()}`, `Player ${turn + 1}'s turn. ${ap} AP left. ${selectedLabel()}`));
       }
     }
 

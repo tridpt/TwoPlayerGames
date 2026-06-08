@@ -44,11 +44,11 @@
     placeInfo.className = "tr-place-info";
     const confirmBtn = document.createElement("button");
     confirmBtn.className = "btn primary";
-    confirmBtn.textContent = "✓ Sẵn sàng";
+    confirmBtn.textContent = ctx.t("✓ Sẵn sàng", "✓ Ready");
     confirmBtn.disabled = true;
     const randomBtn = document.createElement("button");
     randomBtn.className = "btn";
-    randomBtn.textContent = "🎲 Giấu ngẫu nhiên";
+    randomBtn.textContent = ctx.t("🎲 Giấu ngẫu nhiên", "🎲 Hide randomly");
     controls.appendChild(placeInfo);
     controls.appendChild(randomBtn);
     controls.appendChild(confirmBtn);
@@ -58,8 +58,8 @@
     boards.className = "tr-boards";
     root.appendChild(boards);
 
-    const myWrap = makeBoard("Lưới của bạn");
-    const oppWrap = makeBoard("Lưới đối thủ — đào tìm");
+    const myWrap = makeBoard(ctx.t("Lưới của bạn", "Your grid"));
+    const oppWrap = makeBoard(ctx.t("Lưới đối thủ — đào tìm", "Enemy grid — dig to find"));
     boards.appendChild(myWrap.wrap);
     boards.appendChild(oppWrap.wrap);
 
@@ -86,10 +86,10 @@
 
     function dist(a, b) { return Math.abs(a.r - b.r) + Math.abs(a.c - b.c); }
     function hintFor(d) {
-      if (d <= 1) return { t: "🔥 Cực nóng", cls: "hot" };
-      if (d <= 2) return { t: "♨️ Nóng", cls: "warm" };
-      if (d <= 4) return { t: "🌤️ Ấm", cls: "mild" };
-      return { t: "❄️ Lạnh", cls: "cold" };
+      if (d <= 1) return { t: ctx.t("🔥 Cực nóng", "🔥 Burning"), cls: "hot" };
+      if (d <= 2) return { t: ctx.t("♨️ Nóng", "♨️ Hot"), cls: "warm" };
+      if (d <= 4) return { t: ctx.t("🌤️ Ấm", "🌤️ Warm"), cls: "mild" };
+      return { t: ctx.t("❄️ Lạnh", "❄️ Cold"), cls: "cold" };
     }
     // khoảng cách tới kho CHƯA tìm gần nhất trong danh sách
     function nearestUnfound(treasures, r, c) {
@@ -124,7 +124,7 @@
       const at = list.findIndex((t) => t.r === r && t.c === c);
       if (at >= 0) { list.splice(at, 1); }
       else if (list.length < NT) { list.push({ r, c, found: false }); }
-      else { info.textContent = `Đã đủ ${NT} kho — bỏ bớt một kho nếu muốn đổi.`; return; }
+      else { info.textContent = ctx.t(`Đã đủ ${NT} kho — bỏ bớt một kho nếu muốn đổi.`, `Already ${NT} treasures — remove one to change.`); return; }
       ctx.sound("select");
       renderMine();
       updatePlaceInfo();
@@ -148,7 +148,7 @@
 
     function updatePlaceInfo() {
       const list = activeTreasures();
-      placeInfo.textContent = `Giấu ${list.length}/${NT} kho 💎`;
+      placeInfo.textContent = ctx.t(`Giấu ${list.length}/${NT} kho 💎`, `Hide ${list.length}/${NT} treasures 💎`);
       confirmBtn.disabled = list.length !== NT;
     }
 
@@ -161,13 +161,13 @@
         controls.classList.add("tr-hidden");
         ctx.sendMove({ kind: "ready" });
         if (oppReady) beginPlay();
-        else info.textContent = "Đã sẵn sàng. Đang chờ đối thủ giấu kho...";
+        else info.textContent = ctx.t("Đã sẵn sàng. Đang chờ đối thủ giấu kho...", "Ready. Waiting for the opponent to hide treasures...");
       } else {
         if (placingSeat === 0) {
           placingSeat = 1;
           renderMine();
           updatePlaceInfo();
-          info.textContent = `Người chơi 2: giấu ${NT} kho báu của bạn (Người chơi 1 đừng nhìn!).`;
+          info.textContent = ctx.t(`Người chơi 2: giấu ${NT} kho báu của bạn (Người chơi 1 đừng nhìn!).`, `Player 2: hide your ${NT} treasures (Player 1, no peeking!).`);
         } else {
           beginPlay();
         }
@@ -180,8 +180,8 @@
       turn = 0;
       // đổi tiêu đề 2 bàn cho chế độ chơi chung máy: mỗi người 1 bàn đào riêng
       if (!ctx.isOnline) {
-        myWrap.title.textContent = "P1 đào (tìm kho P2)";
-        oppWrap.title.textContent = "P2 đào (tìm kho P1)";
+        myWrap.title.textContent = ctx.t("P1 đào (tìm kho P2)", "P1 digs (find P2's treasures)");
+        oppWrap.title.textContent = ctx.t("P2 đào (tìm kho P1)", "P2 digs (find P1's treasures)");
       }
       ctx.setTurn(0);
       renderAll();
@@ -216,7 +216,7 @@
       if (ctx.isOnline) {
         awaiting = true;
         ctx.sendMove({ kind: "dig", r, c });
-        info.textContent = "Đang đào, chờ kết quả...";
+        info.textContent = ctx.t("Đang đào, chờ kết quả...", "Digging, awaiting result...");
       } else {
         // hot-seat: chấm trên kho của đối thủ
         const oppList = localTreasures[1 - turn];
@@ -235,14 +235,14 @@
       ctx.sound(hit ? "capture" : (d <= 2 ? "shot" : "miss"));
       renderProgress();
 
-      if (gameOver) { renderAll(); return endGame(diggerSeat, `tìm đủ ${total} kho báu`); }
+      if (gameOver) { renderAll(); return endGame(diggerSeat, ctx.t(`tìm đủ ${total} kho báu`, `found all ${total} treasures`)); }
 
       if (hit) {
         // trúng -> được đào tiếp (giữ lượt)
         awaiting = false;
         renderAll();
         const left = total - found;
-        ctx.setStatus(`💎 Trúng kho! Còn ${left} kho. Người chơi ${diggerSeat + 1} đào tiếp!`);
+        ctx.setStatus(ctx.t(`💎 Trúng kho! Còn ${left} kho. Người chơi ${diggerSeat + 1} đào tiếp!`, `💎 Hit! ${left} treasures left. Player ${diggerSeat + 1} digs again!`));
         return;
       }
       // trượt -> chuyển lượt
@@ -251,7 +251,7 @@
       ctx.setTurn(turn);
       renderAll();
       const h = hintFor(d);
-      ctx.setStatus(`${h.t} (kho gần nhất cách ${d} ô). Lượt Người chơi ${turn + 1}.`);
+      ctx.setStatus(ctx.t(`${h.t} (kho gần nhất cách ${d} ô). Lượt Người chơi ${turn + 1}.`, `${h.t} (nearest treasure ${d} cells away). Player ${turn + 1}'s turn.`));
     }
 
     // ====================== Online ======================
@@ -260,7 +260,7 @@
       if (move.kind === "ready") {
         oppReady = true;
         if (iReady) beginPlay();
-        else info.textContent = "Đối thủ đã sẵn sàng. Hãy giấu kho và bấm Sẵn sàng.";
+        else info.textContent = ctx.t("Đối thủ đã sẵn sàng. Hãy giấu kho và bấm Sẵn sàng.", "Opponent is ready. Hide your treasures and press Ready.");
         return;
       }
       if (move.kind === "dig") {
@@ -275,10 +275,10 @@
         ctx.sendMove({ kind: "result", r: move.r, c: move.c, dist: d, hit: !!hitT, found, total: NT, gameOver: remaining === 0 });
         renderMine();
         renderProgress();
-        if (remaining === 0) { endGame(opp, "kho của bạn đã bị tìm hết"); return; }
+        if (remaining === 0) { endGame(opp, ctx.t("kho của bạn đã bị tìm hết", "all your treasures were found")); return; }
         if (hitT) {
           // đối thủ trúng -> họ đào tiếp, vẫn lượt của họ
-          ctx.setStatus("💥 Đối thủ tìm thấy 1 kho của bạn và được đào tiếp...");
+          ctx.setStatus(ctx.t("💥 Đối thủ tìm thấy 1 kho của bạn và được đào tiếp...", "💥 The opponent found one of your treasures and digs again..."));
         } else {
           turn = ctx.mySeat;
           ctx.setTurn(turn);
@@ -299,11 +299,11 @@
       // lộ kho còn lại của mình cho đẹp
       renderMine(true);
       if (ctx.isOnline) {
-        if (winnerSeat === ctx.mySeat) { ctx.incScore(ctx.mySeat); ctx.setStatus(`🎉 Bạn thắng — ${reason}!`); }
-        else ctx.setStatus(`💀 Bạn thua — ${reason}.`);
+        if (winnerSeat === ctx.mySeat) { ctx.incScore(ctx.mySeat); ctx.setStatus(ctx.t(`🎉 Bạn thắng — ${reason}!`, `🎉 You win — ${reason}!`)); }
+        else ctx.setStatus(ctx.t(`💀 Bạn thua — ${reason}.`, `💀 You lose — ${reason}.`));
       } else {
         ctx.incScore(winnerSeat);
-        ctx.setStatus(`🎉 Người chơi ${winnerSeat + 1} thắng — ${reason}!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${winnerSeat + 1} thắng — ${reason}!`, `🎉 Player ${winnerSeat + 1} wins — ${reason}!`));
       }
     }
 
@@ -364,17 +364,17 @@
     function updateStatus() {
       if (phase !== "play") return;
       const mine = !ctx.isOnline || turn === ctx.mySeat;
-      ctx.setStatus(mine ? "🔍 Lượt bạn — đào tìm kho trên lưới đối thủ!" : "⏳ Đối thủ đang đào...");
+      ctx.setStatus(mine ? ctx.t("🔍 Lượt bạn — đào tìm kho trên lưới đối thủ!", "🔍 Your turn — dig for treasures on the enemy grid!") : ctx.t("⏳ Đối thủ đang đào...", "⏳ Opponent is digging..."));
     }
 
     // ====================== Khởi tạo ======================
     updatePlaceInfo();
     if (ctx.isOnline) {
-      info.textContent = `Giấu ${NT} kho 💎 trên LƯỚI CỦA BẠN (bấm để đặt/bỏ, hoặc 🎲 ngẫu nhiên), rồi Sẵn sàng.`;
+      info.textContent = ctx.t(`Giấu ${NT} kho 💎 trên LƯỚI CỦA BẠN (bấm để đặt/bỏ, hoặc 🎲 ngẫu nhiên), rồi Sẵn sàng.`, `Hide ${NT} treasures 💎 on YOUR GRID (click to place/remove, or 🎲 random), then Ready.`);
     } else {
-      info.textContent = `Người chơi 1: giấu ${NT} kho 💎 trên lưới của bạn.`;
+      info.textContent = ctx.t(`Người chơi 1: giấu ${NT} kho 💎 trên lưới của bạn.`, `Player 1: hide ${NT} treasures 💎 on your grid.`);
     }
-    ctx.setStatus("Giấu kho báu để bắt đầu.");
+    ctx.setStatus(ctx.t("Giấu kho báu để bắt đầu.", "Hide your treasures to begin."));
     renderAll();
     return { applyMove };
   }
