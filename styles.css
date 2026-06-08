@@ -205,8 +205,7 @@ body {
 body.theme-light .hist-item { background: linear-gradient(160deg, #ffffff, #f1f4fd); border-color: rgba(20,30,80,0.08); }
 
 /* ---------- Bảng xếp hạng ---------- */
-.lead-list { display: flex; flex-direction: column; gap: 6px; }
-.lead-empty {
+.lead-list { display: flex; flex-direction: column; gap: 6px; }.lead-empty {
   padding: 20px; text-align: center; color: var(--muted);
   border: 1px dashed rgba(255,255,255,0.14); border-radius: 14px; background: rgba(255,255,255,0.03);
 }
@@ -12229,3 +12228,36 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   .sh-cell.sh-target,
   .pr-wait { animation: none !important; }
 }
+
+
+/* ---------- Biểu đồ hoạt động 14 ngày ---------- */
+.activity-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 130px;
+  padding: 10px 12px 4px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(42,48,96,0.5), rgba(24,28,58,0.7));
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.ac-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; min-width: 0; }
+.ac-bar {
+  width: 70%;
+  max-width: 22px;
+  min-height: 3px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  background: rgba(255,255,255,0.06);
+}
+.ac-seg.win { background: var(--good); }
+.ac-seg.draw { background: var(--accent); }
+.ac-seg.lose { background: var(--p1); }
+.ac-col small { font-size: 0.62rem; color: var(--muted); }
+body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, #f1f4fd); border-color: rgba(20,30,80,0.08); }
+
+/* ---------- Bộ lọc lịch sử ---------- */
+.hist-filters { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.hist-filters .option-select { flex: 1; min-width: 130px; }

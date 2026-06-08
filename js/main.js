@@ -85,6 +85,9 @@
     avatarPicker: $("avatarPicker"),
     profileStats: $("profileStats"),
     leadList: $("leadList"),
+    activityChart: $("activityChart"),
+    histGameFilter: $("histGameFilter"),
+    histModeFilter: $("histModeFilter"),
     achGrid: $("achGrid"),
     histList: $("histList"),
     replayTourBtn: $("replayTourBtn"),
@@ -673,6 +676,7 @@
       ["⭐", topName, "Chơi nhiều nhất"],
     ].map(([ic, v, lb]) => `<div class="pstat"><span class="pstat-ic">${ic}</span><b>${v}</b><small>${lb}</small></div>`).join("");
     renderLeaderboard();
+    renderActivityChart();
     // achievements
     el.achGrid.innerHTML = ACHIEVEMENTS.map((ac) => {
       const done = ac.done(a);
@@ -727,11 +731,66 @@
   }
 
   const MODE_LABEL = { local: "👥 Chung máy", ai: "🤖 Đấu máy", online: "🌐 Online" };
+  function histOutcome(h) {
+    if (h.kind === "draw") return "draw";
+    if (h.mode === "ai") return h.winner === 0 ? "win" : "lose";
+    if (h.mode === "online" && typeof h.seat === "number") return h.winner === h.seat ? "win" : "lose";
+    return "win"; // chung máy: tính là có người thắng
+  }
+  function renderActivityChart() {
+    if (!el.activityChart) return;
+    const days = 14;
+    const now = new Date();
+    const buckets = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      buckets.push({ label: d.getDate() + "/" + (d.getMonth() + 1), ymd: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`, win: 0, lose: 0, draw: 0 });
+    }
+    const byYmd = {};
+    buckets.forEach((b) => { byYmd[b.ymd] = b; });
+    getHistory().forEach((h) => {
+      const d = new Date(h.ts);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const b = byYmd[key];
+      if (b) b[histOutcome(h)]++;
+    });
+    const maxTotal = Math.max(1, ...buckets.map((b) => b.win + b.lose + b.draw));
+    el.activityChart.innerHTML = buckets.map((b) => {
+      const total = b.win + b.lose + b.draw;
+      const h = Math.round(total / maxTotal * 100);
+      const seg = (n, cls) => n ? `<i class="ac-seg ${cls}" style="height:${Math.round(n / total * 100)}%"></i>` : "";
+      return `<div class="ac-col" title="${b.label}: ${total} ván (W${b.win}/L${b.lose}/D${b.draw})">
+        <div class="ac-bar" style="height:${h}%">${total ? seg(b.win, "win") + seg(b.draw, "draw") + seg(b.lose, "lose") : ""}</div>
+        <small>${b.label.split("/")[0]}</small>
+      </div>`;
+    }).join("");
+  }
+  function buildHistGameFilter(list) {
+    if (!el.histGameFilter) return;
+    const prev = el.histGameFilter.value;
+    const ids = [...new Set(list.map((h) => h.id))];
+    const opts = [`<option value="">${tt("filterAllGames")}</option>`].concat(
+      ids.map((id) => {
+        const g = getGameById(id);
+        return `<option value="${escapeHtml(id)}">${escapeHtml(g ? g.name : id)}</option>`;
+      }));
+    el.histGameFilter.innerHTML = opts.join("");
+    if (ids.includes(prev) || prev === "") el.histGameFilter.value = prev;
+  }
   function renderHistory() {
     if (!el.histList) return;
-    const list = getHistory();
-    if (!list.length) {
+    const all = getHistory();
+    buildHistGameFilter(all);
+    const gf = el.histGameFilter ? el.histGameFilter.value : "";
+    const mf = el.histModeFilter ? el.histModeFilter.value : "";
+    const list = all.filter((h) => (!gf || h.id === gf) && (!mf || h.mode === mf));
+    if (!all.length) {
       el.histList.innerHTML = `<div class="hist-empty">Chưa có ván nào. Chơi xong một ván sẽ hiện ở đây.</div>`;
+      return;
+    }
+    if (!list.length) {
+      el.histList.innerHTML = `<div class="hist-empty">Không có ván nào khớp bộ lọc.</div>`;
       return;
     }
     el.histList.innerHTML = list.map((h) => {
@@ -2328,6 +2387,8 @@
   }
   if (el.winShare) el.winShare.addEventListener("click", shareResult);
   if (el.shareCodeBtn) el.shareCodeBtn.addEventListener("click", shareRoom);
+  if (el.histGameFilter) el.histGameFilter.addEventListener("change", renderHistory);
+  if (el.histModeFilter) el.histModeFilter.addEventListener("change", renderHistory);
 
   // Phím Escape đóng overlay đang mở (ưu tiên từ trên xuống)
   document.addEventListener("keydown", (e) => {

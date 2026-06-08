@@ -81,6 +81,8 @@
       <div class="profile-stats" id="profileStats"></div>
       <h3 class="profile-h" data-i18n="leaderboardH">🏆 Bảng xếp hạng game của bạn</h3>
       <div class="lead-list" id="leadList"></div>
+      <h3 class="profile-h" data-i18n="activityH">📊 Hoạt động 14 ngày gần đây</h3>
+      <div class="activity-chart" id="activityChart"></div>
       <h3 class="profile-h" data-i18n="settingsH">⚙️ Cài đặt</h3>
       <div class="settings-box">
         <label class="set-row">
@@ -103,6 +105,15 @@
       <h3 class="profile-h" data-i18n="achievementsH">🏅 Thành tích</h3>
       <div class="ach-grid" id="achGrid"></div>
       <h3 class="profile-h" data-i18n="historyH">📜 Lịch sử ván đấu</h3>
+      <div class="hist-filters">
+        <select class="option-select" id="histGameFilter"></select>
+        <select class="option-select" id="histModeFilter">
+          <option value="" data-i18n="filterAllModes">Tất cả chế độ</option>
+          <option value="local" data-i18n="filterLocal">👥 Chung máy</option>
+          <option value="ai" data-i18n="filterAI">🤖 Đấu máy</option>
+          <option value="online" data-i18n="filterOnline">🌐 Online</option>
+        </select>
+      </div>
       <div class="hist-list" id="histList"></div>
     </section>
 
