@@ -115,6 +115,8 @@
   let sessionLocked = false;
   let roomExitTimer = null;
   let online = null; // null = chơi chung máy; {roomSeat, seat, seed} = online
+  let sessionToken = null; // token phiên để kết nối lại phòng
+  let reconnecting = false;
   let vsAI = false;  // true = đang đấu với máy (local)
   let aiLevel = "normal"; // easy | normal | hard
   const AI_SEAT = 1; // máy luôn cầm người chơi 2
@@ -435,6 +437,8 @@
 
   function stopOnlineSessionAndReturn(message) {
     if (!online) return;
+    reconnecting = false;
+    Net.disconnect();
     lockOnlineSession(message);
     showRoomExitNotice(message);
     if (roomExitTimer) clearTimeout(roomExitTimer);
@@ -839,6 +843,7 @@
       round: m.round || online?.round || 1,
       playerNames,
       roomNames: normalizedRoomNames,
+      token: sessionToken,
     };
   }
 
@@ -1299,6 +1304,7 @@
   // ---- Sự kiện từ server ----
   Net.on("created", (m) => {
     pendingRoomCode = m.code;
+    sessionToken = m.token || sessionToken;
     el.roomCodeVal.textContent = m.code;
     el.roomCodeBox.classList.remove("hidden");
     const game = getGameById(m.gameId);
@@ -1306,6 +1312,8 @@
     el.waitingMsg.textContent = `Đang chờ người chơi thứ hai vào ${game?.name || "phòng"}...`;
     setLobbyState(`Đã tạo phòng ${m.code}. Đang chờ đối thủ vào.`, "waiting");
   });
+
+  Net.on("joined", (m) => { sessionToken = m.token || sessionToken; });
 
   Net.on("error", (m) => {
     const text = "⚠️ " + (m.message || "Có lỗi kết nối.");
@@ -1326,6 +1334,7 @@
     }
     selectedGame = game;
     pendingRoomCode = null;
+    reconnecting = false;
     online = normalizeOnlineSession(m);
     if (m.options) currentOptions = m.options; // dùng tùy chỉnh của chủ phòng
     setLobbyState(`Đối thủ ${opponentName()} đã vào phòng. Bắt đầu ván.`, "live");
@@ -1365,12 +1374,63 @@
     stopOnlineSessionAndReturn(`${name} đã rời phòng. Ván online đã dừng.`);
   });
 
-  Net.on("disconnected", () => {
-    if (online) {
-      addChatMessage("Mất kết nối tới server.", "sys");
-      setGameRoomState("Mất kết nối tới server. Đang đưa bạn về menu.", "left");
-      stopOnlineSessionAndReturn("Mất kết nối tới server. Ván online đã dừng.");
+  Net.on("disconnected", () => { /* xử lý qua netdown để hỗ trợ kết nối lại */ });
+
+  // ----- Kết nối lại khi rớt mạng -----
+  Net.on("netdown", () => {
+    if (online && !reconnecting) {
+      reconnecting = true;
+      setGameRoomState("📶 Mất kết nối — đang thử kết nối lại...", "waiting");
+      addChatMessage("Mất kết nối, đang thử kết nối lại...", "sys");
     }
+  });
+
+  Net.on("netretry", (m) => {
+    if (online) setGameRoomState(`📶 Đang kết nối lại... (lần ${m.attempt}/${m.max})`, "waiting");
+  });
+
+  Net.on("netup", () => {
+    if (online && reconnecting && online.code && sessionToken) {
+      Net.send("rejoin", { code: online.code, seat: online.roomSeat, token: sessionToken });
+    }
+  });
+
+  Net.on("netfail", () => {
+    if (online) {
+      reconnecting = false;
+      stopOnlineSessionAndReturn("Không thể kết nối lại. Ván online đã dừng.");
+    }
+  });
+
+  Net.on("rejoin_failed", (m) => {
+    if (online) {
+      reconnecting = false;
+      stopOnlineSessionAndReturn(m.message || "Phiên chơi đã hết hạn. Ván online đã dừng.");
+    }
+  });
+
+  Net.on("rejoined", (m) => {
+    reconnecting = false;
+    const game = getGameById(m.gameId);
+    if (game) selectedGame = game;
+    online = normalizeOnlineSession(m);
+    if (m.options) currentOptions = m.options;
+    clearSessionLock();
+    startGame(m.seed);
+    // phát lại lịch sử nước đi để dựng lại ván
+    const hist = Array.isArray(m.history) ? m.history : [];
+    hist.forEach((mv) => { if (instance && instance.applyMove) { try { instance.applyMove(mv, true); } catch (e) { /* ignore */ } } });
+    describeOnlineGameState("live");
+    setGameRoomState("✅ Đã kết nối lại! Ván tiếp tục.", "live");
+    addChatMessage("Đã kết nối lại.", "sys");
+  });
+
+  Net.on("opponent_disconnected", () => {
+    if (online) setGameRoomState("⏳ Đối thủ mất kết nối — đang chờ họ quay lại...", "waiting");
+  });
+
+  Net.on("opponent_reconnected", () => {
+    if (online) { describeOnlineGameState("live"); setGameRoomState("✅ Đối thủ đã kết nối lại.", "live"); }
   });
 
   Net.on("chat", (m) => {
@@ -1568,7 +1628,9 @@
     clearRoomExitNotice();
     hideWinScreen();
     leavePendingRoom();
-    if (online) { Net.send("leave"); online = null; }
+    if (online) { Net.send("leave"); Net.disconnect(); online = null; }
+    reconnecting = false;
+    sessionToken = null;
     clearSessionLock();
     setGameRoomState("", "info");
     setLobbyState("", "info");

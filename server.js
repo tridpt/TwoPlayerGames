@@ -67,6 +67,13 @@ function makeCode() {
   return code;
 }
 
+function makeToken() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+const RECONNECT_GRACE_MS = 45_000;
+const MAX_HISTORY = 4000;
+
 function send(ws, type, payload = {}) {
   if (ws && ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify({ type, ...payload }));
@@ -134,10 +141,42 @@ function leaveRoom(ws) {
   if (room) {
     const opp = otherPlayer(room, ws);
     send(opp, "opponent_left");
+    if (room.dcTimers) { room.dcTimers.forEach((t) => t && clearTimeout(t)); }
     rooms.delete(code);
   }
   ws.roomCode = null;
   ws.seat = null;
+}
+
+// Rớt mạng giữa ván: giữ phòng một lúc để cho phép kết nối lại
+function handleDisconnect(ws) {
+  const code = ws.roomCode;
+  if (!code) return;
+  const room = rooms.get(code);
+  if (!room) { ws.roomCode = null; ws.seat = null; return; }
+  const seat = ws.seat;
+  if (room.players[seat] !== ws) { ws.roomCode = null; ws.seat = null; return; }
+  room.players[seat] = null;
+  const opp = otherPlayer(room, ws);
+  if (!opp) {
+    // không còn ai -> xóa luôn
+    if (room.dcTimers) room.dcTimers.forEach((t) => t && clearTimeout(t));
+    rooms.delete(code);
+    ws.roomCode = null; ws.seat = null;
+    return;
+  }
+  send(opp, "opponent_disconnected", { seat });
+  room.dcTimers = room.dcTimers || [null, null];
+  if (room.dcTimers[seat]) clearTimeout(room.dcTimers[seat]);
+  room.dcTimers[seat] = setTimeout(() => {
+    const r = rooms.get(code);
+    if (!r || r.players[seat]) return; // đã kết nối lại
+    const o = r.players.find((p) => p);
+    send(o, "opponent_left");
+    if (r.dcTimers) r.dcTimers.forEach((t) => t && clearTimeout(t));
+    rooms.delete(code);
+  }, RECONNECT_GRACE_MS);
+  ws.roomCode = null; ws.seat = null;
 }
 
 wss.on("connection", (ws) => {
@@ -168,10 +207,11 @@ wss.on("connection", (ws) => {
         const seed = Math.floor(Math.random() * 1e9);
         const firstSeat = Math.random() < 0.5 ? 0 : 1;
         const playerName = cleanPlayerName(msg.playerName, "Người chơi 1");
-        rooms.set(code, { players: [ws, null], names: [playerName, null], gameId: msg.gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options });
+        const token0 = makeToken();
+        rooms.set(code, { players: [ws, null], names: [playerName, null], tokens: [token0, null], history: [], dcTimers: [null, null], gameId: msg.gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options });
         ws.roomCode = code;
         ws.seat = 0;
-        send(ws, "created", { code, seat: 0, gameId: msg.gameId, seed, firstSeat, round: 1, options, playerNames: [playerName, null] });
+        send(ws, "created", { code, seat: 0, token: token0, gameId: msg.gameId, seed, firstSeat, round: 1, options, playerNames: [playerName, null] });
         break;
       }
 
@@ -185,9 +225,13 @@ wss.on("connection", (ws) => {
         if (room.players[1]) return send(ws, "error", { message: "Phòng đã đủ người." });
         room.players[1] = ws;
         room.names[1] = cleanPlayerName(msg.playerName, "Người chơi 2");
+        const token1 = makeToken();
+        room.tokens = room.tokens || [null, null];
+        room.tokens[1] = token1;
+        room.history = [];
         ws.roomCode = code;
         ws.seat = 1;
-        send(ws, "joined", { code, seat: 1, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names });
+        send(ws, "joined", { code, seat: 1, token: token1, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names });
         // báo cho cả hai bắt đầu (kèm options của chủ phòng)
         send(room.players[0], "start", { code, seat: 0, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names });
         send(room.players[1], "start", { code, seat: 1, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names });
@@ -199,6 +243,7 @@ wss.on("connection", (ws) => {
         if (payloadBytes(msg.move) > MAX_MOVE_BYTES) return send(ws, "error", { message: "Nước đi quá lớn." });
         const room = roomFor(ws);
         if (!room) return;
+        if (room.history) { room.history.push(msg.move); if (room.history.length > MAX_HISTORY) room.history.shift(); }
         const opp = otherPlayer(room, ws);
         send(opp, "move", { move: msg.move });
         break;
@@ -221,6 +266,7 @@ wss.on("connection", (ws) => {
         room.round = (room.round || 1) + 1;
         room.firstSeat = typeof room.firstSeat === "number" ? 1 - room.firstSeat : (Math.random() < 0.5 ? 0 : 1);
         room.restartVotes.clear();
+        room.history = [];
         room.players.forEach((p, i) => send(p, "restart", { code: ws.roomCode, gameId: room.gameId, seed, seat: i, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names }));
         break;
       }
@@ -239,10 +285,35 @@ wss.on("connection", (ws) => {
         ws.seat = null;
         break;
       }
+
+      case "rejoin": {
+        if (!rateLimit(ws, "lobby", 18, 60_000)) return send(ws, "error", { message: "Thao tác quá nhanh." });
+        const code = cleanRoomCode(msg.code);
+        const seat = msg.seat === 1 ? 1 : 0;
+        const room = code && rooms.get(code);
+        if (!room || !room.tokens || room.tokens[seat] !== msg.token) {
+          return send(ws, "rejoin_failed", { message: "Phiên chơi đã hết hạn." });
+        }
+        if (room.players[seat]) {
+          return send(ws, "rejoin_failed", { message: "Chỗ này đã có người." });
+        }
+        leaveRoom(ws);
+        if (room.dcTimers && room.dcTimers[seat]) { clearTimeout(room.dcTimers[seat]); room.dcTimers[seat] = null; }
+        room.players[seat] = ws;
+        ws.roomCode = code;
+        ws.seat = seat;
+        send(ws, "rejoined", {
+          code, seat, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat,
+          round: room.round, options: room.options, playerNames: room.names,
+          history: room.history || [],
+        });
+        send(otherPlayer(room, ws), "opponent_reconnected", { seat });
+        break;
+      }
     }
   });
 
-  ws.on("close", () => leaveRoom(ws));
+  ws.on("close", () => handleDisconnect(ws));
 });
 
 const heartbeatInterval = setInterval(() => {
