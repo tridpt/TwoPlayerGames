@@ -513,6 +513,11 @@
     if (window.I18n && I18n.getLang() === "en" && window.GAMES_EN && GAMES_EN[g.id]) return GAMES_EN[g.id].description;
     return g.description || "";
   }
+  function gameHowTo(g) {
+    if (!g) return [];
+    if (window.I18n && I18n.getLang() === "en" && window.GAMES_EN && GAMES_EN[g.id] && GAMES_EN[g.id].howTo) return GAMES_EN[g.id].howTo;
+    return g.howTo || [];
+  }
 
   const GAME_MARKS = {
     auctionwar: "AW",
@@ -1077,7 +1082,7 @@
   }
 
   function setGameHeading(target, game) {
-    target.innerHTML = `${gameIconHtml(game, "small")}<span>${game.name}</span>`;
+    target.innerHTML = `${gameIconHtml(game, "small")}<span>${escapeHtml(gameName(game))}</span>`;
   }
 
   function normalizeOnlineSession(m) {
@@ -1402,7 +1407,7 @@
     el.detailStats.innerHTML = s.played
       ? `<span>🎮 ${s.played} ván đã chơi</span><span>🏆 P1 ${s.p1} – ${s.p2} P2</span>${s.draw ? `<span>🤝 ${s.draw} hòa</span>` : ""}`
       : `<span class="detail-nostat">Chưa có ván nào — chơi thử ngay!</span>`;
-    const steps = game.howTo || ["Chưa có hướng dẫn cho trò này."];
+    const steps = gameHowTo(game).length ? gameHowTo(game) : ["Chưa có hướng dẫn cho trò này."];
     el.detailHowto.innerHTML = steps.map((t) => `<li>${t}</li>`).join("");
     show("detailView");
   }
@@ -2075,7 +2080,7 @@
   function openHelp() {
     if (!selectedGame) return;
     setGameHeading(el.helpTitle, selectedGame);
-    const steps = selectedGame.howTo || ["Chưa có hướng dẫn cho trò này."];
+    const steps = gameHowTo(selectedGame).length ? gameHowTo(selectedGame) : ["Chưa có hướng dẫn cho trò này."];
     el.helpBody.innerHTML = "<ol class='help-list'>" +
       steps.map((s) => `<li>${s}</li>`).join("") +
       "</ol>";

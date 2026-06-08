@@ -57,3 +57,10 @@ test("games-i18n: mỗi mục có name và description không rỗng", () => {
     assert.ok(v.description && v.description.length, `${id} thiếu description`);
   }
 });
+
+test("games-i18n: mỗi game có howTo (>=3 bước, không rỗng)", () => {
+  for (const [id, v] of Object.entries(GAMES_EN)) {
+    assert.ok(Array.isArray(v.howTo) && v.howTo.length >= 3, `${id} thiếu howTo`);
+    v.howTo.forEach((s, i) => assert.ok(typeof s === "string" && s.length, `${id}.howTo[${i}] rỗng`));
+  }
+});
