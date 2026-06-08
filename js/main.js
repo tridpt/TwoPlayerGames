@@ -9,6 +9,7 @@
     gameGrid: $("gameGrid"),
     catSidebar: $("catSidebar"),
     catHead: $("catHead"),
+    dailyBanner: $("dailyBanner"),
     gameSearch: $("gameSearch"),
     sortSelect: $("sortSelect"),
     chipOnline: $("chipOnline"),
@@ -206,6 +207,7 @@
             recordStat(selectedGame.id, kind === "draw" ? "draw" : "win", lastWinner);
             recordHistory(selectedGame.id, kind === "draw" ? "draw" : "win", lastWinner);
             recordOutcomeFlags(kind);
+            if (selectedGame.id === dailyGameId()) markDailyDone();
           }
           if (el.winOverlay.classList.contains("hidden")) {
             showWinScreen(kind, text);
@@ -586,6 +588,8 @@
     { id: "aiHard5", icon: "💀", title: "Khắc tinh AI", desc: "Thắng AI mức Khó 5 lần", done: (a) => (a.flags.ai_hard || 0) >= 5 },
     { id: "online1", icon: "🌐", title: "Cao thủ online", desc: "Thắng 1 ván online", done: (a) => (a.flags.onlineWins || 0) >= 1 },
     { id: "fav3", icon: "❤️", title: "Có gu", desc: "Thêm 3 game yêu thích", done: (a) => a.favCount >= 3 },
+    { id: "daily3", icon: "📅", title: "Chuyên cần", desc: "Chuỗi thử thách 3 ngày", done: (a) => (a.flags.dailyBest || 0) >= 3 },
+    { id: "daily7", icon: "🗓️", title: "Kiên trì", desc: "Chuỗi thử thách 7 ngày", done: (a) => (a.flags.dailyBest || 0) >= 7 },
   ];
 
   function computeAgg() {
@@ -747,6 +751,64 @@
     const list = getHistory();
     list.unshift(entry);
     try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 50))); } catch (e) { /* ignore */ }
+  }
+
+  // ====================== Thử thách hằng ngày ======================
+  const DAILY_KEY = "tpg_daily";
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  function yesterdayStr() {
+    const d = new Date(); d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  function dailyGameId() {
+    const games = GameRegistry.games;
+    if (!games.length) return null;
+    const t = todayStr();
+    let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
+    return games[h % games.length].id;
+  }
+  function getDaily() { try { return JSON.parse(localStorage.getItem(DAILY_KEY)) || {}; } catch (e) { return {}; } }
+  function saveDaily(d) { try { localStorage.setItem(DAILY_KEY, JSON.stringify(d)); } catch (e) { /* ignore */ } }
+  function dailyDoneToday() { return getDaily().lastDone === todayStr(); }
+  function markDailyDone() {
+    if (dailyDoneToday()) return;
+    const d = getDaily();
+    d.streak = d.lastDone === yesterdayStr() ? (d.streak || 0) + 1 : 1;
+    d.lastDone = todayStr();
+    if (!d.best || d.streak > d.best) d.best = d.streak;
+    saveDaily(d);
+    // cờ cho thành tích
+    const f = getFlags();
+    f.dailyBest = d.best;
+    f.dailyTotal = (f.dailyTotal || 0) + 1;
+    saveFlags(f);
+    showToast(`✅ Hoàn thành thử thách hôm nay! Chuỗi: ${d.streak} ngày 🔥`);
+    window.Sound && Sound.play("win");
+  }
+  function renderDailyBanner() {
+    if (!el.dailyBanner) return;
+    const id = dailyGameId();
+    const game = id ? getGameById(id) : null;
+    if (!game) { el.dailyBanner.classList.add("hidden"); return; }
+    const d = getDaily();
+    const done = dailyDoneToday();
+    const streak = d.streak && d.lastDone && (d.lastDone === todayStr() || d.lastDone === yesterdayStr()) ? d.streak : 0;
+    el.dailyBanner.classList.remove("hidden");
+    el.dailyBanner.innerHTML =
+      `<div class="daily-left">` +
+        `<div class="daily-poster">${gameAvatarHtml(game)}</div>` +
+        `<div class="daily-text">` +
+          `<span class="daily-tag">⭐ Thử thách hôm nay${streak ? ` · 🔥 chuỗi ${streak} ngày` : ""}</span>` +
+          `<b>${escapeHtml(game.name)}</b>` +
+          `<small>${done ? "✅ Đã hoàn thành hôm nay — quay lại vào ngày mai!" : "Chơi xong một ván để giữ chuỗi ngày."}</small>` +
+        `</div>` +
+      `</div>` +
+      `<button class="btn primary daily-play" type="button">${done ? "Chơi lại" : "▶ Chơi ngay"}</button>`;
+    const btn = el.dailyBanner.querySelector(".daily-play");
+    if (btn) btn.addEventListener("click", () => openDetail(game));
   }
   function isHot(id) {
     const plays = getPlays();
@@ -1050,6 +1112,7 @@
     buildCatSidebar();
     renderCategory(currentCategory);
     buildLobbyGameSelect();
+    renderDailyBanner();
   }
 
   // Cập nhật lại danh sách "Chơi gần đây" + "Yêu thích" từ localStorage
@@ -1841,6 +1904,7 @@
       refreshDynamicCategories();
       buildCatSidebar();
       renderCategory(currentCategory);
+      renderDailyBanner();
     }
     ["menu", "profileView", "detailView", "modeView", "lobbyView", "gameView"].forEach((id) => {
       el[id].classList.toggle("hidden", id !== viewId);

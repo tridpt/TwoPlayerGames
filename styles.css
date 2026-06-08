@@ -653,6 +653,44 @@ body.theme-light .status { color: #b06a00; }
     var(--panel);
   box-shadow: var(--shadow);
 }
+
+/* ---------- Banner thử thách hằng ngày ---------- */
+.daily-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 4px 0 16px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 143, 177, 0.3);
+  background:
+    radial-gradient(circle at 90% 10%, rgba(255,143,177,0.2), transparent 45%),
+    linear-gradient(135deg, rgba(106,141,255,0.18), rgba(255,209,102,0.1)),
+    var(--panel);
+  box-shadow: var(--shadow);
+}
+.daily-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.daily-poster { flex: 0 0 auto; width: 84px; }
+.daily-poster .game-poster { height: 56px; border-radius: 10px; }
+.daily-poster .poster-emoji { font-size: 2rem; }
+.daily-poster .poster-mark { display: none; }
+.daily-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.daily-tag {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.daily-text b { font-family: var(--font-head); font-size: 1.25rem; }
+.daily-text small { color: var(--muted); font-size: 0.84rem; }
+.daily-play { flex: 0 0 auto; }
+@media (max-width: 560px) {
+  .daily-banner { flex-direction: column; align-items: stretch; }
+  .daily-play { width: 100%; }
+}
 .online-entry h2 {
   margin: 0 0 5px;
   color: var(--text);
