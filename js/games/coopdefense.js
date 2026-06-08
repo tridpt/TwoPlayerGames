@@ -215,6 +215,17 @@
 
   function create(ctx) {
     let leaks = 0;
+    // bản dịch tên/ghi chú (MAPS/TOWERS/MONSTERS là hằng module-level)
+    const MAP_NAME_EN = { forest: "Winding Forest", coast: "Coastline", canyon: "Canyon", ruins: "Crystal Ruins" };
+    const MAP_NOTE_EN = { forest: "crossing forest paths", coast: "bridge-side road", canyon: "monsters move faster", ruins: "loops around the core" };
+    const TOWER_NAME_EN = { rifle: "Machine gun", cannon: "Cannon", frost: "Frost tower", laser: "Laser", sniper: "Sniper", tesla: "Tesla", flame: "Flame tower", mortar: "Mortar" };
+    const TOWER_NOTE_EN = { rifle: "fast fire", cannon: "splash", frost: "slows", laser: "pierces lane", sniper: "long range", tesla: "chains", flame: "burns", mortar: "wide blast" };
+    const MON_NAME_EN = { grunt: "Infantry", runner: "Runner", swarm: "Swarmling", brute: "Heavy armor", shield: "Shield", shaman: "Shaman", bomber: "Armor bomber", ghost: "Ghost", splitter: "Splitter", boss: "Gate Boss" };
+    const mapName = (m) => ctx.t(m.name, MAP_NAME_EN[m.id] || m.name);
+    const mapNote = (m) => ctx.t(m.note, MAP_NOTE_EN[m.id] || m.note);
+    const towerName = (id) => ctx.t(TOWERS[id].name, TOWER_NAME_EN[id] || TOWERS[id].name);
+    const towerNote = (id) => ctx.t(TOWERS[id].note, TOWER_NOTE_EN[id] || TOWERS[id].note);
+    const monName = (type) => ctx.t(MONSTERS[type].name, MON_NAME_EN[type] || MONSTERS[type].name);
     let baseHp = BASE_HP;
     let strikeCd = 0;
     let coins = 210;
@@ -231,7 +242,7 @@
     const monsters = [];
     const shots = [];
     let spawns = [];
-    const log = ["Chọn map, đặt súng quanh đường. Không để quái lọt hết đường."];
+    const log = [ctx.t("Chọn map, đặt súng quanh đường. Không để quái lọt hết đường.", "Pick a map, place guns along the paths. Don't let monsters slip through.")];
 
     const root = document.createElement("div");
     root.className = "cd-root";
@@ -266,7 +277,7 @@
         if (idx < 0 || !canChangeMap()) return;
         activeMap = idx;
         selectedSlot = null;
-        addLog(`Đổi sang map ${currentMap().name}.`);
+        addLog(ctx.t(`Đổi sang map ${currentMap().name}.`, `Switched to map ${mapName(currentMap())}.`));
         if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "map", map: currentMap().id });
         render();
         return;
@@ -281,7 +292,7 @@
         coins -= def.cost;
         towers[lane][slot] = { type, level: 1, cooldown: 0 };
         selectedSlot = { lane, slot };
-        addLog(`Xây ${def.name} ở đường ${lane + 1}.`);
+        addLog(ctx.t(`Xây ${def.name} ở đường ${lane + 1}.`, `Built ${towerName(type)} on path ${lane + 1}.`));
         ctx.sound("place");
         if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "build", lane, slot, type });
         render();
@@ -298,7 +309,7 @@
         coins -= cost;
         tower.level++;
         selectedSlot = { lane, slot };
-        addLog(`Nâng ${TOWERS[tower.type].name} đường ${lane + 1} lên cấp ${tower.level}.`);
+        addLog(ctx.t(`Nâng ${TOWERS[tower.type].name} đường ${lane + 1} lên cấp ${tower.level}.`, `Upgraded ${towerName(tower.type)} on path ${lane + 1} to level ${tower.level}.`));
         ctx.sound("capture");
         if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "upgrade", lane, slot });
         render();
@@ -314,7 +325,7 @@
         coins += refund;
         towers[lane][slot] = null;
         selectedSlot = null;
-        addLog(`Bán tháp lấy lại ${refund} vàng.`);
+        addLog(ctx.t(`Bán tháp lấy lại ${refund} vàng.`, `Sold tower for ${refund} gold back.`));
         if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "sell", lane, slot });
         render();
         return;
@@ -333,7 +344,7 @@
         if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "airstrike" });
         let hitCount = 0;
         monsters.forEach((m) => { m.hp -= STRIKE_DMG; m.slowUntil = Math.max(m.slowUntil, tick + 18); hitCount++; });
-        addLog(`💥 Không kích! Giáng ${STRIKE_DMG} sát thương lên ${hitCount} quái.`);
+        addLog(ctx.t(`💥 Không kích! Giáng ${STRIKE_DMG} sát thương lên ${hitCount} quái.`, `💥 Airstrike! Dealt ${STRIKE_DMG} damage to ${hitCount} monsters.`));
         ctx.sound("capture");
         resolveDeaths();
         render();
@@ -413,8 +424,8 @@
       spawns = makeWave(wave);
       shots.length = 0;
       ctx.setTurn(0);
-      addLog(`Wave ${wave} bắt đầu trên map ${currentMap().name}. Vẫn có thể xây súng trong lúc quái chạy.`);
-      ctx.setStatus(`Wave ${wave}/${MAX_WAVE}: chặn quái trước khi chúng lọt hết đường.`);
+      addLog(ctx.t(`Wave ${wave} bắt đầu trên map ${currentMap().name}. Vẫn có thể xây súng trong lúc quái chạy.`, `Wave ${wave} starts on map ${mapName(currentMap())}. You can still build while monsters run.`));
+      ctx.setStatus(ctx.t(`Wave ${wave}/${MAX_WAVE}: chặn quái trước khi chúng lọt hết đường.`, `Wave ${wave}/${MAX_WAVE}: stop the monsters before they slip through.`));
       if (timer) clearInterval(timer);
       timer = setInterval(step, 100);
       render();
@@ -533,7 +544,7 @@
           leaks++;
           const dmg = m.type === "boss" ? 8 : (m.armor >= 2 ? 3 : 2);
           baseHp = Math.max(0, baseHp - dmg);
-          addLog(`${MONSTERS[m.type].name} lọt qua phòng tuyến! Căn cứ -${dmg} máu (còn ${baseHp}).`);
+          addLog(ctx.t(`${MONSTERS[m.type].name} lọt qua phòng tuyến! Căn cứ -${dmg} máu (còn ${baseHp}).`, `${monName(m.type)} slipped through! Base -${dmg} HP (${baseHp} left).`));
           monsters.splice(i, 1);
           ctx.sound("error");
           if (baseHp <= 0) { finish(false); return; }
@@ -641,7 +652,7 @@
           for (let j = 0; j < def.split; j++) {
             spawnMini("swarm", (m.lane + j) % LANES, m.x);
           }
-          addLog(`${def.name} tách thành đàn nhỏ.`);
+          addLog(ctx.t(`${def.name} tách thành đàn nhỏ.`, `${monName(m.type)} splits into a small swarm.`));
         }
         monsters.splice(i, 1);
       }
@@ -665,8 +676,8 @@
         return;
       }
       ctx.setTurn(0);
-      addLog(`Qua wave ${wave}. Thưởng ${bonus} vàng.`);
-      ctx.setStatus(`Qua wave ${wave}. Có ${coins} vàng để mở rộng hỏa lực trước wave ${wave + 1}.`);
+      addLog(ctx.t(`Qua wave ${wave}. Thưởng ${bonus} vàng.`, `Cleared wave ${wave}. Reward ${bonus} gold.`));
+      ctx.setStatus(ctx.t(`Qua wave ${wave}. Có ${coins} vàng để mở rộng hỏa lực trước wave ${wave + 1}.`, `Cleared wave ${wave}. ${coins} gold to expand firepower before wave ${wave + 1}.`));
       render();
     }
 
@@ -679,10 +690,10 @@
       render();
       if (win) {
         ctx.incScore(0);
-        ctx.setStatus(`🎉 Đội phòng thủ thắng! Chặn sạch quái qua ${MAX_WAVE} wave.`);
+        ctx.setStatus(ctx.t(`🎉 Đội phòng thủ thắng! Chặn sạch quái qua ${MAX_WAVE} wave.`, `🎉 The defenders win! Held off monsters through ${MAX_WAVE} waves.`));
       } else {
         ctx.incScore(1);
-        ctx.setStatus("💀 Quái đã lọt hết đường. Cả đội thua ván này.");
+        ctx.setStatus(ctx.t("💀 Quái đã lọt hết đường. Cả đội thua ván này.", "💀 Monsters broke through. The team loses this round."));
       }
     }
 
@@ -703,19 +714,19 @@
       const hpPct = Math.max(0, baseHp) / BASE_HP * 100;
       hudEl.innerHTML = `
         <div class="cd-stat">
-          <b>🏰 Máu căn cứ</b>
+          <b>${ctx.t("🏰 Máu căn cứ", "🏰 Base HP")}</b>
           <span>${baseHp}/${BASE_HP} ❤️</span>
           <i><em style="width:${hpPct}%"></em></i>
         </div>
         <div class="cd-stat">
-          <b>💰 Kho chung</b>
-          <span>${coins} vàng</span>
-          <small>${phase === "wave" ? "wave đang chạy" : "đang chuẩn bị"}</small>
+          <b>${ctx.t("💰 Kho chung", "💰 Shared bank")}</b>
+          <span>${ctx.t(`${coins} vàng`, `${coins} gold`)}</span>
+          <small>${phase === "wave" ? ctx.t("wave đang chạy", "wave running") : ctx.t("đang chuẩn bị", "preparing")}</small>
         </div>
         <div class="cd-stat">
-          <b>🗺️ ${currentMap().name}</b>
+          <b>🗺️ ${mapName(currentMap())}</b>
           <span>Wave ${Math.min(wave + (phase === "prep" ? 1 : 0), MAX_WAVE)}/${MAX_WAVE}</span>
-          <small>${monsters.length} quái · ${leaks} đã lọt</small>
+          <small>${ctx.t(`${monsters.length} quái · ${leaks} đã lọt`, `${monsters.length} monsters · ${leaks} leaked`)}</small>
         </div>
       `;
     }
@@ -735,7 +746,7 @@
           `).join("")}
         </svg>
         <div class="cd-lane-tags">
-          ${map.routes.map((route, lane) => `<span style="left:${route[1].x}%;top:${Math.max(10, route[1].y - 8)}%">Đường ${lane + 1}</span>`).join("")}
+          ${map.routes.map((route, lane) => `<span style="left:${route[1].x}%;top:${Math.max(10, route[1].y - 8)}%">${ctx.t(`Đường ${lane + 1}`, `Path ${lane + 1}`)}</span>`).join("")}
         </div>
         ${Array.from({ length: LANES }, (_, lane) => Array.from({ length: SLOTS }, (_, slot) => renderSlot(lane, slot)).join("")).join("")}
         ${monsters.map(renderMonster).join("")}
@@ -794,8 +805,8 @@
       return `
         <div class="cd-tower-popup pop-${side}" style="left:${pt.x}%;top:${pt.y}%">
           <button class="cd-pop-close" data-pop="close" type="button">✕</button>
-          <b style="color:${def.color}">${def.name}</b>
-          <span>Cấp ${tower.level}/5 · ${def.note}</span>
+          <b style="color:${def.color}">${towerName(tower.type)}</b>
+          <span>${ctx.t(`Cấp ${tower.level}/5 · ${def.note}`, `Lv ${tower.level}/5 · ${towerNote(tower.type)}`)}</span>
           <div class="cd-pop-row">
             <button class="cd-pop-btn up" data-pop="up" type="button" ${upOff ? "disabled" : ""}>${upLabel}</button>
             <button class="cd-pop-btn sell" data-pop="sell" type="button">🪙 ${refund}</button>
@@ -815,7 +826,7 @@
       const selected = selectedSlot && selectedSlot.lane === lane && selectedSlot.slot === slot;
       const pt = slotPoint(lane, slot);
       if (!tower) {
-        return `<button class="cd-slot ${over ? "disabled" : ""}" data-lane="${lane}" data-slot="${slot}" style="left:${pt.x}%;top:${pt.y}%" title="Xây súng"></button>`;
+        return `<button class="cd-slot ${over ? "disabled" : ""}" data-lane="${lane}" data-slot="${slot}" style="left:${pt.x}%;top:${pt.y}%" title="${ctx.t("Xây súng", "Build gun")}"></button>`;
       }
       const def = TOWERS[tower.type];
       // góc ngắm theo quái (chỉnh theo tỉ lệ pixel thật của map), mặc định hướng trái
@@ -829,7 +840,7 @@
       }
       const firing = tower.cooldown > 0 && tower.cooldown >= TOWERS[tower.type].rate - 2;
       return `
-        <button class="cd-slot has-tower tower-${tower.type} ${selected ? "selected" : ""}" data-lane="${lane}" data-slot="${slot}" style="left:${pt.x}%;top:${pt.y}%;color:${def.color}" title="${def.name} cấp ${tower.level}">
+        <button class="cd-slot has-tower tower-${tower.type} ${selected ? "selected" : ""}" data-lane="${lane}" data-slot="${slot}" style="left:${pt.x}%;top:${pt.y}%;color:${def.color}" title="${ctx.t(`${def.name} cấp ${tower.level}`, `${towerName(tower.type)} lv ${tower.level}`)}">
           <span class="cd-gun-base"></span>
           <span class="cd-gun-turret ${firing ? "firing" : ""}" style="transform:translate(-50%,-50%) rotate(${aim.toFixed(1)}deg)">
             <span class="cd-gun-barrel"></span>
@@ -845,7 +856,7 @@
       const pt = routePoint(m.lane, m.x);
       const def = MONSTERS[m.type];
       return `
-        <div class="cd-monster mon-${m.type} ${m.slowUntil > tick ? "slowed" : ""} ${m.burnUntil > tick ? "burning" : ""}" style="left:${pt.x}%;top:${pt.y}%" title="${def.name}">
+        <div class="cd-monster mon-${m.type} ${m.slowUntil > tick ? "slowed" : ""} ${m.burnUntil > tick ? "burning" : ""}" style="left:${pt.x}%;top:${pt.y}%" title="${monName(m.type)}">
           <span class="cd-mon-ic">${def.icon}</span>
           <i><em style="width:${pct}%"></em></i>
         </div>
@@ -892,26 +903,26 @@
           <div class="cd-map-list">
             ${MAPS.map((map) => `
               <button class="cd-map-card map-${map.theme} ${currentMap().id === map.id ? "active" : ""}" data-map="${map.id}" ${!canChangeMap() ? "disabled" : ""}>
-                <b>${map.name}</b>
-                <small>${map.note}</small>
+                <b>${mapName(map)}</b>
+                <small>${mapNote(map)}</small>
               </button>
             `).join("")}
           </div>
         </div>
         <div class="cd-panel-section">
-          <h3>Kho súng</h3>
+          <h3>${ctx.t("Kho súng", "Gun arsenal")}</h3>
           <div class="cd-tower-list">
             ${Object.entries(TOWERS).map(([id, def]) => `
               <button class="cd-tower-card ${selectedType === id ? "active" : ""}" data-tower="${id}" style="--tower:${def.color}" ${over ? "disabled" : ""}>
                 <span class="tower-chip tower-${id}"><i></i><em></em></span>
-                <b>${def.name}</b>
-                <small>${def.cost} vàng · ${def.note}</small>
+                <b>${towerName(id)}</b>
+                <small>${ctx.t(`${def.cost} vàng · ${def.note}`, `${def.cost} gold · ${towerNote(id)}`)}</small>
               </button>
             `).join("")}
           </div>
         </div>
         <div class="cd-panel-section">
-          <h3>Điều khiển</h3>
+          <h3>${ctx.t("Điều khiển", "Controls")}</h3>
           ${renderSelectedActions(sel)}
           <button class="btn primary cd-start" id="cdStart"></button>
           <button class="btn cd-strike" id="cdStrike"></button>
@@ -938,30 +949,30 @@
       const startBtn = panelEl.querySelector("#cdStart");
       if (startBtn) {
         startBtn.disabled = phase !== "prep" || over;
-        startBtn.textContent = phase === "wave" ? "Wave đang chạy" : wave === 0 ? "Gọi wave 1" : "Gọi wave " + (wave + 1);
+        startBtn.textContent = phase === "wave" ? ctx.t("Wave đang chạy", "Wave running") : wave === 0 ? ctx.t("Gọi wave 1", "Call wave 1") : ctx.t(`Gọi wave ${wave + 1}`, `Call wave ${wave + 1}`);
       }
       const strikeBtn = panelEl.querySelector("#cdStrike");
       if (strikeBtn) {
         strikeBtn.disabled = phase !== "wave" || over || strikeCd > 0 || coins < STRIKE_COST;
-        strikeBtn.textContent = `💥 Không kích (${STRIKE_COST} vàng${strikeCd > 0 ? " · hồi " + Math.ceil(strikeCd / 10) + "s" : ""})`;
+        strikeBtn.textContent = ctx.t(`💥 Không kích (${STRIKE_COST} vàng${strikeCd > 0 ? " · hồi " + Math.ceil(strikeCd / 10) + "s" : ""})`, `💥 Airstrike (${STRIKE_COST} gold${strikeCd > 0 ? " · cd " + Math.ceil(strikeCd / 10) + "s" : ""})`);
       }
     }
 
 
     function renderSelectedActions(tower) {
       if (selectedSlot && tower) {
-        return `<div class="cd-empty-select">Bảng nâng cấp/bán hiện ngay cạnh cây súng trên bản đồ. Chọn súng rồi bấm bãi trống để xây thêm.</div>`;
+        return `<div class="cd-empty-select">${ctx.t("Bảng nâng cấp/bán hiện ngay cạnh cây súng trên bản đồ. Chọn súng rồi bấm bãi trống để xây thêm.", "The upgrade/sell panel appears next to the gun on the map. Pick a gun then click an empty pad to build more.")}</div>`;
       }
-      return `<div class="cd-empty-select">Chọn loại súng rồi bấm bãi xây trống trên map. Bấm vào súng đã xây để nâng cấp/bán ngay cạnh nó.</div>`;
+      return `<div class="cd-empty-select">${ctx.t("Chọn loại súng rồi bấm bãi xây trống trên map. Bấm vào súng đã xây để nâng cấp/bán ngay cạnh nó.", "Pick a gun type then click an empty build pad on the map. Click a built gun to upgrade/sell right next to it.")}</div>`;
     }
 
     function renderLog() {
       logEl.innerHTML = log.map((line) => `<span>${line}</span>`).join("");
     }
 
-    ctx.setNames("Đội phòng thủ", "Bầy quái");
+    ctx.setNames(ctx.t("Đội phòng thủ", "Defenders"), ctx.t("Bầy quái", "Monster horde"));
     ctx.setTurn(0);
-    ctx.setStatus("Chọn map, đặt súng quanh đường rồi gọi wave. Không để quái lọt hết đường.");
+    ctx.setStatus(ctx.t("Chọn map, đặt súng quanh đường rồi gọi wave. Không để quái lọt hết đường.", "Pick a map, place guns along the paths then call a wave. Don't let monsters slip through."));
     render();
     return { applyMove };
   }

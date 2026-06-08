@@ -164,6 +164,11 @@
   function create(ctx) {
     const o = ctx.options || {};
     const BASE_HP = o.hp || 560;
+    // bản dịch nhãn/gợi ý lính (UNIT_DEFS là hằng module-level)
+    const UNIT_LABEL_EN = { grunt: "Recruit", runner: "Scout", shield: "Guard", archer: "Archer", brute: "Warrior", bomber: "Sapper", warlock: "Warlock", golem: "Stone golem", lancer: "Lancer", siege: "Artillery", medic: "Medic" };
+    const UNIT_HINT_EN = { grunt: "cheap, pushes lane", runner: "fast", shield: "tanks hits", archer: "long range", brute: "high HP", bomber: "splash", warlock: "ranged", golem: "super tanky", lancer: "very fast charge", siege: "long range, anti-base", medic: "heals allies" };
+    const unitLabel = (id) => ctx.t(UNIT_DEFS[id].label, UNIT_LABEL_EN[id] || UNIT_DEFS[id].label);
+    const unitHint = (id) => ctx.t(UNIT_DEFS[id].hint, UNIT_HINT_EN[id] || UNIT_DEFS[id].hint);
     const START_GOLD = o.gold || 155;
     const pace = o.pace || "normal";
     const INCOME_BASE = pace === "fast" ? 16 : pace === "slow" ? 10 : 13;
@@ -190,7 +195,7 @@
     let lastTime = 0;
     let over = false;
     let raf = null;
-    let last = "Gửi lính để ép lane, xây tháp để thủ nhà.";
+    let last = ctx.t("Gửi lính để ép lane, xây tháp để thủ nhà.", "Send units to push lanes, build towers to defend your base.");
 
     const root = document.createElement("div");
     root.className = "bd-root";
@@ -208,8 +213,8 @@
     attackPanel.className = "bd-command-panel bd-attack-panel";
     attackPanel.innerHTML = `
       <div class="bd-panel-head">
-        <b>Tấn công</b>
-        <span>Gửi lính sang lane đối thủ</span>
+        <b>${ctx.t("Tấn công", "Attack")}</b>
+        <span>${ctx.t("Gửi lính sang lane đối thủ", "Send units to the enemy lane")}</span>
       </div>
       <div class="bd-action-group bd-attack-actions"></div>
     `;
@@ -242,12 +247,12 @@
     defensePanel.className = "bd-command-panel bd-defense-panel";
     defensePanel.innerHTML = `
       <div class="bd-panel-head">
-        <b>Phòng thủ</b>
-        <span>Tháp, sửa nhà và nâng cấp</span>
+        <b>${ctx.t("Phòng thủ", "Defense")}</b>
+        <span>${ctx.t("Tháp, sửa nhà và nâng cấp", "Towers, repair and upgrades")}</span>
       </div>
-      <div class="bd-group-title">Tháp & nhà chính</div>
+      <div class="bd-group-title">${ctx.t("Tháp & nhà chính", "Towers & main base")}</div>
       <div class="bd-action-group bd-defense-actions"></div>
-      <div class="bd-group-title">Kinh tế & sức mạnh</div>
+      <div class="bd-group-title">${ctx.t("Kinh tế & sức mạnh", "Economy & power")}</div>
       <div class="bd-action-group bd-upgrade-actions"></div>
     `;
     arena.appendChild(defensePanel);
@@ -261,16 +266,16 @@
       ...UNIT_ORDER.map((id) => ({ id, kind: "unit", def: UNIT_DEFS[id] })),
     ];
     const defenseActions = [
-      { id: "tower", label: "Xây tháp", icon: "🗼", hint: "lane đã chọn" },
-      { id: "upTower", label: "Nâng tháp", icon: "⬆️", hint: "tối đa 4" },
-      { id: "repair", label: "Sửa nhà", icon: "🔧", hint: "+90 HP" },
+      { id: "tower", label: ctx.t("Xây tháp", "Build tower"), icon: "🗼", hint: ctx.t("lane đã chọn", "selected lane") },
+      { id: "upTower", label: ctx.t("Nâng tháp", "Upgrade tower"), icon: "⬆️", hint: ctx.t("tối đa 4", "max 4") },
+      { id: "repair", label: ctx.t("Sửa nhà", "Repair base"), icon: "🔧", hint: ctx.t("+90 HP", "+90 HP") },
     ];
     const upgradeActions = [
-      { id: "econ", label: "Kinh tế", icon: "💰", hint: "+vàng/giây" },
-      { id: "armory", label: "Lò rèn", icon: "⚒️", hint: "+sát thương" },
-      { id: "fortify", label: "Giáp trận", icon: "🛡️", hint: "+máu lính" },
-      { id: "march", label: "Hành quân", icon: "👟", hint: "+tốc độ lính" },
-      { id: "arsenal", label: "Khí tài", icon: "📡", hint: "+tầm & dmg tháp" },
+      { id: "econ", label: ctx.t("Kinh tế", "Economy"), icon: "💰", hint: ctx.t("+vàng/giây", "+gold/sec") },
+      { id: "armory", label: ctx.t("Lò rèn", "Armory"), icon: "⚒️", hint: ctx.t("+sát thương", "+damage") },
+      { id: "fortify", label: ctx.t("Giáp trận", "Fortify"), icon: "🛡️", hint: ctx.t("+máu lính", "+unit HP") },
+      { id: "march", label: ctx.t("Hành quân", "March"), icon: "👟", hint: ctx.t("+tốc độ lính", "+unit speed") },
+      { id: "arsenal", label: ctx.t("Khí tài", "Arsenal"), icon: "📡", hint: ctx.t("+tầm & dmg tháp", "+tower range & dmg") },
     ];
 
     function renderStaticControls() {
@@ -278,7 +283,7 @@
       if (ctx.isOnline) {
         const label = document.createElement("div");
         label.className = "bd-online-side";
-        label.innerHTML = `<b>Bạn: Người chơi ${ctx.mySeat + 1}</b><span>Điều khiển phe ${ctx.mySeat === 0 ? "đỏ" : "xanh"}</span>`;
+        label.innerHTML = `<b>${ctx.t(`Bạn: Người chơi ${ctx.mySeat + 1}`, `You: Player ${ctx.mySeat + 1}`)}</b><span>${ctx.t(`Điều khiển phe ${ctx.mySeat === 0 ? "đỏ" : "xanh"}`, `Controlling the ${ctx.mySeat === 0 ? "red" : "blue"} side`)}</span>`;
         sideBox.appendChild(label);
       } else {
         [0, 1].forEach((side) => {
@@ -310,9 +315,9 @@
           btn.type = "button";
           btn.className = "btn small bd-action";
           btn.dataset.action = a.id;
-          const label = a.def ? a.def.label : a.label;
+          const label = a.def ? unitLabel(a.id) : a.label;
           const icon = a.def ? a.def.icon : a.icon;
-          const hint = a.def ? a.def.hint : a.hint;
+          const hint = a.def ? unitHint(a.id) : a.hint;
           if (a.def && a.def.color) btn.style.setProperty("--ac", a.def.color);
           btn.innerHTML = `<span>${icon}</span><b>${label}</b><small>${hint}</small><em></em>`;
           btn.addEventListener("click", () => submitAction(a.id));
@@ -379,9 +384,9 @@
       else if (cmd.action === "upTower") ok = upgradeTower(side, lane, force);
       else if (cmd.action === "econ") ok = upgradeEconomy(side, force);
       else if (cmd.action === "armory") ok = upgradeArmory(side, force);
-      else if (cmd.action === "fortify") ok = upgradeTrack(side, force, fortifyLvl, fortifyCost, "Giáp trận");
-      else if (cmd.action === "march") ok = upgradeTrack(side, force, marchLvl, marchCost, "Hành quân");
-      else if (cmd.action === "arsenal") ok = upgradeTrack(side, force, arsenalLvl, arsenalCost, "Khí tài");
+      else if (cmd.action === "fortify") ok = upgradeTrack(side, force, fortifyLvl, fortifyCost, ctx.t("Giáp trận", "Fortify"));
+      else if (cmd.action === "march") ok = upgradeTrack(side, force, marchLvl, marchCost, ctx.t("Hành quân", "March"));
+      else if (cmd.action === "arsenal") ok = upgradeTrack(side, force, arsenalLvl, arsenalCost, ctx.t("Khí tài", "Arsenal"));
       else if (cmd.action === "repair") ok = repairBase(side, force);
 
       if (ok) {
@@ -397,7 +402,7 @@
       const def = UNIT_DEFS[type];
       if (!spend(side, def.cost, force)) return false;
       spawnUnit(side, lane, type);
-      last = `Người chơi ${side + 1} gửi ${def.label} vào lane ${lane + 1}.`;
+      last = ctx.t(`Người chơi ${side + 1} gửi ${def.label} vào lane ${lane + 1}.`, `Player ${side + 1} sent ${unitLabel(type)} to lane ${lane + 1}.`);
       ctx.sound("select");
       return true;
     }
@@ -407,7 +412,7 @@
       const cost = towerBuildCost(side);
       if (!spend(side, cost, force)) return false;
       towers[side][lane] = { lvl: 1, cd: 0, pulse: 20 };
-      last = `Người chơi ${side + 1} xây tháp lane ${lane + 1}.`;
+      last = ctx.t(`Người chơi ${side + 1} xây tháp lane ${lane + 1}.`, `Player ${side + 1} built a tower on lane ${lane + 1}.`);
       ctx.sound("capture");
       return true;
     }
@@ -419,7 +424,7 @@
       if (!spend(side, cost, force)) return false;
       tw.lvl += 1;
       tw.pulse = 28;
-      last = `Người chơi ${side + 1} nâng tháp lane ${lane + 1} lên cấp ${tw.lvl}.`;
+      last = ctx.t(`Người chơi ${side + 1} nâng tháp lane ${lane + 1} lên cấp ${tw.lvl}.`, `Player ${side + 1} upgraded the lane ${lane + 1} tower to level ${tw.lvl}.`);
       ctx.sound("capture");
       return true;
     }
@@ -428,7 +433,7 @@
       const cost = econCost(side);
       if (!spend(side, cost, force)) return false;
       incomeLvl[side] += 1;
-      last = `Người chơi ${side + 1} nâng kinh tế lên cấp ${incomeLvl[side]}.`;
+      last = ctx.t(`Người chơi ${side + 1} nâng kinh tế lên cấp ${incomeLvl[side]}.`, `Player ${side + 1} upgraded economy to level ${incomeLvl[side]}.`);
       ctx.sound("select");
       return true;
     }
@@ -437,7 +442,7 @@
       const cost = armoryCost(side);
       if (!spend(side, cost, force)) return false;
       armoryLvl[side] += 1;
-      last = `Người chơi ${side + 1} nâng lò rèn lên cấp ${armoryLvl[side]}.`;
+      last = ctx.t(`Người chơi ${side + 1} nâng lò rèn lên cấp ${armoryLvl[side]}.`, `Player ${side + 1} upgraded armory to level ${armoryLvl[side]}.`);
       ctx.sound("select");
       return true;
     }
@@ -446,7 +451,7 @@
       const cost = costFn(side);
       if (!spend(side, cost, force)) return false;
       lvlArr[side] += 1;
-      last = `Người chơi ${side + 1} nâng ${name} lên cấp ${lvlArr[side]}.`;
+      last = ctx.t(`Người chơi ${side + 1} nâng ${name} lên cấp ${lvlArr[side]}.`, `Player ${side + 1} upgraded ${name} to level ${lvlArr[side]}.`);
       ctx.sound("select");
       return true;
     }
@@ -456,7 +461,7 @@
       if (baseHp[side] >= BASE_HP) return false;
       if (!spend(side, cost, force)) return false;
       baseHp[side] = Math.min(BASE_HP, baseHp[side] + 90);
-      last = `Người chơi ${side + 1} sửa nhà chính.`;
+      last = ctx.t(`Người chơi ${side + 1} sửa nhà chính.`, `Player ${side + 1} repaired the main base.`);
       ctx.sound("select");
       return true;
     }
@@ -661,11 +666,11 @@
       over = true;
       ctx.setTurn(-1);
       if (baseHp[0] <= 0 && baseHp[1] <= 0) {
-        ctx.setStatus("🤝 Hai nhà chính cùng sập - hòa!");
+        ctx.setStatus(ctx.t("🤝 Hai nhà chính cùng sập - hòa!", "🤝 Both main bases collapsed — draw!"));
       } else {
         const winner = baseHp[0] <= 0 ? 1 : 0;
         ctx.incScore(winner);
-        ctx.setStatus(`🎉 Người chơi ${winner + 1} phá nhà chính và thắng!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} phá nhà chính và thắng!`, `🎉 Player ${winner + 1} destroyed the main base and wins!`));
       }
     }
 
@@ -673,8 +678,8 @@
       hud.innerHTML = `
         ${playerHud(0)}
         <div class="bd-mid">
-          <b>${over ? "Kết thúc" : "Base Defense Duel"}</b>
-          <span>${timeText()} · Sức lính x${unitScale(0).toFixed(2)}</span>
+          <b>${over ? ctx.t("Kết thúc", "Game over") : "Base Defense Duel"}</b>
+          <span>${timeText()} · ${ctx.t(`Sức lính x${unitScale(0).toFixed(2)}`, `Unit power x${unitScale(0).toFixed(2)}`)}</span>
           <small>${last}</small>
         </div>
         ${playerHud(1)}
@@ -686,9 +691,9 @@
       const towersBuilt = towers[side].filter(Boolean).length;
       return `
         <div class="bd-player p${side + 1} ${controlSide === side && !over ? "active" : ""}">
-          <span>Người chơi ${side + 1}</span>
+          <span>${ctx.t(`Người chơi ${side + 1}`, `Player ${side + 1}`)}</span>
           <b>${Math.ceil(baseHp[side])}/${BASE_HP} HP</b>
-          <em>${Math.floor(gold[side])} vàng · +${incomeRate(side).toFixed(1)}/s · ${towersBuilt}/3 tháp</em>
+          <em>${ctx.t(`${Math.floor(gold[side])} vàng · +${incomeRate(side).toFixed(1)}/s · ${towersBuilt}/3 tháp`, `${Math.floor(gold[side])} gold · +${incomeRate(side).toFixed(1)}/s · ${towersBuilt}/3 towers`)}</em>
           <i class="bd-hp"><i style="width:${hpPct}%"></i></i>
           <small>💰${incomeLvl[side]} ⚒️${armoryLvl[side]} 🛡️${fortifyLvl[side]} 👟${marchLvl[side]} 📡${arsenalLvl[side]}</small>
         </div>
@@ -706,7 +711,7 @@
       root.querySelectorAll(".bd-action").forEach((btn) => {
         const id = btn.dataset.action;
         const cost = actionCost(side, id, selectedLane[side]);
-        const label = cost === Infinity ? "không thể" : cost + " vàng";
+        const label = cost === Infinity ? ctx.t("không thể", "unavailable") : ctx.t(cost + " vàng", cost + " gold");
         btn.querySelector("em").textContent = label;
         btn.disabled = over || (ctx.isOnline && side !== ctx.mySeat) || cost === Infinity || gold[side] < cost;
       });
@@ -716,9 +721,9 @@
       if (over) return;
       const side = ctx.isOnline ? ctx.mySeat : controlSide;
       if (ctx.isOnline) {
-        ctx.setStatus(`Bạn là Người chơi ${ctx.mySeat + 1}. Click lane trên map để chọn đường, rồi gửi lính, xây tháp và nâng cấp.`);
+        ctx.setStatus(ctx.t(`Bạn là Người chơi ${ctx.mySeat + 1}. Click lane trên map để chọn đường, rồi gửi lính, xây tháp và nâng cấp.`, `You are Player ${ctx.mySeat + 1}. Click a lane on the map to select it, then send units, build towers and upgrade.`));
       } else {
-        ctx.setStatus(`Đang điều khiển Người chơi ${side + 1}. Click lane trên map để chọn đường, click nửa sân để đổi phe.`);
+        ctx.setStatus(ctx.t(`Đang điều khiển Người chơi ${side + 1}. Click lane trên map để chọn đường, click nửa sân để đổi phe.`, `Controlling Player ${side + 1}. Click a lane to select it, click a half of the field to switch side.`));
       }
       ctx.setTurn(side);
     }
@@ -1336,7 +1341,7 @@
       g.fillStyle = "rgba(255,209,102,0.9)";
       g.font = "900 12px Segoe UI, sans-serif";
       g.textAlign = "center";
-      g.fillText(`Đang chọn P${side + 1} · Lane ${lane + 1}`, W / 2, y - 36);
+      g.fillText(ctx.t(`Đang chọn P${side + 1} · Lane ${lane + 1}`, `Selecting P${side + 1} · Lane ${lane + 1}`), W / 2, y - 36);
     }
 
     function roundRect(gc, x, y, w, h, r) {
