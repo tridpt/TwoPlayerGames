@@ -4374,15 +4374,98 @@ body.theme-light .profile-view > .back-btn:hover {
   background: linear-gradient(180deg, #7c8696, #5a6472);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
 }
-.bs-cell.hit { background: var(--p1); }
-.bs-cell.hit::after { content: "✸"; color: #fff; font-size: 0.8rem; }
-.bs-cell.hit.sunk { background: #b91c3c; box-shadow: inset 0 0 0 2px #fff3; }
+/* --- Trúng đạn: nổ lửa --- */
+.bs-cell.hit {
+  background: radial-gradient(circle at 50% 45%, #ffe66a 0%, #ff7a3c 38%, #d6243f 72%, #7a0f25 100%);
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.4);
+}
+.bs-cell.hit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255,230,140,0.95) 0%, rgba(255,140,60,0.6) 40%, transparent 70%);
+  border-radius: 50%;
+  animation: bs-blast 0.5s ease-out;
+  pointer-events: none;
+}
+.bs-cell.hit::after { content: "✸"; color: #fff; font-size: 0.85rem; text-shadow: 0 0 6px #ffae57; animation: bs-pop 0.4s cubic-bezier(0.3,1.6,0.5,1); z-index: 1; }
+@keyframes bs-blast {
+  0% { transform: scale(0.2); opacity: 1; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+@keyframes bs-pop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+/* --- Đánh chìm: cháy âm ỉ --- */
+.bs-cell.hit.sunk {
+  background: radial-gradient(circle at 50% 45%, #ff9d5c 0%, #b91c3c 55%, #5a0a1c 100%);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25), 0 0 10px rgba(255,90,60,0.6);
+  animation: bs-smolder 1.4s ease-in-out infinite;
+}
+@keyframes bs-smolder {
+  0%, 100% { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25), 0 0 8px rgba(255,90,60,0.45); }
+  50% { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35), 0 0 16px rgba(255,120,80,0.85); }
+}
+/* --- Trượt: gợn sóng nước --- */
 .bs-cell.miss { background: #0c1a3a; }
-.bs-cell.miss::after { content: "•"; color: rgba(255,255,255,0.4); font-size: 0.9rem; }
-.bs-cell.pending { background: var(--accent); }
-.bs-cell.scan { background: #1b4a55; box-shadow: inset 0 0 0 1px rgba(110,231,183,0.4); }
-.bs-cell.badge { background: #135e52; color: #aef5dd; }
-.bs-cell.aim { box-shadow: inset 0 0 0 2px rgba(255,209,102,0.85); }
+.bs-cell.miss::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 70%; height: 70%;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(120,190,255,0.7);
+  border-radius: 50%;
+  animation: bs-ripple 0.6s ease-out;
+  pointer-events: none;
+}
+.bs-cell.miss::after { content: "•"; color: rgba(150,200,255,0.65); font-size: 0.9rem; }
+@keyframes bs-ripple {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+.bs-cell.pending { background: var(--accent); animation: bs-pending 0.7s ease-in-out infinite; }
+@keyframes bs-pending {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+/* --- Radar quét --- */
+.bs-cell.scan {
+  background: linear-gradient(135deg, #133f49, #1b4a55);
+  box-shadow: inset 0 0 0 1px rgba(110,231,183,0.4);
+}
+.bs-cell.scan::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 40%, rgba(110,231,183,0.5) 50%, transparent 60%);
+  animation: bs-sweep 1.8s linear infinite;
+  pointer-events: none;
+}
+@keyframes bs-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.bs-cell.badge { background: #135e52; color: #aef5dd; text-shadow: 0 0 6px rgba(110,231,183,0.7); }
+/* --- Tâm ngắm động --- */
+.bs-cell.aim {
+  box-shadow: inset 0 0 0 2px rgba(255,209,102,0.9);
+  animation: bs-aim 0.9s ease-in-out infinite;
+}
+.bs-cell.aim::before {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border: 1px solid rgba(255,209,102,0.8);
+  border-radius: 50%;
+  pointer-events: none;
+}
+@keyframes bs-aim {
+  0%, 100% { box-shadow: inset 0 0 0 2px rgba(255,209,102,0.55); }
+  50% { box-shadow: inset 0 0 0 3px rgba(255,209,102,1), 0 0 8px rgba(255,209,102,0.5); }
+}
 .bs-cell.preview.ok { background: rgba(110,231,183,0.55); }
 .bs-cell.preview.bad { background: rgba(255,93,115,0.55); }
 
@@ -4710,27 +4793,43 @@ body.theme-light .profile-view > .back-btn:hover {
   pointer-events: none;
 }
 .sbx-cell.hit {
-  background: var(--p1);
+  background: radial-gradient(circle at 50% 45%, #ffe66a 0%, #ff7a3c 38%, #d6243f 72%, #7a0f25 100%);
   color: white;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.4);
 }
 .sbx-cell.hit::before {
   content: "";
-  width: 44%;
-  height: 44%;
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255,230,140,0.95) 0%, rgba(255,140,60,0.6) 40%, transparent 70%);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
+  animation: bs-blast 0.5s ease-out;
+  pointer-events: none;
 }
 .sbx-cell.hit.sunk {
-  background: #ad1f3c;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22);
+  background: radial-gradient(circle at 50% 45%, #ff9d5c 0%, #ad1f3c 55%, #5a0a1c 100%);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25), 0 0 10px rgba(255,90,60,0.6);
+  animation: bs-smolder 1.4s ease-in-out infinite;
 }
 .sbx-cell.miss {
   background: #0d1e39;
   box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.14);
 }
+.sbx-cell.miss::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 70%; height: 70%;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(120,190,255,0.7);
+  border-radius: 50%;
+  animation: bs-ripple 0.6s ease-out;
+  pointer-events: none;
+}
 .sbx-cell.pending {
   background: var(--accent);
   color: #0f1226;
+  animation: bs-pending 0.7s ease-in-out infinite;
 }
 .sbx-cell.armor {
   background: #8a7b45;
@@ -4738,9 +4837,18 @@ body.theme-light .profile-view > .back-btn:hover {
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.24);
 }
 .sbx-cell.mine-hit {
-  background: #6f2848;
+  background: radial-gradient(circle at 50% 45%, #ffd166 0%, #b1325f 55%, #4a0f2c 100%);
   color: #ffd166;
   box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.55);
+  animation: bs-pop 0.45s cubic-bezier(0.3,1.6,0.5,1);
+}
+.sbx-cell.scanned::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 42%, rgba(110,231,183,0.32) 50%, transparent 58%);
+  animation: bs-sweep 2.2s linear infinite;
+  pointer-events: none;
 }
 .sbx-cell.radar {
   outline: 2px solid rgba(110, 231, 183, 0.65);
@@ -4748,7 +4856,10 @@ body.theme-light .profile-view > .back-btn:hover {
 }
 .sbx-cell.preview.ok { background: rgba(110, 231, 183, 0.55); }
 .sbx-cell.preview.bad { background: rgba(255, 93, 115, 0.55); }
-.sbx-cell.aim { box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.85); }
+.sbx-cell.aim {
+  box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.85);
+  animation: bs-aim 0.9s ease-in-out infinite;
+}
 @media (max-width: 760px) {
   .sbx-info { padding: 10px; }
   .sbx-fleet { grid-template-columns: 1fr; }
@@ -7836,6 +7947,7 @@ body.theme-light .profile-view > .back-btn:hover {
 }
 .sh-cell.sh-target {
   box-shadow: inset 0 0 0 3px rgba(255,209,102,0.72), 0 0 12px rgba(255,209,102,0.2);
+  animation: bs-aim 1s ease-in-out infinite;
 }
 .sh-cell.sh-selected {
   outline: 3px solid var(--accent);
@@ -7846,6 +7958,11 @@ body.theme-light .profile-view > .back-btn:hover {
     linear-gradient(135deg, rgba(255,255,255,0.16), transparent 55%),
     #0e4f7a;
   box-shadow: inset 0 0 0 2px rgba(245,197,66,0.7), 0 0 16px rgba(245,197,66,0.3);
+  animation: sh-bob 2.4s ease-in-out infinite;
+}
+@keyframes sh-bob {
+  0%, 100% { box-shadow: inset 0 0 0 2px rgba(245,197,66,0.6), 0 0 12px rgba(245,197,66,0.25); }
+  50% { box-shadow: inset 0 0 0 2px rgba(245,197,66,0.85), 0 0 22px rgba(245,197,66,0.5); }
 }
 .sh-sub-svg {
   width: 88%;
@@ -7854,18 +7971,25 @@ body.theme-light .profile-view > .back-btn:hover {
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.45));
 }
 .sh-cell.sh-final {
-  background: #3a0d18;
+  background: radial-gradient(circle at 50% 45%, #ff9d5c 0%, #3a0d18 70%);
   box-shadow: inset 0 0 0 2px #ffd166, 0 0 18px rgba(239,68,68,0.5);
+  animation: bs-smolder 1.4s ease-in-out infinite;
 }
 .sh-noise-zone {
   background:
     linear-gradient(135deg, rgba(255,209,102,0.22), transparent 55%),
     #145986;
+  animation: sh-zone 1.6s ease-in-out infinite;
 }
 .sh-decoy-zone {
   background:
     linear-gradient(135deg, rgba(196,181,253,0.26), transparent 55%),
     #234878;
+  animation: sh-zone 1.6s ease-in-out infinite;
+}
+@keyframes sh-zone {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.35); }
 }
 .sh-mark-ic {
   font-size: clamp(0.72rem, 2.2vw, 1.15rem);
@@ -7887,12 +8011,14 @@ body.theme-light .profile-view > .back-btn:hover {
   box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35);
 }
 .sh-mark.sh-hit {
-  background: #ef4444;
+  background: radial-gradient(circle at 50% 45%, #ffe66a 0%, #ef4444 60%, #7a0f25 100%);
   box-shadow: inset 0 0 0 3px #ffd166, 0 0 14px rgba(239,68,68,0.45);
+  animation: bs-pop 0.45s cubic-bezier(0.3,1.6,0.5,1);
 }
 .sh-mark.sh-hot {
   background: #f97316;
   box-shadow: inset 0 0 0 3px rgba(255,209,102,0.75);
+  animation: bs-pending 0.9s ease-in-out infinite;
 }
 .sh-mark.sh-mid {
   background: #2563eb;
