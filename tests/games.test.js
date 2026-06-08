@@ -115,3 +115,37 @@ test("Mancala: AI trả về hốc hợp lệ của mình", () => {
   const mv = api.aiMove("hard");
   assert.ok(mv >= 0 && mv <= 5, "P1 phải chọn hốc 0-5");
 });
+
+test("Quoridor: AI trả về nước đi/đặt tường hợp lệ", () => {
+  const cfg = loadGame("quoridor");
+  const ctx = makeCtx({ size: 5, walls: 6 });
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("hard");
+  assert.ok(mv && (mv.t === "move" || mv.t === "wall"), "AI phải trả về move hoặc wall");
+});
+
+test("Quoridor: AI mở màn tiến về đích (giảm khoảng cách)", () => {
+  const cfg = loadGame("quoridor");
+  const ctx = makeCtx({ size: 5, walls: 0 }); // không có tường -> chỉ đi quân
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("normal");
+  // P1 (seat 0) ở hàng dưới đi LÊN: nước tốt nhất là tiến 1 hàng về đích
+  assert.strictEqual(mv.t, "move");
+  assert.ok(mv.r < 4, "phải tiến lên (giảm số hàng)");
+});
+
+test("Laser Chess: AI trả về xoay/di chuyển gương hợp lệ", () => {
+  const cfg = loadGame("laserchess");
+  const ctx = makeCtx({});
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("hard");
+  assert.ok(mv && (mv.t === "rotate" || mv.t === "move"), "AI phải trả về rotate hoặc move");
+});
+
+test("Path Lock Duel: AI trả về nước hợp lệ", () => {
+  const cfg = loadGame("pathlockduel");
+  const ctx = makeCtx({ size: 5, tools: "normal" });
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("hard");
+  assert.ok(mv && ["place", "rotate", "lock", "bomb"].includes(mv.t), "AI phải trả về nước hợp lệ");
+});

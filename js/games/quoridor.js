@@ -365,6 +365,84 @@
       el.appendChild(pawn);
     }
 
+    // ---------- AI (đấu máy) — heuristic đường ngắn nhất + 2 tầng cho mức Khó ----------
+    function doSim(mv, player) {
+      if (mv.t === "move") {
+        const old = [pawns[player].r, pawns[player].c];
+        pawns[player].r = mv.r; pawns[player].c = mv.c;
+        return { kind: "move", player, old };
+      }
+      (mv.o === "h" ? hWalls : vWalls).add(mv.r + "," + mv.c);
+      wallsLeft[player]--;
+      return { kind: "wall", player, o: mv.o, key: mv.r + "," + mv.c };
+    }
+    function undoSim(u) {
+      if (u.kind === "move") {
+        pawns[u.player].r = u.old[0]; pawns[u.player].c = u.old[1];
+      } else {
+        (u.o === "h" ? hWalls : vWalls).delete(u.key);
+        wallsLeft[u.player]++;
+      }
+    }
+    function evalFor(me) {
+      const opp = 1 - me;
+      const dMe = distToGoal(pawns[me]);
+      const dOpp = distToGoal(pawns[opp]);
+      if (dMe === 0) return 100000;
+      if (dOpp === 0) return -100000;
+      // muốn quãng đường của mình ngắn, của đối thủ dài; giữ chút tường dự phòng
+      return (dOpp - dMe) * 10 + (wallsLeft[me] - wallsLeft[opp]);
+    }
+    function genAiMoves(player) {
+      const opp = 1 - player;
+      const list = [];
+      legalPawnMoves(pawns[player], pawns[opp]).forEach(([r, c]) => list.push({ t: "move", r, c }));
+      if (wallsLeft[player] > 0) {
+        for (let r = 0; r < WALL_SLOTS; r++) {
+          for (let c = 0; c < WALL_SLOTS; c++) {
+            if (wallLegal("h", r, c)) list.push({ t: "wall", o: "h", r, c });
+            if (wallLegal("v", r, c)) list.push({ t: "wall", o: "v", r, c });
+          }
+        }
+      }
+      return list;
+    }
+    function aiMove(level) {
+      if (over) return null;
+      const me = turn, opp = 1 - me;
+      const moves = genAiMoves(me);
+      if (!moves.length) return null;
+      // Dễ: thỉnh thoảng đi ngẫu nhiên cho người mới dễ thở
+      if (level === "easy" && Math.random() < 0.4) {
+        return moves[Math.floor(Math.random() * moves.length)];
+      }
+      const depth2 = level === "hard";
+      let best = -Infinity, pick = moves[0];
+      for (const mv of moves) {
+        const u = doSim(mv, me);
+        if (distToGoal(pawns[me]) === 0) { undoSim(u); return mv; } // về đích ngay
+        let sc;
+        if (!depth2) {
+          sc = evalFor(me);
+        } else {
+          const oppMoves = genAiMoves(opp);
+          let worst = Infinity;
+          for (const om of oppMoves) {
+            const u2 = doSim(om, opp);
+            const s2 = evalFor(me);
+            undoSim(u2);
+            if (s2 < worst) worst = s2;
+            if (worst <= -100000) break;
+          }
+          sc = oppMoves.length ? worst : evalFor(me);
+        }
+        sc += Math.random() * 0.01;
+        undoSim(u);
+        if (sc > best) { best = sc; pick = mv; }
+      }
+      return pick;
+    }
+
     if (ctx.isOnline) {
       ctx.setNames(`Người chơi 1${ctx.mySeat === 0 ? " (bạn)" : ""}`,
                    `Người chơi 2${ctx.mySeat === 1 ? " (bạn)" : ""}`);
@@ -372,7 +450,7 @@
     ctx.setTurn(0);
     updateStatus();
     render();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -381,6 +459,7 @@
     emoji: "🧱",
     description: "Đua quân sang bờ đối diện, đặt tường chặn đường đối thủ. Có bảng đo khoảng cách tới đích, chọn cỡ bàn 5/7/9. Cờ chiến thuật chiều sâu lớn.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "size", label: "Kích thước bàn", default: 9,

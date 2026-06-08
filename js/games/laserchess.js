@@ -169,6 +169,120 @@
       return mirror === "/" ? [-dc, -dr] : [dc, dr];
     }
 
+    // ---------- AI (đấu máy) ----------
+    function cloneBoard(b) { return b.map((p) => (p ? { ...p } : null)); }
+
+    // mô phỏng bắn tia trên một bàn bất kỳ (không đổi trạng thái thật)
+    function fireOn(b, player) {
+      const cannon = b.findIndex((p) => p && p.type === "cannon" && p.player === player);
+      if (cannon < 0) return { winner: 1 - player, endCell: -1, selfHit: false };
+      let r = row(cannon), c = col(cannon);
+      let [dr, dc] = player === 0 ? DIR.up : DIR.down;
+      let endCell = cannon;
+      const visited = new Set();
+      for (let step = 0; step < N * N * 8; step++) {
+        r += dr; c += dc;
+        if (!inB(r, c)) return { winner: null, endCell, selfHit: false };
+        const i = idx(r, c);
+        endCell = i;
+        const key = `${i}:${dr}:${dc}`;
+        if (visited.has(key)) return { winner: null, endCell, selfHit: false };
+        visited.add(key);
+        const piece = b[i];
+        if (!piece) continue;
+        if (piece.type === "mirror") { [dr, dc] = reflect(piece.mirror, dr, dc); continue; }
+        if (piece.type === "core") {
+          const self = piece.player === player;
+          return { winner: self ? 1 - player : player, endCell: i, selfHit: self };
+        }
+        return { winner: null, endCell: i, selfHit: false }; // chạm pháo
+      }
+      return { winner: null, endCell, selfHit: false };
+    }
+
+    function genAiMoves(b, player) {
+      const out = [];
+      for (let i = 0; i < N * N; i++) {
+        const p = b[i];
+        if (p && p.type === "mirror" && p.player === player) {
+          out.push({ t: "rotate", idx: i });
+          const r = row(i), c = col(i);
+          ADJ.forEach(([dr, dc]) => {
+            const nr = r + dr, nc = c + dc;
+            if (inB(nr, nc) && !b[idx(nr, nc)]) out.push({ t: "move", from: i, to: idx(nr, nc) });
+          });
+        }
+      }
+      return out;
+    }
+
+    function applySimMove(b, move) {
+      const nb = cloneBoard(b);
+      if (move.t === "rotate") {
+        const p = nb[Number(move.idx)];
+        if (p && p.type === "mirror") p.mirror = p.mirror === "/" ? "\\" : "/";
+      } else {
+        nb[Number(move.to)] = nb[Number(move.from)];
+        nb[Number(move.from)] = null;
+      }
+      return nb;
+    }
+
+    function corePos(b, player) { return b.findIndex((p) => p && p.type === "core" && p.player === player); }
+
+    // mức độ "đe dọa" của tia do shooter bắn tới lõi đối tượng (gần hơn = lớn hơn)
+    function threat(b, shooter, targetCore) {
+      const shot = fireOn(b, shooter);
+      if (shot.winner === shooter && !shot.selfHit) return 1000;
+      if (shot.endCell < 0 || targetCore < 0) return 0;
+      const d = Math.abs(row(shot.endCell) - row(targetCore)) + Math.abs(col(shot.endCell) - col(targetCore));
+      return Math.max(0, 16 - d);
+    }
+
+    function evalBoard(b, me) {
+      const opp = 1 - me;
+      return threat(b, me, corePos(b, opp)) - threat(b, opp, corePos(b, me));
+    }
+
+    function aiMove(level) {
+      if (over) return null;
+      const me = turn, opp = 1 - me;
+      const moves = genAiMoves(pieces, me);
+      if (!moves.length) return null;
+      if (level === "easy" && Math.random() < 0.5) {
+        return moves[Math.floor(Math.random() * moves.length)];
+      }
+      let best = -Infinity, pick = moves[0];
+      for (const mv of moves) {
+        const b2 = applySimMove(pieces, mv);
+        const shot = fireOn(b2, me); // sau khi đi, pháo của mình tự bắn
+        let score;
+        if (shot.winner === me && !shot.selfHit) score = 1e9;        // thắng ngay
+        else if (shot.winner === opp) score = -1e9;                  // tự bắn trúng lõi mình
+        else if (level === "hard") {
+          // đối thủ phản đòn: tìm nước khiến mình tệ nhất
+          const oppMoves = genAiMoves(b2, opp);
+          let worst = Infinity;
+          for (const om of oppMoves) {
+            const b3 = applySimMove(b2, om);
+            const os = fireOn(b3, opp);
+            let s;
+            if (os.winner === opp && !os.selfHit) s = -1e8;          // đối thủ thắng
+            else if (os.winner === me) s = 1e8;                      // đối thủ tự sát
+            else s = evalBoard(b3, me);
+            if (s < worst) worst = s;
+            if (worst <= -1e8) break;
+          }
+          score = oppMoves.length ? worst : evalBoard(b2, me);
+        } else {
+          score = evalBoard(b2, me);
+        }
+        score += Math.random() * 0.01;
+        if (score > best) { best = score; pick = mv; }
+      }
+      return pick;
+    }
+
     function pieceHtml(piece) {
       if (piece.type === "cannon") return `<span class="lc-pc cannon ${piece.player === 0 ? "aim-up" : "aim-down"}"><i></i></span>`;
       if (piece.type === "core") return `<span class="lc-pc core"><i></i></span>`;
@@ -229,7 +343,7 @@
     ctx.setTurn(0);
     updateStatus();
     render();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -238,6 +352,7 @@
     emoji: "🔦",
     description: "Xoay hoặc di chuyển gương để phản xạ tia laser. Bắn trúng lõi đối thủ là thắng. Có đường ngắm dự đoán và tia laser phát sáng.",
     onlineReady: true,
+    supportsAI: true,
     howTo: [
       "Mỗi người có một 🔫 pháo laser, một 💠 lõi và 4 gương phản chiếu (/ hoặc \\).",
       "Đến lượt: bấm vào một gương của mình để CHỌN nó. Bấm lần nữa vào gương đó để XOAY (đổi / ↔ \\), hoặc bấm vào một ô trống kề bên để DI CHUYỂN gương sang đó.",

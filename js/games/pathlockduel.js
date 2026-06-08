@@ -215,6 +215,158 @@
     }
     function hasRoute(player) { return network(player).reached; }
 
+    // ---------- AI (đấu máy) ----------
+    const ORIENTATIONS = (function () {
+      const seen = new Set(); const out = [];
+      Object.keys(SHAPES).forEach((shape) => {
+        for (let rot = 0; rot < 4; rot++) {
+          const b = rotateBits(SHAPES[shape].base, rot);
+          if (seen.has(shape + ":" + b)) continue;
+          // gộp các hướng trùng bits cho cùng shape để bớt nước thừa
+          if ([...seen].some((k) => k.endsWith(":" + b) && k.startsWith(shape + ":"))) continue;
+          seen.add(shape + ":" + b);
+          out.push({ shape, rot });
+        }
+      });
+      return out;
+    })();
+
+    function cloneCells(cs) { return cs.map((x) => (x ? { ...x } : null)); }
+    function bitsOf(cs, i) {
+      const cell = cs[i];
+      if (!cell || cell.type !== "tile") return 0;
+      return rotateBits(SHAPES[cell.shape].base, cell.rot);
+    }
+    function reachedFor(cs, player) {
+      const queue = []; const seen = new Set();
+      for (let i = 0; i < cs.length; i++) {
+        const r = row(i), c = col(i); const b = bitsOf(cs, i);
+        if (!b) continue;
+        if (player === 0 && c === 0 && (b & 8)) { queue.push(i); seen.add(i); }
+        if (player === 1 && r === 0 && (b & 1)) { queue.push(i); seen.add(i); }
+      }
+      while (queue.length) {
+        const cur = queue.shift(); const r = row(cur), c = col(cur); const b = bitsOf(cs, cur);
+        if (player === 0 && c === N - 1 && (b & 2)) return true;
+        if (player === 1 && r === N - 1 && (b & 4)) return true;
+        for (const dir of DIRS) {
+          if (!(b & dir.bit)) continue;
+          const nr = r + dir.r, nc = c + dir.c;
+          if (nr < 0 || nr >= N || nc < 0 || nc >= N) continue;
+          const ni = idx(nr, nc); if (seen.has(ni)) continue;
+          if (!(bitsOf(cs, ni) & dir.opp)) continue;
+          seen.add(ni); queue.push(ni);
+        }
+      }
+      return false;
+    }
+    // ước lượng số tile còn cần để nối tuyến (ô trống = 1, tile sẵn = 0, ô khóa = chặn)
+    function distToWin(cs, player) {
+      const INF = 1e9; const dist = new Array(N * N).fill(INF);
+      for (let i = 0; i < N * N; i++) {
+        const r = row(i), c = col(i);
+        const home = player === 0 ? c === 0 : r === 0;
+        if (!home) continue;
+        const cell = cs[i]; if (cell && cell.type === "lock") continue;
+        const cost = cell && cell.type === "tile" ? 0 : 1;
+        if (cost < dist[i]) dist[i] = cost;
+      }
+      const done = new Array(N * N).fill(false);
+      for (let it = 0; it < N * N; it++) {
+        let u = -1, bd = INF;
+        for (let i = 0; i < N * N; i++) if (!done[i] && dist[i] < bd) { bd = dist[i]; u = i; }
+        if (u < 0) break; done[u] = true;
+        const r = row(u), c = col(u);
+        for (const dir of DIRS) {
+          const nr = r + dir.r, nc = c + dir.c;
+          if (nr < 0 || nr >= N || nc < 0 || nc >= N) continue;
+          const ni = idx(nr, nc); const cell = cs[ni];
+          if (cell && cell.type === "lock") continue;
+          const w = cell && cell.type === "tile" ? 0 : 1;
+          if (dist[u] + w < dist[ni]) dist[ni] = dist[u] + w;
+        }
+      }
+      let best = INF;
+      for (let i = 0; i < N * N; i++) {
+        const r = row(i), c = col(i);
+        const goal = player === 0 ? c === N - 1 : r === N - 1;
+        if (goal) best = Math.min(best, dist[i]);
+      }
+      return best;
+    }
+    function neighborHasCell(cs, i) {
+      const r = row(i), c = col(i);
+      return DIRS.some((dir) => {
+        const nr = r + dir.r, nc = c + dir.c;
+        if (nr < 0 || nr >= N || nc < 0 || nc >= N) return false;
+        return !!cs[idx(nr, nc)];
+      });
+    }
+    function genAiMovesPL(cs, locksArr, bombsArr, player) {
+      const opp = 1 - player;
+      const out = [];
+      for (let i = 0; i < N * N; i++) {
+        const cell = cs[i]; const r = row(i), c = col(i);
+        const onEdge = c === 0 || c === N - 1 || r === 0 || r === N - 1;
+        if (!cell) {
+          const relevant = onEdge || neighborHasCell(cs, i);
+          if (!relevant) continue;
+          for (const ori of ORIENTATIONS) out.push({ t: "place", i, shape: ori.shape, rot: ori.rot });
+          if (locksArr[player] > 0) out.push({ t: "lock", i });
+        } else if (cell.type === "tile") {
+          out.push({ t: "rotate", i });
+          if (bombsArr[player] > 0 && cell.owner === opp) out.push({ t: "bomb", i });
+        }
+      }
+      return out;
+    }
+    function applySimPL(cs, move, player) {
+      const nb = cloneCells(cs);
+      if (move.t === "place") nb[move.i] = { type: "tile", shape: move.shape, rot: move.rot, owner: player };
+      else if (move.t === "rotate") { if (nb[move.i] && nb[move.i].type === "tile") nb[move.i] = { ...nb[move.i], rot: (nb[move.i].rot + 1) % 4 }; }
+      else if (move.t === "lock") nb[move.i] = { type: "lock", owner: player };
+      else if (move.t === "bomb") nb[move.i] = null;
+      return nb;
+    }
+    function scoreAfter(cs, me) {
+      if (reachedFor(cs, me)) return 1e6;       // mình nối xong (cả hai thì người đi vẫn thắng)
+      if (reachedFor(cs, 1 - me)) return -1e6;  // chỉ đối thủ nối xong -> mình thua
+      return distToWin(cs, 1 - me) - distToWin(cs, me);
+    }
+    function aiMove(level) {
+      if (over) return null;
+      const me = turn, opp = 1 - me;
+      const moves = genAiMovesPL(cells, locks, bombs, me);
+      if (!moves.length) return null;
+      if (level === "easy" && Math.random() < 0.45) return moves[Math.floor(Math.random() * moves.length)];
+      const scored = [];
+      for (const mv of moves) {
+        const b2 = applySimPL(cells, mv, me);
+        scored.push({ mv, sc: scoreAfter(b2, me) + Math.random() * 0.01, b2 });
+      }
+      scored.sort((a, b) => b.sc - a.sc);
+      if (level !== "hard") return scored[0].mv;
+      // Khó: với vài ứng viên dẫn đầu, trừ đi nước phản công tốt nhất của đối thủ
+      const top = scored.slice(0, Math.min(6, scored.length));
+      let best = -Infinity, pick = top[0].mv;
+      for (const cand of top) {
+        if (cand.sc >= 1e6) return cand.mv; // thắng ngay
+        const oppMoves = genAiMovesPL(cand.b2, locks, bombs, opp);
+        let worst = cand.sc;
+        for (const om of oppMoves) {
+          const b3 = applySimPL(cand.b2, om, opp);
+          let s;
+          if (reachedFor(b3, opp) && !reachedFor(b3, me)) s = -1e6;
+          else if (reachedFor(b3, me)) s = 1e6;
+          else s = distToWin(b3, opp) - distToWin(b3, me);
+          if (s < worst) worst = s;
+          if (worst <= -1e6) break;
+        }
+        if (worst > best) { best = worst; pick = cand.mv; }
+      }
+      return pick;
+    }
+
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus("Đối thủ đang ghép đường..."); return; }
@@ -279,7 +431,7 @@
     ctx.setTurn(0);
     updateStatus();
     render();
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -288,6 +440,7 @@
     emoji: "🧩",
     description: "Đặt & xoay tile đường, khóa ô, phá tile để nối tuyến của mình trước. Mạng đường phát sáng cho thấy tuyến đang lớn dần.",
     onlineReady: true,
+    supportsAI: true,
     options: [
       {
         id: "size", label: "Kích thước bàn", default: 7,
