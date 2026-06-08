@@ -112,6 +112,8 @@
     winAgain: $("winAgain"),
     winMenu: $("winMenu"),
     winReplay: $("winReplay"),
+    winShare: $("winShare"),
+    shareCodeBtn: $("shareCodeBtn"),
     replayOverlay: $("replayOverlay"),
     replayBoard: $("replayBoard"),
     replayStatus: $("replayStatus"),
@@ -161,6 +163,7 @@
   const PAGE_SIZE = 24;
   let resultRecorded = false;  // đã ghi thống kê cho ván hiện tại chưa
   let lastWinner = -1;         // người thắng gần nhất (theo incScore)
+  let lastWinSummary = "";     // tóm tắt kết quả gần nhất để chia sẻ
 
   // ----- Replay (xem lại ván online) -----
   let replayMoves = [];        // chuỗi nước đi của ván online hiện tại
@@ -2036,6 +2039,7 @@
       el.winTitle.textContent = "Chiến thắng!";
     }
     el.winSub.textContent = msg;
+    lastWinSummary = (el.winTitle.textContent || "").replace(/!$/, "");
     if (el.winReplay) el.winReplay.classList.toggle("hidden", !(replayMeta && replayMoves.length));
     el.winOverlay.classList.remove("hidden");
     if (kind !== "lose") startConfetti();
@@ -2294,6 +2298,36 @@
     show("menu");
     setTimeout(startTour, 200);
   });
+
+  // ---- Chia sẻ (Web Share API + fallback clipboard) ----
+  function tt(key) { return window.I18n ? I18n.t(key) : key; }
+  async function shareOrCopy(text, url) {
+    const full = url ? `${text}` : text;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Game 2 Người", text, url: url || location.href });
+        return;
+      }
+    } catch (e) { if (e && e.name === "AbortError") return; }
+    try {
+      await navigator.clipboard.writeText(url ? `${text} ${url}` : text);
+      showToast(tt("shareCopied"));
+    } catch (e) { showToast(url ? `${text} ${url}` : text); }
+  }
+  function shareResult() {
+    const gameName = selectedGame ? selectedGame.name : "Game 2 Người";
+    const result = lastWinSummary || "🎮";
+    const text = tt("shareResultText").replace("{game}", gameName).replace("{result}", result);
+    shareOrCopy(text, location.origin + location.pathname);
+  }
+  function shareRoom() {
+    const code = el.roomCodeVal ? el.roomCodeVal.textContent : "";
+    const url = location.origin + location.pathname;
+    const text = tt("shareRoomText").replace("{code}", code).replace("{url}", "").trim();
+    shareOrCopy(text, url);
+  }
+  if (el.winShare) el.winShare.addEventListener("click", shareResult);
+  if (el.shareCodeBtn) el.shareCodeBtn.addEventListener("click", shareRoom);
 
   // Phím Escape đóng overlay đang mở (ưu tiên từ trên xuống)
   document.addEventListener("keydown", (e) => {
