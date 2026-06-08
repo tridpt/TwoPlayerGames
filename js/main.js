@@ -2560,6 +2560,20 @@
     if (el.langToggle) el.langToggle.addEventListener("click", () => I18n.toggle());
   }
 
+  // ---- Tiết kiệm tài nguyên khi tab ẩn ----
+  // (Vòng lặp requestAnimationFrame được trình duyệt tự tạm dừng ở tab nền;
+  //  ở đây ta tạm dừng thêm nhạc nền để đỡ tốn pin/CPU, rồi resume khi quay lại.)
+  let musicPausedByHidden = false;
+  document.addEventListener("visibilitychange", () => {
+    if (!window.Sound) return;
+    if (document.hidden) {
+      if (Sound.isMusicOn()) { Sound.stopMusic(); musicPausedByHidden = true; }
+    } else if (musicPausedByHidden) {
+      musicPausedByHidden = false;
+      if (Sound.isMusicOn()) Sound.startMusic();
+    }
+  });
+
   renderMenu();
   handleRoute();
   updateProfileChip();
