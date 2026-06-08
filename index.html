@@ -18,14 +18,14 @@
 </head>
 <body>
   <header class="app-header">
-    <button class="profile-chip" id="profileChip" title="Hồ sơ của bạn">
+    <button class="profile-chip" id="profileChip" title="Hồ sơ của bạn" aria-label="Mở hồ sơ của bạn">
       <span class="chip-avatar" id="chipAvatar">🎮</span>
       <span class="chip-name" id="chipName">Bạn</span>
     </button>
     <h1 class="logo" id="homeBtn">🎮 Game 2 Người</h1>
     <p class="tagline">Chơi chung một máy hoặc online qua mạng</p>
-    <button class="sound-toggle theme-toggle" id="themeToggle" title="Đổi giao diện sáng/tối">🌙</button>
-    <button class="sound-toggle" id="soundToggle" title="Bật/tắt âm thanh">🔊</button>
+    <button class="sound-toggle theme-toggle" id="themeToggle" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện sáng/tối">🌙</button>
+    <button class="sound-toggle" id="soundToggle" title="Bật/tắt âm thanh" aria-label="Bật hoặc tắt âm thanh">🔊</button>
   </header>
 
   <main id="app">
@@ -216,7 +216,7 @@
 
       <div class="board-wrap" id="boardWrap"><!-- bàn chơi render bằng JS --></div>
 
-      <p class="status" id="status"></p>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
 
       <!-- Khung chat (chỉ hiện khi chơi online) -->
       <div class="chat-panel hidden" id="chatPanel">

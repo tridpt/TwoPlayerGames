@@ -1069,6 +1069,9 @@
   function createGameCard(g) {
     const card = document.createElement("div");
     card.className = "game-card";
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `${g.name}. ${g.description || ""}`);
     const tags = [];
     if (g.onlineReady === false) tags.push("chỉ chung máy");
     if (g.localReady === false) tags.push("chỉ online");
@@ -1098,6 +1101,9 @@
       if (currentCategory === "fav") renderCategory("fav");
     });
     card.addEventListener("click", () => openDetail(g));
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(g); }
+    });
     return card;
   }
 
