@@ -91,6 +91,10 @@
     achGrid: $("achGrid"),
     histList: $("histList"),
     replayTourBtn: $("replayTourBtn"),
+    exportDataBtn: $("exportDataBtn"),
+    importDataBtn: $("importDataBtn"),
+    importDataFile: $("importDataFile"),
+    clearDataBtn: $("clearDataBtn"),
     volRange: $("volRange"),
     sfxToggle: $("sfxToggle"),
     musicToggle: $("musicToggle"),
@@ -2381,6 +2385,63 @@
   if (el.shareCodeBtn) el.shareCodeBtn.addEventListener("click", shareRoom);
   if (el.histGameFilter) el.histGameFilter.addEventListener("change", renderHistory);
   if (el.histModeFilter) el.histModeFilter.addEventListener("change", renderHistory);
+
+  // ---- Quản lý dữ liệu cá nhân (xuất / nhập / xóa) ----
+  function collectData() {
+    const out = {};
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf("tpg_") === 0) out[k] = localStorage.getItem(k);
+      }
+    } catch (e) { /* ignore */ }
+    return out;
+  }
+  function exportData() {
+    const payload = { app: "TwoPlayerGames", version: 1, exportedAt: new Date().toISOString(), data: collectData() };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `game2nguoi-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast(tt("exportOk"));
+  }
+  function importData(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        const data = parsed && parsed.data ? parsed.data : parsed;
+        if (!data || typeof data !== "object") throw new Error("bad");
+        Object.keys(data).forEach((k) => {
+          if (k.indexOf("tpg_") === 0 && typeof data[k] === "string") localStorage.setItem(k, data[k]);
+        });
+        showToast(tt("importOk"));
+        setTimeout(() => location.reload(), 900);
+      } catch (e) { showToast(tt("importBad")); }
+    };
+    reader.readAsText(file);
+  }
+  function clearData() {
+    if (!window.confirm(tt("clearConfirm"))) return;
+    try {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf("tpg_") === 0) keys.push(k);
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+    } catch (e) { /* ignore */ }
+    location.reload();
+  }
+  if (el.exportDataBtn) el.exportDataBtn.addEventListener("click", exportData);
+  if (el.importDataBtn) el.importDataBtn.addEventListener("click", () => el.importDataFile && el.importDataFile.click());
+  if (el.importDataFile) el.importDataFile.addEventListener("change", (e) => { const f = e.target.files[0]; if (f) importData(f); e.target.value = ""; });
+  if (el.clearDataBtn) el.clearDataBtn.addEventListener("click", clearData);
 
   // Phím Escape đóng overlay đang mở (ưu tiên từ trên xuống)
   document.addEventListener("keydown", (e) => {

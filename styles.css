@@ -12261,3 +12261,9 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 /* ---------- Bộ lọc lịch sử ---------- */
 .hist-filters { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .hist-filters .option-select { flex: 1; min-width: 130px; }
+
+
+/* ---------- Quản lý dữ liệu cá nhân ---------- */
+.data-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.btn.danger { border-color: rgba(255,93,115,0.5); color: #ff8fa1; }
+.btn.danger:hover { background: var(--p1); color: #fff; box-shadow: 0 6px 18px rgba(255,93,115,0.35); }

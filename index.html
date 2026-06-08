@@ -101,6 +101,15 @@
           <span data-i18n="replayTour">🧭 Xem lại hướng dẫn</span>
           <button class="btn small" id="replayTourBtn" type="button" data-i18n="replayTourBtn">▶ Bắt đầu</button>
         </label>
+        <label class="set-row">
+          <span data-i18n="dataManage">💾 Dữ liệu của tôi</span>
+          <span class="data-btns">
+            <button class="btn small" id="exportDataBtn" type="button" data-i18n="exportData">⬇ Xuất</button>
+            <button class="btn small" id="importDataBtn" type="button" data-i18n="importData">⬆ Nhập</button>
+            <button class="btn small danger" id="clearDataBtn" type="button" data-i18n="clearData">🗑 Xóa</button>
+            <input type="file" id="importDataFile" accept="application/json,.json" hidden />
+          </span>
+        </label>
       </div>
       <h3 class="profile-h" data-i18n="achievementsH">🏅 Thành tích</h3>
       <div class="ach-grid" id="achGrid"></div>
