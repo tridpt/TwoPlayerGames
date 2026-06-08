@@ -107,3 +107,11 @@ test("Dots & Boxes: AI trả về cạnh hợp lệ", () => {
   const mv = api.aiMove("normal");
   assert.ok(mv && (mv.type === "h" || mv.type === "v"));
 });
+
+test("Mancala: AI trả về hốc hợp lệ của mình", () => {
+  const cfg = loadGame("mancala");
+  const ctx = makeCtx({});
+  const api = cfg.create(ctx);
+  const mv = api.aiMove("hard");
+  assert.ok(mv >= 0 && mv <= 5, "P1 phải chọn hốc 0-5");
+});

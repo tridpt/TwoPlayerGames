@@ -240,6 +240,79 @@
       else ctx.setStatus(`Lượt Người chơi ${turn + 1} — chọn một hốc bên phía mình để gieo sỏi.`);
     }
 
+    // ----- AI: minimax mô phỏng gieo sỏi -----
+    function sowSim(b, player, pit) {
+      const p = b.slice();
+      const oppS = player === 0 ? STORE1 : STORE0;
+      const myS = player === 0 ? STORE0 : STORE1;
+      let stones = p[pit]; p[pit] = 0; let idx = pit;
+      while (stones > 0) { idx = (idx + 1) % 14; if (idx === oppS) continue; p[idx]++; stones--; }
+      const last = idx;
+      const mine = player === 0 ? (last >= 0 && last <= 5) : (last >= 7 && last <= 12);
+      if (mine && p[last] === 1) {
+        const opp = 12 - last;
+        if (p[opp] > 0) { p[myS] += p[opp] + 1; p[opp] = 0; p[last] = 0; }
+      }
+      return { p, extra: last === myS };
+    }
+    function sideEmptySim(b, player) {
+      const r = player === 0 ? [0, 5] : [7, 12];
+      for (let i = r[0]; i <= r[1]; i++) if (b[i] > 0) return false;
+      return true;
+    }
+    function finalizeDiff(b, me) {
+      const p = b.slice();
+      for (let i = 0; i <= 5; i++) { p[STORE0] += p[i]; p[i] = 0; }
+      for (let i = 7; i <= 12; i++) { p[STORE1] += p[i]; p[i] = 0; }
+      return (me === 0 ? p[STORE0] - p[STORE1] : p[STORE1] - p[STORE0]);
+    }
+    function genPits(b, player) {
+      const r = player === 0 ? [0, 5] : [7, 12];
+      const out = [];
+      for (let i = r[0]; i <= r[1]; i++) if (b[i] > 0) out.push(i);
+      return out;
+    }
+    function mcEval(b, me) {
+      return (me === 0 ? b[STORE0] - b[STORE1] : b[STORE1] - b[STORE0]);
+    }
+    function mcSearch(b, player, me, depth, alpha, beta) {
+      if (sideEmptySim(b, 0) || sideEmptySim(b, 1)) return finalizeDiff(b, me);
+      if (depth <= 0) return mcEval(b, me);
+      const moves = genPits(b, player);
+      if (!moves.length) return finalizeDiff(b, me);
+      if (player === me) {
+        let v = -Infinity;
+        for (const pit of moves) {
+          const r = sowSim(b, player, pit);
+          const sc = mcSearch(r.p, r.extra ? player : 1 - player, me, depth - 1, alpha, beta);
+          v = Math.max(v, sc); alpha = Math.max(alpha, v); if (alpha >= beta) break;
+        }
+        return v;
+      }
+      let v = Infinity;
+      for (const pit of moves) {
+        const r = sowSim(b, player, pit);
+        const sc = mcSearch(r.p, r.extra ? player : 1 - player, me, depth - 1, alpha, beta);
+        v = Math.min(v, sc); beta = Math.min(beta, v); if (alpha >= beta) break;
+      }
+      return v;
+    }
+    function aiMove(level) {
+      if (over || busy) return null;
+      const me = turn;
+      const moves = genPits(pits, me);
+      if (!moves.length) return null;
+      if (level === "easy" && Math.random() < 0.6) return moves[Math.floor(Math.random() * moves.length)];
+      const depth = level === "easy" ? 2 : level === "hard" ? 8 : 5;
+      let best = -Infinity, pick = moves[0];
+      for (const pit of moves) {
+        const r = sowSim(pits, me, pit);
+        const sc = mcSearch(r.p, r.extra ? me : 1 - me, me, depth - 1, -Infinity, Infinity);
+        if (sc > best) { best = sc; pick = pit; }
+      }
+      return pick;
+    }
+
     const observer = new MutationObserver(() => {
       if (!document.body.contains(wrap)) {
         destroyed = true;
@@ -253,7 +326,7 @@
     ctx.setTurn(0);
     render();
     ctx.setStatus("Chọn một hốc bên mình, gieo sỏi ngược chiều kim đồng hồ. Nhiều sỏi trong kho hơn sẽ thắng.");
-    return { applyMove };
+    return { applyMove, aiMove };
   }
 
   window.GameRegistry.register({
@@ -262,6 +335,7 @@
     emoji: "🫘",
     description: "Gieo sỏi vòng quanh các hốc, bắt sỏi đối thủ. Sỏi rải sống động từng viên. Ai gom nhiều sỏi về kho hơn sẽ thắng.",
     onlineReady: true,
+    supportsAI: true,
     howTo: [
       "Mỗi người có 6 hốc nhỏ ở phía mình và 1 kho lớn. Người chơi 1 ở hàng dưới (kho bên phải), Người chơi 2 ở hàng trên (kho bên trái).",
       "Đến lượt, chọn một hốc bên phía mình còn sỏi: nhặt hết sỏi rồi rải lần lượt mỗi hốc 1 viên theo ngược chiều kim đồng hồ (xem hiệu ứng sỏi rơi từng viên).",
