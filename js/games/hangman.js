@@ -220,8 +220,10 @@
     function drawGallows() {
       const el = root.querySelector("#hmGallows");
       if (!el) return;
-      const figure = ["😀", "😟", "😨", "😰", "😵", "🥵", "💀"][Math.min(wrong, 6)];
-      el.textContent = figure;
+      const faces = ["😀", "😟", "😨", "😰", "😵", "🥵", "💀"];
+      // chia đều các nấc biểu cảm theo số mạng (để mode 8 mạng không hiện sọ khi còn sống)
+      const stage = wrong >= MAX_WRONG ? 6 : Math.min(5, Math.round((wrong / MAX_WRONG) * 6));
+      el.textContent = faces[stage];
       el.classList.toggle("dead", wrong >= MAX_WRONG);
     }
 
