@@ -54,7 +54,12 @@
       { x: W - 152, y: H / 2, fx: -1, fy: 0 },
     ];
     const obstacles = makeObstacles();
-    let last = "Chọn vài hành động (xem đường đi xem trước), khóa kế hoạch — nhịp trống sẽ tự thành Đợi.";
+    let last = ctx.t("Chọn vài hành động (xem đường đi xem trước), khóa kế hoạch — nhịp trống sẽ tự thành Đợi.", "Pick a few actions (preview your path), lock the plan — empty beats become Wait.");
+    // bản dịch nhãn/gợi ý hành động (ACTIONS là hằng module-level)
+    const ACTION_LABEL_EN = { wait: "Wait", up: "Up", down: "Down", left: "Left", right: "Right", dash: "Dash", shoot: "Shoot", shield: "Shield", mine: "Mine", charge: "Charge" };
+    const ACTION_HINT_EN = { wait: "hold position", up: "move", down: "move", left: "move", right: "move", dash: "fast in facing dir", shoot: "straight shot", shield: "reduce damage", mine: "area blast", charge: "gain more energy" };
+    const aLabel = (id) => ctx.t(ACTIONS[id].label, ACTION_LABEL_EN[id] || ACTIONS[id].label);
+    const aHint = (id) => ctx.t(ACTIONS[id].hint, ACTION_HINT_EN[id] || ACTIONS[id].hint);
 
     const root = document.createElement("div");
     root.className = "tl-root";
@@ -213,7 +218,7 @@
         damageText: [],
       };
       activePlanner = -1;
-      last = "Replay bắt đầu: bản hiện tại và các bóng ma cũ chạy cùng lúc.";
+      last = ctx.t("Replay bắt đầu: bản hiện tại và các bóng ma cũ chạy cùng lúc.", "Replay started: the current version and old ghosts run at the same time.");
       ctx.sound("shot");
       render();
       updateStatus();
@@ -438,8 +443,8 @@
 
     function checkEndDuringReplay() {
       if (coreHp[0] <= 0 && coreHp[1] <= 0) return drawGame();
-      if (coreHp[0] <= 0) return finish(1, "lõi P1 bị phá trong vòng lặp");
-      if (coreHp[1] <= 0) return finish(0, "lõi P2 bị phá trong vòng lặp");
+      if (coreHp[0] <= 0) return finish(1, ctx.t("lõi P1 bị phá trong vòng lặp", "P1's core destroyed in the loop"));
+      if (coreHp[1] <= 0) return finish(0, ctx.t("lõi P2 bị phá trong vòng lặp", "P2's core destroyed in the loop"));
     }
 
     function finishSimulationRound() {
@@ -453,7 +458,7 @@
       round += 1;
       activePlanner = ctx.isOnline ? ctx.mySeat : 0;
       sim = null;
-      last = "Vòng lặp mới đã mở. Bóng ma cũ sẽ tiếp tục chạy lại kế hoạch vừa khóa.";
+      last = ctx.t("Vòng lặp mới đã mở. Bóng ma cũ sẽ tiếp tục chạy lại kế hoạch vừa khóa.", "A new loop has opened. Old ghosts will keep replaying the plans you just locked.");
       ctx.setTurn(activePlanner);
       render();
       updateStatus();
@@ -466,7 +471,7 @@
       sim = null;
       ctx.setTurn(-1);
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng - ${reason}!`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng - ${reason}!`, `🎉 Player ${winner + 1} wins — ${reason}!`));
       render();
       draw();
     }
@@ -476,7 +481,7 @@
       over = true;
       sim = null;
       ctx.setTurn(-1);
-      ctx.setStatus("🤝 Hòa - cả hai lõi bị phá trong cùng vòng lặp!");
+      ctx.setStatus(ctx.t("🤝 Hòa - cả hai lõi bị phá trong cùng vòng lặp!", "🤝 Draw — both cores destroyed in the same loop!"));
       render();
       draw();
     }
@@ -492,8 +497,8 @@
       hud.innerHTML = `
         ${playerPanel(0)}
         <div class="tl-mid">
-          <b>${over ? "Kết thúc" : sim ? "Đang replay" : "Vòng " + round}</b>
-          <span>${BEATS} nhịp kế hoạch · tối đa ${MAX_GHOSTS} bóng ma mỗi bên</span>
+          <b>${over ? ctx.t("Kết thúc", "Game over") : sim ? ctx.t("Đang replay", "Replaying") : ctx.t(`Vòng ${round}`, `Round ${round}`)}</b>
+          <span>${ctx.t(`${BEATS} nhịp kế hoạch · tối đa ${MAX_GHOSTS} bóng ma mỗi bên`, `${BEATS} plan beats · up to ${MAX_GHOSTS} ghosts per side`)}</span>
           <small>${last}</small>
         </div>
         ${playerPanel(1)}
@@ -505,10 +510,10 @@
       const active = !sim && !over && (ctx.isOnline ? side === ctx.mySeat && !locked[side] : side === activePlanner);
       return `
         <div class="tl-player p${side + 1} ${active ? "active" : ""}">
-          <span>Người chơi ${side + 1}</span>
-          <b>${coreHp[side]}/${CORE_HP} lõi</b>
+          <span>${ctx.t(`Người chơi ${side + 1}`, `Player ${side + 1}`)}</span>
+          <b>${ctx.t(`${coreHp[side]}/${CORE_HP} lõi`, `${coreHp[side]}/${CORE_HP} core`)}</b>
           <i class="tl-hp"><i style="width:${hpPct}%"></i></i>
-          <small>${energy[side]} năng lượng · ${history[side].length} bóng ma · ${locked[side] ? "đã khóa" : "đang mở"}</small>
+          <small>${ctx.t(`${energy[side]} năng lượng · ${history[side].length} bóng ma · ${locked[side] ? "đã khóa" : "đang mở"}`, `${energy[side]} energy · ${history[side].length} ghosts · ${locked[side] ? "locked" : "open"}`)}</small>
         </div>
       `;
     }
@@ -521,8 +526,8 @@
         const left = planEnergyLeft(side, plans[side]);
         box.innerHTML = `
           <div class="tl-plan-head">
-            <b>Kế hoạch P${side + 1}</b>
-            <span>${plans[side].length}/${BEATS} nhịp · còn ${Math.max(0, left)} NL</span>
+            <b>${ctx.t(`Kế hoạch P${side + 1}`, `Plan P${side + 1}`)}</b>
+            <span>${ctx.t(`${plans[side].length}/${BEATS} nhịp · còn ${Math.max(0, left)} NL`, `${plans[side].length}/${BEATS} beats · ${Math.max(0, left)} EN left`)}</span>
           </div>
           <div class="tl-slots"></div>
         `;
@@ -532,7 +537,7 @@
           const btn = document.createElement("button");
           btn.type = "button";
           btn.className = `tl-slot ${action ? "filled" : ""}`;
-          btn.innerHTML = action ? `<span>${ACTIONS[action].icon}</span><small>${ACTIONS[action].label}</small>` : `<span>${i + 1}</span>`;
+          btn.innerHTML = action ? `<span>${ACTIONS[action].icon}</span><small>${aLabel(action)}</small>` : `<span>${i + 1}</span>`;
           btn.disabled = !canEditSide(side) || !action;
           btn.addEventListener("click", () => removeSlot(side, i));
           slots.appendChild(btn);
@@ -546,10 +551,10 @@
       palette.innerHTML = Object.keys(ACTIONS).map((id) => {
         const a = ACTIONS[id];
         const disabled = !actionAvailable(side, id);
-        const cost = a.cost < 0 ? "+1 NL" : a.cost ? `${a.cost} NL` : "miễn phí";
+        const cost = a.cost < 0 ? ctx.t("+1 NL", "+1 EN") : a.cost ? ctx.t(`${a.cost} NL`, `${a.cost} EN`) : ctx.t("miễn phí", "free");
         return `
           <button class="btn small tl-action" type="button" data-action="${id}" ${disabled ? "disabled" : ""}>
-            <span>${a.icon}</span><b>${a.label}</b><small>${cost} · ${a.hint}</small>
+            <span>${a.icon}</span><b>${aLabel(id)}</b><small>${cost} · ${aHint(id)}</small>
           </button>
         `;
       }).join("");
@@ -564,9 +569,9 @@
       const can = validSide && canEditSide(side);
       const planLength = validSide ? plans[side].length : 0;
       controls.innerHTML = `
-        <button class="btn small" type="button" data-cmd="undo" ${can && planLength ? "" : "disabled"}>↶ Lùi 1</button>
-        <button class="btn small" type="button" data-cmd="clear" ${can && planLength ? "" : "disabled"}>Xóa plan</button>
-        <button class="btn primary" type="button" data-cmd="lock" ${can && planLength >= 1 ? "" : "disabled"}>🔒 Khóa (bù Đợi)</button>
+        <button class="btn small" type="button" data-cmd="undo" ${can && planLength ? "" : "disabled"}>${ctx.t("↶ Lùi 1", "↶ Undo")}</button>
+        <button class="btn small" type="button" data-cmd="clear" ${can && planLength ? "" : "disabled"}>${ctx.t("Xóa plan", "Clear plan")}</button>
+        <button class="btn primary" type="button" data-cmd="lock" ${can && planLength >= 1 ? "" : "disabled"}>${ctx.t("🔒 Khóa (bù Đợi)", "🔒 Lock (fill Wait)")}</button>
       `;
       controls.querySelector('[data-cmd="undo"]').addEventListener("click", () => undoPlan(side));
       controls.querySelector('[data-cmd="clear"]').addEventListener("click", () => clearPlan(side));
@@ -576,12 +581,12 @@
     function updateStatus() {
       if (over) return;
       if (sim) {
-        ctx.setStatus("Đang chạy replay: các bóng ma quá khứ và nhân vật hiện tại cùng hành động.");
+        ctx.setStatus(ctx.t("Đang chạy replay: các bóng ma quá khứ và nhân vật hiện tại cùng hành động.", "Replay running: past ghosts and the current character act together."));
       } else if (ctx.isOnline) {
-        if (!locked[ctx.mySeat]) ctx.setStatus("Chọn đủ kế hoạch cho lượt của bạn rồi khóa. Đối thủ sẽ gửi plan riêng.");
-        else ctx.setStatus("Bạn đã khóa kế hoạch. Đang chờ đối thủ...");
+        if (!locked[ctx.mySeat]) ctx.setStatus(ctx.t("Chọn đủ kế hoạch cho lượt của bạn rồi khóa. Đối thủ sẽ gửi plan riêng.", "Set up your plan for this turn then lock. The opponent sends their own plan."));
+        else ctx.setStatus(ctx.t("Bạn đã khóa kế hoạch. Đang chờ đối thủ...", "You locked your plan. Waiting for the opponent..."));
       } else {
-        ctx.setStatus(`Người chơi ${activePlanner + 1}: xếp hành động (xem đường đi xem trước) rồi 🔒 Khóa — không cần đủ ${BEATS} nhịp.`);
+        ctx.setStatus(ctx.t(`Người chơi ${activePlanner + 1}: xếp hành động (xem đường đi xem trước) rồi 🔒 Khóa — không cần đủ ${BEATS} nhịp.`, `Player ${activePlanner + 1}: arrange actions (preview your path) then 🔒 Lock — no need to fill all ${BEATS} beats.`));
       }
       if (!sim && !over) ctx.setTurn(ctx.isOnline ? ctx.mySeat : activePlanner);
     }

@@ -18,7 +18,7 @@
     let apLeft = AP;
     let lastCell = null;       // [r,c] ô vừa tác động
     let pendingFloat = [];     // chữ nổi chờ vẽ
-    let last = "Mở rộng lãnh thổ từ căn cứ, xây tường giữ biên, rồi đánh vào vùng đối thủ.";
+    let last = ctx.t("Mở rộng lãnh thổ từ căn cứ, xây tường giữ biên, rồi đánh vào vùng đối thủ.", "Expand from your base, build walls to hold the border, then attack enemy territory.");
 
     const root = document.createElement("div");
     root.className = "tw-root";
@@ -29,12 +29,12 @@
 
     const actions = document.createElement("div");
     actions.className = "tw-actions";
-    const claimBtn = actionButton("Chiếm ô", "claim", "CLAIM", "ô trung lập kề biên");
-    const wallBtn = actionButton("Xây tường", "wall", "WALL", "tăng thủ ô mình");
-    const attackBtn = actionButton("Tấn công", "attack", "ATK", "đánh ô địch kề biên");
+    const claimBtn = actionButton(ctx.t("Chiếm ô", "Claim"), "claim", "CLAIM", ctx.t("ô trung lập kề biên", "neutral cell on border"));
+    const wallBtn = actionButton(ctx.t("Xây tường", "Build wall"), "wall", "WALL", ctx.t("tăng thủ ô mình", "boost your cell's defense"));
+    const attackBtn = actionButton(ctx.t("Tấn công", "Attack"), "attack", "ATK", ctx.t("đánh ô địch kề biên", "hit enemy cell on border"));
     const endBtn = document.createElement("button");
     endBtn.className = "btn small tw-action tw-end";
-    endBtn.innerHTML = `<span>END</span><b>Kết thúc lượt</b><small>nhường lượt</small>`;
+    endBtn.innerHTML = `<span>END</span><b>${ctx.t("Kết thúc lượt", "End turn")}</b><small>${ctx.t("nhường lượt", "pass turn")}</small>`;
     endBtn.addEventListener("click", () => applyMove({ t: "end" }, false));
     actions.appendChild(claimBtn);
     actions.appendChild(wallBtn);
@@ -45,12 +45,12 @@
     const legend = document.createElement("div");
     legend.className = "tw-legend";
     legend.innerHTML = `
-      <span><i class="tw-leg p1"></i> Vùng đỏ</span>
-      <span><i class="tw-leg p2"></i> Vùng xanh</span>
-      <span><i class="tw-leg neutral"></i> Trung lập</span>
-      <span><i class="tw-leg mountain"></i> Núi chắn</span>
-      <span><i class="tw-leg supply"></i> Kho tiếp tế</span>
-      <span><i class="tw-leg wall"></i> Tường</span>
+      <span><i class="tw-leg p1"></i> ${ctx.t("Vùng đỏ", "Red zone")}</span>
+      <span><i class="tw-leg p2"></i> ${ctx.t("Vùng xanh", "Blue zone")}</span>
+      <span><i class="tw-leg neutral"></i> ${ctx.t("Trung lập", "Neutral")}</span>
+      <span><i class="tw-leg mountain"></i> ${ctx.t("Núi chắn", "Mountain")}</span>
+      <span><i class="tw-leg supply"></i> ${ctx.t("Kho tiếp tế", "Supply depot")}</span>
+      <span><i class="tw-leg wall"></i> ${ctx.t("Tường", "Wall")}</span>
     `;
     root.appendChild(legend);
 
@@ -177,7 +177,7 @@
     }
 
     function doEnd() {
-      last = `Người chơi ${turn + 1} kết thúc lượt.`;
+      last = ctx.t(`Người chơi ${turn + 1} kết thúc lượt.`, `Player ${turn + 1} ended the turn.`);
       endTurn();
       return true;
     }
@@ -205,7 +205,7 @@
       cell.owner = turn;
       cell.wall = 0;
       lastCell = [move.r, move.c];
-      last = `Người chơi ${turn + 1} chiếm ${cell.type === "supply" ? "kho tiếp tế" : "ô"} ${coord(move.r, move.c)}.`;
+      last = ctx.t(`Người chơi ${turn + 1} chiếm ${cell.type === "supply" ? "kho tiếp tế" : "ô"} ${coord(move.r, move.c)}.`, `Player ${turn + 1} claimed ${cell.type === "supply" ? "supply depot" : "cell"} ${coord(move.r, move.c)}.`);
       ctx.sound(cell.type === "supply" ? "capture" : "select");
       if (!checkEnd()) spendAction();
       return true;
@@ -217,7 +217,7 @@
       cell.wall = Math.min(2, cell.wall + 1);
       lastCell = [move.r, move.c];
       floatText(move.r, move.c, "🛡+1", "wall");
-      last = `Người chơi ${turn + 1} xây tường cấp ${cell.wall} tại ${coord(move.r, move.c)}.`;
+      last = ctx.t(`Người chơi ${turn + 1} xây tường cấp ${cell.wall} tại ${coord(move.r, move.c)}.`, `Player ${turn + 1} built a level ${cell.wall} wall at ${coord(move.r, move.c)}.`);
       ctx.sound("select");
       spendAction();
       return true;
@@ -239,15 +239,15 @@
         cell.owner = turn;
         cell.wall = Math.max(0, cell.wall - 1);
         floatText(move.r, move.c, `⚔${atk}>${def}`, "win");
-        last = `Tấn công ${coord(move.r, move.c)}: ${ar}+${atkSupport} thắng ${dr}+${defSupport}. Vùng này đổi chủ.`;
+        last = ctx.t(`Tấn công ${coord(move.r, move.c)}: ${ar}+${atkSupport} thắng ${dr}+${defSupport}. Vùng này đổi chủ.`, `Attack ${coord(move.r, move.c)}: ${ar}+${atkSupport} beats ${dr}+${defSupport}. This cell changed hands.`);
         ctx.sound(cell.base === defender ? "capture" : "shot");
         if (!checkEnd()) spendAction();
       } else {
         const hadWall = cell.wall > 0;
         if (hadWall) cell.wall--;
         floatText(move.r, move.c, `⚔${atk}<${def}`, "lose");
-        last = `Tấn công ${coord(move.r, move.c)} thất bại: ${ar}+${atkSupport} thua ${dr}+${defSupport}.`
-          + (hadWall ? " Tường phòng thủ bị mài mòn." : "");
+        last = ctx.t(`Tấn công ${coord(move.r, move.c)} thất bại: ${ar}+${atkSupport} thua ${dr}+${defSupport}.`, `Attack on ${coord(move.r, move.c)} failed: ${ar}+${atkSupport} lost to ${dr}+${defSupport}.`)
+          + (hadWall ? ctx.t(" Tường phòng thủ bị mài mòn.", " The defensive wall was worn down.") : "");
         ctx.sound("miss");
         spendAction();
       }
@@ -318,12 +318,12 @@
     function checkEnd() {
       const enemyBase = turn === 0 ? grid[0][N - 1] : grid[N - 1][0];
       if (enemyBase.owner === turn) {
-        finish(turn, `chiếm thủ phủ đối thủ tại ${turn === 0 ? coord(0, N - 1) : coord(N - 1, 0)}`);
+        finish(turn, ctx.t(`chiếm thủ phủ đối thủ tại ${turn === 0 ? coord(0, N - 1) : coord(N - 1, 0)}`, `captured the enemy capital at ${turn === 0 ? coord(0, N - 1) : coord(N - 1, 0)}`));
         return true;
       }
       const target = Math.ceil(claimableCount() * GOAL / 100);
       if (ownedCount(turn) >= target) {
-        finish(turn, `kiểm soát ${GOAL}% bản đồ`);
+        finish(turn, ctx.t(`kiểm soát ${GOAL}% bản đồ`, `controlled ${GOAL}% of the map`));
         return true;
       }
       return false;
@@ -333,7 +333,7 @@
       over = true;
       ctx.setTurn(-1);
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng - ${reason}!`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng - ${reason}!`, `🎉 Player ${winner + 1} wins — ${reason}!`));
     }
 
     function endTurn() {
@@ -398,8 +398,8 @@
       hud.innerHTML = `
         ${playerPanel(0)}
         <div class="tw-mid">
-          <b>${over ? "Kết thúc" : "Lượt Người chơi " + (turn + 1)}</b>
-          ${AP > 1 && !over ? `<span class="tw-ap">Hành động: ${apLeft}/${AP}</span>` : ""}
+          <b>${over ? ctx.t("Kết thúc", "Game over") : ctx.t(`Lượt Người chơi ${turn + 1}`, `Player ${turn + 1}'s turn`)}</b>
+          ${AP > 1 && !over ? `<span class="tw-ap">${ctx.t(`Hành động: ${apLeft}/${AP}`, `Actions: ${apLeft}/${AP}`)}</span>` : ""}
           <span>${modeLabel()}</span>
           <small>${last}</small>
         </div>
@@ -414,18 +414,18 @@
       const target = Math.ceil(claimableCount() * GOAL / 100);
       return `
         <div class="tw-player p${owner + 1} ${turn === owner && !over ? "active" : ""}">
-          <span>Người chơi ${owner + 1}</span>
-          <b>${owned}/${target} ô</b>
-          <em>Tiếp tế ${supplies} • hỗ trợ +${Math.min(2, supplies)}</em>
+          <span>${ctx.t(`Người chơi ${owner + 1}`, `Player ${owner + 1}`)}</span>
+          <b>${owned}/${target} ${ctx.t("ô", "cells")}</b>
+          <em>${ctx.t(`Tiếp tế ${supplies} • hỗ trợ +${Math.min(2, supplies)}`, `Supply ${supplies} • support +${Math.min(2, supplies)}`)}</em>
           <i style="width:${Math.min(100, owned / target * 100)}%"></i>
         </div>
       `;
     }
 
     function modeLabel() {
-      if (mode === "claim") return "Chiếm ô trung lập kề lãnh thổ.";
-      if (mode === "wall") return "Xây tường trên ô của mình để tăng phòng thủ.";
-      return "Đánh ô địch kề biên giới bằng roll + hỗ trợ.";
+      if (mode === "claim") return ctx.t("Chiếm ô trung lập kề lãnh thổ.", "Claim a neutral cell next to your territory.");
+      if (mode === "wall") return ctx.t("Xây tường trên ô của mình để tăng phòng thủ.", "Build a wall on your cell to boost defense.");
+      return ctx.t("Đánh ô địch kề biên giới bằng roll + hỗ trợ.", "Attack a bordering enemy cell with roll + support.");
     }
 
     function updateButtons() {
@@ -442,9 +442,9 @@
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus(`Đối thủ đang đi. ${last}`);
+        ctx.setStatus(ctx.t(`Đối thủ đang đi. ${last}`, `Opponent's turn. ${last}`));
       } else {
-        ctx.setStatus(`${modeLabel()} Mục tiêu: chiếm thủ phủ đối thủ hoặc đạt ${GOAL}% bản đồ.`);
+        ctx.setStatus(ctx.t(`${modeLabel()} Mục tiêu: chiếm thủ phủ đối thủ hoặc đạt ${GOAL}% bản đồ.`, `${modeLabel()} Goal: capture the enemy capital or reach ${GOAL}% of the map.`));
       }
     }
 
