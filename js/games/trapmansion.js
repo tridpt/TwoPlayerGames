@@ -23,6 +23,11 @@
   function create(ctx) {
     const o = ctx.options || {};
     const N = o.size || 5;
+    // bản dịch nhãn phòng & bẫy (TYPES/TRAPS là hằng module-level)
+    const TYPE_LABEL_EN = { start: "Entrance", vault: "Central vault", seal: "Ancient seal", med: "Infirmary", kit: "Tool stash", map: "Map room", curse: "Cursed room", empty: "Empty room" };
+    const TRAP_LABEL_EN = { snare: "Snare", spike: "Floor spikes", alarm: "Alarm bell" };
+    const roomLabel = (type) => ctx.t(TYPES[type]?.label || "Phòng lạ", TYPE_LABEL_EN[type] || "Strange room");
+    const trapLabel = (type) => ctx.t(TRAPS[type]?.label || "Bẫy", TRAP_LABEL_EN[type] || "Trap");
     const GOAL = o.goal || 3;
     const START_TRAPS = o.traps || 3;
     const MAX_HP = o.hp || 60;
@@ -44,7 +49,7 @@
     const knownDanger = [Object.create(null), Object.create(null)];
     const myTraps = ctx.isOnline ? makeMyTraps() : [];
     const revealedTraps = [];
-    const log = ["Hai nhà thám hiểm bước vào biệt thự. Không ai thấy bẫy của đối thủ."];
+    const log = [ctx.t("Hai nhà thám hiểm bước vào biệt thự. Không ai thấy bẫy của đối thủ.", "Two explorers enter the mansion. Neither can see the other's traps.")];
     let turn = 0;
     let mode = "move";
     let awaiting = false;
@@ -78,14 +83,14 @@
     const legend = document.createElement("div");
     legend.className = "tm-legend";
     legend.innerHTML = [
-      ["🏆", "Kho trung tâm"],
-      ["📜", "Ấn cổ"],
-      ["💊", "Hồi máu"],
-      ["🧰", "Thêm bẫy"],
-      ["🗺️", "Thêm quét"],
-      ["☠️", "Phòng nguyền"],
-      ["🪤", "Bẫy của bạn"],
-      ["❓", "Chưa khám phá"],
+      ["🏆", ctx.t("Kho trung tâm", "Central vault")],
+      ["📜", ctx.t("Ấn cổ", "Ancient seal")],
+      ["💊", ctx.t("Hồi máu", "Heal")],
+      ["🧰", ctx.t("Thêm bẫy", "More traps")],
+      ["🗺️", ctx.t("Thêm quét", "More scans")],
+      ["☠️", ctx.t("Phòng nguyền", "Cursed room")],
+      ["🪤", ctx.t("Bẫy của bạn", "Your trap")],
+      ["❓", ctx.t("Chưa khám phá", "Undiscovered")],
     ].map(([i, l]) => `<span><b>${i}</b>${l}</span>`).join("");
     root.appendChild(legend);
 
@@ -234,7 +239,7 @@
       if (!fromRemote) {
         awaiting = true;
         ctx.sendMove({ t: "move", side, r, c });
-        addLog("Bạn bước vào hành lang mới, đang chờ xem có bẫy hay không...");
+        addLog(ctx.t("Bạn bước vào hành lang mới, đang chờ xem có bẫy hay không...", "You step into a new corridor, waiting to see if there's a trap..."));
         render();
         updateStatus();
         return;
@@ -282,13 +287,13 @@
         p.hp = Math.max(0, p.hp - Number(result.damage || def.damage));
         p.stun = Math.max(p.stun, Number(result.stun || def.stun));
         revealedTraps.push({ r, c, owner, type: result.trap || "snare" });
-        addLog(`P${side + 1} kích hoạt ${def.label} ở phòng ${labelRoom(r, c)}.`);
+        addLog(ctx.t(`P${side + 1} kích hoạt ${def.label} ở phòng ${labelRoom(r, c)}.`, `P${side + 1} triggered ${trapLabel(result.trap || "snare")} in ${labelRoom(r, c)}.`));
         ctx.sound("capture");
       } else {
-        addLog(`P${side + 1} bước vào ${labelRoom(r, c)} an toàn.`);
+        addLog(ctx.t(`P${side + 1} bước vào ${labelRoom(r, c)} an toàn.`, `P${side + 1} safely entered ${labelRoom(r, c)}.`));
         ctx.sound("place");
       }
-      if (p.hp <= 0) return finish(1 - side, `P${side + 1} gục vì bẫy trong biệt thự`);
+      if (p.hp <= 0) return finish(1 - side, ctx.t(`P${side + 1} gục vì bẫy trong biệt thự`, `P${side + 1} fell to a trap in the mansion`));
       if (checkVaultWin(side)) return;
       endTurn();
     }
@@ -332,20 +337,20 @@
       p.scans += Number(result.scans || 0);
       addLog(searchText(side, result));
       ctx.sound(result.seals ? "capture" : result.hp < 0 ? "miss" : "select");
-      if (p.hp <= 0) return finish(1 - side, `P${side + 1} bị căn phòng nguyền hạ gục`);
+      if (p.hp <= 0) return finish(1 - side, ctx.t(`P${side + 1} bị căn phòng nguyền hạ gục`, `P${side + 1} was struck down by the cursed room`));
       if (checkVaultWin(side)) return;
       endTurn();
     }
 
     function searchText(side, result) {
       const type = result.type || "empty";
-      const label = TYPES[type]?.label || "Phòng lạ";
-      if (result.seals) return `P${side + 1} lục ${label} và tìm được 1 ấn cổ.`;
-      if (result.kits) return `P${side + 1} tìm được bộ bẫy dự phòng.`;
-      if (result.scans) return `P${side + 1} tìm thấy bản đồ bụi, thêm 1 lượt quét.`;
-      if (result.hp > 0) return `P${side + 1} hồi ${result.hp} HP trong ${label}.`;
-      if (result.hp < 0) return `P${side + 1} bị lời nguyền cắn mất ${Math.abs(result.hp)} HP.`;
-      return `P${side + 1} lục ${label}, không thấy gì đáng giá.`;
+      const label = roomLabel(type);
+      if (result.seals) return ctx.t(`P${side + 1} lục ${label} và tìm được 1 ấn cổ.`, `P${side + 1} searched ${label} and found 1 ancient seal.`);
+      if (result.kits) return ctx.t(`P${side + 1} tìm được bộ bẫy dự phòng.`, `P${side + 1} found a spare trap kit.`);
+      if (result.scans) return ctx.t(`P${side + 1} tìm thấy bản đồ bụi, thêm 1 lượt quét.`, `P${side + 1} found a dusty map, +1 scan.`);
+      if (result.hp > 0) return ctx.t(`P${side + 1} hồi ${result.hp} HP trong ${label}.`, `P${side + 1} recovered ${result.hp} HP in ${label}.`);
+      if (result.hp < 0) return ctx.t(`P${side + 1} bị lời nguyền cắn mất ${Math.abs(result.hp)} HP.`, `P${side + 1} lost ${Math.abs(result.hp)} HP to a curse.`);
+      return ctx.t(`P${side + 1} lục ${label}, không thấy gì đáng giá.`, `P${side + 1} searched ${label}, found nothing of value.`);
     }
 
     function revealAround(side, roomKey) {
@@ -368,12 +373,12 @@
         myTraps.push(trap);
         p.kits -= 1;
         ctx.sendMove({ t: "trap", side });
-        addLog(`Bạn gài một bẫy bí mật ở ${labelRoom(r, c)}.`);
+        addLog(ctx.t(`Bạn gài một bẫy bí mật ở ${labelRoom(r, c)}.`, `You set a secret trap in ${labelRoom(r, c)}.`));
         ctx.sound("select");
         return endTurn();
       }
       actor(side).kits = Math.max(0, actor(side).kits - 1);
-      addLog(`P${side + 1} dừng lại một lúc. Có thể họ vừa gài bẫy.`);
+      addLog(ctx.t(`P${side + 1} dừng lại một lúc. Có thể họ vừa gài bẫy.`, `P${side + 1} paused for a moment. They may have set a trap.`));
       ctx.sound("select");
       endTurn();
     }
@@ -390,7 +395,7 @@
         p.scans -= 1;
         awaiting = true;
         ctx.sendMove({ t: "scan", side, r, c });
-        addLog(`Bạn rắc bụi bạc vào ${labelRoom(r, c)}, chờ phản ứng...`);
+        addLog(ctx.t(`Bạn rắc bụi bạc vào ${labelRoom(r, c)}, chờ phản ứng...`, `You sprinkle silver dust in ${labelRoom(r, c)}, awaiting a reaction...`));
         render();
         updateStatus();
         return;
@@ -399,7 +404,7 @@
       const danger = myTraps.some((t) => t.k === key(r, c));
       ctx.sendMove({ t: "scanResult", side, r, c, danger });
       actor(side).scans = Math.max(0, actor(side).scans - 1);
-      addLog(`P${side + 1} quét một căn phòng.`);
+      addLog(ctx.t(`P${side + 1} quét một căn phòng.`, `P${side + 1} scanned a room.`));
       endTurn();
     }
 
@@ -409,8 +414,8 @@
       const k = key(Number(move.r), Number(move.c));
       knownDanger[side][k] = move.danger ? "danger" : "safe";
       addLog(move.danger
-        ? `Bụi bạc đổi màu: ${labelRoom(move.r, move.c)} có dấu bẫy.`
-        : `${labelRoom(move.r, move.c)} chưa thấy dấu bẫy.`);
+        ? ctx.t(`Bụi bạc đổi màu: ${labelRoom(move.r, move.c)} có dấu bẫy.`, `The silver dust changed color: ${labelRoom(move.r, move.c)} shows trap signs.`)
+        : ctx.t(`${labelRoom(move.r, move.c)} chưa thấy dấu bẫy.`, `${labelRoom(move.r, move.c)} shows no trap signs yet.`));
       ctx.sound(move.danger ? "capture" : "select");
       endTurn();
     }
@@ -419,7 +424,7 @@
       const side = Number(move.side);
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "recover", side });
       actor(side).stun = 0;
-      addLog(`P${side + 1} thoát khỏi cơ chế khóa và đứng dậy.`);
+      addLog(ctx.t(`P${side + 1} thoát khỏi cơ chế khóa và đứng dậy.`, `P${side + 1} broke free from the snare and stood up.`));
       ctx.sound("select");
       endTurn();
     }
@@ -427,7 +432,7 @@
     function checkVaultWin(side) {
       const p = actor(side);
       if (p.seals >= GOAL && same(p.r, p.c, vault)) {
-        finish(side, `đã gom đủ ${GOAL} ấn và mở kho trung tâm`);
+        finish(side, ctx.t(`đã gom đủ ${GOAL} ấn và mở kho trung tâm`, `gathered all ${GOAL} seals and opened the central vault`));
         return true;
       }
       return false;
@@ -439,7 +444,7 @@
       awaiting = false;
       ctx.setTurn(-1);
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng - ${reason}!`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng - ${reason}!`, `🎉 Player ${winner + 1} wins — ${reason}!`));
       render();
     }
 
@@ -460,7 +465,7 @@
 
     function labelRoom(r, c) {
       const room = roomAt(Number(r), Number(c));
-      return room ? TYPES[room.type]?.label || "Phòng lạ" : "Phòng lạ";
+      return room ? roomLabel(room.type) : ctx.t("Phòng lạ", "Strange room");
     }
 
     function setMode(next) {
@@ -538,8 +543,8 @@
       hud.innerHTML = `
         ${playerPanel(0)}
         <div class="tm-mid">
-          <b>${over ? "Kết thúc" : awaiting ? "Đang chờ phản hồi" : "Lượt Người chơi " + (turn + 1)}</b>
-          <span>Mục tiêu: ${GOAL} ấn cổ rồi vào kho trung tâm</span>
+          <b>${over ? ctx.t("Kết thúc", "Game over") : awaiting ? ctx.t("Đang chờ phản hồi", "Waiting for response") : ctx.t(`Lượt Người chơi ${turn + 1}`, `Player ${turn + 1}'s turn`)}</b>
+          <span>${ctx.t(`Mục tiêu: ${GOAL} ấn cổ rồi vào kho trung tâm`, `Goal: ${GOAL} ancient seals then enter the central vault`)}</span>
           <small>${log[0] || ""}</small>
         </div>
         ${playerPanel(1)}
@@ -551,10 +556,10 @@
       const hpPct = Math.max(0, p.hp / MAX_HP * 100);
       return `
         <div class="tm-player p${side + 1} ${turn === side && !over ? "active" : ""}">
-          <span>Người chơi ${side + 1}</span>
+          <span>${ctx.t(`Người chơi ${side + 1}`, `Player ${side + 1}`)}</span>
           <b>${p.hp}/${MAX_HP} HP</b>
           <i class="tm-hp"><i style="width:${hpPct}%"></i></i>
-          <small>${p.seals}/${GOAL} ấn · ${p.kits} bẫy · ${p.scans} quét${p.stun ? " · đang kẹt" : ""}</small>
+          <small>${ctx.t(`${p.seals}/${GOAL} ấn · ${p.kits} bẫy · ${p.scans} quét${p.stun ? " · đang kẹt" : ""}`, `${p.seals}/${GOAL} seals · ${p.kits} traps · ${p.scans} scans${p.stun ? " · snared" : ""}`)}</small>
         </div>
       `;
     }
@@ -563,15 +568,15 @@
       const p = ctx.isOnline ? actor(ctx.mySeat) : actor(0);
       const disabled = !isMyTurn();
       if (p.stun > 0 && isMyTurn()) {
-        actions.innerHTML = `<button class="btn primary tm-command" type="button" data-recover="1">Gỡ cơ chế khóa</button>`;
+        actions.innerHTML = `<button class="btn primary tm-command" type="button" data-recover="1">${ctx.t("Gỡ cơ chế khóa", "Break free")}</button>`;
         actions.querySelector("[data-recover]").addEventListener("click", () => applyMove({ t: "recover", side: ctx.mySeat }, false));
         return;
       }
       const defs = [
-        ["move", "🚶", "Di chuyển", "sang phòng kề"],
-        ["search", "🔍", "Lục phòng", "lấy ấn/vật phẩm"],
-        ["trap", "🪤", "Gài bẫy", "bí mật phòng kề"],
-        ["scan", "📡", "Quét bẫy", "dò phòng kề"],
+        ["move", "🚶", ctx.t("Di chuyển", "Move"), ctx.t("sang phòng kề", "to an adjacent room")],
+        ["search", "🔍", ctx.t("Lục phòng", "Search"), ctx.t("lấy ấn/vật phẩm", "get seals/items")],
+        ["trap", "🪤", ctx.t("Gài bẫy", "Set trap"), ctx.t("bí mật phòng kề", "secret, adjacent room")],
+        ["scan", "📡", ctx.t("Quét bẫy", "Scan"), ctx.t("dò phòng kề", "probe adjacent room")],
       ];
       actions.innerHTML = defs.map(([id, icon, label, hint]) => {
         const isSearch = id === "search";
@@ -595,29 +600,29 @@
       const mySeat = ctx.isOnline ? ctx.mySeat : 0;
       const danger = Object.entries(knownDanger[mySeat] || {}).slice(-6).map(([k, v]) => {
         const p = parseKey(k);
-        return `<span class="${v}"><b>${labelRoom(p.r, p.c)}</b><small>${v === "danger" ? "có dấu bẫy" : "tạm an toàn"}</small></span>`;
-      }).join("") || "<span><b>Chưa có dữ liệu</b><small>Dùng Quét bẫy để ghi chú.</small></span>";
+        return `<span class="${v}"><b>${labelRoom(p.r, p.c)}</b><small>${v === "danger" ? ctx.t("có dấu bẫy", "trap signs") : ctx.t("tạm an toàn", "seems safe")}</small></span>`;
+      }).join("") || `<span><b>${ctx.t("Chưa có dữ liệu", "No data yet")}</b><small>${ctx.t("Dùng Quét bẫy để ghi chú.", "Use Scan to take notes.")}</small></span>`;
       info.innerHTML = `
-        <div class="tm-notes"><b>Ghi chú quét</b><div>${danger}</div></div>
-        <div class="tm-log"><b>Diễn biến</b><div>${log.map((x) => `<span>${x}</span>`).join("")}</div></div>
+        <div class="tm-notes"><b>${ctx.t("Ghi chú quét", "Scan notes")}</b><div>${danger}</div></div>
+        <div class="tm-log"><b>${ctx.t("Diễn biến", "Events")}</b><div>${log.map((x) => `<span>${x}</span>`).join("")}</div></div>
       `;
     }
 
     function updateStatus() {
       if (over) return;
       if (!ctx.isOnline) {
-        ctx.setStatus("Trap Mansion chỉ chơi online để bẫy của mỗi người được giữ bí mật.");
+        ctx.setStatus(ctx.t("Trap Mansion chỉ chơi online để bẫy của mỗi người được giữ bí mật.", "Trap Mansion is online-only so each player's traps stay secret."));
         return;
       }
-      if (awaiting) return ctx.setStatus("Đang chờ đối thủ xác nhận bẫy bí mật...");
-      if (turn !== ctx.mySeat) return ctx.setStatus("Đối thủ đang đi trong biệt thự. Bạn chỉ thấy bẫy của mình.");
+      if (awaiting) return ctx.setStatus(ctx.t("Đang chờ đối thủ xác nhận bẫy bí mật...", "Waiting for the opponent to confirm secret traps..."));
+      if (turn !== ctx.mySeat) return ctx.setStatus(ctx.t("Đối thủ đang đi trong biệt thự. Bạn chỉ thấy bẫy của mình.", "The opponent is moving in the mansion. You only see your own traps."));
       const p = actor(ctx.mySeat);
-      if (p.stun > 0) return ctx.setStatus("Bạn đang bị kẹt bởi bẫy. Gỡ cơ chế khóa để bỏ lượt.");
+      if (p.stun > 0) return ctx.setStatus(ctx.t("Bạn đang bị kẹt bởi bẫy. Gỡ cơ chế khóa để bỏ lượt.", "You're snared by a trap. Break free to spend your turn."));
       const text = {
-        move: "Chọn một phòng kề để di chuyển. Nếu có bẫy đối thủ, bạn sẽ chỉ biết sau khi bước vào.",
-        trap: "Chọn phòng hiện tại hoặc phòng kề để gài bẫy bí mật.",
-        scan: "Chọn phòng hiện tại hoặc phòng kề để quét dấu bẫy đối thủ.",
-        search: "Bấm Lục phòng để tìm ấn cổ, vật phẩm hoặc rủi ro trong phòng hiện tại.",
+        move: ctx.t("Chọn một phòng kề để di chuyển. Nếu có bẫy đối thủ, bạn sẽ chỉ biết sau khi bước vào.", "Pick an adjacent room to move. If there's an enemy trap, you'll only know after stepping in."),
+        trap: ctx.t("Chọn phòng hiện tại hoặc phòng kề để gài bẫy bí mật.", "Pick your current or an adjacent room to set a secret trap."),
+        scan: ctx.t("Chọn phòng hiện tại hoặc phòng kề để quét dấu bẫy đối thủ.", "Pick your current or an adjacent room to scan for enemy traps."),
+        search: ctx.t("Bấm Lục phòng để tìm ấn cổ, vật phẩm hoặc rủi ro trong phòng hiện tại.", "Press Search to find seals, items or risks in your current room."),
       };
       ctx.setStatus(text[mode]);
     }
@@ -681,6 +686,7 @@
           const room = roomAt(r, c);
           const type = seen ? room.type : "unknown";
           const def = TYPES[type] || { label: "Phòng ẩn", icon: "❓", color: "#9aa0d0" };
+          const defLabel = type === "unknown" ? ctx.t("Phòng ẩn", "Hidden room") : roomLabel(type);
 
           // nền ô — pha màu nhạt theo loại phòng
           if (!seen) g.fillStyle = "rgba(255,255,255,0.03)";
@@ -738,7 +744,7 @@
             g.fillText(def.icon, pos.x + ROOM_SIZE / 2, pos.y + 27);
             g.fillStyle = "#e9ecff";
             g.font = "800 9px Segoe UI, sans-serif";
-            wrapText(def.label, pos.x + ROOM_SIZE / 2, pos.y + 50, ROOM_SIZE - 8, 11);
+            wrapText(defLabel, pos.x + ROOM_SIZE / 2, pos.y + 50, ROOM_SIZE - 8, 11);
           }
 
           const ownTrap = myTraps.find((t) => t.k === k);
@@ -797,7 +803,7 @@
           g.fillStyle = "#ffd166";
           g.font = "900 8px Segoe UI, sans-serif";
           g.textAlign = "center";
-          g.fillText("KẸT", 0, -21);
+          g.fillText(ctx.t("KẸT", "STUCK"), 0, -21);
         }
         g.fillStyle = "#fff";
         g.font = "900 9px Segoe UI, sans-serif";

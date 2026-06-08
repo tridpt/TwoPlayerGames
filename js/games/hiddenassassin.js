@@ -57,10 +57,26 @@
     const focus = [Math.min(3, MAX_FOCUS), Math.min(3, MAX_FOCUS)];
     const dossiers = [0, 0];
     const profiles = [Object.create(null), Object.create(null)];
-    const log = ["Đêm dạ tiệc bắt đầu. Một sát thủ đang lẩn trong đám đông."];
+    const log = [ctx.t("Đêm dạ tiệc bắt đầu. Một sát thủ đang lẩn trong đám đông.", "The gala begins. An assassin hides in the crowd.")];
     const notes = [Object.create(null), Object.create(null)];
     const suspects = makeSuspects();
     const myAssassinId = pickMyAssassin();
+
+    // bản dịch chuỗi mô tả (hằng module-level) — tra cứu VN→EN để dịch cả chuỗi nhận qua mạng
+    const FLAVOR_EN = {
+      "phục vụ": "waiter", "khách VIP": "VIP guest", "nhạc công": "musician", "bảo vệ": "guard", "nhà báo": "journalist", "ảo thuật gia": "magician", "đầu bếp": "chef",
+      "liếc về lối thoát nhiều lần": "glances at the exits repeatedly", "giấu vật kim loại dưới áo": "hides a metal object under their coat", "né camera an ninh": "avoids the security cameras", "đổi nhịp đi khi có người theo dõi": "changes pace when followed", "đứng gần nạn nhân quá lâu": "lingers near the victim too long",
+      "hành vi khớp vỏ bọc": "behavior matches their cover", "không có dấu hiệu vũ khí": "no sign of a weapon", "bị nhiều người nhận ra": "recognized by many people", "đường đi khá vô hại": "route looks harmless", "có chứng cứ ngoại phạm tạm ổn": "has a decent alibi",
+      "hay đứng gần cửa": "often stands near doors", "thường tránh đám đông": "usually avoids crowds", "hay đổi phòng sau 2 lượt": "changes rooms every 2 turns", "thích đứng ở nơi sáng": "prefers well-lit spots", "hay đi theo người lạ": "tends to follow strangers",
+      "có hóa đơn ở quầy bar": "has a bar receipt", "được bảo vệ nhìn thấy": "seen by a guard", "vừa ký sổ khách": "just signed the guestbook", "có người phục vụ xác nhận": "confirmed by a waiter", "camera ghi bóng dáng mờ": "caught faintly on camera",
+      "hồ sơ bị xé đúng trang quan trọng": "the dossier is torn at the key page", "vỏ bọc có 2 chi tiết mâu thuẫn": "the cover has 2 contradictory details", "nhân chứng nhớ thấy vũ khí nhỏ": "a witness recalls a small weapon", "lịch trình có khoảng trống nguy hiểm": "the schedule has a suspicious gap",
+      "hồ sơ khá nhất quán": "the dossier is fairly consistent", "vỏ bọc khớp lời khai": "the cover matches the testimony", "nhân chứng xác nhận có mặt": "a witness confirms their presence", "lịch trình chưa có lỗ hổng lớn": "the schedule has no major gaps",
+      "mục tiêu đang dùng mồi nhử hoặc cải trang, manh mối bị nhiễu": "the target is using a decoy or disguise; clues are scrambled",
+      "hồ sơ bị tráo, dấu vết thật bị che": "the dossier was swapped; real traces are hidden",
+      "Sảnh chính": "Main hall", "Quầy bar": "Bar", "Ban công": "Balcony", "Phòng tranh": "Gallery", "Vườn kính": "Greenhouse", "Sân khấu": "Stage", "Bếp sau": "Back kitchen", "Tượng đá": "Stone statue", "Cổng phụ": "Side gate",
+    };
+    const tr = (s) => ctx.t(s, FLAVOR_EN[s] || s);
+    const spotName = (id) => tr(spot(id).name);
 
     const root = document.createElement("div");
     root.className = "ha-root";
@@ -153,7 +169,7 @@
       notes[observer][targetId] = Math.max(0, (notes[observer][targetId] || 0) + amount);
       const target = getSuspect(targetId);
       if (target && observer === ctx.mySeat && notes[observer][targetId] >= NOTES_TO_WARN) {
-        addLog(`${target.name} đã có ${notes[observer][targetId]} dấu nghi vấn: nên cân nhắc tố cáo.`);
+        addLog(ctx.t(`${target.name} đã có ${notes[observer][targetId]} dấu nghi vấn: nên cân nhắc tố cáo.`, `${target.name} now has ${notes[observer][targetId]} suspicion marks: consider accusing.`));
       }
       if (reason && observer === ctx.mySeat) addLog(reason);
     }
@@ -192,7 +208,7 @@
         .forEach((w) => {
           w.turns -= 1;
           note(w.owner, s.id, 1, w.owner === ctx.mySeat
-            ? `Theo dõi thấy ${s.name} rời ${spot(fromSpot).name} sang ${spot(toSpot).name}.`
+            ? ctx.t(`Theo dõi thấy ${s.name} rời ${spot(fromSpot).name} sang ${spot(toSpot).name}.`, `Surveillance saw ${s.name} leave ${spotName(fromSpot)} for ${spotName(toSpot)}.`)
             : "");
         });
       for (let i = watchers.length - 1; i >= 0; i--) {
@@ -231,7 +247,7 @@
       s.revealed = false;
       triggerWatchers(s, from, to);
       const trappedId = triggerTrap(s);
-      addLog(`P${s.owner + 1} đưa ${s.name} đến ${spot(to).name}.`);
+      addLog(ctx.t(`P${s.owner + 1} đưa ${s.name} đến ${spot(to).name}.`, `P${s.owner + 1} moved ${s.name} to ${spotName(to)}.`));
       selected = null;
       ctx.sound(trappedId ? "capture" : "place");
       endTurn(trappedId || null);
@@ -247,7 +263,7 @@
         traps.splice(traps.indexOf(oldest), 1);
       }
       traps.push({ owner: turn, spot: where, id: `${turn}_${moveNo}_${where}` });
-      addLog(`P${turn + 1} gài bẫy camera ở ${spot(where).name}.`);
+      addLog(ctx.t(`P${turn + 1} gài bẫy camera ở ${spot(where).name}.`, `P${turn + 1} set a camera trap in ${spotName(where)}.`));
       ctx.sound("select");
       endTurn();
     }
@@ -258,7 +274,7 @@
       if (!spendFocus(turn, actionCost("follow"))) return;
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "follow", target: target.id });
       addWatcher(turn, target.id);
-      addLog(`P${turn + 1} cho người bám theo ${target.name} trong 3 nhịp di chuyển.`);
+      addLog(ctx.t(`P${turn + 1} cho người bám theo ${target.name} trong 3 nhịp di chuyển.`, `P${turn + 1} had someone tail ${target.name} for 3 moves.`));
       ctx.sound("select");
       endTurn();
     }
@@ -271,7 +287,7 @@
       if (!fromRemote) {
         awaiting = true;
         ctx.sendMove({ t: "observe", target: target.id });
-        addLog(`Bạn đang quan sát ${target.name}, chờ tín hiệu từ đối thủ...`);
+        addLog(ctx.t(`Bạn đang quan sát ${target.name}, chờ tín hiệu từ đối thủ...`, `You're observing ${target.name}, waiting for the opponent's signal...`));
         render();
         updateStatus();
         return;
@@ -281,7 +297,7 @@
       const hot = !masked && isMyAssassin(target.id);
       const clue = masked ? "mục tiêu đang dùng mồi nhử hoặc cải trang, manh mối bị nhiễu" : makeClue(hot);
       ctx.sendMove({ t: "observeResult", observer: 1 - ctx.mySeat, target: target.id, hot, masked, clue });
-      addLog(`Đối thủ vừa quan sát ${target.name}.`);
+      addLog(ctx.t(`Đối thủ vừa quan sát ${target.name}.`, `The opponent just observed ${target.name}.`));
       endTurn();
     }
 
@@ -299,9 +315,9 @@
       awaiting = false;
       const target = getSuspect(move.target);
       if (!target) return;
-      note(ctx.mySeat, target.id, move.hot ? 2 : 0, `${target.name}: ${move.clue}.`);
-      if (move.masked) addLog(`${target.name} làm nhiễu quan sát, cần hồ sơ hoặc theo dõi thêm.`);
-      else if (!move.hot) addLog(`${target.name} chưa có dấu hiệu nguy hiểm rõ ràng.`);
+      note(ctx.mySeat, target.id, move.hot ? 2 : 0, ctx.t(`${target.name}: ${move.clue}.`, `${target.name}: ${tr(move.clue)}.`));
+      if (move.masked) addLog(ctx.t(`${target.name} làm nhiễu quan sát, cần hồ sơ hoặc theo dõi thêm.`, `${target.name} scrambled the observation; you need a dossier or more tailing.`));
+      else if (!move.hot) addLog(ctx.t(`${target.name} chưa có dấu hiệu nguy hiểm rõ ràng.`, `${target.name} shows no clear sign of danger yet.`));
       ctx.sound(move.hot ? "capture" : "select");
       endTurn();
     }
@@ -314,7 +330,7 @@
       if (!fromRemote) {
         awaiting = true;
         ctx.sendMove({ t: "profile", target: target.id });
-        addLog(`Bạn lục hồ sơ của ${target.name}, chờ đối thủ đối chiếu bí mật...`);
+        addLog(ctx.t(`Bạn lục hồ sơ của ${target.name}, chờ đối thủ đối chiếu bí mật...`, `You dig into ${target.name}'s dossier, waiting for the opponent to cross-check...`));
         render();
         updateStatus();
         return;
@@ -336,7 +352,7 @@
         alibi: target.alibi,
         route: target.route.slice(-4),
       });
-      addLog(`Đối thủ vừa lục hồ sơ ${target.name}.`);
+      addLog(ctx.t(`Đối thủ vừa lục hồ sơ ${target.name}.`, `The opponent just searched ${target.name}'s dossier.`));
       endTurn();
     }
 
@@ -353,7 +369,7 @@
         route: Array.isArray(move.route) ? move.route : target.route.slice(-4),
         masked: !!move.masked,
       };
-      note(ctx.mySeat, target.id, move.hot ? 2 : move.masked ? 0 : 1, `${target.name}: ${move.clue}.`);
+      note(ctx.mySeat, target.id, move.hot ? 2 : move.masked ? 0 : 1, ctx.t(`${target.name}: ${move.clue}.`, `${target.name}: ${tr(move.clue)}.`));
       ctx.sound(move.hot ? "capture" : "select");
       endTurn();
     }
@@ -364,7 +380,7 @@
       if (!spendFocus(turn, actionCost("decoy"))) return;
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "decoy", id: s.id });
       s.decoy = Math.max(s.decoy, 2);
-      addLog(`P${turn + 1} dựng mồi nhử quanh ${s.name}, quan sát lên người này sẽ bị nhiễu.`);
+      addLog(ctx.t(`P${turn + 1} dựng mồi nhử quanh ${s.name}, quan sát lên người này sẽ bị nhiễu.`, `P${turn + 1} set decoys around ${s.name}; observing them will be scrambled.`));
       ctx.sound("select");
       endTurn();
     }
@@ -376,7 +392,7 @@
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "disguise", id: s.id });
       s.disguise = Math.max(s.disguise, 2);
       s.revealed = false;
-      addLog(`P${turn + 1} cho ${s.name} thay vỏ bọc, hồ sơ và quan sát tạm thời kém chính xác.`);
+      addLog(ctx.t(`P${turn + 1} cho ${s.name} thay vỏ bọc, hồ sơ và quan sát tạm thời kém chính xác.`, `P${turn + 1} had ${s.name} change cover; dossier and observation are temporarily less accurate.`));
       ctx.sound("select");
       endTurn();
     }
@@ -387,7 +403,7 @@
       if (!fromRemote) {
         awaiting = true;
         ctx.sendMove({ t: "accuse", target: target.id });
-        addLog(`Bạn tố cáo ${target.name}. Đang chờ đối thủ xác nhận danh tính.`);
+        addLog(ctx.t(`Bạn tố cáo ${target.name}. Đang chờ đối thủ xác nhận danh tính.`, `You accuse ${target.name}. Waiting for the opponent to confirm identity.`));
         render();
         updateStatus();
         return;
@@ -399,14 +415,14 @@
       if (saved) dossiers[accuser] = 0;
       ctx.sendMove({ t: "accuseResult", accuser, target: target.id, correct, saved });
       if (saved) {
-        addLog(`P${accuser + 1} tố cáo sai ${target.name}, nhưng hồ sơ dự phòng giúp thoát thua ngay.`);
+        addLog(ctx.t(`P${accuser + 1} tố cáo sai ${target.name}, nhưng hồ sơ dự phòng giúp thoát thua ngay.`, `P${accuser + 1} wrongly accused ${target.name}, but a backup dossier averted an instant loss.`));
         ctx.sound("select");
         endTurn();
         return;
       }
       finish(correct ? 1 - ctx.mySeat : ctx.mySeat, correct
-        ? `${target.name} đúng là sát thủ.`
-        : `Tố cáo sai ${target.name}, sát thủ thật thoát thân.`);
+        ? ctx.t(`${target.name} đúng là sát thủ.`, `${target.name} was indeed the assassin.`)
+        : ctx.t(`Tố cáo sai ${target.name}, sát thủ thật thoát thân.`, `Wrong accusation of ${target.name}; the real assassin escaped.`));
     }
 
     function doAccuseResult(move) {
@@ -415,7 +431,7 @@
         const accuser = typeof move.accuser === "number" ? move.accuser : ctx.mySeat;
         dossiers[accuser] = 0;
         const target = getSuspect(move.target);
-        addLog(`Tố cáo sai ${target?.name || "mục tiêu"}, nhưng bộ hồ sơ đã chặn thua ngay.`);
+        addLog(ctx.t(`Tố cáo sai ${target?.name || "mục tiêu"}, nhưng bộ hồ sơ đã chặn thua ngay.`, `Wrong accusation of ${target?.name || "the target"}, but the dossier blocked an instant loss.`));
         ctx.sound("select");
         endTurn();
         return;
@@ -423,8 +439,8 @@
       const winner = move.correct ? ctx.mySeat : 1 - ctx.mySeat;
       const target = getSuspect(move.target);
       finish(winner, move.correct
-        ? `${target?.name || "mục tiêu"} đúng là sát thủ.`
-        : `Tố cáo sai ${target?.name || "mục tiêu"}, đối thủ thắng.`);
+        ? ctx.t(`${target?.name || "mục tiêu"} đúng là sát thủ.`, `${target?.name || "The target"} was indeed the assassin.`)
+        : ctx.t(`Tố cáo sai ${target?.name || "mục tiêu"}, đối thủ thắng.`, `Wrong accusation of ${target?.name || "the target"}; the opponent wins.`));
     }
 
     function doKill(move, fromRemote) {
@@ -437,7 +453,7 @@
         if (!isMyAssassin(killer.id)) return;
         awaiting = true;
         ctx.sendMove({ t: "kill", killer: killer.id, target: target.id });
-        addLog(`Bạn ra lệnh ám sát ${target.name}.`);
+        addLog(ctx.t(`Bạn ra lệnh ám sát ${target.name}.`, `You order the assassination of ${target.name}.`));
         render();
         updateStatus();
         return;
@@ -446,16 +462,16 @@
       const correct = isMyAssassin(target.id);
       ctx.sendMove({ t: "killResult", attacker: 1 - ctx.mySeat, killer: killer.id, target: target.id, correct });
       finish(correct ? 1 - ctx.mySeat : ctx.mySeat, correct
-        ? `Sát thủ đã hạ đúng sát thủ đối phương.`
-        : `Ám sát nhầm dân thường, kẻ ra tay bị lộ.`);
+        ? ctx.t(`Sát thủ đã hạ đúng sát thủ đối phương.`, `The assassin took down the enemy assassin.`)
+        : ctx.t(`Ám sát nhầm dân thường, kẻ ra tay bị lộ.`, `Killed a civilian by mistake; the culprit is exposed.`));
     }
 
     function doKillResult(move) {
       awaiting = false;
       const winner = move.correct ? ctx.mySeat : 1 - ctx.mySeat;
       finish(winner, move.correct
-        ? "Sát thủ của bạn đã hạ đúng mục tiêu."
-        : "Ám sát nhầm, sát thủ của bạn bị lộ.");
+        ? ctx.t("Sát thủ của bạn đã hạ đúng mục tiêu.", "Your assassin hit the right target.")
+        : ctx.t("Ám sát nhầm, sát thủ của bạn bị lộ.", "Wrong kill; your assassin is exposed."));
     }
 
     function triggerTrap(s) {
@@ -463,8 +479,8 @@
       if (!trap) return null;
       traps.splice(traps.indexOf(trap), 1);
       s.stun = Math.max(s.stun, 1);
-      note(trap.owner, s.id, 1, trap.owner === ctx.mySeat ? `Bẫy bắt được ${s.name} ở ${spot(s.spot).name}.` : "");
-      addLog(`${s.name} kích hoạt bẫy ở ${spot(s.spot).name} và bị kẹt 1 lượt.`);
+      note(trap.owner, s.id, 1, trap.owner === ctx.mySeat ? ctx.t(`Bẫy bắt được ${s.name} ở ${spot(s.spot).name}.`, `A trap caught ${s.name} in ${spotName(s.spot)}.`) : "");
+      addLog(ctx.t(`${s.name} kích hoạt bẫy ở ${spot(s.spot).name} và bị kẹt 1 lượt.`, `${s.name} triggered a trap in ${spotName(s.spot)} and is stuck for 1 turn.`));
       return s.id;
     }
 
@@ -519,7 +535,7 @@
       });
       ctx.setTurn(-1);
       ctx.incScore(winner);
-      ctx.setStatus(`🎉 Người chơi ${winner + 1} thắng - ${reason}`);
+      ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng - ${reason}`, `🎉 Player ${winner + 1} wins — ${reason}`));
       render();
     }
 
@@ -613,21 +629,21 @@
       const own = getSuspect(myAssassinId);
       hud.innerHTML = `
         <div class="ha-panel p1 ${turn === 0 && !over ? "active" : ""}">
-          <span>🔴 Người chơi 1</span>
-          <b>${aliveCount(0)} nhân vật</b>
-          <small>⚡ ${focus[0]}/${MAX_FOCUS} · 📂 ${dossiers[0]}/${DOSSIER_GOAL} hồ sơ</small>
-          <small>${ctx.mySeat === 0 ? `👑 Sát thủ của bạn: ${own?.name || "?"}` : "Danh tính sát thủ bị ẩn"}</small>
+          <span>${ctx.t("🔴 Người chơi 1", "🔴 Player 1")}</span>
+          <b>${ctx.t(`${aliveCount(0)} nhân vật`, `${aliveCount(0)} figures`)}</b>
+          <small>${ctx.t(`⚡ ${focus[0]}/${MAX_FOCUS} · 📂 ${dossiers[0]}/${DOSSIER_GOAL} hồ sơ`, `⚡ ${focus[0]}/${MAX_FOCUS} · 📂 ${dossiers[0]}/${DOSSIER_GOAL} dossiers`)}</small>
+          <small>${ctx.mySeat === 0 ? ctx.t(`👑 Sát thủ của bạn: ${own?.name || "?"}`, `👑 Your assassin: ${own?.name || "?"}`) : ctx.t("Danh tính sát thủ bị ẩn", "Assassin identity hidden")}</small>
         </div>
         <div class="ha-mid">
-          <b>${over ? "Kết thúc" : awaiting ? "Đang chờ xác nhận" : "Lượt " + (turn + 1)}</b>
-          <span>🎯 Tìm & TỐ CÁO đúng sát thủ ẩn của đối thủ để thắng. Tố cáo sai là thua!</span>
+          <b>${over ? ctx.t("Kết thúc", "Game over") : awaiting ? ctx.t("Đang chờ xác nhận", "Awaiting confirmation") : ctx.t(`Lượt ${turn + 1}`, `Turn P${turn + 1}`)}</b>
+          <span>${ctx.t("🎯 Tìm & TỐ CÁO đúng sát thủ ẩn của đối thủ để thắng. Tố cáo sai là thua!", "🎯 Find & ACCUSE the opponent's hidden assassin to win. A wrong accusation loses!")}</span>
           <small>${log[0] || ""}</small>
         </div>
         <div class="ha-panel p2 ${turn === 1 && !over ? "active" : ""}">
-          <span>🔵 Người chơi 2</span>
-          <b>${aliveCount(1)} nhân vật</b>
-          <small>⚡ ${focus[1]}/${MAX_FOCUS} · 📂 ${dossiers[1]}/${DOSSIER_GOAL} hồ sơ</small>
-          <small>${ctx.mySeat === 1 ? `👑 Sát thủ của bạn: ${own?.name || "?"}` : "Danh tính sát thủ bị ẩn"}</small>
+          <span>${ctx.t("🔵 Người chơi 2", "🔵 Player 2")}</span>
+          <b>${ctx.t(`${aliveCount(1)} nhân vật`, `${aliveCount(1)} figures`)}</b>
+          <small>${ctx.t(`⚡ ${focus[1]}/${MAX_FOCUS} · 📂 ${dossiers[1]}/${DOSSIER_GOAL} hồ sơ`, `⚡ ${focus[1]}/${MAX_FOCUS} · 📂 ${dossiers[1]}/${DOSSIER_GOAL} dossiers`)}</small>
+          <small>${ctx.mySeat === 1 ? ctx.t(`👑 Sát thủ của bạn: ${own?.name || "?"}`, `👑 Your assassin: ${own?.name || "?"}`) : ctx.t("Danh tính sát thủ bị ẩn", "Assassin identity hidden")}</small>
         </div>
       `;
     }
@@ -638,12 +654,12 @@
 
     function renderToolbar() {
       const buttons = [
-        ["move", "🚶", "Di chuyển", "chọn người của bạn rồi tới địa điểm kề"],
-        ["observe", "🔍", "Điều tra", "đứng gần mục tiêu để lấy manh mối"],
-        ["profile", "📂", "Lục hồ sơ", "thêm thông tin + tích hồ sơ cứu"],
-        ["trap", "📹", "Gài bẫy", "camera ẩn ở một địa điểm"],
-        ["disguise", "🎭", "Ngụy trang", "làm mờ manh mối người của bạn"],
-        ["accuse", "⚖️", "Tố cáo", "đúng thắng — sai thua"],
+        ["move", "🚶", ctx.t("Di chuyển", "Move"), ctx.t("chọn người của bạn rồi tới địa điểm kề", "pick your figure then an adjacent spot")],
+        ["observe", "🔍", ctx.t("Điều tra", "Observe"), ctx.t("đứng gần mục tiêu để lấy manh mối", "stand near a target for clues")],
+        ["profile", "📂", ctx.t("Lục hồ sơ", "Dossier"), ctx.t("thêm thông tin + tích hồ sơ cứu", "more info + build a safety dossier")],
+        ["trap", "📹", ctx.t("Gài bẫy", "Set trap"), ctx.t("camera ẩn ở một địa điểm", "hidden camera at a spot")],
+        ["disguise", "🎭", ctx.t("Ngụy trang", "Disguise"), ctx.t("làm mờ manh mối người của bạn", "blur clues on your figure")],
+        ["accuse", "⚖️", ctx.t("Tố cáo", "Accuse"), ctx.t("đúng thắng — sai thua", "right wins — wrong loses")],
       ];
       toolbar.innerHTML = buttons.map(([id, icon, label, hint]) => {
         const cost = actionCost(id);
@@ -666,43 +682,43 @@
         .filter((s) => s.owner !== ctx.mySeat)
         .map((s) => {
           const prof = profiles[ctx.mySeat][s.id];
-          const route = prof?.route?.map((id) => spot(Number(id)).name).join(" > ");
+          const route = prof?.route?.map((id) => spotName(Number(id))).join(" > ");
           return `<span>
             <b>${s.name}</b>
-            <small>${myNotes[s.id] || 0} nghi vấn · ${spot(s.spot).name}</small>
-            ${prof ? `<small>${prof.cover} · ${prof.habit}</small><small>${prof.alibi}</small><small>${prof.clue}${route ? ` · tuyến ${route}` : ""}</small>` : `<small>${s.cover} · chưa có hồ sơ</small>`}
+            <small>${ctx.t(`${myNotes[s.id] || 0} nghi vấn · ${spot(s.spot).name}`, `${myNotes[s.id] || 0} marks · ${spotName(s.spot)}`)}</small>
+            ${prof ? `<small>${tr(prof.cover)} · ${tr(prof.habit)}</small><small>${tr(prof.alibi)}</small><small>${tr(prof.clue)}${route ? ctx.t(` · tuyến ${route}`, ` · route ${route}`) : ""}</small>` : `<small>${ctx.t(`${tr(s.cover)} · chưa có hồ sơ`, `${tr(s.cover)} · no dossier yet`)}</small>`}
           </span>`;
         })
         .join("");
       details.innerHTML = `
-        <div class="ha-notes"><b>Sổ nghi vấn</b><div>${rows}</div></div>
-        <div class="ha-log"><b>Diễn biến</b><div>${log.map((x) => `<span>${x}</span>`).join("")}</div></div>
+        <div class="ha-notes"><b>${ctx.t("Sổ nghi vấn", "Suspicion notebook")}</b><div>${rows}</div></div>
+        <div class="ha-log"><b>${ctx.t("Diễn biến", "Events")}</b><div>${log.map((x) => `<span>${x}</span>`).join("")}</div></div>
       `;
     }
 
     function updateStatus() {
       if (over) return;
       if (!ctx.isOnline) {
-        ctx.setStatus("Hidden Assassin chỉ chơi online để giữ bí mật danh tính sát thủ.");
+        ctx.setStatus(ctx.t("Hidden Assassin chỉ chơi online để giữ bí mật danh tính sát thủ.", "Hidden Assassin is online-only to keep the assassin's identity secret."));
         return;
       }
       if (awaiting) {
-        ctx.setStatus("Đang chờ đối thủ xác nhận thông tin bí mật...");
+        ctx.setStatus(ctx.t("Đang chờ đối thủ xác nhận thông tin bí mật...", "Waiting for the opponent to confirm secret info..."));
         return;
       }
       if (turn !== ctx.mySeat) {
-        ctx.setStatus("Đối thủ đang hành động. Hãy quan sát đường đi của họ.");
+        ctx.setStatus(ctx.t("Đối thủ đang hành động. Hãy quan sát đường đi của họ.", "The opponent is acting. Watch their movements."));
         return;
       }
       const text = {
-        move: "🚶 Chọn nhân vật của bạn (viền vàng), rồi chọn địa điểm sáng xanh kề bên để di chuyển.",
-        observe: "🔍 Chọn nghi phạm đối thủ đang ở GẦN người của bạn để lấy manh mối nóng/lạnh.",
-        profile: "📂 Chọn nghi phạm đối thủ để lục hồ sơ — thêm thông tin và tích hồ sơ cứu tố cáo sai.",
-        trap: "📹 Chọn một địa điểm để gài camera ẩn. Người đối thủ đi vào sẽ bị kẹt và lộ nghi vấn.",
-        disguise: "🎭 Chọn nhân vật của bạn để ngụy trang — làm mờ manh mối, bảo vệ sát thủ thật.",
-        accuse: "⚖️ Chọn nghi phạm bạn nghi là sát thủ để tố cáo. Đúng thì THẮNG, sai thì THUA.",
+        move: ctx.t("🚶 Chọn nhân vật của bạn (viền vàng), rồi chọn địa điểm sáng xanh kề bên để di chuyển.", "🚶 Pick your figure (gold ring), then a glowing green adjacent spot to move."),
+        observe: ctx.t("🔍 Chọn nghi phạm đối thủ đang ở GẦN người của bạn để lấy manh mối nóng/lạnh.", "🔍 Pick an enemy suspect NEAR your figure to get a hot/cold clue."),
+        profile: ctx.t("📂 Chọn nghi phạm đối thủ để lục hồ sơ — thêm thông tin và tích hồ sơ cứu tố cáo sai.", "📂 Pick an enemy suspect to search the dossier — more info and a safety dossier against wrong accusations."),
+        trap: ctx.t("📹 Chọn một địa điểm để gài camera ẩn. Người đối thủ đi vào sẽ bị kẹt và lộ nghi vấn.", "📹 Pick a spot to set a hidden camera. An enemy who enters gets stuck and gains suspicion."),
+        disguise: ctx.t("🎭 Chọn nhân vật của bạn để ngụy trang — làm mờ manh mối, bảo vệ sát thủ thật.", "🎭 Pick your figure to disguise — blur clues and protect the real assassin."),
+        accuse: ctx.t("⚖️ Chọn nghi phạm bạn nghi là sát thủ để tố cáo. Đúng thì THẮNG, sai thì THUA.", "⚖️ Pick the suspect you think is the assassin to accuse. Right WINS, wrong LOSES."),
       };
-      ctx.setStatus(text[mode] || "Đến lượt bạn.");
+      ctx.setStatus(text[mode] || ctx.t("Đến lượt bạn.", "Your turn."));
     }
 
     function draw() {
