@@ -955,6 +955,17 @@
     buildLobbyGameSelect();
   }
 
+  // Cập nhật lại danh sách "Chơi gần đây" + "Yêu thích" từ localStorage
+  // (gọi khi thả tim hoặc khi quay về menu sau khi chơi) để khỏi phải reload trang.
+  function refreshDynamicCategories() {
+    if (!menuCategories.length) return;
+    const byId = new Map(GameRegistry.games.map((g) => [g.id, g]));
+    const rec = menuCategories.find((c) => c.id === "recent");
+    if (rec) rec.games = getRecent().map((id) => byId.get(id)).filter(Boolean);
+    const fav = menuCategories.find((c) => c.id === "fav");
+    if (fav) fav.games = getFavorites().map((id) => byId.get(id)).filter(Boolean);
+  }
+
   function buildCatSidebar() {
     el.catSidebar.innerHTML = "";
     menuCategories.forEach((cat) => {
@@ -1102,8 +1113,9 @@
       e.stopPropagation();
       toggleFav(g.id);
       fav.classList.toggle("on");
+      refreshDynamicCategories();
       buildCatSidebar();
-      if (currentCategory === "fav") renderCategory("fav");
+      if (currentCategory === "fav" || currentCategory === "recent") renderCategory(currentCategory);
     });
     card.addEventListener("click", () => openDetail(g));
     card.addEventListener("keydown", (e) => {
@@ -1669,6 +1681,11 @@
 
   // ---- Điều hướng màn hình ----
   function show(viewId) {
+    if (viewId === "menu" && menuCategories.length) {
+      refreshDynamicCategories();
+      buildCatSidebar();
+      renderCategory(currentCategory);
+    }
     ["menu", "profileView", "detailView", "modeView", "lobbyView", "gameView"].forEach((id) => {
       el[id].classList.toggle("hidden", id !== viewId);
     });
