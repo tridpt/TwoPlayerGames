@@ -1444,11 +1444,25 @@
 
   // ====================== Chat (chỉ online) ======================
   const QUICK_MSGS = ["Chào! 👋", "Nước hay! 👍", "Gắt thế 😅", "Ván nữa nhé!", "GG 🎉"];
+  const EMOTES = ["😀", "😎", "😭", "😮", "😡", "👏", "🔥", "🎉", "🤝", "🤔"];
 
   function buildQuickButtons() {
     el.chatQuick.innerHTML = "";
+    const emoteRow = document.createElement("div");
+    emoteRow.className = "chat-emotes";
+    EMOTES.forEach((e) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chat-emote-btn";
+      b.textContent = e;
+      b.setAttribute("aria-label", "Gửi emote " + e);
+      b.addEventListener("click", () => sendChat(e));
+      emoteRow.appendChild(b);
+    });
+    el.chatQuick.appendChild(emoteRow);
     QUICK_MSGS.forEach((text) => {
       const b = document.createElement("button");
+      b.type = "button";
       b.className = "chat-quick-btn";
       b.textContent = text;
       b.addEventListener("click", () => sendChat(text));
