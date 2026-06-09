@@ -279,6 +279,16 @@ wss.on("connection", (ws) => {
         break;
       }
 
+      case "react": {
+        if (!rateLimit(ws, "react", 12, 8_000)) return;
+        const room = roomFor(ws);
+        if (!room) return;
+        const emoji = String(msg.emoji || "").slice(0, 8);
+        if (!emoji) return;
+        send(otherPlayer(room, ws), "react", { emoji });
+        break;
+      }
+
       case "leave": {
         leaveRoom(ws);
         ws.roomCode = null;

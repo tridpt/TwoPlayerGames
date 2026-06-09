@@ -1789,6 +1789,10 @@
     }
   });
 
+  Net.on("react", (m) => {
+    if (m && m.emoji) floatReaction(m.emoji);
+  });
+
   // ====================== Chat (chỉ online) ======================
   const QUICK_MSGS = ["Chào! 👋", "Nước hay! 👍", "Gắt thế 😅", "Ván nữa nhé!", "GG 🎉"];
   const EMOTES = ["😀", "😎", "😭", "😮", "😡", "👏", "🔥", "🎉", "🤝", "🤔"];
@@ -1802,8 +1806,8 @@
       b.type = "button";
       b.className = "chat-emote-btn";
       b.textContent = e;
-      b.setAttribute("aria-label", "Gửi emote " + e);
-      b.addEventListener("click", () => sendChat(e));
+      b.setAttribute("aria-label", "Gửi cảm xúc " + e);
+      b.addEventListener("click", () => sendReaction(e));
       emoteRow.appendChild(b);
     });
     el.chatQuick.appendChild(emoteRow);
@@ -1843,6 +1847,24 @@
     if (!text || !online) return;
     Net.send("chat", { text });
     addChatMessage(text, "me");
+  }
+
+  // ---- Reaction nổi (emoji bay thoáng qua trên màn, chỉ online) ----
+  function sendReaction(emoji) {
+    if (!online || !emoji) return;
+    Net.send("react", { emoji });
+    floatReaction(emoji);            // người gửi cũng thấy
+  }
+
+  function floatReaction(emoji) {
+    const span = document.createElement("span");
+    span.className = "reaction-float";
+    span.textContent = String(emoji).slice(0, 8);
+    span.setAttribute("aria-hidden", "true");
+    // lệch ngang ngẫu nhiên cho sinh động khi gửi liên tiếp
+    span.style.left = (50 + (Math.random() * 24 - 12)) + "%";
+    document.body.appendChild(span);
+    setTimeout(() => span.remove(), 1700);
   }
 
   el.chatForm.addEventListener("submit", (e) => {

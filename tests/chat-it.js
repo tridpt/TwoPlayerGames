@@ -67,6 +67,16 @@ function log(ok, msg) { console.log((ok ? "\u2714 " : "\u2718 ") + msg); if (!ok
     await new Promise((r) => setTimeout(r, 200));
     log(!cGotChat, "nguoi ngoai phong khong nhan duoc chat");
 
+    // reaction relay: A gửi react -> B nhận đúng emoji, người ngoài không nhận
+    let cGotReact = false;
+    c.on("message", (raw) => { try { if (JSON.parse(raw).type === "react") cGotReact = true; } catch {} });
+    const bReact = next(b, "react");
+    a.send(JSON.stringify({ type: "react", emoji: "🔥" }));
+    const react = await bReact;
+    log(react.emoji === "🔥", "reaction tu A duoc relay sang B dung emoji");
+    await new Promise((r) => setTimeout(r, 150));
+    log(!cGotReact, "nguoi ngoai phong khong nhan duoc reaction");
+
     [a, b, c].forEach((w) => w.close());
     console.log(process.exitCode ? "FAIL" : "ALL PASS");
   } catch (e) {
