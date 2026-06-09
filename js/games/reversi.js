@@ -31,10 +31,10 @@
     hud.className = "rv-hud";
     const sideP1 = document.createElement("div");
     sideP1.className = "rv-side p1";
-    sideP1.innerHTML = '<span class="rv-chip p1"></span><span class="rv-count" id="rvc1">2</span><span class="rv-name">Đen</span>';
+    sideP1.innerHTML = '<span class="rv-chip p1"></span><span class="rv-count" id="rvc1">2</span><span class="rv-name">' + ctx.t("Đen", "Black") + '</span>';
     const sideP2 = document.createElement("div");
     sideP2.className = "rv-side p2";
-    sideP2.innerHTML = '<span class="rv-name">Trắng</span><span class="rv-count" id="rvc2">2</span><span class="rv-chip p2"></span>';
+    sideP2.innerHTML = '<span class="rv-name">' + ctx.t("Trắng", "White") + '</span><span class="rv-count" id="rvc2">2</span><span class="rv-chip p2"></span>';
     const turnBadge = document.createElement("div");
     turnBadge.className = "rv-turnbadge";
     hud.appendChild(sideP1);

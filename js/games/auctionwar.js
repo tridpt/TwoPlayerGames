@@ -69,6 +69,60 @@
     const ROUNDS = options.rounds || 10;
     const START_CASH = options.cash || 140;
 
+    // bản dịch dữ liệu/flavor (hằng module-level) — tra cứu VN→EN
+    const TYPE_EN = { land: "Land", resource: "Resource", relic: "Relic", contract: "Contract", intel: "Intel" };
+    const FLAVOR_EN = {
+      "Bến cảng cũ": "Old harbor", "Khu phố đêm": "Night district", "Đảo san hô": "Coral island", "Trang trại năng lượng": "Energy farm", "Kho lạnh ven sông": "Riverside cold store",
+      "Mỏ bạc lộ thiên": "Open silver mine", "Kho gia vị": "Spice warehouse", "Giếng dầu nhỏ": "Small oil well", "Xưởng gỗ đỏ": "Redwood mill", "Kho quặng lạ": "Strange ore stock",
+      "Vương miện nứt": "Cracked crown", "Đồng hồ thiên văn": "Astronomical clock", "Tranh mất dấu": "Lost painting", "Ngọc ấn hoàng gia": "Royal jade seal", "Bản đồ kho báu": "Treasure map",
+      "Hợp đồng vận tải": "Shipping contract", "Giấy phép khai thác": "Mining license", "Độc quyền chợ đêm": "Night market monopoly", "Đơn hàng quân nhu": "Military supply order", "Bảo hiểm thương thuyền": "Merchant fleet insurance",
+      "Sổ nợ quý tộc": "Noble debt ledger", "Tin đồn sáp nhập": "Merger rumor", "Hồ sơ mật": "Secret dossier", "Danh sách khách VIP": "VIP guest list", "Mật báo ngân hàng": "Bank tip-off",
+      "Đất tốt để gom bộ, giá dễ bị đẩy cao.": "Good land for sets; price easily bid up.",
+      "Biên độ lớn, lời nhiều hoặc mua hớ rất đau.": "Wide swing; big profit or painful overpay.",
+      "Giá trị ổn nếu bạn đang thiếu Đất.": "Solid value if you're short on Land.",
+      "Món an toàn, ít biến động.": "A safe pick, low volatility.",
+      "Rẻ nhưng có thể thành món ghép bộ tốt.": "Cheap but can become a good set piece.",
+      "Tài nguyên ghép tốt với Hợp đồng.": "Resource that pairs well with Contracts.",
+      "Dễ bị đánh giá sai nếu chỉ nhìn khoảng giá.": "Easy to misjudge from the range alone.",
+      "Món đắt, hợp để dụ đối thủ tiêu tiền.": "Pricey, good to bait the opponent into spending.",
+      "Không hào nhoáng nhưng khó mua hớ nặng.": "Not flashy but hard to badly overpay.",
+      "Rủi ro cao, giá thật có thể lệch mạnh.": "High risk; true value can swing hard.",
+      "Đồ hiếm càng nhiều càng được cộng bonus.": "The more relics, the bigger the bonus.",
+      "Món hiếm có giá sàn khá tốt.": "A relic with a decent price floor.",
+      "Có thể là kiệt tác hoặc chỉ là bản sao.": "Could be a masterpiece or just a copy.",
+      "Giá cao, phù hợp khi còn nhiều tiền mặt.": "High price, good when you have plenty of cash.",
+      "Món bluff mạnh vì khoảng giá rộng.": "A strong bluff piece due to its wide range.",
+      "Ghép với Tài nguyên để ăn bonus cuối ván.": "Pair with Resources for an end-game bonus.",
+      "Đắt hơn nhưng dễ tạo combo.": "Pricier but easy to combo.",
+      "Có thể kéo điểm cuối ván nếu trả đúng giá.": "Can boost the end-game score if priced right.",
+      "Món ổn định để giữ nhịp điểm.": "A stable pick to keep your score pace.",
+      "Không lớn nhưng ít rủi ro.": "Not big but low risk.",
+      "Tin tức giúp ăn bonus đa dạng cuối ván.": "Intel helps with diverse end-game bonuses.",
+      "Món cực khó định giá, hợp để bẫy giá.": "Very hard to value; good for price traps.",
+      "Nếu gom đủ loại tài sản, Tin tức rất có giá.": "With all asset types, Intel is very valuable.",
+      "Vừa có điểm, vừa hỗ trợ bonus đa dạng.": "Scores points and supports diverse bonuses.",
+      "Món cuối ván dễ tạo cú lật điểm.": "An end-game piece that can flip the score.",
+      "🔥 Một tay buôn lớn vừa lùng mua món y hệt với giá hời.": "🔥 A big dealer just snapped up an identical item for a steal.",
+      "✨ Tình trạng gần như hoàn hảo, giấy tờ gốc còn đủ.": "✨ Near-perfect condition, original papers intact.",
+      "👑 Tương truyền món này từng thuộc về một gia tộc quyền quý.": "👑 Said to have belonged to a noble family.",
+      "📈 Giá loại này đang lên từng ngày trên chợ đen.": "📈 This type is rising daily on the black market.",
+      "💯 Chuyên gia thẩm định gật gù: 'hàng thật, hàng tốt'.": "💯 The appraiser nods: 'genuine and good'.",
+      "🏆 Vừa có người trả hụt món tương tự ở phiên trước.": "🏆 Someone just missed out on a similar item last round.",
+      "🩹 Có vết hư hỏng kín đáo mà người bán cố giấu.": "🩹 A hidden flaw the seller is trying to conceal.",
+      "🕳️ Món này đã ế nhiều phiên, chẳng ai mặn mà.": "🕳️ Unsold for many rounds; nobody's keen.",
+      "🎭 Vài chuyên gia nghi đây chỉ là bản sao khéo léo.": "🎭 Some experts suspect it's a clever copy.",
+      "📉 Giá loại này vừa rớt mạnh sau một vụ bê bối.": "📉 This type just crashed after a scandal.",
+      "⚠️ Chủ cũ vội vã tống đi với giá rẻ — có gì đó không ổn.": "⚠️ The owner is dumping it cheap — something's off.",
+      "🐀 Nghe đồn món này 'có dớp', qua tay ai cũng lỗ.": "🐀 Rumor says it's 'cursed'; everyone who owns it loses.",
+      "🤷 Thị trường còn lưỡng lự, kẻ khen người chê.": "🤷 The market is undecided, mixed opinions.",
+      "📊 Tình trạng tạm ổn, không có gì quá nổi bật.": "📊 Condition is okay, nothing outstanding.",
+      "🌫️ Thông tin về món này khá mập mờ.": "🌫️ Info on this item is rather vague.",
+      "⚖️ Giá trị có thể nhỉnh hơn hoặc kém chút so với ước tính.": "⚖️ Value may be slightly above or below the estimate.",
+      "🔍 Cần xem tận nơi mới rõ, nhìn xa thì khó nói.": "🔍 Need a close look; hard to tell from afar.",
+    };
+    const tr = (s) => ctx.t(s, FLAVOR_EN[s] || s);
+    const typeName = (t) => ctx.t(TYPE_INFO[t].name, TYPE_EN[t] || TYPE_INFO[t].name);
+
     const deck = buildDeck(ctx.rng).slice(0, ROUNDS);
     let round = 0;
     let cash = [START_CASH, START_CASH];
@@ -195,7 +249,7 @@
       if (a === 0 && b === 0) {
         result = {
           kind: "nosale",
-          text: `${item.name} bị bỏ qua. Không ai mất tiền.`,
+          text: ctx.t(`${item.name} bị bỏ qua. Không ai mất tiền.`, `${tr(item.name)} was passed. No one paid.`),
         };
       } else if (a === b) {
         const fee0 = Math.min(cash[0], Math.max(2, Math.ceil(a * 0.1)));
@@ -204,7 +258,7 @@
         cash[1] -= fee1;
         result = {
           kind: "tie",
-          text: `Hai bên cùng trả ${a}. Phiên đấu giá hỏng, P1 mất ${fee0} phí, P2 mất ${fee1} phí.`,
+          text: ctx.t(`Hai bên cùng trả ${a}. Phiên đấu giá hỏng, P1 mất ${fee0} phí, P2 mất ${fee1} phí.`, `Both bid ${a}. Auction void; P1 loses ${fee0} fee, P2 loses ${fee1} fee.`),
         };
       } else {
         const winner = a > b ? 0 : 1;
@@ -217,7 +271,7 @@
           winner,
           price,
           profit,
-          text: `Người chơi ${winner + 1} mua ${item.name} với ${price}. Giá thật ${item.trueValue} (${profit >= 0 ? "lời" : "hớ"} ${Math.abs(profit)}).`,
+          text: ctx.t(`Người chơi ${winner + 1} mua ${item.name} với ${price}. Giá thật ${item.trueValue} (${profit >= 0 ? "lời" : "hớ"} ${Math.abs(profit)}).`, `Player ${winner + 1} bought ${tr(item.name)} for ${price}. True value ${item.trueValue} (${profit >= 0 ? "profit" : "overpaid"} ${Math.abs(profit)}).`),
         };
       }
 
@@ -254,12 +308,12 @@
       render();
       if (score[0].total > score[1].total) {
         ctx.incScore(0);
-        ctx.setStatus(`🎉 Người chơi 1 thắng Auction War: ${score[0].total} - ${score[1].total}!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi 1 thắng Auction War: ${score[0].total} - ${score[1].total}!`, `🎉 Player 1 wins Auction War: ${score[0].total} - ${score[1].total}!`));
       } else if (score[1].total > score[0].total) {
         ctx.incScore(1);
-        ctx.setStatus(`🎉 Người chơi 2 thắng Auction War: ${score[1].total} - ${score[0].total}!`);
+        ctx.setStatus(ctx.t(`🎉 Người chơi 2 thắng Auction War: ${score[1].total} - ${score[0].total}!`, `🎉 Player 2 wins Auction War: ${score[1].total} - ${score[0].total}!`));
       } else {
-        ctx.setStatus(`🤝 Auction War hòa ${score[0].total} - ${score[1].total}.`);
+        ctx.setStatus(ctx.t(`🤝 Auction War hòa ${score[0].total} - ${score[1].total}.`, `🤝 Auction War draw ${score[0].total} - ${score[1].total}.`));
       }
     }
 
@@ -303,12 +357,12 @@
       if (ctx.isOnline) {
         if (bids[ctx.mySeat] === null) {
           const oppReady = bids[1 - ctx.mySeat] !== null;
-          ctx.setStatus(oppReady ? "Đối thủ đã khóa giá. Đến lượt bạn chọn giá thầu." : "Chọn giá thầu kín cho món hiện tại.");
+          ctx.setStatus(oppReady ? ctx.t("Đối thủ đã khóa giá. Đến lượt bạn chọn giá thầu.", "Opponent locked their bid. Your turn to bid.") : ctx.t("Chọn giá thầu kín cho món hiện tại.", "Choose a secret bid for the current item."));
         } else {
-          ctx.setStatus("Bạn đã khóa giá. Đang chờ đối thủ.");
+          ctx.setStatus(ctx.t("Bạn đã khóa giá. Đang chờ đối thủ.", "You locked your bid. Waiting for the opponent."));
         }
       } else {
-        ctx.setStatus(`Người chơi ${seat + 1} chọn giá thầu kín. Người chơi còn lại không nên nhìn màn hình.`);
+        ctx.setStatus(ctx.t(`Người chơi ${seat + 1} chọn giá thầu kín. Người chơi còn lại không nên nhìn màn hình.`, `Player ${seat + 1} picks a secret bid. The other player shouldn't look at the screen.`));
       }
     }
 
@@ -324,9 +378,9 @@
       const score = [scoreBreakdown(0), scoreBreakdown(1)];
       topEl.innerHTML = [0, 1].map((p) => `
         <div class="aw-player aw-p${p + 1} ${activeBidder() === p && phase === "bidding" ? "active" : ""}">
-          <span>Người chơi ${p + 1}</span>
-          <b>${score[p].total} điểm</b>
-          <small>${cash[p]} vàng · ${score[p].asset} tài sản · ${score[p].bonus} bonus</small>
+          <span>${ctx.t(`Người chơi ${p + 1}`, `Player ${p + 1}`)}</span>
+          <b>${ctx.t(`${score[p].total} điểm`, `${score[p].total} pts`)}</b>
+          <small>${ctx.t(`${cash[p]} vàng · ${score[p].asset} tài sản · ${score[p].bonus} bonus`, `${cash[p]} gold · ${score[p].asset} assets · ${score[p].bonus} bonus`)}</small>
         </div>
       `).join("");
     }
@@ -335,15 +389,15 @@
       const item = currentItem();
       if (!item) {
         itemEl.innerHTML = `
-          <div class="aw-round">Đã đóng sàn</div>
+          <div class="aw-round">${ctx.t("Đã đóng sàn", "Floor closed")}</div>
           <div class="aw-item-main">
             <div class="aw-item-emoji">🏛️</div>
             <div>
-              <h3>Kết thúc đấu giá</h3>
-              <p>Tất cả phiên đã chốt. So tiền, tài sản và bonus để tìm người thắng.</p>
+              <h3>${ctx.t("Kết thúc đấu giá", "Auction over")}</h3>
+              <p>${ctx.t("Tất cả phiên đã chốt. So tiền, tài sản và bonus để tìm người thắng.", "All rounds done. Compare cash, assets and bonus to find the winner.")}</p>
             </div>
           </div>
-          <div class="aw-note">Ai giữ tiền tốt, mua đúng giá và gom combo hợp lý sẽ thắng.</div>
+          <div class="aw-note">${ctx.t("Ai giữ tiền tốt, mua đúng giá và gom combo hợp lý sẽ thắng.", "Whoever manages cash, buys at fair prices and builds smart combos wins.")}</div>
         `;
         return;
       }
@@ -351,25 +405,25 @@
       const revealed = phase === "result" || phase === "done";
       itemEl.innerHTML = `
         <div class="aw-lot-head">
-          <span class="aw-round">🔨 Phiên ${round + 1}/${deck.length}</span>
-          <span class="aw-type-tag aw-tag-${item.type}">${type.emoji} ${type.name}</span>
+          <span class="aw-round">${ctx.t(`🔨 Phiên ${round + 1}/${deck.length}`, `🔨 Round ${round + 1}/${deck.length}`)}</span>
+          <span class="aw-type-tag aw-tag-${item.type}">${type.emoji} ${typeName(item.type)}</span>
         </div>
         <div class="aw-item-main">
           <div class="aw-item-emoji aw-emoji-${item.type}">${item.emoji}</div>
           <div>
-            <h3>${item.name}</h3>
-            <p class="aw-estimate">Ước tính <b>${item.low}–${item.high}</b> vàng</p>
+            <h3>${tr(item.name)}</h3>
+            <p class="aw-estimate">${ctx.t("Ước tính", "Estimate")} <b>${item.low}–${item.high}</b> ${ctx.t("vàng", "gold")}</p>
           </div>
         </div>
         <div class="aw-value ${revealed ? "revealed" : "hidden-val"}">
           ${revealed
-            ? `<span class="aw-val-label">Giá thật</span><span class="aw-val-num">${item.trueValue}</span>`
-            : `<span class="aw-val-q">?</span><span class="aw-val-hint">Giá thật đang ẩn</span>`}
+            ? `<span class="aw-val-label">${ctx.t("Giá thật", "True value")}</span><span class="aw-val-num">${item.trueValue}</span>`
+            : `<span class="aw-val-q">?</span><span class="aw-val-hint">${ctx.t("Giá thật đang ẩn", "True value hidden")}</span>`}
         </div>
-        <div class="aw-note">💡 ${item.text}</div>
-        <div class="aw-clue">📣 Tin đồn: <i>${item.clue}</i></div>
+        <div class="aw-note">💡 ${tr(item.text)}</div>
+        <div class="aw-clue">${ctx.t("📣 Tin đồn:", "📣 Rumor:")} <i>${tr(item.clue)}</i></div>
         <div class="aw-bonus-note">
-          🎁 3 Đất +12 · Tài nguyên + Hợp đồng +8 · Đồ hiếm thứ 2+ +9 · 2 Tin tức +10 · đủ 4/5 loại +14/+24
+          ${ctx.t("🎁 3 Đất +12 · Tài nguyên + Hợp đồng +8 · Đồ hiếm thứ 2+ +9 · 2 Tin tức +10 · đủ 4/5 loại +14/+24", "🎁 3 Land +12 · Resource + Contract +8 · 2nd+ Relic +9 · 2 Intel +10 · 4/5 types +14/+24")}
         </div>
       `;
     }
@@ -379,7 +433,7 @@
         const s0 = scoreBreakdown(0);
         const s1 = scoreBreakdown(1);
         panelEl.innerHTML = `
-          <h3>Kết toán</h3>
+          <h3>${ctx.t("Kết toán", "Final tally")}</h3>
           <div class="aw-final">
             ${renderFinalLine(0, s0)}
             ${renderFinalLine(1, s1)}
@@ -390,13 +444,13 @@
 
       if (phase === "result") {
         panelEl.innerHTML = `
-          <h3>Kết quả phiên</h3>
+          <h3>${ctx.t("Kết quả phiên", "Round result")}</h3>
           <div class="aw-result">${result.text}</div>
           <div class="aw-bid-reveal">
-            <span>P1 trả <b>${bids[0]}</b></span>
-            <span>P2 trả <b>${bids[1]}</b></span>
+            <span>${ctx.t("P1 trả", "P1 bid")} <b>${bids[0]}</b></span>
+            <span>${ctx.t("P2 trả", "P2 bid")} <b>${bids[1]}</b></span>
           </div>
-          <button class="btn primary" id="awNext">${round + 1 >= deck.length ? "Kết toán" : "Phiên tiếp"}</button>
+          <button class="btn primary" id="awNext">${round + 1 >= deck.length ? ctx.t("Kết toán", "Final tally") : ctx.t("Phiên tiếp", "Next round")}</button>
         `;
         panelEl.querySelector("#awNext").addEventListener("click", () => applyMove({ kind: "next" }, false));
         return;
@@ -408,20 +462,20 @@
       const item = currentItem();
       const start = Math.min(max, Math.max(0, Math.round((item.low + item.high) / 2)));
       panelEl.innerHTML = `
-        <h3>${locked ? "Đã khóa giá" : `Người chơi ${seat + 1} đặt giá`}</h3>
+        <h3>${locked ? ctx.t("Đã khóa giá", "Bid locked") : ctx.t(`Người chơi ${seat + 1} đặt giá`, `Player ${seat + 1} bids`)}</h3>
         <div class="aw-locks">
-          <span class="${bids[0] !== null ? "ready" : ""}">P1 ${bids[0] !== null ? "đã khóa" : "đang chờ"}</span>
-          <span class="${bids[1] !== null ? "ready" : ""}">P2 ${bids[1] !== null ? "đã khóa" : "đang chờ"}</span>
+          <span class="${bids[0] !== null ? "ready" : ""}">${ctx.t(`P1 ${bids[0] !== null ? "đã khóa" : "đang chờ"}`, `P1 ${bids[0] !== null ? "locked" : "waiting"}`)}</span>
+          <span class="${bids[1] !== null ? "ready" : ""}">${ctx.t(`P2 ${bids[1] !== null ? "đã khóa" : "đang chờ"}`, `P2 ${bids[1] !== null ? "locked" : "waiting"}`)}</span>
         </div>
         ${locked ? `
-          <div class="aw-wait">Giá của bạn đã được giấu. Chờ người còn lại khóa giá.</div>
+          <div class="aw-wait">${ctx.t("Giá của bạn đã được giấu. Chờ người còn lại khóa giá.", "Your bid is hidden. Waiting for the other player to lock.")}</div>
         ` : `
-          <label class="aw-bid-label" for="awBid">Giá thầu tối đa ${max} vàng</label>
+          <label class="aw-bid-label" for="awBid">${ctx.t(`Giá thầu tối đa ${max} vàng`, `Max bid ${max} gold`)}</label>
           <input class="aw-range" id="awBidRange" type="range" min="0" max="${max}" value="${start}">
           <div class="aw-bid-row">
             <input class="aw-number" id="awBid" type="number" min="0" max="${max}" value="${start}">
-            <button class="btn" id="awPass">Bỏ giá</button>
-            <button class="btn primary" id="awSubmit">Khóa giá</button>
+            <button class="btn" id="awPass">${ctx.t("Bỏ giá", "Pass")}</button>
+            <button class="btn primary" id="awSubmit">${ctx.t("Khóa giá", "Lock bid")}</button>
           </div>
           <div class="aw-quick">
             <button type="button" data-bid="0">0</button>
@@ -455,7 +509,7 @@
       return `
         <div class="aw-final-line aw-p${seat + 1}">
           <b>P${seat + 1}: ${score.total}</b>
-          <span>Tiền ${score.cash} + tài sản ${score.asset} + bonus ${score.bonus}</span>
+          <span>${ctx.t(`Tiền ${score.cash} + tài sản ${score.asset} + bonus ${score.bonus}`, `Cash ${score.cash} + assets ${score.asset} + bonus ${score.bonus}`)}</span>
         </div>
       `;
     }
@@ -467,14 +521,14 @@
         return `
           <div class="aw-portfolio aw-p${seat + 1}">
             <div class="aw-portfolio-head">
-              <b>Kho P${seat + 1}</b>
-              <span>${items.length} món · bonus ${computeBonus(items)}</span>
+              <b>${ctx.t(`Kho P${seat + 1}`, `P${seat + 1} stash`)}</b>
+              <span>${ctx.t(`${items.length} món · bonus ${computeBonus(items)}`, `${items.length} items · bonus ${computeBonus(items)}`)}</span>
             </div>
             <div class="aw-type-row">
               ${Object.entries(TYPE_INFO).map(([id, t]) => `<span><i class="aw-mini-emoji">${t.emoji}</i>${counts[id] || 0}</span>`).join("")}
             </div>
             <div class="aw-items">
-              ${items.length ? items.map(renderOwnedItem).join("") : "<em>Chưa mua món nào</em>"}
+              ${items.length ? items.map(renderOwnedItem).join("") : `<em>${ctx.t("Chưa mua món nào", "No items yet")}</em>`}
             </div>
           </div>
         `;
@@ -485,8 +539,8 @@
       const type = TYPE_INFO[item.type];
       const diff = item.trueValue - item.paid;
       return `
-        <span class="aw-owned ${diff >= 0 ? "good" : "bad"}" title="${type.name} · ${diff >= 0 ? "lời" : "hớ"} ${Math.abs(diff)}">
-          <i class="aw-mini-emoji">${item.emoji}</i>${item.name}
+        <span class="aw-owned ${diff >= 0 ? "good" : "bad"}" title="${typeName(item.type)} · ${diff >= 0 ? ctx.t("lời", "profit") : ctx.t("hớ", "overpaid")} ${Math.abs(diff)}">
+          <i class="aw-mini-emoji">${item.emoji}</i>${tr(item.name)}
           <small>${item.trueValue}/${item.paid}</small>
         </span>
       `;
@@ -494,10 +548,10 @@
 
     function renderHistory() {
       historyEl.innerHTML = `
-        <b>Lịch sử phiên</b>
+        <b>${ctx.t("Lịch sử phiên", "Round history")}</b>
         ${history.length ? history.map((h) => `
-          <span>Phiên ${h.round}: ${h.item.name} · P1 ${h.bids[0]} / P2 ${h.bids[1]}</span>
-        `).join("") : "<span>Chưa có phiên nào chốt.</span>"}
+          <span>${ctx.t(`Phiên ${h.round}: ${h.item.name} · P1 ${h.bids[0]} / P2 ${h.bids[1]}`, `Round ${h.round}: ${tr(h.item.name)} · P1 ${h.bids[0]} / P2 ${h.bids[1]}`)}</span>
+        `).join("") : `<span>${ctx.t("Chưa có phiên nào chốt.", "No rounds settled yet.")}</span>`}
       `;
     }
 

@@ -34,8 +34,13 @@
     let turn = 0;
     let selected = null;
     let over = false;
+    // bản dịch tên/mã quân (PIECES là hằng module-level)
+    const PIECE_NAME_EN = { 0: "Flag", 1: "Spy", 2: "Scout", 3: "Miner", 4: "Sergeant", 5: "Lieutenant", 6: "Captain", 7: "Major", 8: "Colonel", 9: "General", 11: "Bomb" };
+    const PIECE_SHORT_EN = { 0: "FL", 1: "SP", 2: "SC", 3: "MN", 4: "SG", 5: "LT", 6: "CP", 7: "MJ", 8: "CL", 9: "G9", 11: "BMB" };
+    const rankName = (rank) => ctx.t(PIECES[rank].name, PIECE_NAME_EN[rank] || PIECES[rank].name);
+    const rankShort = (rank) => ctx.t(PIECES[rank].short, PIECE_SHORT_EN[rank] || PIECES[rank].short);
     let lastMove = null;
-    const log = ["Mỗi bên chỉ có 2 hàng quân. Bàn rộng, khoảng trống nhiều để dò và bọc cờ."];
+    const log = [ctx.t("Mỗi bên chỉ có 2 hàng quân. Bàn rộng, khoảng trống nhiều để dò và bọc cờ.", "Each side has only 2 rows of pieces. The board is wide, with space to scout and flank.")];
 
     setupSide(0);
     setupSide(1);
@@ -211,7 +216,7 @@
         board[to] = att;
         board[from] = null;
         lastMove.landed = to;
-        addLog(`P${att.owner + 1} di chuyển ${pieceName(att)}.`);
+        addLog(ctx.t(`P${att.owner + 1} di chuyển ${pieceName(att)}.`, `P${att.owner + 1} moves ${pieceName(att)}.`));
         ctx.sound("select");
       } else {
         att.revealed = true;
@@ -223,7 +228,7 @@
           board[to] = att;
           board[from] = null;
           lastMove.landed = to;
-          addLog(`${pieceName(att)} bắt được Cờ đối thủ.`);
+          addLog(ctx.t(`${pieceName(att)} bắt được Cờ đối thủ.`, `${pieceName(att)} captured the enemy Flag.`));
           selected = null;
           render();
           return endGame(att.owner, ctx.t("Cờ đã bị bắt!", "The flag was captured!"));
@@ -233,14 +238,14 @@
           board[to] = att;
           board[from] = null;
           lastMove.landed = to;
-          addLog(`${pieceName(att)} thắng ${pieceName(def)}.`);
+          addLog(ctx.t(`${pieceName(att)} thắng ${pieceName(def)}.`, `${pieceName(att)} beats ${pieceName(def)}.`));
         } else if (result === "lose") {
           board[from] = null;
-          addLog(`${pieceName(att)} thua ${pieceName(def)}.`);
+          addLog(ctx.t(`${pieceName(att)} thua ${pieceName(def)}.`, `${pieceName(att)} loses to ${pieceName(def)}.`));
         } else {
           board[from] = null;
           board[to] = null;
-          addLog(`${pieceName(att)} và ${pieceName(def)} cùng cấp, cả hai bị loại.`);
+          addLog(ctx.t(`${pieceName(att)} và ${pieceName(def)} cùng cấp, cả hai bị loại.`, `${pieceName(att)} and ${pieceName(def)} are equal rank; both are removed.`));
         }
       }
 
@@ -256,7 +261,7 @@
     }
 
     function pieceName(p) {
-      return `${PIECES[p.rank].name} P${p.owner + 1}`;
+      return ctx.t(`${PIECES[p.rank].name} P${p.owner + 1}`, `${rankName(p.rank)} P${p.owner + 1}`);
     }
 
     function addLog(text) {
@@ -335,7 +340,7 @@
 
             const tag = document.createElement("span");
             tag.className = "st-rank";
-            tag.textContent = data.short;
+            tag.textContent = rankShort(p.rank);
             cell.appendChild(tag);
 
             if (p.revealed && !over) {
@@ -361,9 +366,9 @@
     }
 
     function powerText(rank) {
-      if (rank === 0) return "Cờ";
-      if (rank === 11) return "Bom";
-      return "Sức " + rank;
+      if (rank === 0) return ctx.t("Cờ", "Flag");
+      if (rank === 11) return ctx.t("Bom", "Bomb");
+      return ctx.t("Sức " + rank, "Rank " + rank);
     }
 
     function renderInfo() {
@@ -399,8 +404,8 @@
         <div class="st-piece-list">
           ${ranks.map((rank) => {
             const p = PIECES[rank];
-            const note = rank === 2 ? "đi xa" : rank === 3 ? "gỡ bom" : rank === 1 ? "hạ Tướng khi tấn công" : rank === 11 ? "đứng yên" : rank === 0 ? "bị bắt là thua" : `cấp ${rank}`;
-            return `<span><b>${p.icon} ${p.short}</b><small>${p.name} · ${note}</small></span>`;
+            const note = rank === 2 ? ctx.t("đi xa", "moves far") : rank === 3 ? ctx.t("gỡ bom", "defuses bombs") : rank === 1 ? ctx.t("hạ Tướng khi tấn công", "beats the General on attack") : rank === 11 ? ctx.t("đứng yên", "immobile") : rank === 0 ? ctx.t("bị bắt là thua", "lose if captured") : ctx.t(`cấp ${rank}`, `rank ${rank}`);
+            return `<span><b>${p.icon} ${rankShort(rank)}</b><small>${rankName(rank)} · ${note}</small></span>`;
           }).join("")}
         </div>
         <div class="st-log">${log.map((x) => `<span>${x}</span>`).join("")}</div>

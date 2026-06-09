@@ -52,7 +52,7 @@
     picker.appendChild(oBtn);
     const hint = document.createElement("span");
     hint.className = "oc-picker-hint";
-    hint.textContent = "(phím X / O)";
+    hint.textContent = ctx.t("(phím X / O)", "(keys X / O)");
     picker.appendChild(hint);
     root.appendChild(picker);
 

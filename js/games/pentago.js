@@ -47,7 +47,7 @@
       const group = document.createElement("div");
       group.className = "ptg-rotgroup";
       const label = document.createElement("span");
-      label.textContent = `Ô ${q + 1}`;
+      label.textContent = ctx.t(`Ô ${q + 1}`, `Quad ${q + 1}`);
       const ccw = document.createElement("button");
       ccw.className = "btn small"; ccw.textContent = "↺";
       ccw.addEventListener("click", () => onRotate(q, "ccw"));

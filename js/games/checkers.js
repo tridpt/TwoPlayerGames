@@ -196,13 +196,13 @@
       hud.innerHTML = `
         <div class="chk-side p1 ${turn === 0 && !over ? "active" : ""}">
           <span>🔴 ${ctx.t("Đỏ", "Red")}${me === 0 ? ctx.t(" (bạn)", " (you)") : ""}</span>
-          <b>${a.n} quân${a.k ? " · ♔" + a.k : ""}</b>
+          <b>${a.n} ${ctx.t("quân", "pcs")}${a.k ? " · ♔" + a.k : ""}</b>
           ${trayP(eaten[0], "p2")}
         </div>
         <div class="chk-mid">${over ? "🏁" : forced ? ctx.t("⚠️ buộc ăn", "⚠️ must capture") : "VS"}</div>
         <div class="chk-side p2 ${turn === 1 && !over ? "active" : ""}">
           <span>⚫ ${ctx.t("Đen", "Black")}${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}</span>
-          <b>${b.n} quân${b.k ? " · ♔" + b.k : ""}</b>
+          <b>${b.n} ${ctx.t("quân", "pcs")}${b.k ? " · ♔" + b.k : ""}</b>
           ${trayP(eaten[1], "p1")}
         </div>
       `;
