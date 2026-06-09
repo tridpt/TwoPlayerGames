@@ -58,7 +58,7 @@ function runSyntaxChecks() {
 
 function loadGamesFromIndex() {
   const html = fs.readFileSync(fromRoot("index.html"), "utf8");
-  const scriptTags = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((match) => match[1]);
+  const scriptTags = [...html.matchAll(/<script\b[^>]*\ssrc="([^"]+)"/g)].map((match) => match[1]);
   const gameScripts = scriptTags.filter((src) => src.startsWith("js/games/"));
   const gameFiles = fs.readdirSync(fromRoot("js", "games"))
     .filter((name) => name.endsWith(".js"))

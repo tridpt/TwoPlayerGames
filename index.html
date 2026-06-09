@@ -249,7 +249,7 @@
         <button class="btn back-btn" id="backBtn" data-i18n="exit">← Thoát</button>
         <h2 class="game-title" id="gameTitle"></h2>
         <div class="game-bar-right">
-          <button class="btn icon-btn" id="helpBtn" data-i18n-title="helpTitle" title="Hướng dẫn chơi">?</button>
+          <button class="btn icon-btn" id="helpBtn" data-i18n-title="helpTitle" title="Hướng dẫn chơi" aria-label="Hướng dẫn chơi">?</button>
           <button class="btn hidden" id="undoBtn" data-i18n="undo" data-i18n-title="undoTitle" title="Hoàn tác nước đi">↶ Hoàn tác</button>
           <button class="btn" id="restartBtn" data-i18n="restart">↻ Chơi lại</button>
         </div>
@@ -278,7 +278,7 @@
       <div class="chat-panel hidden" id="chatPanel">
         <div class="chat-header">
           <span>💬 Trò chuyện</span>
-          <button class="chat-toggle" id="chatToggle" title="Thu gọn/Mở rộng">▾</button>
+          <button class="chat-toggle" id="chatToggle" title="Thu gọn/Mở rộng" aria-label="Thu gọn hoặc mở rộng khung chat" aria-expanded="true">▾</button>
         </div>
         <div class="chat-body" id="chatBody">
           <div class="chat-messages" id="chatMessages"></div>
@@ -318,7 +318,7 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
       <div class="modal-header">
         <h3 id="helpTitle">Hướng dẫn</h3>
-        <button class="modal-close" id="helpClose" data-i18n-title="closeTitle" title="Đóng">✕</button>
+        <button class="modal-close" id="helpClose" data-i18n-title="closeTitle" title="Đóng" aria-label="Đóng">✕</button>
       </div>
       <div class="modal-body" id="helpBody"></div>
       <div class="modal-footer">
@@ -332,15 +332,15 @@
     <div class="replay-modal" role="dialog" aria-modal="true" aria-labelledby="replayTitle">
       <div class="replay-head">
         <h3 id="replayTitle" data-i18n="replayTitle">🎬 Xem lại ván</h3>
-        <button class="modal-close" id="replayClose" data-i18n-title="closeTitle" title="Đóng">✕</button>
+        <button class="modal-close" id="replayClose" data-i18n-title="closeTitle" title="Đóng" aria-label="Đóng">✕</button>
       </div>
       <div class="replay-board" id="replayBoard"></div>
       <div class="replay-status" id="replayStatus"></div>
       <div class="replay-controls">
-        <button class="btn small" id="replayStart" title="Về đầu">⏮</button>
-        <button class="btn small" id="replayPrev" title="Lùi 1 nước">◀</button>
-        <button class="btn primary" id="replayPlay" title="Phát/Dừng">▶ Phát</button>
-        <button class="btn small" id="replayNext" title="Tới 1 nước">▶|</button>
+        <button class="btn small" id="replayStart" title="Về đầu" aria-label="Về đầu ván">⏮</button>
+        <button class="btn small" id="replayPrev" title="Lùi 1 nước" aria-label="Lùi một nước">◀</button>
+        <button class="btn primary" id="replayPlay" title="Phát/Dừng" aria-label="Phát hoặc dừng xem lại">▶ Phát</button>
+        <button class="btn small" id="replayNext" title="Tới 1 nước" aria-label="Tới một nước">▶|</button>
         <span class="replay-progress" id="replayProgress">0/0</span>
       </div>
     </div>
@@ -360,62 +360,62 @@
     </div>
   </div>
 
-  <!-- registry PHẢI nạp trước các file game -->
-  <script src="js/registry.js"></script>
-  <script src="js/i18n.js"></script>
-  <script src="js/stats-util.js"></script>
-  <script src="js/games-i18n.js"></script>
-  <script src="js/sound.js"></script>
-  <script src="js/vi-dict.js"></script>
-  <script src="js/net.js"></script>
-  <script src="js/games/tictactoe.js"></script>
-  <script src="js/games/connectfour.js"></script>
-  <script src="js/games/reversi.js"></script>
-  <script src="js/games/memory.js"></script>
-  <script src="js/games/gomoku.js"></script>
-  <script src="js/games/dotsandboxes.js"></script>
-  <script src="js/games/nim.js"></script>
-  <script src="js/games/hex.js"></script>
-  <script src="js/games/mancala.js"></script>
-  <script src="js/games/orderchaos.js"></script>
-  <script src="js/games/checkers.js"></script>
-  <script src="js/games/isolation.js"></script>
-  <script src="js/games/laserchess.js"></script>
-  <script src="js/games/pathlockduel.js"></script>
-  <script src="js/games/hunterswarm.js"></script>
-  <script src="js/games/pong.js"></script>
-  <script src="js/games/poolbattle.js"></script>
-  <script src="js/games/slingshotbattle.js"></script>
-  <script src="js/games/timeloopduel.js"></script>
-  <script src="js/games/coopdefense.js"></script>
-  <script src="js/games/basedefenseduel.js"></script>
-  <script src="js/games/robotfactorywar.js"></script>
-  <script src="js/games/dungeonrival.js"></script>
-  <script src="js/games/battleship.js"></script>
-  <script src="js/games/seabattleplus.js"></script>
-  <script src="js/games/submarinehunt.js"></script>
-  <script src="js/games/hiddenassassin.js"></script>
-  <script src="js/games/trapmansion.js"></script>
-  <script src="js/games/pentago.js"></script>
-  <script src="js/games/morris.js"></script>
-  <script src="js/games/artillery.js"></script>
-  <script src="js/games/tankarena.js"></script>
-  <script src="js/games/dicebattle.js"></script>
-  <script src="js/games/territorywar.js"></script>
-  <script src="js/games/crystalconquest.js"></script>
-  <script src="js/games/minesweeper.js"></script>
-  <script src="js/games/bullscows.js"></script>
-  <script src="js/games/stratego.js"></script>
-  <script src="js/games/quoridor.js"></script>
-  <script src="js/games/auctionwar.js"></script>
-  <script src="js/games/pig.js"></script>
-  <script src="js/games/yahtzee.js"></script>
-  <script src="js/games/domino.js"></script>
-  <script src="js/games/noitu.js"></script>
-  <script src="js/games/hangman.js"></script>
-  <script src="js/games/treasure.js"></script>
-  <script src="js/games/fishingfrenzy.js"></script>
-  <script src="js/main.js"></script>
+  <!-- registry PHẢI nạp trước các file game; defer = tải song song, vẫn giữ thứ tự thực thi -->
+  <script defer src="js/registry.js"></script>
+  <script defer src="js/i18n.js"></script>
+  <script defer src="js/stats-util.js"></script>
+  <script defer src="js/games-i18n.js"></script>
+  <script defer src="js/sound.js"></script>
+  <script defer src="js/vi-dict.js"></script>
+  <script defer src="js/net.js"></script>
+  <script defer src="js/games/tictactoe.js"></script>
+  <script defer src="js/games/connectfour.js"></script>
+  <script defer src="js/games/reversi.js"></script>
+  <script defer src="js/games/memory.js"></script>
+  <script defer src="js/games/gomoku.js"></script>
+  <script defer src="js/games/dotsandboxes.js"></script>
+  <script defer src="js/games/nim.js"></script>
+  <script defer src="js/games/hex.js"></script>
+  <script defer src="js/games/mancala.js"></script>
+  <script defer src="js/games/orderchaos.js"></script>
+  <script defer src="js/games/checkers.js"></script>
+  <script defer src="js/games/isolation.js"></script>
+  <script defer src="js/games/laserchess.js"></script>
+  <script defer src="js/games/pathlockduel.js"></script>
+  <script defer src="js/games/hunterswarm.js"></script>
+  <script defer src="js/games/pong.js"></script>
+  <script defer src="js/games/poolbattle.js"></script>
+  <script defer src="js/games/slingshotbattle.js"></script>
+  <script defer src="js/games/timeloopduel.js"></script>
+  <script defer src="js/games/coopdefense.js"></script>
+  <script defer src="js/games/basedefenseduel.js"></script>
+  <script defer src="js/games/robotfactorywar.js"></script>
+  <script defer src="js/games/dungeonrival.js"></script>
+  <script defer src="js/games/battleship.js"></script>
+  <script defer src="js/games/seabattleplus.js"></script>
+  <script defer src="js/games/submarinehunt.js"></script>
+  <script defer src="js/games/hiddenassassin.js"></script>
+  <script defer src="js/games/trapmansion.js"></script>
+  <script defer src="js/games/pentago.js"></script>
+  <script defer src="js/games/morris.js"></script>
+  <script defer src="js/games/artillery.js"></script>
+  <script defer src="js/games/tankarena.js"></script>
+  <script defer src="js/games/dicebattle.js"></script>
+  <script defer src="js/games/territorywar.js"></script>
+  <script defer src="js/games/crystalconquest.js"></script>
+  <script defer src="js/games/minesweeper.js"></script>
+  <script defer src="js/games/bullscows.js"></script>
+  <script defer src="js/games/stratego.js"></script>
+  <script defer src="js/games/quoridor.js"></script>
+  <script defer src="js/games/auctionwar.js"></script>
+  <script defer src="js/games/pig.js"></script>
+  <script defer src="js/games/yahtzee.js"></script>
+  <script defer src="js/games/domino.js"></script>
+  <script defer src="js/games/noitu.js"></script>
+  <script defer src="js/games/hangman.js"></script>
+  <script defer src="js/games/treasure.js"></script>
+  <script defer src="js/games/fishingfrenzy.js"></script>
+  <script defer src="js/main.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

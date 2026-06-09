@@ -1853,7 +1853,9 @@
 
   el.chatToggle.addEventListener("click", () => {
     el.chatPanel.classList.toggle("collapsed");
-    el.chatToggle.textContent = el.chatPanel.classList.contains("collapsed") ? "▸" : "▾";
+    const collapsed = el.chatPanel.classList.contains("collapsed");
+    el.chatToggle.textContent = collapsed ? "▸" : "▾";
+    el.chatToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
     // mở lại thì xóa dấu báo tin mới
     if (!el.chatPanel.classList.contains("collapsed")) {
       el.chatPanel.classList.remove("has-unread");
@@ -1888,6 +1890,7 @@
       describeOnlineGameState("live");
       el.chatPanel.classList.remove("hidden", "collapsed");
       el.chatToggle.textContent = "▾";
+      el.chatToggle.setAttribute("aria-expanded", "true");
       if (el.chatMessages.childElementCount === 0) buildQuickButtons();
     } else {
       el.onlineBadge.classList.add("hidden");
