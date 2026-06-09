@@ -104,6 +104,22 @@ body {
 .chip-avatar { font-size: 1.3rem; line-height: 1; }
 .chip-name { font-weight: 700; font-size: 0.9rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ---------- Header gọn trên màn điện thoại nhỏ (≤480px) ----------
+   Tránh chip hồ sơ + 3 nút toggle + logo căn giữa chồng lên nhau. */
+@media (max-width: 480px) {
+  .app-header { padding-top: 62px; }
+  .sound-toggle { width: 40px; height: 40px; font-size: 1.05rem; top: 12px; right: 14px; }
+  .theme-toggle { right: 60px; }
+  .lang-toggle { right: 106px; font-size: 0.8rem; }
+  .profile-chip { top: 12px; left: 12px; padding: 6px 11px 6px 7px; }
+  .chip-name { max-width: 66px; font-size: 0.82rem; }
+  .logo { font-size: 1.45rem; }
+  .tagline { font-size: 0.82rem; }
+  /* tăng vùng chạm cho nút nhỏ trên điện thoại */
+  .fav-btn { width: 40px; height: 40px; font-size: 1.1rem; }
+  .chat-emote-btn { width: 42px; height: 42px; }
+}
+
 /* ---------- Trang hồ sơ ---------- */
 .profile-view { display: flex; flex-direction: column; gap: 18px; }
 .profile-card {

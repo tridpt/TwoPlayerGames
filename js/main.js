@@ -1864,6 +1864,7 @@
     // lệch ngang ngẫu nhiên cho sinh động khi gửi liên tiếp
     span.style.left = (50 + (Math.random() * 24 - 12)) + "%";
     document.body.appendChild(span);
+    window.Sound && Sound.play("react");
     setTimeout(() => span.remove(), 1700);
   }
 

@@ -2,7 +2,7 @@
    Sound: hiệu ứng âm thanh sinh bằng Web Audio API (không cần file)
    Dùng: Sound.play("place" | "capture" | "win" | "lose" | "draw"
                      | "error" | "select" | "rotate" | "shot" | "miss"
-                     | "explode" | "flip" | "score" | "powerup" | "drop" | "coin")
+                     | "explode" | "flip" | "score" | "powerup" | "drop" | "coin" | "react")
    ============================================================ */
 window.Sound = (function () {
   let ctxAudio = null;
@@ -97,6 +97,7 @@ window.Sound = (function () {
     powerup() { [440, 587, 740, 988].forEach((f, i) => tone(f, 0.1, "square", 0.12, i * 0.05)); },
     drop()    { tone(300, 0.05, "sine", 0.12); tone(180, 0.12, "triangle", 0.16, 0.05); noise(0.06, 0.08, 0.04, 1200); },
     coin()    { tone(988, 0.07, "square", 0.12); tone(1319, 0.1, "square", 0.12, 0.06); },
+    react()   { tone(700, 0.05, "sine", 0.12); tone(1050, 0.07, "sine", 0.1, 0.04); },
   };
 
   function play(name) {
