@@ -185,38 +185,50 @@
   const GAME_GROUPS = [
     {
       title: "Cờ & chiến thuật bàn",
+      titleKey: "grpBoard",
       icon: "♟️",
       hint: "Caro, cờ lật, kết nối, đặt tường và các game bàn cờ kinh điển.",
+      hintKey: "grpBoardHint",
       games: ["tictactoe", "gomoku", "connectfour", "reversi", "pentago", "morris", "checkers", "isolation", "laserchess", "pathlockduel", "hunterswarm", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
     },
     {
       title: "Chiến thuật trên bản đồ",
+      titleKey: "grpMap",
       icon: "🗺️",
       hint: "Đi quân trên lưới, chiếm vùng, dùng tài nguyên và kỹ năng theo lượt.",
+      hintKey: "grpMapHint",
       games: ["tankarena", "dicebattle", "territorywar", "crystalconquest"],
     },
     {
       title: "Đối kháng hành động & vật lý",
+      titleKey: "grpAction",
       icon: "⚡",
       hint: "Canh lực, bắn, kéo thả, va chạm và phản xạ.",
+      hintKey: "grpActionHint",
       games: ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery", "fishingfrenzy"],
     },
     {
       title: "Ván dài & xây dựng",
+      titleKey: "grpLong",
       icon: "🏰",
       hint: "Có tiến triển lâu hơn: thủ nhà, gửi quái, đi dungeon và lên cấp.",
+      hintKey: "grpLongHint",
       games: ["coopdefense", "basedefenseduel", "robotfactorywar", "dungeonrival"],
     },
     {
       title: "Ẩn thông tin & suy luận",
+      titleKey: "grpHidden",
       icon: "🕵️",
       hint: "Giấu vị trí, đoán tọa độ, tìm mìn, giải từ và đọc dấu hiệu.",
+      hintKey: "grpHiddenHint",
       games: ["battleship", "seabattleplus", "submarinehunt", "hiddenassassin", "trapmansion", "minesweeper", "treasure", "bullscows", "hangman", "noitu"],
     },
     {
       title: "Xúc xắc, bài & may rủi",
+      titleKey: "grpDice",
       icon: "🎲",
       hint: "Roll, ghi điểm, domino, đấu giá kín và lật cặp nhanh gọn.",
+      hintKey: "grpDiceHint",
       games: ["auctionwar", "memory", "pig", "yahtzee", "domino"],
     },
   ];
@@ -895,7 +907,7 @@
     f.dailyBest = d.best;
     f.dailyTotal = (f.dailyTotal || 0) + 1;
     saveFlags(f);
-    showToast(`✅ Hoàn thành thử thách hôm nay! Chuỗi: ${d.streak} ngày 🔥`);
+    showToast(tt("dailyDoneToast").replace("{n}", d.streak));
     window.Sound && Sound.play("win");
   }
   function renderDailyBanner() {
@@ -911,12 +923,12 @@
       `<div class="daily-left">` +
         `<div class="daily-poster">${gameAvatarHtml(game)}</div>` +
         `<div class="daily-text">` +
-          `<span class="daily-tag">⭐ Thử thách hôm nay${streak ? ` · 🔥 chuỗi ${streak} ngày` : ""}</span>` +
+          `<span class="daily-tag">${tt("dailyTag")}${streak ? ` · ${tt("dailyStreak").replace("{n}", streak)}` : ""}</span>` +
           `<b>${escapeHtml(gameName(game))}</b>` +
-          `<small>${done ? "✅ Đã hoàn thành hôm nay — quay lại vào ngày mai!" : "Chơi xong một ván để giữ chuỗi ngày."}</small>` +
+          `<small>${done ? tt("dailyDone") : tt("dailyTodo")}</small>` +
         `</div>` +
       `</div>` +
-      `<button class="btn primary daily-play" type="button">${done ? "Chơi lại" : "▶ Chơi ngay"}</button>`;
+      `<button class="btn primary daily-play" type="button">${done ? tt("playAgain") : tt("playNow")}</button>`;
     const btn = el.dailyBanner.querySelector(".daily-play");
     if (btn) btn.addEventListener("click", () => openDetail(game));
   }
@@ -1186,23 +1198,23 @@
     // Chơi gần đây + Yêu thích (đặc biệt, luôn ở đầu)
     const recentGames = getRecent().map((id) => byId.get(id)).filter(Boolean);
     menuCategories.push({
-      id: "recent", title: "Chơi gần đây", icon: "🕘", special: true,
-      hint: "Những trò chơi bạn vừa mở gần đây — bấm để chơi lại nhanh.",
+      id: "recent", title: tt("catRecent"), icon: "🕘", special: true,
+      hint: tt("catRecentHint"),
       games: recentGames,
     });
     const favGames = getFavorites().map((id) => byId.get(id)).filter(Boolean);
     menuCategories.push({
-      id: "fav", title: "Yêu thích", icon: "❤️", special: true,
-      hint: "Các trò chơi bạn đã đánh dấu yêu thích (bấm ♥ trên thẻ game để thêm).",
+      id: "fav", title: tt("catFav"), icon: "❤️", special: true,
+      hint: tt("catFavHint"),
       games: favGames,
     });
 
     // thể loại "Tất cả"
     menuCategories.push({
       id: "all",
-      title: "Tất cả trò chơi",
+      title: tt("catAll"),
       icon: "🎮",
-      hint: `Toàn bộ ${GameRegistry.games.length} trò chơi 2 người — cờ chiến thuật, đối kháng hành động, suy luận và may rủi. Chọn một thể loại bên trái để lọc.`,
+      hint: tt("catAllHint").replace("{n}", GameRegistry.games.length),
       games: GameRegistry.games.slice(),
     });
 
@@ -1210,12 +1222,12 @@
       const games = group.games.map((id) => byId.get(id)).filter(Boolean);
       if (!games.length) return;
       games.forEach((g) => rendered.add(g.id));
-      menuCategories.push({ id: "g" + i, title: group.title, icon: group.icon || "🎯", hint: group.hint, games });
+      menuCategories.push({ id: "g" + i, title: group.titleKey ? tt(group.titleKey) : group.title, icon: group.icon || "🎯", hint: group.hintKey ? tt(group.hintKey) : group.hint, games });
     });
 
     const otherGames = GameRegistry.games.filter((g) => !rendered.has(g.id));
     if (otherGames.length) {
-      menuCategories.push({ id: "other", title: "Khác", icon: "✨", hint: "Các game mới chưa gắn nhóm.", games: otherGames });
+      menuCategories.push({ id: "other", title: tt("catOther"), icon: "✨", hint: tt("catOtherHint"), games: otherGames });
     }
 
     if (!menuCategories.some((c) => c.id === currentCategory)) currentCategory = "all";
@@ -1244,7 +1256,7 @@
       btn.className = "cat-item" + (cat.id === currentCategory ? " active" : "") + (cat.special ? " cat-special" : "");
       btn.innerHTML =
         `<span class="cat-ic">${cat.icon}</span>` +
-        `<span class="cat-label"><b>${cat.title}</b><small>${cat.games.length} game</small></span>`;
+        `<span class="cat-label"><b>${cat.title}</b><small>${cat.games.length} ${tt("gamesWordShort")}</small></span>`;
       btn.addEventListener("click", () => {
         currentCategory = cat.id;
         if (el.gameSearch) el.gameSearch.value = "";
@@ -1279,16 +1291,16 @@
     else if (sortMode === "new") list = list.slice().sort((a, b) => (NEW_IDS.has(b.id) ? 1 : 0) - (NEW_IDS.has(a.id) ? 1 : 0) || a.name.localeCompare(b.name, "vi"));
 
     const countEl = document.querySelector("#catHeadCount");
-    if (countEl) countEl.textContent = `${list.length} trò chơi`;
+    if (countEl) countEl.textContent = `${list.length} ${tt("gamesWord")}`;
 
     el.gameGrid.innerHTML = "";
     if (!list.length) {
       const empty = document.createElement("div");
       empty.className = "cat-empty";
       empty.textContent = emptyKind === "fav"
-        ? "Chưa có game yêu thích. Bấm ♥ trên thẻ game để thêm vào đây."
-        : (emptyKind === "recent" ? "Bạn chưa chơi game nào gần đây."
-          : (filterOnline || filterAI ? "Không có game khớp bộ lọc. Bỏ bớt bộ lọc nhé." : "Chưa có game trong mục này."));
+        ? tt("emptyFav")
+        : (emptyKind === "recent" ? tt("emptyRecent")
+          : (filterOnline || filterAI ? tt("emptyFilter") : tt("emptyCat")));
       el.gameGrid.appendChild(empty);
       el.loadMoreBtn.classList.add("hidden");
       return;
@@ -1296,7 +1308,7 @@
     const shown = list.slice(0, shownCount);
     shown.forEach((game) => el.gameGrid.appendChild(createGameCard(game)));
     el.loadMoreBtn.classList.toggle("hidden", list.length <= shownCount);
-    el.loadMoreBtn.textContent = `Xem thêm (${list.length - shownCount})`;
+    el.loadMoreBtn.textContent = `${tt("loadMore")} (${list.length - shownCount})`;
   }
 
   // Tìm kiếm game theo tên / mô tả
@@ -1310,8 +1322,8 @@
     shownCount = PAGE_SIZE;
     currentEmptyKind = "search";
     el.catHead.innerHTML =
-      `<h2><span class="cat-head-ic">🔎</span>Kết quả tìm kiếm</h2>` +
-      `<p>Từ khóa: "<b>${escapeHtml(query.trim())}</b>" — tìm theo tên và mô tả trò chơi.</p>` +
+      `<h2><span class="cat-head-ic">🔎</span>${tt("searchResults")}</h2>` +
+      `<p>${tt("searchHintPrefix")} "<b>${escapeHtml(query.trim())}</b>" ${tt("searchHintSuffix")}</p>` +
       `<span class="cat-head-count" id="catHeadCount"></span>`;
     applyListView();
   }
