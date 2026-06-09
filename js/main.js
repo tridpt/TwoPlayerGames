@@ -666,6 +666,7 @@
   }
 
   function openProfile() {
+   try {
     const a = computeAgg();
     el.profileAvatar.textContent = getAvatar();
     el.profileName.value = loadSavedPlayerName() || "";
@@ -696,18 +697,22 @@
       ["📈", decided ? rate + "%" : "—", "Tỉ lệ thắng P1"],
       ["⭐", topName, "Chơi nhiều nhất"],
     ].map(([ic, v, lb]) => `<div class="pstat"><span class="pstat-ic">${ic}</span><b>${v}</b><small>${lb}</small></div>`).join("");
-    renderLeaderboard();
-    renderActivityChart();
+    // các widget phụ — lỗi 1 cái không được chặn việc mở trang hồ sơ
+    try { renderLeaderboard(); } catch (e) { /* ignore */ }
+    try { renderActivityChart(); } catch (e) { /* ignore */ }
     // achievements
     el.achGrid.innerHTML = ACHIEVEMENTS.map((ac) => {
       const done = ac.done(a);
       return `<div class="ach ${done ? "done" : "locked"}"><span class="ach-ic">${done ? ac.icon : "🔒"}</span><div class="ach-txt"><b>${ac.title}</b><small>${ac.desc}</small></div></div>`;
     }).join("");
-    renderHistory();
+    try { renderHistory(); } catch (e) { /* ignore */ }
     // cài đặt âm thanh
     if (el.volRange) el.volRange.value = String(Math.round(Sound.getVolume() * 100));
     if (el.sfxToggle) el.sfxToggle.checked = Sound.isEnabled();
     if (el.musicToggle) el.musicToggle.checked = Sound.isMusicOn();
+   } catch (e) {
+    /* dù có lỗi khi dựng nội dung, vẫn mở trang hồ sơ */
+   }
     show("profileView");
   }
 
@@ -2025,6 +2030,8 @@
     ["menu", "profileView", "detailView", "modeView", "lobbyView", "gameView"].forEach((id) => {
       el[id].classList.toggle("hidden", id !== viewId);
     });
+    // Cuộn lên đầu khi đổi màn để không bị kẹt ở vị trí cuộn của màn trước.
+    try { window.scrollTo({ top: 0, behavior: "auto" }); } catch (e) { window.scrollTo(0, 0); }
   }
 
   el.backBtn.addEventListener("click", goHome);
