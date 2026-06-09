@@ -1527,7 +1527,7 @@
       await Net.connect();
       return true;
     } catch (e) {
-      el.lobbyError.textContent = "⚠️ Không kết nối được server. Hãy chạy qua 'npm start' rồi mở http://localhost:8777";
+      el.lobbyError.textContent = "⚠️ Không kết nối được máy chủ online. Chế độ online cần server Node (chạy 'npm start' hoặc host hỗ trợ Node). Bản tĩnh (GitHub Pages…) chỉ chơi chung máy & đấu máy được.";
       return false;
     }
   }
@@ -1591,7 +1591,7 @@
     if (!el.publicRoomsList) return;
     if (showLoading) el.publicRoomsList.innerHTML = `<div class="public-empty">Đang tải danh sách phòng...</div>`;
     if (!(await ensureConnected())) {
-      el.publicRoomsList.innerHTML = `<div class="public-empty">Không kết nối được server. Hãy chạy bằng 'npm start'.</div>`;
+      el.publicRoomsList.innerHTML = `<div class="public-empty">Không kết nối được máy chủ online. Online cần server Node — bản tĩnh chỉ chơi chung máy & đấu máy.</div>`;
       return;
     }
     Net.send("listRooms");

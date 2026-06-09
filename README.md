@@ -109,6 +109,30 @@ một người **Tạo phòng** rồi gửi mã 4 chữ số, người kia **Và
 
 > Muốn chơi qua Internet (khác mạng) thì cần expose server ra ngoài, ví dụ bằng [ngrok](https://ngrok.com/).
 
+## 🌐 Đưa lên mạng (deploy)
+
+Có **hai mức** tùy nhu cầu:
+
+### 1. Tĩnh — GitHub Pages / Netlify / bất kỳ host tĩnh
+Toàn bộ giao diện và logic game nằm ở phía client, nên có thể host tĩnh ngay từ gốc repo
+(đã có sẵn `.nojekyll` để GitHub Pages phục vụ file nguyên trạng).
+
+- GitHub Pages: **Settings → Pages → Deploy from a branch → `main` / `(root)` → Save**.
+  Site chạy ở `https://<user>.github.io/<repo>/`.
+- ✅ **Chơi chung máy (hot-seat)** và **đấu với máy (AI)** hoạt động đầy đủ.
+- ❌ **Chơi online qua mã phòng KHÔNG hoạt động** trên host tĩnh, vì cần `server.js`
+  (Node + WebSocket) để relay nước đi. Host tĩnh chỉ phục vụ file, không chạy được server.
+
+### 2. Đầy đủ (có online) — host chạy Node
+Để online qua Internet, deploy `server.js` lên nơi chạy được Node, ví dụ
+[Render](https://render.com/), [Railway](https://railway.app/), [Fly.io](https://fly.io/) hoặc VPS:
+
+- Lệnh start: `npm start` (server tự đọc `PORT` từ biến môi trường — `const PORT = process.env.PORT || 8777`).
+- Mở HTTPS để WebSocket dùng `wss://` (client tự chọn `ws`/`wss` theo giao thức trang).
+- Nhớ thêm lớp bảo vệ (rate-limit đã có sẵn; cân nhắc giới hạn truy cập) trước khi mở công khai lâu dài.
+
+> Tóm lại: cần **online** thì dùng host Node (mục 2). Chỉ cần **chơi chung máy / đấu AI** thì GitHub Pages là đủ và miễn phí.
+
 ## 📁 Cấu trúc dự án
 
 ```
