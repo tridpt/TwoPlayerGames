@@ -645,20 +645,20 @@
   }
 
   const ACHIEVEMENTS = [
-    { id: "first", icon: "🎯", title: "Ván đầu tiên", desc: "Chơi ván đầu tiên", done: (a) => a.totalPlayed >= 1 },
-    { id: "play10", icon: "🎮", title: "Ham chơi", desc: "Chơi 10 ván", done: (a) => a.totalPlayed >= 10 },
-    { id: "play50", icon: "🔥", title: "Cuồng game", desc: "Chơi 50 ván", done: (a) => a.totalPlayed >= 50 },
-    { id: "try10", icon: "🧭", title: "Nhà thám hiểm", desc: "Thử 10 trò khác nhau", done: (a) => a.tried >= 10 },
-    { id: "try25", icon: "🗺️", title: "Đa năng", desc: "Thử 25 trò khác nhau", done: (a) => a.tried >= 25 },
-    { id: "tryAll", icon: "🏅", title: "Bộ sưu tập", desc: "Thử hết tất cả trò chơi", done: (a) => a.tried >= a.totalGames },
-    { id: "win10", icon: "🏆", title: "Tay thắng", desc: "Thắng 10 ván (P1)", done: (a) => a.p1 >= 10 },
-    { id: "win25", icon: "👑", title: "Bất bại", desc: "Thắng 25 ván (P1)", done: (a) => a.p1 >= 25 },
-    { id: "aiHard", icon: "🤖", title: "Hạ gục máy (Khó)", desc: "Thắng AI mức Khó 1 lần", done: (a) => (a.flags.ai_hard || 0) >= 1 },
-    { id: "aiHard5", icon: "💀", title: "Khắc tinh AI", desc: "Thắng AI mức Khó 5 lần", done: (a) => (a.flags.ai_hard || 0) >= 5 },
-    { id: "online1", icon: "🌐", title: "Cao thủ online", desc: "Thắng 1 ván online", done: (a) => (a.flags.onlineWins || 0) >= 1 },
-    { id: "fav3", icon: "❤️", title: "Có gu", desc: "Thêm 3 game yêu thích", done: (a) => a.favCount >= 3 },
-    { id: "daily3", icon: "📅", title: "Chuyên cần", desc: "Chuỗi thử thách 3 ngày", done: (a) => (a.flags.dailyBest || 0) >= 3 },
-    { id: "daily7", icon: "🗓️", title: "Kiên trì", desc: "Chuỗi thử thách 7 ngày", done: (a) => (a.flags.dailyBest || 0) >= 7 },
+    { id: "first", icon: "🎯", titleKey: "achFirstT", descKey: "achFirstD", done: (a) => a.totalPlayed >= 1 },
+    { id: "play10", icon: "🎮", titleKey: "achPlay10T", descKey: "achPlay10D", done: (a) => a.totalPlayed >= 10 },
+    { id: "play50", icon: "🔥", titleKey: "achPlay50T", descKey: "achPlay50D", done: (a) => a.totalPlayed >= 50 },
+    { id: "try10", icon: "🧭", titleKey: "achTry10T", descKey: "achTry10D", done: (a) => a.tried >= 10 },
+    { id: "try25", icon: "🗺️", titleKey: "achTry25T", descKey: "achTry25D", done: (a) => a.tried >= 25 },
+    { id: "tryAll", icon: "🏅", titleKey: "achTryAllT", descKey: "achTryAllD", done: (a) => a.tried >= a.totalGames },
+    { id: "win10", icon: "🏆", titleKey: "achWin10T", descKey: "achWin10D", done: (a) => a.p1 >= 10 },
+    { id: "win25", icon: "👑", titleKey: "achWin25T", descKey: "achWin25D", done: (a) => a.p1 >= 25 },
+    { id: "aiHard", icon: "🤖", titleKey: "achAiHardT", descKey: "achAiHardD", done: (a) => (a.flags.ai_hard || 0) >= 1 },
+    { id: "aiHard5", icon: "💀", titleKey: "achAiHard5T", descKey: "achAiHard5D", done: (a) => (a.flags.ai_hard || 0) >= 5 },
+    { id: "online1", icon: "🌐", titleKey: "achOnline1T", descKey: "achOnline1D", done: (a) => (a.flags.onlineWins || 0) >= 1 },
+    { id: "fav3", icon: "❤️", titleKey: "achFav3T", descKey: "achFav3D", done: (a) => a.favCount >= 3 },
+    { id: "daily3", icon: "📅", titleKey: "achDaily3T", descKey: "achDaily3D", done: (a) => (a.flags.dailyBest || 0) >= 3 },
+    { id: "daily7", icon: "🗓️", titleKey: "achDaily7T", descKey: "achDaily7D", done: (a) => (a.flags.dailyBest || 0) >= 7 },
   ];
 
   function computeAgg() {
@@ -674,7 +674,7 @@
 
   function updateProfileChip() {
     if (el.chipAvatar) el.chipAvatar.textContent = getAvatar();
-    if (el.chipName) el.chipName.textContent = loadSavedPlayerName() || "Bạn";
+    if (el.chipName) el.chipName.textContent = loadSavedPlayerName() || tt("youName");
   }
 
   function openProfile() {
@@ -702,12 +702,12 @@
     const rate = decided ? Math.round(a.p1 / decided * 100) : 0;
     const topName = a.topId ? (getGameById(a.topId) ? getGameById(a.topId).name : a.topId) : "—";
     el.profileStats.innerHTML = [
-      ["🎮", a.totalPlayed, "Tổng số ván"],
-      ["🕹️", `${a.tried}/${a.totalGames}`, "Trò đã thử"],
-      ["🏆", a.p1, "Thắng (P1)"],
-      ["⚔️", a.p2, "Thắng (P2)"],
-      ["📈", decided ? rate + "%" : "—", "Tỉ lệ thắng P1"],
-      ["⭐", topName, "Chơi nhiều nhất"],
+      ["🎮", a.totalPlayed, tt("pstatTotal")],
+      ["🕹️", `${a.tried}/${a.totalGames}`, tt("pstatTried")],
+      ["🏆", a.p1, tt("pstatWinP1")],
+      ["⚔️", a.p2, tt("pstatWinP2")],
+      ["📈", decided ? rate + "%" : "—", tt("pstatRate")],
+      ["⭐", topName, tt("pstatTop")],
     ].map(([ic, v, lb]) => `<div class="pstat"><span class="pstat-ic">${ic}</span><b>${v}</b><small>${lb}</small></div>`).join("");
     // các widget phụ — lỗi 1 cái không được chặn việc mở trang hồ sơ
     try { renderLeaderboard(); } catch (e) { /* ignore */ }
@@ -715,7 +715,7 @@
     // achievements
     el.achGrid.innerHTML = ACHIEVEMENTS.map((ac) => {
       const done = ac.done(a);
-      return `<div class="ach ${done ? "done" : "locked"}"><span class="ach-ic">${done ? ac.icon : "🔒"}</span><div class="ach-txt"><b>${ac.title}</b><small>${ac.desc}</small></div></div>`;
+      return `<div class="ach ${done ? "done" : "locked"}"><span class="ach-ic">${done ? ac.icon : "🔒"}</span><div class="ach-txt"><b>${tt(ac.titleKey)}</b><small>${tt(ac.descKey)}</small></div></div>`;
     }).join("");
     try { renderHistory(); } catch (e) { /* ignore */ }
     // cài đặt âm thanh
@@ -730,21 +730,21 @@
 
   function timeAgo(ts) {
     const s = Math.floor((Date.now() - ts) / 1000);
-    if (s < 60) return "vừa xong";
+    if (s < 60) return tt("timeNow");
     const m = Math.floor(s / 60);
-    if (m < 60) return m + " phút trước";
+    if (m < 60) return tt("timeMin").replace("{n}", m);
     const h = Math.floor(m / 60);
-    if (h < 24) return h + " giờ trước";
+    if (h < 24) return tt("timeHour").replace("{n}", h);
     const d = Math.floor(h / 24);
-    if (d < 7) return d + " ngày trước";
-    return new Date(ts).toLocaleDateString("vi-VN");
+    if (d < 7) return tt("timeDay").replace("{n}", d);
+    return new Date(ts).toLocaleDateString(window.I18n && I18n.getLang() === "en" ? "en-US" : "vi-VN");
   }
   function renderLeaderboard() {
     if (!el.leadList) return;
     const stats = getStats();
     const rows = (window.StatsUtil ? StatsUtil.sortLeaderboard(stats) : []).slice(0, 10);
     if (!rows.length) {
-      el.leadList.innerHTML = `<div class="lead-empty">Chưa có dữ liệu. Thắng vài ván để lên bảng xếp hạng!</div>`;
+      el.leadList.innerHTML = `<div class="lead-empty">${tt("leadEmpty")}</div>`;
       return;
     }
     const medals = ["🥇", "🥈", "🥉"];
@@ -757,14 +757,16 @@
       return `<div class="lead-item">
         <span class="lead-rank">${rank}</span>
         <span class="lead-name">${escapeHtml(name)}</span>
-        <span class="lead-stat" title="Thắng (P1)">🏆 ${r.p1}</span>
-        <span class="lead-stat" title="Chuỗi thắng tốt nhất">🔥 ${r.bestStreak || 0}</span>
-        <span class="lead-stat lead-rate" title="Tỉ lệ thắng P1">${rate}%</span>
+        <span class="lead-stat" title="${tt("leadWinP1")}">🏆 ${r.p1}</span>
+        <span class="lead-stat" title="${tt("leadBestStreak")}">🔥 ${r.bestStreak || 0}</span>
+        <span class="lead-stat lead-rate" title="${tt("leadRate")}">${rate}%</span>
       </div>`;
     }).join("");
   }
 
-  const MODE_LABEL = { local: "👥 Chung máy", ai: "🤖 Đấu máy", online: "🌐 Online" };
+  function modeLabel(mode) {
+    return mode === "local" ? tt("modeLabelLocal") : mode === "ai" ? tt("modeLabelAI") : mode === "online" ? tt("modeLabelOnline") : "";
+  }
   function histOutcome(h) {
     return window.StatsUtil ? StatsUtil.histOutcome(h) : (h && h.kind === "draw" ? "draw" : "win");
   }
@@ -791,7 +793,7 @@
       const total = b.win + b.lose + b.draw;
       const h = Math.round(total / maxTotal * 100);
       const seg = (n, cls) => n ? `<i class="ac-seg ${cls}" style="height:${Math.round(n / total * 100)}%"></i>` : "";
-      return `<div class="ac-col" title="${b.label}: ${total} ván (W${b.win}/L${b.lose}/D${b.draw})">
+      return `<div class="ac-col" title="${b.label}: ${total} ${tt("acMatches")} (W${b.win}/L${b.lose}/D${b.draw})">
         <div class="ac-bar" style="height:${h}%">${total ? seg(b.win, "win") + seg(b.draw, "draw") + seg(b.lose, "lose") : ""}</div>
         <small>${b.label.split("/")[0]}</small>
       </div>`;
@@ -817,11 +819,11 @@
     const mf = el.histModeFilter ? el.histModeFilter.value : "";
     const list = all.filter((h) => (!gf || h.id === gf) && (!mf || h.mode === mf));
     if (!all.length) {
-      el.histList.innerHTML = `<div class="hist-empty">Chưa có ván nào. Chơi xong một ván sẽ hiện ở đây.</div>`;
+      el.histList.innerHTML = `<div class="hist-empty">${tt("histEmpty")}</div>`;
       return;
     }
     if (!list.length) {
-      el.histList.innerHTML = `<div class="hist-empty">Không có ván nào khớp bộ lọc.</div>`;
+      el.histList.innerHTML = `<div class="hist-empty">${tt("histNoMatch")}</div>`;
       return;
     }
     el.histList.innerHTML = list.map((h) => {
@@ -829,21 +831,21 @@
       const name = gameName(g) || h.id;
       // Kết quả theo góc nhìn người chơi
       let res, cls;
-      if (h.kind === "draw") { res = "🤝 Hòa"; cls = "draw"; }
+      if (h.kind === "draw") { res = tt("resDraw"); cls = "draw"; }
       else if (h.mode === "ai") {
         const win = h.winner === 0;
-        res = win ? "🎉 Bạn thắng" : "💀 Máy thắng";
+        res = win ? tt("resYouWin") : tt("resAILose");
         cls = win ? "win" : "lose";
       } else if (h.mode === "online" && typeof h.seat === "number") {
         const win = h.winner === h.seat;
-        res = win ? "🎉 Bạn thắng" : "💀 Thua";
+        res = win ? tt("resYouWin") : tt("resYouLose");
         cls = win ? "win" : "lose";
       } else {
-        res = `🏆 Người chơi ${(h.winner ?? 0) + 1} thắng`;
+        res = tt("resPlayerWin").replace("{n}", (h.winner ?? 0) + 1);
         cls = "win";
       }
-      const modeTxt = MODE_LABEL[h.mode] || "";
-      const lvl = h.level ? ` · ${h.level === "easy" ? "Dễ" : h.level === "hard" ? "Khó" : "Vừa"}` : "";
+      const modeTxt = modeLabel(h.mode);
+      const lvl = h.level ? ` · ${h.level === "easy" ? tt("lvlEasy") : h.level === "hard" ? tt("lvlHard") : tt("lvlNormal")}` : "";
       return `<div class="hist-item ${cls}">
         <span class="hist-game">${escapeHtml(name)}</span>
         <span class="hist-res">${res}</span>
@@ -1362,7 +1364,7 @@
   function statLineHtml(id) {
     const s = statOf(id);
     if (!s.played) return "";
-    return `<div class="card-stats">🎮 ${s.played} ván · 🏆 ${s.p1}–${s.p2}` +
+    return `<div class="card-stats">🎮 ${s.played} ${tt("cardPlays")} · 🏆 ${s.p1}–${s.p2}` +
       (s.draw ? ` · 🤝 ${s.draw}` : "") + `</div>`;
   }
 
@@ -1373,19 +1375,19 @@
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", `${gameName(g)}. ${gameDesc(g)}`);
     const tags = [];
-    if (g.onlineReady === false) tags.push("chỉ chung máy");
-    if (g.localReady === false) tags.push("chỉ online");
+    if (g.onlineReady === false) tags.push(tt("tagLocalOnly"));
+    if (g.localReady === false) tags.push(tt("tagOnlineOnly"));
 
     const badges = [];
-    if (isHot(g.id)) badges.push(`<span class="badge badge-hot">🔥 Hot</span>`);
-    else if (isNew(g.id)) badges.push(`<span class="badge badge-new">✦ Mới</span>`);
-    if (g.onlineReady !== false) badges.push(`<span class="badge badge-online">🌐 Online</span>`);
+    if (isHot(g.id)) badges.push(`<span class="badge badge-hot">${tt("badgeHot")}</span>`);
+    else if (isNew(g.id)) badges.push(`<span class="badge badge-new">${tt("badgeNew")}</span>`);
+    if (g.onlineReady !== false) badges.push(`<span class="badge badge-online">${tt("badgeOnline")}</span>`);
 
     card.innerHTML =
       `<div class="card-media">` +
         gameAvatarHtml(g) +
         `<div class="card-badges">${badges.join("")}</div>` +
-        `<button type="button" class="fav-btn${isFav(g.id) ? " on" : ""}" title="Yêu thích" aria-label="Yêu thích">♥</button>` +
+        `<button type="button" class="fav-btn${isFav(g.id) ? " on" : ""}" title="${tt("favTitle")}" aria-label="${tt("favTitle")}">♥</button>` +
       `</div>` +
       `<h3>${escapeHtml(gameName(g))}</h3>` +
       `<p>${escapeHtml(gameDesc(g))}</p>` +
@@ -1414,17 +1416,17 @@
     el.detailPoster.innerHTML = gameAvatarHtml(game);
     el.detailTitle.textContent = (game.emoji ? game.emoji + " " : "") + gameName(game);
     const badges = [];
-    if (isHot(game.id)) badges.push(`<span class="badge badge-hot">🔥 Hot</span>`);
-    if (isNew(game.id)) badges.push(`<span class="badge badge-new">✦ Mới</span>`);
-    if (game.onlineReady !== false) badges.push(`<span class="badge badge-online">🌐 Online</span>`);
-    if (game.supportsAI) badges.push(`<span class="badge badge-ai">🤖 Đấu máy</span>`);
+    if (isHot(game.id)) badges.push(`<span class="badge badge-hot">${tt("badgeHot")}</span>`);
+    if (isNew(game.id)) badges.push(`<span class="badge badge-new">${tt("badgeNew")}</span>`);
+    if (game.onlineReady !== false) badges.push(`<span class="badge badge-online">${tt("badgeOnline")}</span>`);
+    if (game.supportsAI) badges.push(`<span class="badge badge-ai">${tt("badgeAI")}</span>`);
     el.detailBadges.innerHTML = badges.join("");
     el.detailDesc.textContent = gameDesc(game);
     const s = statOf(game.id);
     el.detailStats.innerHTML = s.played
-      ? `<span>🎮 ${s.played} ván đã chơi</span><span>🏆 P1 ${s.p1} – ${s.p2} P2</span>${s.draw ? `<span>🤝 ${s.draw} hòa</span>` : ""}`
-      : `<span class="detail-nostat">Chưa có ván nào — chơi thử ngay!</span>`;
-    const steps = gameHowTo(game).length ? gameHowTo(game) : ["Chưa có hướng dẫn cho trò này."];
+      ? `<span>${tt("detailPlayed").replace("{n}", s.played)}</span><span>${tt("detailWins").replace("{a}", s.p1).replace("{b}", s.p2)}</span>${s.draw ? `<span>${tt("detailDraws").replace("{n}", s.draw)}</span>` : ""}`
+      : `<span class="detail-nostat">${tt("detailNoStat")}</span>`;
+    const steps = gameHowTo(game).length ? gameHowTo(game) : [tt("howToEmpty")];
     el.detailHowto.innerHTML = steps.map((t) => `<li>${t}</li>`).join("");
     show("detailView");
   }
