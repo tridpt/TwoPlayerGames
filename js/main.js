@@ -1525,8 +1525,8 @@
     lobbyReturnView = returnView;
     const preselect = game?.onlineReady === false ? null : game;
     el.lobbyTitle.textContent = preselect
-      ? `${preselect.name} — Tạo phòng online`
-      : "Sảnh online";
+      ? tt("lobbyTitleCreate").replace("{game}", preselect.name)
+      : tt("lobbyTitleHub");
     buildLobbyGameSelect(preselect?.id || "");
     el.roomCodeBox.classList.add("hidden");
     el.lobbyError.textContent = "";
