@@ -118,6 +118,14 @@ body {
   /* tăng vùng chạm cho nút nhỏ trên điện thoại */
   .fav-btn { width: 40px; height: 40px; font-size: 1.1rem; }
   .chat-emote-btn { width: 42px; height: 42px; }
+  /* đảm bảo vùng chạm tối thiểu ~44px cho các nút icon/nhỏ trên cảm ứng */
+  .chat-toggle { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .modal-close { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 6px; }
+  .replay-controls .btn { min-width: 44px; min-height: 44px; }
+  .btn.small { min-height: 40px; }
+  .chip { min-height: 40px; }
+  /* tránh iOS tự phóng to khi focus ô nhập có font < 16px */
+  .chat-input, .player-name-input { font-size: 16px; }
 }
 
 /* ---------- Trang hồ sơ ---------- */
