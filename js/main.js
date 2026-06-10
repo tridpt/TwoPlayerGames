@@ -73,6 +73,7 @@
     undoBtn: $("undoBtn"),
     homeBtn: $("homeBtn"),
     soundToggle: $("soundToggle"),
+    installBtn: $("installBtn"),
     themeToggle: $("themeToggle"),
     langToggle: $("langToggle"),
     profileChip: $("profileChip"),
@@ -2103,7 +2104,35 @@
   });
   updateSoundIcon();
 
-  // ---- Chế độ sáng / tối ----
+  // ---- PWA: nút "Cài app" (thêm vào màn hình chính) ----
+  // Chrome/Edge/Android: bắt sự kiện beforeinstallprompt, hiện nút của ta.
+  // Nếu đã cài (standalone) hoặc trình duyệt không hỗ trợ thì ẩn nút.
+  let deferredInstallPrompt = null;
+  function isStandalone() {
+    return window.matchMedia && window.matchMedia("(display-mode: standalone)").matches
+      || window.navigator.standalone === true;
+  }
+  if (el.installBtn) {
+    if (isStandalone()) el.installBtn.classList.add("hidden");
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (!isStandalone()) el.installBtn.classList.remove("hidden");
+    });
+    el.installBtn.addEventListener("click", async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      try { await deferredInstallPrompt.userChoice; } catch (e) { /* ignore */ }
+      deferredInstallPrompt = null;
+      el.installBtn.classList.add("hidden");
+    });
+    window.addEventListener("appinstalled", () => {
+      deferredInstallPrompt = null;
+      el.installBtn.classList.add("hidden");
+      showToast(tt("installDone"));
+    });
+  }
+
   const THEME_KEY = "tpg_theme";
   function applyTheme(theme) {
     const light = theme === "light";

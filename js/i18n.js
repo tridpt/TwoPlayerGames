@@ -276,6 +276,9 @@ var I18nModule = (function () {
       tour5T: "🌐 Chơi online", tour5X: "Tạo phòng (công khai để người khác tìm thấy) hoặc vào phòng bằng mã. Có chat, xem lại ván và kết nối lại khi rớt mạng.",
       tourDone: "Xong",
       shareTitle: "Game 2 Người",
+      installApp: "⬇ Cài app",
+      installTitle: "Cài đặt ứng dụng",
+      installDone: "✅ Đã cài ứng dụng vào màn hình chính!",
     },
     en: {
       tagline: "Play on one device or online over the network",
@@ -547,6 +550,9 @@ var I18nModule = (function () {
       tour5T: "🌐 Play online", tour5X: "Create a room (public so others can find it) or join with a code. Includes chat, replay and reconnect on drop.",
       tourDone: "Done",
       shareTitle: "2-Player Games",
+      installApp: "⬇ Install app",
+      installTitle: "Install app",
+      installDone: "✅ App installed to your home screen!",
     },
   };
   let lang = "vi";
