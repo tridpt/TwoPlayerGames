@@ -2,6 +2,23 @@
 "use strict";
 const path = require("path");
 
+// Mock 2D canvas context: mọi phương thức là no-op, thuộc tính ghi/đọc tự do.
+function makeCtx2d() {
+  const noop = () => {};
+  return new Proxy({}, {
+    get(target, prop) {
+      if (prop in target) return target[prop];
+      if (prop === "measureText") return () => ({ width: 0 });
+      if (prop === "createLinearGradient" || prop === "createRadialGradient") {
+        return () => ({ addColorStop: noop });
+      }
+      if (prop === "getImageData") return () => ({ data: [] });
+      return noop;
+    },
+    set(target, prop, value) { target[prop] = value; return true; },
+  });
+}
+
 function mkEl(tag) {
   const set = new Set();
   const el = {
@@ -29,6 +46,8 @@ function mkEl(tag) {
     blur() {},
     fire(ev) { (el._ev[ev] || []).forEach((f) => f()); },
     getBoundingClientRect() { return { height: 50, width: 50, top: 0, left: 0 }; },
+    getContext() { return makeCtx2d(); },
+    width: 300, height: 150,
     _qs: {},
     querySelector(sel) { return el._qs[sel] || (el._qs[sel] = mkEl("div")); },
     querySelectorAll() { return []; },
@@ -47,10 +66,20 @@ function installGlobals() {
     createElement: (t) => mkEl(t),
     createElementNS: (ns, t) => mkEl(t),
     querySelector: () => null,
-    body: { contains: () => true },
+    addEventListener() {},
+    removeEventListener() {},
+    body: { contains: () => true, appendChild() {}, removeChild() {} },
   };
   global.MutationObserver = class { observe() {} disconnect() {} };
   global.requestAnimationFrame = () => 0;
+  global.cancelAnimationFrame = () => {};
+  // Bọc timer để .unref(): game vẫn tạo được setInterval/RAF nhưng các handle
+  // này KHÔNG giữ tiến trình sống, nên node:test có thể thoát (tránh treo).
+  // Không stub no-op vì sẽ phá chính test runner (vốn dùng timer nội bộ).
+  const _setInterval = global.setInterval.bind(global);
+  const _setTimeout = global.setTimeout.bind(global);
+  global.setInterval = (...a) => { const h = _setInterval(...a); if (h && h.unref) h.unref(); return h; };
+  global.setTimeout = (...a) => { const h = _setTimeout(...a); if (h && h.unref) h.unref(); return h; };
   global.window = {
     GameRegistry: { register: (cfg) => { registry[cfg.id] = cfg; } },
     addEventListener() {}, removeEventListener() {},
