@@ -455,9 +455,9 @@
     notice.className = "room-exit-notice";
     notice.innerHTML = `
       <div class="room-exit-card" role="alert" aria-live="assertive">
-        <h2>Thông báo</h2>
+        <h2>${tt("noticeTitle")}</h2>
         <p>${escapeHtml(message)}</p>
-        <span>Đang đưa bạn về menu...</span>
+        <span>${tt("returningMenu")}</span>
       </div>
     `;
     document.body.appendChild(notice);
@@ -1149,20 +1149,20 @@
     el.winAgain.disabled = !!mineReady;
 
     if (!onlineMode) {
-      el.restartBtn.textContent = "↻ Chơi lại";
-      el.winAgain.textContent = "↻ Chơi lại";
+      el.restartBtn.textContent = tt("againLocal");
+      el.winAgain.textContent = tt("againLocal");
     } else if (mineReady && otherReady) {
-      el.restartBtn.textContent = "Đang tạo ván...";
-      el.winAgain.textContent = "Đang tạo ván...";
+      el.restartBtn.textContent = tt("againCreating");
+      el.winAgain.textContent = tt("againCreating");
     } else if (mineReady) {
-      el.restartBtn.textContent = `✓ Đang chờ ${oppName}`;
-      el.winAgain.textContent = "✓ Đã sẵn sàng";
+      el.restartBtn.textContent = tt("againWaitOpp").replace("{opp}", oppName);
+      el.winAgain.textContent = tt("againReady");
     } else if (otherReady) {
-      el.restartBtn.textContent = `✓ Đồng ý với ${oppName}`;
-      el.winAgain.textContent = `✓ Đồng ý với ${oppName}`;
+      el.restartBtn.textContent = tt("againAgreeOpp").replace("{opp}", oppName);
+      el.winAgain.textContent = tt("againAgreeOpp").replace("{opp}", oppName);
     } else {
-      el.restartBtn.textContent = `↻ Chơi lại với ${oppName}`;
-      el.winAgain.textContent = `↻ Chơi lại với ${oppName}`;
+      el.restartBtn.textContent = tt("againWithOpp").replace("{opp}", oppName);
+      el.winAgain.textContent = tt("againWithOpp").replace("{opp}", oppName);
     }
   }
 
@@ -1176,18 +1176,18 @@
     const mineName = seatName(online.seat);
     const oppName = opponentName();
     if (mineReady && !otherReady) {
-      const text = `Bạn đã sẵn sàng. Đang chờ ${oppName} đồng ý chơi lại.`;
+      const text = tt("rsMineReady").replace("{opp}", oppName);
       el.status.textContent = text;
-      setGameRoomState(`Bạn đã sẵn sàng. Đang chờ ${oppName}.`, "waiting");
+      setGameRoomState(tt("rsMineReadyShort").replace("{opp}", oppName), "waiting");
       if (!el.winOverlay.classList.contains("hidden")) el.winSub.textContent = text;
     } else if (!mineReady && otherReady) {
-      const text = `${oppName} muốn chơi lại. Bấm nút để đồng ý.`;
+      const text = tt("rsOppWants").replace("{opp}", oppName);
       el.status.textContent = text;
-      setGameRoomState(`${oppName} muốn chơi lại với ${mineName}.`, "waiting");
+      setGameRoomState(tt("rsOppWantsShort").replace("{opp}", oppName).replace("{me}", mineName), "waiting");
       if (!el.winOverlay.classList.contains("hidden")) el.winSub.textContent = text;
     } else if (mineReady && otherReady) {
-      el.status.textContent = "Cả hai đã đồng ý. Đang tạo ván mới...";
-      setGameRoomState(`Cả ${mineName} và ${oppName} đã đồng ý. Đang tạo ván mới...`, "waiting");
+      el.status.textContent = tt("rsBothAgree");
+      setGameRoomState(tt("rsBothAgreeShort").replace("{me}", mineName).replace("{opp}", oppName), "waiting");
     }
   }
 
@@ -1334,7 +1334,7 @@
     el.lobbyGameSelect.innerHTML = "";
     const placeholder = document.createElement("option");
     placeholder.value = "";
-    placeholder.textContent = "Chọn game để tạo phòng";
+    placeholder.textContent = tt("lobbyGamePlaceholder");
     el.lobbyGameSelect.appendChild(placeholder);
 
     GameRegistry.games
@@ -1531,7 +1531,7 @@
     el.roomCodeBox.classList.add("hidden");
     el.lobbyError.textContent = "";
     el.joinCodeInput.value = "";
-    setLobbyState("Sẵn sàng tạo phòng hoặc vào phòng bằng mã.", "info");
+    setLobbyState(tt("lobbyReady"), "info");
     show("lobbyView");
     startRoomPolling();
   }
@@ -1541,7 +1541,7 @@
       await Net.connect();
       return true;
     } catch (e) {
-      el.lobbyError.textContent = "⚠️ Không kết nối được máy chủ online. Chế độ online cần server Node (chạy 'npm start' hoặc host hỗ trợ Node). Bản tĩnh (GitHub Pages…) chỉ chơi chung máy & đấu máy được.";
+      el.lobbyError.textContent = tt("connectErr");
       return false;
     }
   }
@@ -1555,24 +1555,24 @@
   el.lobbyGameSelect.addEventListener("change", () => {
     setLobbyGame(el.lobbyGameSelect.value);
     if (lobbySelectedGame) {
-      el.lobbyTitle.textContent = `${lobbySelectedGame.name} — Tạo phòng online`;
+      el.lobbyTitle.textContent = tt("lobbyTitleCreate").replace("{game}", lobbySelectedGame.name);
     } else {
-      el.lobbyTitle.textContent = "Sảnh online";
+      el.lobbyTitle.textContent = tt("lobbyTitleHub");
     }
   });
 
   el.createRoomBtn.addEventListener("click", async () => {
     el.lobbyError.textContent = "";
     if (!lobbySelectedGame) {
-      el.lobbyError.textContent = "Hãy chọn game để tạo phòng.";
+      el.lobbyError.textContent = tt("lobbyPickGame");
       return;
     }
     leavePendingRoom();
     if (!(await ensureConnected())) return;
     selectedGame = lobbySelectedGame;
     currentOptions = readOptions(lobbySelectedGame, "lobby_opt_");
-    const playerName = readPlayerName(el.createNameInput, "Người chơi 1");
-    setLobbyState("Đang tạo phòng...", "waiting");
+    const playerName = readPlayerName(el.createNameInput, tt("player1"));
+    setLobbyState(tt("creatingRoom"), "waiting");
     Net.send("create", { gameId: lobbySelectedGame.id, options: currentOptions, playerName, public: el.publicToggle ? el.publicToggle.checked : true });
   });
 
@@ -1580,19 +1580,19 @@
     el.lobbyError.textContent = "";
     const code = el.joinCodeInput.value.trim();
     if (!/^\d{4}$/.test(code)) {
-      el.lobbyError.textContent = "Mã phòng phải gồm 4 chữ số.";
+      el.lobbyError.textContent = tt("codeMustBe4");
       return;
     }
     if (!(await ensureConnected())) return;
-    const playerName = readPlayerName(el.joinNameInput, "Người chơi 2");
-    setLobbyState("Đang vào phòng...", "waiting");
+    const playerName = readPlayerName(el.joinNameInput, tt("player2"));
+    setLobbyState(tt("joiningRoom"), "waiting");
     Net.send("join", { code, playerName });
   });
 
   el.copyCodeBtn.addEventListener("click", () => {
     navigator.clipboard?.writeText(el.roomCodeVal.textContent).then(() => {
-      el.copyCodeBtn.textContent = "✓ Đã chép";
-      setTimeout(() => (el.copyCodeBtn.textContent = "📋 Sao chép"), 1500);
+      el.copyCodeBtn.textContent = tt("copied");
+      setTimeout(() => (el.copyCodeBtn.textContent = tt("copyCode")), 1500);
     });
   });
 
@@ -1603,9 +1603,9 @@
   // ---- Phòng công khai ----
   async function refreshPublicRooms(showLoading) {
     if (!el.publicRoomsList) return;
-    if (showLoading) el.publicRoomsList.innerHTML = `<div class="public-empty">Đang tải danh sách phòng...</div>`;
+    if (showLoading) el.publicRoomsList.innerHTML = `<div class="public-empty">${tt("roomsLoading")}</div>`;
     if (!(await ensureConnected())) {
-      el.publicRoomsList.innerHTML = `<div class="public-empty">Không kết nối được máy chủ online. Online cần server Node — bản tĩnh chỉ chơi chung máy & đấu máy.</div>`;
+      el.publicRoomsList.innerHTML = `<div class="public-empty">${tt("roomsConnErr")}</div>`;
       return;
     }
     Net.send("listRooms");
@@ -1615,10 +1615,10 @@
     if (!el.publicRoomsList) return;
     const n = list ? list.length : 0;
     if (el.publicRoomsTitle) el.publicRoomsTitle.textContent = n
-      ? `🌐 Phòng công khai đang mở (${n})`
-      : "🌐 Phòng công khai đang mở";
+      ? tt("publicRoomsN").replace("{n}", n)
+      : tt("publicRooms");
     if (!list || !list.length) {
-      el.publicRoomsList.innerHTML = `<div class="public-empty">Chưa có phòng công khai nào đang chờ. Tạo một phòng để mời người khác!</div>`;
+      el.publicRoomsList.innerHTML = `<div class="public-empty">${tt("publicEmpty")}</div>`;
       return;
     }
     el.publicRoomsList.innerHTML = "";
@@ -1628,11 +1628,11 @@
       row.className = "public-room";
       row.innerHTML = `<div class="pr-poster">${g ? gameAvatarHtml(g) : ""}</div>` +
         `<div class="pr-info"><b>${escapeHtml(gameName(g) || r.gameId)}</b>` +
-        `<small>👤 ${escapeHtml(r.hostName)} · mã ${escapeHtml(r.code)} <span class="pr-wait">⏳ đang chờ</span></small></div>`;
+        `<small>👤 ${escapeHtml(r.hostName)} · ${tt("prCode")} ${escapeHtml(r.code)} <span class="pr-wait">${tt("prWaiting")}</span></small></div>`;
       const btn = document.createElement("button");
       btn.className = "btn small primary pr-join";
       btn.type = "button";
-      btn.textContent = "Vào chơi";
+      btn.textContent = tt("joinRoomBtn");
       btn.addEventListener("click", () => quickJoinRoom(r.code));
       row.appendChild(btn);
       el.publicRoomsList.appendChild(row);
@@ -1642,8 +1642,8 @@
   async function quickJoinRoom(code) {
     el.lobbyError.textContent = "";
     if (!(await ensureConnected())) return;
-    const playerName = readPlayerName(el.joinNameInput, "Người chơi 2");
-    setLobbyState("Đang vào phòng...", "waiting");
+    const playerName = readPlayerName(el.joinNameInput, tt("player2"));
+    setLobbyState(tt("joiningRoom"), "waiting");
     Net.send("join", { code, playerName });
   }
 
@@ -1669,27 +1669,27 @@
     el.roomCodeBox.classList.remove("hidden");
     const game = getGameById(m.gameId);
     if (game) selectedGame = game;
-    el.waitingMsg.textContent = `Đang chờ người chơi thứ hai vào ${game?.name || "phòng"}...`;
-    setLobbyState(`Đã tạo phòng ${m.code}. Đang chờ đối thủ vào.`, "waiting");
+    el.waitingMsg.textContent = tt("waitingSecond").replace("{game}", game?.name || tt("waitingSecondRoom"));
+    setLobbyState(tt("roomCreated").replace("{code}", m.code), "waiting");
   });
 
   Net.on("joined", (m) => { sessionToken = m.token || sessionToken; });
 
   Net.on("error", (m) => {
-    const text = "⚠️ " + (m.message || "Có lỗi kết nối.");
+    const text = "⚠️ " + (m.message || tt("genericConnErr"));
     if (online) {
       showToast(text);
       el.status.textContent = text;
       return;
     }
     el.lobbyError.textContent = text;
-    setLobbyState("Không thể tiếp tục. Kiểm tra mã phòng hoặc kết nối rồi thử lại.", "left");
+    setLobbyState(tt("cantContinue"), "left");
   });
 
   Net.on("start", (m) => {
     const game = getGameById(m.gameId);
     if (!game) {
-      el.lobbyError.textContent = "⚠️ Phòng này dùng game không có trong bản web hiện tại.";
+      el.lobbyError.textContent = tt("roomGameMissing");
       return;
     }
     selectedGame = game;
@@ -1697,11 +1697,11 @@
     reconnecting = false;
     online = normalizeOnlineSession(m);
     if (m.options) currentOptions = m.options; // dùng tùy chỉnh của chủ phòng
-    setLobbyState(`Đối thủ ${opponentName()} đã vào phòng. Bắt đầu ván.`, "live");
+    setLobbyState(tt("oppJoinedStart").replace("{opp}", opponentName()), "live");
     startGame(m.seed, { autoHelp: true });
     const joinedText = online.roomSeat === 0
-      ? `${opponentName()} đã vào phòng. Bắt đầu ván.`
-      : "Bạn đã vào phòng. Bắt đầu ván.";
+      ? tt("oppJoinedHost").replace("{opp}", opponentName())
+      : tt("youJoinedStart");
     addChatMessage(joinedText, "sys");
     showToast(joinedText);
     if (online.roomSeat === 0 && window.Sound) Sound.play("notify");
@@ -1730,9 +1730,9 @@
   Net.on("opponent_left", () => {
     if (!online) return;
     const name = opponentName();
-    addChatMessage(`${name} đã rời phòng.`, "sys");
-    setGameRoomState(`${name} đã rời phòng. Đang đưa bạn về menu.`, "left");
-    stopOnlineSessionAndReturn(`${name} đã rời phòng. Ván online đã dừng.`);
+    addChatMessage(tt("oppLeftChat").replace("{name}", name), "sys");
+    setGameRoomState(tt("oppLeftReturn").replace("{name}", name), "left");
+    stopOnlineSessionAndReturn(tt("oppLeftStopped").replace("{name}", name));
   });
 
   Net.on("disconnected", () => { /* xử lý qua netdown để hỗ trợ kết nối lại */ });
@@ -1741,13 +1741,13 @@
   Net.on("netdown", () => {
     if (online && !reconnecting) {
       reconnecting = true;
-      setGameRoomState("📶 Mất kết nối — đang thử kết nối lại...", "waiting");
-      addChatMessage("Mất kết nối, đang thử kết nối lại...", "sys");
+      setGameRoomState(tt("netDown"), "waiting");
+      addChatMessage(tt("netDownChat"), "sys");
     }
   });
 
   Net.on("netretry", (m) => {
-    if (online) setGameRoomState(`📶 Đang kết nối lại... (lần ${m.attempt}/${m.max})`, "waiting");
+    if (online) setGameRoomState(tt("netRetry").replace("{attempt}", m.attempt).replace("{max}", m.max), "waiting");
   });
 
   Net.on("netup", () => {
@@ -1759,14 +1759,14 @@
   Net.on("netfail", () => {
     if (online) {
       reconnecting = false;
-      stopOnlineSessionAndReturn("Không thể kết nối lại. Ván online đã dừng.");
+      stopOnlineSessionAndReturn(tt("netFail"));
     }
   });
 
   Net.on("rejoin_failed", (m) => {
     if (online) {
       reconnecting = false;
-      stopOnlineSessionAndReturn(m.message || "Phiên chơi đã hết hạn. Ván online đã dừng.");
+      stopOnlineSessionAndReturn(m.message || tt("sessionExpired"));
     }
   });
 
@@ -1782,16 +1782,16 @@
     const hist = Array.isArray(m.history) ? m.history : [];
     hist.forEach((mv) => { if (instance && instance.applyMove) { try { instance.applyMove(mv, true); } catch (e) { /* ignore */ } } });
     describeOnlineGameState("live");
-    setGameRoomState("✅ Đã kết nối lại! Ván tiếp tục.", "live");
-    addChatMessage("Đã kết nối lại.", "sys");
+    setGameRoomState(tt("reconnected"), "live");
+    addChatMessage(tt("reconnectedChat"), "sys");
   });
 
   Net.on("opponent_disconnected", () => {
-    if (online) setGameRoomState("⏳ Đối thủ mất kết nối — đang chờ họ quay lại...", "waiting");
+    if (online) setGameRoomState(tt("oppDisconnected"), "waiting");
   });
 
   Net.on("opponent_reconnected", () => {
-    if (online) { describeOnlineGameState("live"); setGameRoomState("✅ Đối thủ đã kết nối lại.", "live"); }
+    if (online) { describeOnlineGameState("live"); setGameRoomState(tt("oppReconnected"), "live"); }
   });
 
   Net.on("chat", (m) => {
@@ -1808,7 +1808,7 @@
   });
 
   // ====================== Chat (chỉ online) ======================
-  const QUICK_MSGS = ["Chào! 👋", "Nước hay! 👍", "Gắt thế 😅", "Ván nữa nhé!", "GG 🎉"];
+  const QUICK_MSG_KEYS = ["quickMsg1", "quickMsg2", "quickMsg3", "quickMsg4", "quickMsg5"];
   const EMOTES = ["😀", "😎", "😭", "😮", "😡", "👏", "🔥", "🎉", "🤝", "🤔"];
 
   function buildQuickButtons() {
@@ -1820,12 +1820,13 @@
       b.type = "button";
       b.className = "chat-emote-btn";
       b.textContent = e;
-      b.setAttribute("aria-label", "Gửi cảm xúc " + e);
+      b.setAttribute("aria-label", tt("reactSendLabel").replace("{emoji}", e));
       b.addEventListener("click", () => sendReaction(e));
       emoteRow.appendChild(b);
     });
     el.chatQuick.appendChild(emoteRow);
-    QUICK_MSGS.forEach((text) => {
+    QUICK_MSG_KEYS.forEach((key) => {
+      const text = tt(key);
       const b = document.createElement("button");
       b.type = "button";
       b.className = "chat-quick-btn";
@@ -1844,7 +1845,7 @@
       const label = document.createElement("span");
       label.className = "chat-msg-who";
       label.textContent = who === "me"
-        ? `${seatName(online?.seat ?? 0)} (Bạn)`
+        ? `${seatName(online?.seat ?? 0)} ${tt("chatYou")}`
         : opponentName();
       const body = document.createElement("span");
       body.className = "chat-msg-text";
@@ -1932,7 +1933,7 @@
     } else {
       el.onlineBadge.classList.add("hidden");
       setGameRoomState("", "info");
-      el.restartBtn.textContent = window.I18n ? I18n.t("restart") : "↻ Chơi lại";
+      el.restartBtn.textContent = tt("againLocal");
       el.chatPanel.classList.add("hidden");
     }
 
@@ -1960,9 +1961,9 @@
       Net.send("restart");
       restartReadySeats = Array.from(new Set([...restartReadySeats, online.roomSeat]));
       updateRestartButtons();
-      const text = `Bạn đã sẵn sàng. Đang chờ ${opponentName()} đồng ý chơi lại.`;
+      const text = tt("rsMineReady").replace("{opp}", opponentName());
       el.status.textContent = text;
-      setGameRoomState(`Bạn đã sẵn sàng. Đang chờ ${opponentName()}.`, "waiting");
+      setGameRoomState(tt("rsMineReadyShort").replace("{opp}", opponentName()), "waiting");
       if (!el.winOverlay.classList.contains("hidden")) {
         el.winSub.textContent = text;
       }
@@ -2230,19 +2231,19 @@
 
   function stopReplayPlay() {
     if (replayTimer) { clearInterval(replayTimer); replayTimer = null; }
-    if (el.replayPlay) el.replayPlay.textContent = "▶ Phát";
+    if (el.replayPlay) el.replayPlay.textContent = tt("replayPlay");
   }
   function toggleReplayPlay() {
     if (replayTimer) { stopReplayPlay(); return; }
     if (replayIdx >= replayMoves.length) rebuildReplay(0);
-    el.replayPlay.textContent = "⏸ Dừng";
+    el.replayPlay.textContent = tt("replayPause");
     replayTimer = setInterval(replayStepForward, 950);
   }
 
   function openReplay() {
     if (!replayMeta || !replayMoves.length) return;
     const game = getGameById(replayMeta.gameId);
-    if (el.replayTitle) el.replayTitle.textContent = `🎬 Xem lại — ${game ? game.name : ""}`;
+    if (el.replayTitle) el.replayTitle.textContent = tt("replayTitle").replace("{game}", game ? game.name : "");
     el.replayOverlay.classList.remove("hidden");
     rebuildReplay(0);
     focusOverlay(el.replayOverlay);
@@ -2350,11 +2351,11 @@
   // ====================== Tour hướng dẫn lần đầu ======================
   const TOUR_KEY = "tpg_onboarded";
   const TOUR_STEPS = [
-    { sel: "#catSidebar", title: "🗂️ Chọn thể loại", text: "Lọc game theo nhóm ở thanh bên trái: cờ, bản đồ, hành động, suy luận, may rủi... cùng mục Yêu thích & Chơi gần đây." },
-    { sel: "#gameSearch", title: "🔎 Tìm game", text: "Gõ tên hoặc mô tả để tìm nhanh trong số 47 trò chơi." },
-    { sel: "#dailyBanner", title: "⭐ Thử thách hôm nay", text: "Mỗi ngày một game khác nhau. Chơi xong để giữ chuỗi ngày và mở huy hiệu chuyên cần." },
-    { sel: "#profileChip", title: "👤 Hồ sơ của bạn", text: "Bấm vào đây để đổi tên, chọn avatar, xem thống kê, thành tích, bảng xếp hạng và lịch sử ván đấu." },
-    { sel: "#openOnlineHubBtn", title: "🌐 Chơi online", text: "Tạo phòng (công khai để người khác tìm thấy) hoặc vào phòng bằng mã. Có chat, xem lại ván và kết nối lại khi rớt mạng." },
+    { sel: "#catSidebar", titleKey: "tour1T", textKey: "tour1X" },
+    { sel: "#gameSearch", titleKey: "tour2T", textKey: "tour2X" },
+    { sel: "#dailyBanner", titleKey: "tour3T", textKey: "tour3X" },
+    { sel: "#profileChip", titleKey: "tour4T", textKey: "tour4X" },
+    { sel: "#openOnlineHubBtn", titleKey: "tour5T", textKey: "tour5X" },
   ];
   let tourIdx = 0;
   let tourList = [];
@@ -2370,11 +2371,11 @@
     ring.style.left = (r.left - pad) + "px";
     ring.style.width = (r.width + pad * 2) + "px";
     ring.style.height = (r.height + pad * 2) + "px";
-    el.tourTitle.textContent = step.title;
-    el.tourText.textContent = step.text;
+    el.tourTitle.textContent = tt(step.titleKey);
+    el.tourText.textContent = tt(step.textKey);
     el.tourStep.textContent = `${tourIdx + 1}/${tourList.length}`;
     el.tourNext.textContent = tourIdx >= tourList.length - 1
-      ? (window.I18n ? (I18n.getLang() === "en" ? "Done" : "Xong") : "Xong")
+      ? tt("tourDone")
       : (window.I18n ? I18n.t("tourNext") : "Tiếp");
     // đặt thẻ tour: dưới nếu còn chỗ, không thì trên
     const card = el.tourCard;
@@ -2432,7 +2433,7 @@
     const full = url ? `${text}` : text;
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Game 2 Người", text, url: url || location.href });
+        await navigator.share({ title: tt("shareTitle"), text, url: url || location.href });
         return;
       }
     } catch (e) { if (e && e.name === "AbortError") return; }
