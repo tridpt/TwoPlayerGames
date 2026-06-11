@@ -1,33 +1,44 @@
 /* Ghép Từ Đối Kháng (Word Duel) — chơi chung máy, ĐẤU MÁY và ONLINE
-   Có một KHO ÂM TIẾT chung (lưới). Thay nhau chọn 2+ âm tiết để ghép thành một
-   TỪ tiếng Việt hợp lệ (có trong từ điển window.VI_DICT) và ăn điểm. Âm tiết đã
-   dùng được thay bằng âm tiết mới. Hết kho mà không ai ghép được nữa → ai nhiều
-   điểm hơn thắng.
+   Kho âm tiết chung. Thay nhau ghép 2+ âm tiết thành TỪ tiếng Việt hợp lệ
+   (window.VI_DICT) để ăn điểm. Chiều sâu chiến thuật:
+     • Điểm theo ĐỘ HIẾM âm tiết (hay gặp 1đ · vừa 2đ · hiếm 3đ).
+     • Ô NHÂN ĐIỂM ×2 / ×3 nằm rải trong kho.
+     • Thưởng TỪ DÀI (≥3 âm tiết +3đ).
+     • COMBO: ghép liên tiếp không bỏ lượt được cộng dồn thưởng.
+     • ĐỔI KHO: bí thì làm mới toàn bộ kho (giới hạn lượt).
 
-   Đồng bộ online: kho âm tiết sinh TẤT ĐỊNH từ ctx.rng (chung seed) nên hai máy
-   giống hệt; chỉ gửi hành động (chỉ số ô đã chọn / bỏ lượt) qua relay. */
+   Đồng bộ online: kho + hệ số + thứ tự rút sinh TẤT ĐỊNH từ ctx.rng (chung seed);
+   chỉ gửi hành động (chỉ số ô / bỏ lượt / đổi kho) qua relay. */
 (function () {
-  const POOL = 9;        // số ô trong lưới
+  const POOL = 9;            // số ô trong lưới
+  const REFRESH_MAX = 2;     // số lần đổi kho mỗi người
 
   function norm(s) { return String(s).toLowerCase().replace(/\s+/g, " ").trim(); }
 
   function create(ctx) {
     const o = ctx.options || {};
-    const WIN = o.target ? Number(o.target) : 12;
+    const WIN = o.target ? Number(o.target) : 20;
     const dict = (typeof window !== "undefined" && window.VI_DICT) ? window.VI_DICT : new Set();
 
-    // Tách từ điển: danh sách từ 2 âm tiết để dựng kho chắc chắn ghép được.
+    // Danh sách từ 2 âm tiết để dựng kho chắc chắn ghép được + tính độ hiếm.
     const twoSylWords = [];
+    const freq = new Map();
     for (const w of dict) {
       const parts = w.split(" ");
-      if (parts.length === 2) twoSylWords.push(parts);
+      if (parts.length === 2) {
+        twoSylWords.push(parts);
+        for (const s of parts) freq.set(s, (freq.get(s) || 0) + 1);
+      }
       if (twoSylWords.length >= 4000) break;
     }
+    function sylScore(s) { const c = freq.get(s) || 0; return c >= 12 ? 1 : c >= 4 ? 2 : 3; }
 
     let score = [0, 0];
     let turn = ctx.isOnline ? ctx.firstSeat : 0;
     let over = false;
     let passes = 0;
+    let streak = [0, 0];
+    let refreshes = [REFRESH_MAX, REFRESH_MAX];
     let bag = [];
     let pool = [];
     let lastWord = null;
@@ -37,6 +48,14 @@
     root.className = "wd-root";
     ctx.boardEl.appendChild(root);
     let els = null;
+
+    // Mỗi ô trong pool: { s: âm tiết, mult: hệ số (1/2/3) }
+    function makeTile(syl) {
+      // ~15% ô ×2, ~7% ô ×3 (tất định theo rng)
+      const r = ctx.rng();
+      const mult = r < 0.07 ? 3 : r < 0.22 ? 2 : 1;
+      return { s: syl, mult };
+    }
 
     function buildBag() {
       const sylSet = [];
@@ -53,7 +72,7 @@
     }
 
     function refillPool() {
-      while (pool.length < POOL && bag.length) pool.push(bag.shift());
+      while (pool.length < POOL && bag.length) pool.push(makeTile(bag.shift()));
     }
 
     function isWord(syls) {
@@ -64,32 +83,44 @@
     function anyWordPossible() {
       for (let i = 0; i < pool.length; i++)
         for (let j = 0; j < pool.length; j++) {
-          if (i !== j && isWord([pool[i], pool[j]])) return true;
+          if (i !== j && isWord([pool[i].s, pool[j].s])) return true;
         }
       return false;
     }
 
+    // Tính điểm cho một nước ghép: tổng điểm-hiếm × hệ-số-ô, + thưởng dài + combo.
+    function scoreFor(idx, seat) {
+      let base = 0, mult = 1;
+      for (const i of idx) { base += sylScore(pool[i].s); mult *= pool[i].mult; }
+      let pts = base * mult;
+      if (idx.length >= 3) pts += 3;            // thưởng từ dài
+      const combo = streak[seat];               // combo hiện tại (trước nước này)
+      if (combo >= 1) pts += combo;             // +1 mỗi mắt combo liên tiếp
+      return { pts, base, mult, longBonus: idx.length >= 3 ? 3 : 0, comboBonus: combo >= 1 ? combo : 0 };
+    }
+
     function canPlay() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
 
-    // Hành động: { k:"word", idx:[...] } | { k:"pass" }
+    // Hành động: { k:"word", idx:[...] } | { k:"pass" } | { k:"refresh" }
     function applyMove(move, fromRemote) {
       if (over) return;
       if (move.k === "word") {
         const idx = move.idx.map(Number);
         if (idx.length < 2) return;
         if (idx.some((i) => i < 0 || i >= pool.length) || new Set(idx).size !== idx.length) return;
-        const syls = idx.map((i) => pool[i]);
+        const syls = idx.map((i) => pool[i].s);
         if (!isWord(syls)) return;
         if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "word", idx });
 
-        const pts = syls.length;
-        score[turn] += pts;
+        const sc = scoreFor(idx, turn);
+        score[turn] += sc.pts;
+        streak[turn]++;
         passes = 0;
         ctx.sound("win");
         const sortedDesc = [...idx].sort((a, b) => b - a);
         for (const i of sortedDesc) pool.splice(i, 1);
         refillPool();
-        lastWord = { by: turn, text: syls.join(" "), pts };
+        lastWord = { by: turn, text: syls.join(" "), pts: sc.pts, mult: sc.mult, longBonus: sc.longBonus, comboBonus: sc.comboBonus };
         selected = [];
 
         if (WIN > 0 && score[turn] >= WIN) { finish(turn); return; }
@@ -97,9 +128,24 @@
         turn = 1 - turn;
         ctx.setTurn(turn);
         render(); updateStatus();
+      } else if (move.k === "refresh") {
+        if (refreshes[turn] <= 0) return;
+        if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "refresh" });
+        refreshes[turn]--;
+        streak[turn] = 0;       // đổi kho làm mất combo
+        pool = [];
+        // trả âm tiết cũ về cuối túi rồi rút mới
+        refillPool();
+        let guard = 0;
+        while (!anyWordPossible() && bag.length && guard++ < 30) pool.push(makeTile(bag.shift()));
+        selected = [];
+        ctx.sound("place");
+        lastWord = { by: turn, refresh: true };
+        render(); updateStatus();
       } else if (move.k === "pass") {
         if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "pass" });
         passes++;
+        streak[turn] = 0;
         selected = [];
         ctx.sound("place");
         if (passes >= 2) { finishByScore(); return; }
@@ -124,19 +170,24 @@
       finish(w);
     }
 
-    // ----- AI: tìm một cặp ghép được trong pool; khó hơn thì ưu tiên từ "dài/hiếm" -----
+    // ----- AI: chọn nước điểm cao nhất (hard) / ngẫu nhiên (easy) -----
     function aiMove(level) {
       if (over) return null;
       const pairs = [];
       for (let i = 0; i < pool.length; i++)
         for (let j = 0; j < pool.length; j++) {
-          if (i !== j && isWord([pool[i], pool[j]])) pairs.push([i, j]);
+          if (i !== j && isWord([pool[i].s, pool[j].s])) pairs.push([i, j]);
         }
-      if (!pairs.length) return { k: "pass" };
-      // easy: đôi khi bỏ lỡ; hard: luôn chơi
-      if (level === "easy" && Math.random() < 0.35) return { k: "pass" };
-      const pick = pairs[Math.floor(ctx.rng() * pairs.length)];
-      return { k: "word", idx: pick };
+      if (!pairs.length) {
+        if (refreshes[turn] > 0) return { k: "refresh" };
+        return { k: "pass" };
+      }
+      if (level === "easy" && Math.random() < 0.4) return { k: "word", idx: pairs[Math.floor(ctx.rng() * pairs.length)] };
+      if (level === "normal") return { k: "word", idx: pairs[Math.floor(ctx.rng() * pairs.length)] };
+      // hard: chọn cặp điểm cao nhất
+      let best = pairs[0], bestPts = -1;
+      for (const p of pairs) { const s = scoreFor(p, turn).pts; if (s > bestPts) { bestPts = s; best = p; } }
+      return { k: "word", idx: best };
     }
 
     // ----- Giao diện -----
@@ -156,34 +207,57 @@
       };
     }
 
+    function tileHtml(t, i) {
+      const sel = selected.includes(i);
+      const multTag = t.mult > 1 ? `<span class="wd-mult x${t.mult}">×${t.mult}</span>` : "";
+      const sc = sylScore(t.s);
+      return `<button type="button" class="wd-tile${sel ? " on" : ""} r${sc}" data-i="${i}">` +
+        `${sel ? `<span class="wd-order">${selected.indexOf(i) + 1}</span>` : ""}` +
+        `${multTag}<span class="wd-syl">${t.s}</span><span class="wd-pt">${sc}</span>` +
+      `</button>`;
+    }
+
     function render() {
       if (!els) buildShell();
       const me = ctx.isOnline ? ctx.mySeat : turn;
+      function combo(seat) { return streak[seat] >= 1 ? `<span class="wd-combo">🔥${streak[seat] + 1}x</span>` : ""; }
       els.head.innerHTML =
         `<div class="wd-pinfo p1 ${turn === 0 && !over ? "active" : ""}">` +
-          `<span>🟥 P1${me === 0 ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[0]}</b>` +
+          `<span>🟥 P1${me === 0 ? ctx.t(" (bạn)", " (you)") : ""} ${combo(0)}</span><b>${score[0]}</b>` +
         `</div>` +
         `<div class="wd-goal">${WIN > 0 ? ctx.t(`về đích ${WIN}`, `to ${WIN}`) : ""}</div>` +
         `<div class="wd-pinfo p2 ${turn === 1 && !over ? "active" : ""}">` +
-          `<span>🟦 P2${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[1]}</b>` +
+          `<span>🟦 P2${me === 1 ? ctx.t(" (bạn)", " (you)") : ""} ${combo(1)}</span><b>${score[1]}</b>` +
         `</div>`;
 
-      els.last.innerHTML = lastWord
-        ? ctx.t(`Vừa ghép: <b>${lastWord.text}</b> (+${lastWord.pts}) bởi P${lastWord.by + 1}`,
-                `Last word: <b>${lastWord.text}</b> (+${lastWord.pts}) by P${lastWord.by + 1}`)
-        : ctx.t("Chọn các ô để ghép thành một từ tiếng Việt có nghĩa.", "Pick tiles to form a valid Vietnamese word.");
+      if (lastWord && lastWord.refresh) {
+        els.last.innerHTML = ctx.t(`🔄 P${lastWord.by + 1} đã đổi kho.`, `🔄 P${lastWord.by + 1} refreshed the pool.`);
+      } else if (lastWord) {
+        const extra = (lastWord.mult > 1 ? ` ×${lastWord.mult}` : "") +
+          (lastWord.longBonus ? ` +${lastWord.longBonus}${ctx.t(" dài", " long")}` : "") +
+          (lastWord.comboBonus ? ` +${lastWord.comboBonus}${ctx.t(" combo", " combo")}` : "");
+        els.last.innerHTML = ctx.t(`Vừa ghép: <b>${lastWord.text}</b> → <b>+${lastWord.pts}</b>${extra} (P${lastWord.by + 1})`,
+                                   `Last: <b>${lastWord.text}</b> → <b>+${lastWord.pts}</b>${extra} (P${lastWord.by + 1})`);
+      } else {
+        els.last.innerHTML = ctx.t("Ghép âm tiết thành từ. Ô ×2/×3 và từ dài cho nhiều điểm hơn!", "Form words from syllables. ×2/×3 tiles and long words score more!");
+      }
 
-      els.pool.innerHTML = pool.map((s, i) =>
-        `<button type="button" class="wd-tile${selected.includes(i) ? " on" : ""}" data-i="${i}">` +
-          `${selected.includes(i) ? `<span class="wd-order">${selected.indexOf(i) + 1}</span>` : ""}${s}` +
-        `</button>`).join("");
+      els.pool.innerHTML = pool.map((t, i) => tileHtml(t, i)).join("");
 
-      const preview = selected.map((i) => pool[i]).join(" ");
-      const valid = isWord(selected.map((i) => pool[i]));
-      els.sel.innerHTML = selected.length
-        ? `<span class="wd-prev${valid ? " ok" : ""}">${preview}</span>` +
-          (valid ? `<span class="wd-ok">✓ ${ctx.t("từ hợp lệ +", "valid word +")}${selected.length}</span>` : `<span class="wd-no">${ctx.t("chưa thành từ", "not a word yet")}</span>`)
-        : `<span class="wd-prev empty">${ctx.t("(chọn ô bên trên)", "(pick tiles above)")}</span>`;
+      const syls = selected.map((i) => pool[i].s);
+      const valid = isWord(syls);
+      if (selected.length) {
+        const preview = syls.join(" ");
+        if (valid) {
+          const sc = scoreFor(selected, turn);
+          const extra = (sc.mult > 1 ? ` ×${sc.mult}` : "") + (sc.longBonus ? ` +${sc.longBonus}` : "") + (sc.comboBonus ? ` +${sc.comboBonus}🔥` : "");
+          els.sel.innerHTML = `<span class="wd-prev ok">${preview}</span><span class="wd-ok">✓ +${sc.pts}${extra}</span>`;
+        } else {
+          els.sel.innerHTML = `<span class="wd-prev">${preview}</span><span class="wd-no">${ctx.t("chưa thành từ", "not a word yet")}</span>`;
+        }
+      } else {
+        els.sel.innerHTML = `<span class="wd-prev empty">${ctx.t("(chọn ô bên trên)", "(pick tiles above)")}</span>`;
+      }
 
       renderActs(valid);
     }
@@ -191,9 +265,11 @@
     function renderActs(valid) {
       if (over) { els.acts.innerHTML = ""; return; }
       if (!canPlay()) { els.acts.innerHTML = `<div class="wd-wait">${ctx.t("Chờ đối thủ...", "Waiting for opponent...")}</div>`; return; }
+      const rLeft = refreshes[turn];
       els.acts.innerHTML =
         `<button type="button" class="btn wd-clear">${ctx.t("↺ Bỏ chọn", "↺ Clear")}</button>` +
         `<button type="button" class="btn primary wd-go${valid ? "" : " disabled"}">${ctx.t("✓ Ghép từ", "✓ Make word")}</button>` +
+        `<button type="button" class="btn wd-refresh${rLeft > 0 ? "" : " disabled"}">${ctx.t("🔄 Đổi kho", "🔄 Refresh")} (${rLeft})</button>` +
         `<button type="button" class="btn wd-pass">${ctx.t("⤳ Bỏ lượt", "⤳ Pass")}</button>`;
       wireActs();
     }
@@ -213,9 +289,11 @@
       if (clr) clr.addEventListener("click", () => { selected = []; render(); });
       const go = els.acts.querySelector(".wd-go");
       if (go) go.addEventListener("click", () => {
-        if (!isWord(selected.map((i) => pool[i]))) return;
+        if (!isWord(selected.map((i) => pool[i].s))) return;
         applyMove({ k: "word", idx: selected.slice() }, false);
       });
+      const ref = els.acts.querySelector(".wd-refresh");
+      if (ref) ref.addEventListener("click", () => { if (refreshes[turn] > 0) applyMove({ k: "refresh" }, false); });
       const pass = els.acts.querySelector(".wd-pass");
       if (pass) pass.addEventListener("click", () => applyMove({ k: "pass" }, false));
     }
@@ -223,16 +301,15 @@
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) ctx.setStatus(ctx.t("Đối thủ đang ghép từ...", "Opponent is forming a word..."));
-      else ctx.setStatus(ctx.t(`Lượt bạn: chọn các ô để ghép thành từ rồi bấm "Ghép từ". Không ghép được thì "Bỏ lượt".`,
-        `Your turn: pick tiles to form a word then "Make word". Stuck? "Pass".`));
+      else ctx.setStatus(ctx.t(`Lượt bạn: ghép từ để ăn điểm. Nhắm ô ×2/×3 và từ dài, giữ combo 🔥 để cộng dồn!`,
+        `Your turn: form words to score. Aim for ×2/×3 tiles and long words, keep your 🔥 combo going!`));
     }
 
     // khởi tạo
     buildBag();
     refillPool();
-    // đảm bảo pool mở màn có ít nhất một nước (nếu xui thì bơm thêm)
     let guard = 0;
-    while (!anyWordPossible() && bag.length && guard++ < 20) { pool.push(bag.shift()); }
+    while (!anyWordPossible() && bag.length && guard++ < 20) { pool.push(makeTile(bag.shift())); }
     ctx.setTurn(turn);
     render();
     updateStatus();
@@ -245,26 +322,26 @@
     id: "wordduel",
     name: "Ghép Từ Đối Kháng",
     emoji: "🔤",
-    description: "Đấu vốn từ tiếng Việt: từ một kho âm tiết chung, thay nhau chọn các âm tiết để ghép thành từ có nghĩa và ăn điểm. Âm tiết dùng xong được thay mới. Ai đạt điểm mốc trước (hoặc nhiều điểm hơn khi hết kho) sẽ thắng. Chơi chung máy, đấu máy hoặc online.",
+    description: "Đấu vốn từ tiếng Việt có chiều sâu: ghép âm tiết thành từ có nghĩa để ăn điểm. Âm tiết hiếm, ô nhân điểm ×2/×3, từ dài và chuỗi combo đều cho thêm điểm. Bí thì đổi kho. Ai đạt mốc trước (hoặc nhiều điểm hơn khi hết kho) sẽ thắng. Chơi chung máy, đấu máy hoặc online.",
     onlineReady: true,
     supportsAI: true,
     options: [
       {
-        id: "target", label: "Điểm để thắng", default: 12,
+        id: "target", label: "Điểm để thắng", default: 20,
         choices: [
-          { value: 8, label: "8 (nhanh)" },
-          { value: 12, label: "12 (chuẩn)" },
-          { value: 18, label: "18 (dài)" },
+          { value: 15, label: "15 (nhanh)" },
+          { value: 20, label: "20 (chuẩn)" },
+          { value: 30, label: "30 (dài)" },
           { value: 0, label: "Chơi tới khi hết kho" },
         ],
       },
     ],
     howTo: [
-      "Trên màn có một KHO ÂM TIẾT chung (lưới các ô chữ). Hai người dùng chung kho này.",
-      "Đến lượt, bạn bấm chọn 2 ô (hoặc hơn) theo thứ tự để ghép thành một TỪ tiếng Việt CÓ NGHĨA, ví dụ: 'bình' + 'yên' = 'bình yên'.",
-      "Khu xem trước hiện từ bạn đang ghép: ✓ xanh nghĩa là từ hợp lệ (có trong từ điển), khi đó bấm 'Ghép từ' để ăn điểm (mỗi âm tiết = 1 điểm).",
-      "Các ô vừa dùng biến mất và được thay bằng âm tiết mới từ kho.",
-      "Nếu không ghép được, bấm 'Bỏ lượt'. Cả hai cùng bỏ lượt liên tiếp thì ván kết thúc.",
+      "Trên màn có một KHO ÂM TIẾT chung. Đến lượt, bấm chọn 2+ ô theo thứ tự để ghép thành một TỪ tiếng Việt CÓ NGHĨA (vd 'bình' + 'yên').",
+      "Mỗi âm tiết có ĐIỂM theo độ hiếm (số nhỏ ở góc ô): hay gặp = 1, vừa = 2, hiếm = 3. Ghép từ chứa âm tiết hiếm sẽ được nhiều điểm hơn.",
+      "Một số ô có HỆ SỐ ×2 hoặc ×3 — nếu dùng ô đó, điểm cả từ được nhân lên. Cố nhắm vào các ô nhân điểm!",
+      "Thưởng TỪ DÀI: ghép từ 3 âm tiết trở lên được +3 điểm. COMBO 🔥: ghép liên tiếp không bỏ lượt sẽ cộng thêm điểm tăng dần; bỏ lượt hoặc đổi kho sẽ mất combo.",
+      "Bí nước? Bấm '🔄 Đổi kho' để thay toàn bộ âm tiết (mỗi người có giới hạn lượt). Hoặc 'Bỏ lượt' — cả hai bỏ lượt liên tiếp thì ván kết thúc.",
       "Người đạt điểm mốc trước sẽ thắng; nếu chơi tới khi hết kho thì ai nhiều điểm hơn thắng. Chơi chung máy, đấu với máy, hoặc online.",
     ],
     create,

@@ -12674,10 +12674,19 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
   position: relative; padding: 14px 8px; border-radius: 12px; font-size: 1.15rem; font-weight: 700;
   background: #eef1ff; color: #1a1f3d; border: 2px solid transparent; cursor: pointer;
   transition: transform 0.08s, box-shadow 0.16s; text-transform: lowercase;
+  display: flex; align-items: center; justify-content: center; min-height: 52px;
 }
 .wd-tile:active { transform: scale(0.95); }
 .wd-tile.on { box-shadow: 0 0 0 3px var(--accent); transform: translateY(-2px); background: #fff7e0; }
-.wd-order { position: absolute; top: -8px; left: -8px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #2a1606; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+.wd-tile.r2 { background: #e7f0ff; }
+.wd-tile.r3 { background: #ffeef0; }
+.wd-tile .wd-syl { pointer-events: none; }
+.wd-tile .wd-pt { position: absolute; bottom: 2px; right: 5px; font-size: 0.62rem; font-weight: 800; color: #8a93c4; }
+.wd-mult { position: absolute; top: 2px; right: 4px; font-size: 0.62rem; font-weight: 800; padding: 1px 4px; border-radius: 6px; color: #2a1606; }
+.wd-mult.x2 { background: #ffd166; }
+.wd-mult.x3 { background: linear-gradient(135deg, #ff8f5a, #ff5d73); color: #fff; }
+.wd-order { position: absolute; top: -8px; left: -8px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #2a1606; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 2; }
+.wd-combo { font-size: 0.72rem; color: #ff8f5a; font-weight: 800; margin-left: 4px; }
 .wd-sel { display: flex; align-items: center; gap: 12px; justify-content: center; min-height: 40px; padding: 8px 12px; border-radius: 12px; background: rgba(20,26,55,0.4); border: 1px solid rgba(255,255,255,0.08); flex-wrap: wrap; }
 .wd-prev { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.5px; }
 .wd-prev.ok { color: #6ee7b7; }
