@@ -212,13 +212,13 @@
     }
 
     // ----- Giao diện -----
-    // Bàn 20 ô xếp vòng quanh trên lưới 6×6 (viền ngoài).
+    // Bàn 20 ô xếp vòng quanh trên lưới 6×6 (viền ngoài), đi theo chiều kim đồng hồ
+    // bắt đầu từ góc trên-trái. Trả về {r,c} 1-based.
     function ringPos(i) {
-      // trả về {r, c} (1-based) trên lưới 6×6 cho ô thứ i (0..19), đi theo chiều kim đồng hồ
-      if (i <= 5) return { r: 1, c: i + 1 };           // hàng trên 0..5
-      if (i <= 9) return { r: i - 4, c: 6 };           // cột phải 6..9 -> r2..5
-      if (i <= 14) return { r: 6, c: 6 - (i - 10) };   // hàng dưới 10..14 -> c6..2
-      return { r: 6 - (i - 15), c: 1 };                // cột trái 15..19 -> r6..2
+      if (i <= 5) return { r: 1, c: i + 1 };            // top: (1,1)..(1,6)  [0..5]
+      if (i <= 9) return { r: i - 4, c: 6 };            // right: (2,6)..(5,6) [6..9]
+      if (i <= 15) return { r: 6, c: 6 - (i - 10) };    // bottom: (6,6)..(6,1) [10..15]
+      return { r: 5 - (i - 16), c: 1 };                 // left: (5,1)..(2,1) [16..19]
     }
 
     function buildShell() {
@@ -228,15 +228,21 @@
         `<div class="tc-log" id="tcLog"></div>` +
         `<div class="tc-controls" id="tcControls"></div>`;
       els = { top: root.querySelector("#tcTop"), board: root.querySelector("#tcBoard"), log: root.querySelector("#tcLog"), controls: root.querySelector("#tcControls") };
-      // dựng 36 ô lưới, chỉ 20 ô viền là ô chơi
       const grid = els.board;
-      const cellAt = {};
-      for (let i = 0; i < SIZE; i++) { const p = ringPos(i); cellAt[p.r + "," + p.c] = i; }
-      for (let r = 1; r <= 6; r++) for (let c = 1; c <= 6; c++) {
-        const key = r + "," + c;
+      // ô trung tâm (trang trí) chiếm vùng giữa r2..5 × c2..5
+      const center = document.createElement("div");
+      center.id = "tcCenter";
+      center.style.gridRow = "2 / 6";
+      center.style.gridColumn = "2 / 6";
+      grid.appendChild(center);
+      // 20 ô viền — đặt vị trí grid tường minh
+      for (let i = 0; i < SIZE; i++) {
+        const p = ringPos(i);
         const div = document.createElement("div");
-        if (cellAt[key] != null) { div.className = "tc-cell"; div.dataset.i = cellAt[key]; }
-        else { div.className = "tc-inner"; if (r === 2 && c === 2) div.id = "tcCenter"; }
+        div.className = "tc-cell";
+        div.dataset.i = i;
+        div.style.gridRow = String(p.r);
+        div.style.gridColumn = String(p.c);
         grid.appendChild(div);
       }
     }
