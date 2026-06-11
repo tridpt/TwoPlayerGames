@@ -609,6 +609,42 @@ var GAMES_EN_DATA = {
       "Whoever correctly types all the words first wins; the finish time is shown.",
     ],
   },
+  numberduel: {
+    name: "Number Duel",
+    description: "Both secretly pick a number — the higher one scores, but matching numbers cancel out.",
+    howTo: [
+      "Each round, BOTH players secretly pick a number within the set range (1–6 by default).",
+      "Once both have chosen, the two numbers are revealed at the same time.",
+      "If the numbers DIFFER: whoever picked the HIGHER number scores points equal to that number.",
+      "If the numbers MATCH: a 'clash' — NOBODY scores that round.",
+      "Mind game: high numbers score big but are easy to guess and cancel; low numbers are safe but score little.",
+      "First to reach the target score wins. Play locally (pass the device), vs AI, or online.",
+    ],
+  },
+  prisonersdilemma: {
+    name: "Prisoner's Dilemma",
+    description: "Secretly cooperate or betray each round — trust and mind games decide who scores more.",
+    howTo: [
+      "The classic mind game. Over several rounds, BOTH players secretly choose: 🤝 Cooperate or 🔪 Betray.",
+      "Once both have chosen, the picks are revealed together and scored.",
+      "Both COOPERATE: +3 each (mutual trust pays off).",
+      "One BETRAYS, one COOPERATES: the betrayer +5, the betrayed +0.",
+      "Both BETRAY: only +1 each (distrust hurts both).",
+      "After the chosen rounds, whoever has MORE points wins. Betraying scores big short-term but invites retaliation. Play locally, vs AI (tit-for-tat), or online.",
+    ],
+  },
+  rpsplus: {
+    name: "Rock-Paper-Scissors Plus",
+    description: "Rock-paper-scissors with a charged 💥 Cannon move — but Paper eats the Cannon.",
+    howTo: [
+      "Each round both players secretly choose, then reveal together. Normal rules: ✊ Rock beats ✌️ Scissors, Scissors beats ✋ Paper, Paper beats Rock.",
+      "Every round you gain +1 CHARGE for your special move (max 3). At 3 charge you can unleash the 💥 CANNON.",
+      "The Cannon BEATS all normal moves — a powerful finisher. Using it resets your charge.",
+      "BUT: if your opponent plays ✋ Paper as you fire the Cannon, Paper 'eats' it (Paper wins). Two Cannons tie.",
+      "Read your opponent: about to fire a Cannon? Play Paper to counter. Afraid of Paper? Play normal moves.",
+      "First to win the chosen number of rounds wins. Play locally, vs AI, or online.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;

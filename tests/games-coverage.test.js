@@ -35,7 +35,7 @@ const GAMES = [
   "orderchaos", "pentago", "pong", "poolbattle", "robotfactorywar",
   "seabattleplus", "slingshotbattle", "stratego", "submarinehunt", "tankarena",
   "territorywar", "timeloopduel", "trapmansion", "treasure", "yahtzee",
-  "reactionduel", "dashdodge", "snakesladders", "liarsdice", "codebreakerduel", "blackjackduel", "twentyquestions", "wordduel", "tugofwar", "typingrace",
+  "reactionduel", "dashdodge", "snakesladders", "liarsdice", "codebreakerduel", "blackjackduel", "twentyquestions", "wordduel", "tugofwar", "typingrace", "numberduel", "prisonersdilemma", "rpsplus",
 ];
 
 for (const id of GAMES) {

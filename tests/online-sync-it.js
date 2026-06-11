@@ -37,6 +37,9 @@ const CASES = [
   { gameId: "blackjackduel", move: { k: "hit" }, check: (m) => m.move.k === "hit" },
   { gameId: "twentyquestions", move: { k: "ask", text: "Nó có sống không?" }, check: (m) => m.move.k === "ask" && m.move.text.length > 0 },
   { gameId: "wordduel", move: { k: "word", idx: [0, 1] }, check: (m) => m.move.k === "word" && m.move.idx.length === 2 },
+  { gameId: "numberduel", move: { k: "pick", n: 4 }, check: (m) => m.move.k === "pick" && m.move.n === 4 },
+  { gameId: "prisonersdilemma", move: { k: "pick", c: "D" }, check: (m) => m.move.k === "pick" && m.move.c === "D" },
+  { gameId: "rpsplus", move: { k: "pick", c: "R" }, check: (m) => m.move.k === "pick" && m.move.c === "R" },
 ];
 
 (async () => {
