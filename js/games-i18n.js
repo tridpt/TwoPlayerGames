@@ -524,6 +524,18 @@ var GAMES_EN_DATA = {
       "The first player to land exactly on square 100 wins. Play locally, vs the computer, or online via a room code.",
     ],
   },
+  liarsdice: {
+    name: "Liar's Dice",
+    description: "A game of bluffing: each player hides 5 dice and takes turns 'bidding' how many of a face exist across all dice — or calls 'Challenge!' to reveal. Over-bid or a wrong challenge costs you a die. Lose all your dice and you lose. Play locally, vs AI, or online.",
+    howTo: [
+      "Each player has a set of hidden dice (5 by default). You only see your own dice.",
+      "On your turn you 'BID': claim there are at least N dice showing a given face, counting ALL dice from both players.",
+      "Each new bid must be HIGHER: raise the quantity, or keep the quantity but pick a higher face.",
+      "Instead of bidding you can call 'CHALLENGE!'. All dice are revealed and counted: if the actual count is at least the bid, the bidder was RIGHT (the challenger loses a die); if fewer, the bidder was WRONG (loses a die).",
+      "By default the ★ (1) face is 'wild' — it counts as every face (can be turned off in options).",
+      "The loser of each round bids first next round. Run out of dice and you lose.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
