@@ -12794,8 +12794,11 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 /* Tù nhân song đề */
 .pd2-payoff { font-size: 0.76rem; color: var(--muted); text-align: center; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,0.05); }
 .pd2-btns, .rps2-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.pd2-btns .btn { min-height: 56px; font-size: 1rem; padding: 0 22px; }
 .pd2-coop { border-color: rgba(110,231,183,0.5) !important; }
 .pd2-betray { border-color: rgba(255,93,115,0.5) !important; }
+.pd2-coop:hover { box-shadow: 0 0 14px rgba(110,231,183,0.4); }
+.pd2-betray:hover { box-shadow: 0 0 14px rgba(255,93,115,0.4); }
 .pd2-hist { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: center; }
 .pd2-histtitle { width: 100%; text-align: center; font-size: 0.75rem; color: var(--muted); }
 .pd2-hcell { font-size: 0.95rem; padding: 2px 5px; border-radius: 6px; background: rgba(42,48,96,0.5); }

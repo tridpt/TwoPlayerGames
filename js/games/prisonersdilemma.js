@@ -70,9 +70,10 @@
           const w = score[0] === score[1] ? -1 : (score[0] > score[1] ? 0 : 1);
           if (w >= 0) ctx.incScore(w);
           ctx.setTurn(-1);
+          const wname = (s) => ctx.vsAI ? (s === 0 ? ctx.t("Bạn", "You") : ctx.t("Máy", "AI")) : ctx.t("Người chơi " + (s + 1), "Player " + (s + 1));
           ctx.setStatus(w < 0
             ? ctx.t(`🤝 Hòa ${score[0]}–${score[1]}!`, `🤝 Draw ${score[0]}–${score[1]}!`)
-            : ctx.t(`🎉 Người chơi ${w + 1} thắng ${score[0]}–${score[1]}!`, `🎉 Player ${w + 1} wins ${score[0]}–${score[1]}!`));
+            : ctx.t(`🎉 ${wname(w)} thắng ${score[0]}–${score[1]}!`, `🎉 ${wname(w)} wins ${score[0]}–${score[1]}!`));
           render();
           return;
         }
@@ -116,10 +117,11 @@
     function render() {
       if (!els) buildShell();
       const me = mySeatIdx();
+      const p2label = ctx.vsAI ? ctx.t("🤖 Máy", "🤖 AI") : `🟦 P2${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}`;
       els.head.innerHTML =
-        `<div class="pd2-pinfo p1"><span>🟥 P1${me === 0 ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[0]}</b></div>` +
+        `<div class="pd2-pinfo p1"><span>🟥 P1${me === 0 || ctx.vsAI ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[0]}</b></div>` +
         `<div class="pd2-goal">${ctx.t("vòng", "round")} ${Math.min(roundNo, ROUNDS)}/${ROUNDS}</div>` +
-        `<div class="pd2-pinfo p2"><span>🟦 P2${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[1]}</b></div>`;
+        `<div class="pd2-pinfo p2"><span>${p2label}</span><b>${score[1]}</b></div>`;
 
       if (lastResult && (revealing || bothPicked())) {
         const { p0, p1, s0, s1 } = lastResult;
@@ -145,8 +147,9 @@
     function verdictText(p0, p1) {
       if (p0 === "C" && p1 === "C") return ctx.t("Cả hai HỢP TÁC — đôi bên cùng có lợi! (+3/+3)", "Both COOPERATE — mutual benefit! (+3/+3)");
       if (p0 === "D" && p1 === "D") return ctx.t("Cả hai PHẢN BỘI — nghi kỵ, ít điểm. (+1/+1)", "Both BETRAY — distrust, low points. (+1/+1)");
-      const betrayer = p0 === "D" ? 1 : 2;
-      return ctx.t(`P${betrayer} phản bội và ăn đậm! (+5/+0)`, `P${betrayer} betrayed and cashed in! (+5/+0)`);
+      const bSeat = p0 === "D" ? 0 : 1;
+      const bname = ctx.vsAI ? (bSeat === 0 ? ctx.t("Bạn", "You") : ctx.t("Máy", "AI")) : "P" + (bSeat + 1);
+      return ctx.t(`${bname} phản bội và ăn đậm! (+5/+0)`, `${bname} betrayed and cashed in! (+5/+0)`);
     }
 
     function renderPicker() {
@@ -181,6 +184,10 @@
         ctx.setStatus(picks[ctx.mySeat] != null
           ? ctx.t("Đã chọn — chờ lật.", "Chosen — waiting to reveal.")
           : ctx.t("Bí mật chọn Hợp tác hay Phản bội.", "Secretly choose Cooperate or Betray."));
+      } else if (ctx.vsAI) {
+        ctx.setStatus(picks[0] != null
+          ? ctx.t("Đã chọn — máy đang quyết định...", "Chosen — computer is deciding...")
+          : ctx.t("Chọn: tin tưởng Hợp tác hay Phản bội để ăn nhiều hơn?", "Choose: cooperate on trust, or betray for more?"));
       } else {
         const cur = picks[0] == null ? 0 : 1;
         ctx.setStatus(ctx.t(`Người chơi ${cur + 1}: chọn (giữ bí mật với đối thủ).`, `Player ${cur + 1}: choose (keep it secret).`));

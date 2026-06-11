@@ -89,7 +89,8 @@
           const w = score[0] > score[1] ? 0 : 1;
           ctx.incScore(w);
           ctx.setTurn(-1);
-          ctx.setStatus(ctx.t(`🎉 Người chơi ${w + 1} vô địch ${score[0]}–${score[1]}!`, `🎉 Player ${w + 1} wins ${score[0]}–${score[1]}!`));
+          const wname = ctx.vsAI ? (w === 0 ? ctx.t("Bạn", "You") : ctx.t("Máy", "AI")) : ctx.t("Người chơi " + (w + 1), "Player " + (w + 1));
+          ctx.setStatus(ctx.t(`🎉 ${wname} vô địch ${score[0]}–${score[1]}!`, `🎉 ${wname} wins ${score[0]}–${score[1]}!`));
           render();
           return;
         }
@@ -141,9 +142,10 @@
       if (lastResult && (revealing || bothPicked())) {
         const { a, b, winner } = lastResult;
         const nm = (window.I18n && I18n.getLang() === "en") ? NAME_EN : NAME_VI;
+        const pname = (s) => ctx.vsAI ? (s === 0 ? ctx.t("Bạn", "You") : ctx.t("Máy", "AI")) : "P" + (s + 1);
         const verdict = winner < 0
           ? ctx.t(`Cả hai ra ${nm[a]} — hòa vòng!`, `Both played ${nm[a]} — tie!`)
-          : ctx.t(`P${winner + 1} thắng vòng với ${nm[winner === 0 ? a : b]}!`, `P${winner + 1} wins with ${nm[winner === 0 ? a : b]}!`);
+          : ctx.t(`${pname(winner)} thắng vòng với ${nm[winner === 0 ? a : b]}!`, `${pname(winner)} wins with ${nm[winner === 0 ? a : b]}!`);
         els.reveal.innerHTML =
           `<div class="rps2-cards">` +
             `<span class="rps2-card p1${winner === 0 ? " win" : ""}">${ICON[a]}</span>` +
@@ -197,6 +199,10 @@
         ctx.setStatus(picks[ctx.mySeat] != null
           ? ctx.t("Đã chọn — chờ lật.", "Chosen — waiting to reveal.")
           : ctx.t("Bí mật chọn nước đi của bạn.", "Secretly choose your move."));
+      } else if (ctx.vsAI) {
+        ctx.setStatus(picks[0] != null
+          ? ctx.t("Đã chọn — máy đang nghĩ...", "Chosen — computer is thinking...")
+          : ctx.t("Chọn nước đi của bạn.", "Choose your move."));
       } else {
         const cur = picks[0] == null ? 0 : 1;
         ctx.setStatus(ctx.t(`Người chơi ${cur + 1}: chọn (giữ bí mật).`, `Player ${cur + 1}: choose (keep it secret).`));
