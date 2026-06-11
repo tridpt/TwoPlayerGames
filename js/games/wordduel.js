@@ -39,6 +39,8 @@
     let passes = 0;
     let streak = [0, 0];
     let refreshes = [REFRESH_MAX, REFRESH_MAX];
+    let hints = [3, 3];        // số lần gợi ý mỗi người
+    let hintPair = null;       // [i, j] cặp đang được gợi ý (highlight)
     let bag = [];
     let pool = [];
     let lastWord = null;
@@ -101,9 +103,23 @@
 
     function canPlay() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
 
+    // Tìm một cặp ô ghép được (ưu tiên điểm cao) để gợi ý cho người chơi.
+    function findHint() {
+      let best = null, bestPts = -1;
+      for (let i = 0; i < pool.length; i++)
+        for (let j = 0; j < pool.length; j++) {
+          if (i !== j && isWord([pool[i].s, pool[j].s])) {
+            const pts = scoreFor([i, j], turn).pts;
+            if (pts > bestPts) { bestPts = pts; best = [i, j]; }
+          }
+        }
+      return best;
+    }
+
     // Hành động: { k:"word", idx:[...] } | { k:"pass" } | { k:"refresh" }
     function applyMove(move, fromRemote) {
       if (over) return;
+      hintPair = null;
       if (move.k === "word") {
         const idx = move.idx.map(Number);
         if (idx.length < 2) return;
@@ -209,9 +225,10 @@
 
     function tileHtml(t, i) {
       const sel = selected.includes(i);
+      const hinted = hintPair && hintPair.includes(i);
       const multTag = t.mult > 1 ? `<span class="wd-mult x${t.mult}">×${t.mult}</span>` : "";
       const sc = sylScore(t.s);
-      return `<button type="button" class="wd-tile${sel ? " on" : ""} r${sc}" data-i="${i}">` +
+      return `<button type="button" class="wd-tile${sel ? " on" : ""}${hinted ? " hint" : ""} r${sc}" data-i="${i}">` +
         `${sel ? `<span class="wd-order">${selected.indexOf(i) + 1}</span>` : ""}` +
         `${multTag}<span class="wd-syl">${t.s}</span><span class="wd-pt">${sc}</span>` +
       `</button>`;
@@ -266,9 +283,11 @@
       if (over) { els.acts.innerHTML = ""; return; }
       if (!canPlay()) { els.acts.innerHTML = `<div class="wd-wait">${ctx.t("Chờ đối thủ...", "Waiting for opponent...")}</div>`; return; }
       const rLeft = refreshes[turn];
+      const hLeft = hints[turn];
       els.acts.innerHTML =
         `<button type="button" class="btn wd-clear">${ctx.t("↺ Bỏ chọn", "↺ Clear")}</button>` +
         `<button type="button" class="btn primary wd-go${valid ? "" : " disabled"}">${ctx.t("✓ Ghép từ", "✓ Make word")}</button>` +
+        `<button type="button" class="btn wd-hint${hLeft > 0 ? "" : " disabled"}">${ctx.t("💡 Gợi ý", "💡 Hint")} (${hLeft})</button>` +
         `<button type="button" class="btn wd-refresh${rLeft > 0 ? "" : " disabled"}">${ctx.t("🔄 Đổi kho", "🔄 Refresh")} (${rLeft})</button>` +
         `<button type="button" class="btn wd-pass">${ctx.t("⤳ Bỏ lượt", "⤳ Pass")}</button>`;
       wireActs();
@@ -294,8 +313,25 @@
       });
       const ref = els.acts.querySelector(".wd-refresh");
       if (ref) ref.addEventListener("click", () => { if (refreshes[turn] > 0) applyMove({ k: "refresh" }, false); });
+      const hint = els.acts.querySelector(".wd-hint");
+      if (hint) hint.addEventListener("click", useHint);
       const pass = els.acts.querySelector(".wd-pass");
       if (pass) pass.addEventListener("click", () => applyMove({ k: "pass" }, false));
+    }
+
+    function useHint() {
+      if (!canPlay() || hints[turn] <= 0) return;
+      const pair = findHint();
+      if (!pair) {
+        ctx.setStatus(ctx.t("Không có cặp nào ghép được — hãy đổi kho hoặc bỏ lượt.", "No valid pair — refresh the pool or pass."));
+        return;
+      }
+      hints[turn]--;
+      hintPair = pair;
+      // gợi ý sẵn cho người chơi bằng cách chọn luôn cặp đó
+      selected = pair.slice();
+      ctx.sound("notify");
+      render();
     }
 
     function updateStatus() {
@@ -341,7 +377,7 @@
       "Mỗi âm tiết có ĐIỂM theo độ hiếm (số nhỏ ở góc ô): hay gặp = 1, vừa = 2, hiếm = 3. Ghép từ chứa âm tiết hiếm sẽ được nhiều điểm hơn.",
       "Một số ô có HỆ SỐ ×2 hoặc ×3 — nếu dùng ô đó, điểm cả từ được nhân lên. Cố nhắm vào các ô nhân điểm!",
       "Thưởng TỪ DÀI: ghép từ 3 âm tiết trở lên được +3 điểm. COMBO 🔥: ghép liên tiếp không bỏ lượt sẽ cộng thêm điểm tăng dần; bỏ lượt hoặc đổi kho sẽ mất combo.",
-      "Bí nước? Bấm '🔄 Đổi kho' để thay toàn bộ âm tiết (mỗi người có giới hạn lượt). Hoặc 'Bỏ lượt' — cả hai bỏ lượt liên tiếp thì ván kết thúc.",
+      "Bí nước? Bấm '🔄 Đổi kho' để thay toàn bộ âm tiết (mỗi người có giới hạn lượt). Hoặc bấm '💡 Gợi ý' để hệ thống tô sáng & chọn sẵn một cặp ô ghép được (cũng giới hạn lượt). Hoặc 'Bỏ lượt' — cả hai bỏ lượt liên tiếp thì ván kết thúc.",
       "Người đạt điểm mốc trước sẽ thắng; nếu chơi tới khi hết kho thì ai nhiều điểm hơn thắng. Chơi chung máy, đấu với máy, hoặc online.",
     ],
     create,

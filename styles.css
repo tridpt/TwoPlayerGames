@@ -12678,6 +12678,8 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 }
 .wd-tile:active { transform: scale(0.95); }
 .wd-tile.on { box-shadow: 0 0 0 3px var(--accent); transform: translateY(-2px); background: #fff7e0; }
+.wd-tile.hint { box-shadow: 0 0 0 3px #6ee7b7, 0 0 14px rgba(110,231,183,0.6); animation: wd-hintpulse 0.9s ease-in-out infinite; }
+@keyframes wd-hintpulse { 50% { box-shadow: 0 0 0 4px #6ee7b7, 0 0 20px rgba(110,231,183,0.85); } }
 .wd-tile.r2 { background: #e7f0ff; }
 .wd-tile.r3 { background: #ffeef0; }
 .wd-tile .wd-syl { pointer-events: none; }

@@ -579,9 +579,10 @@ var GAMES_EN_DATA = {
     howTo: [
       "There's a shared POOL of syllable tiles on screen that both players draw from.",
       "On your turn, tap 2 (or more) tiles in order to form a valid Vietnamese WORD, e.g. 'bình' + 'yên' = 'bình yên'.",
-      "The preview shows your word: a green ✓ means it's valid (in the dictionary) — then press 'Make word' to score (1 point per syllable).",
-      "The used tiles disappear and are replaced by new syllables from the pool.",
-      "If you can't form a word, press 'Pass'. If both players pass in a row, the game ends.",
+      "Each syllable has a SCORE by rarity (small number in the corner): common = 1, uncommon = 2, rare = 3. Words with rare syllables score more.",
+      "Some tiles have a ×2 or ×3 MULTIPLIER — using them multiplies the whole word's score. Aim for them!",
+      "LONG-word bonus: 3+ syllables gives +3. COMBO 🔥: consecutive words without passing add escalating bonus points; passing or refreshing breaks the combo.",
+      "Stuck? Press '🔄 Refresh' to replace all syllables (limited uses each). Or press '💡 Hint' to highlight and pre-select a valid pair (also limited). Or 'Pass' — if both pass in a row, the game ends.",
       "Reach the target score first to win; if playing until the pool empties, the higher score wins. Play locally, vs AI, or online.",
     ],
   },
