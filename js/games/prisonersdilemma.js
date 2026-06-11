@@ -83,17 +83,33 @@
       }, 1900);
     }
 
-    // ----- AI: chiến lược "Tit-for-Tat" (ăn miếng trả miếng) + chút nhiễu -----
+    // ----- AI: 3 chiến lược theo mức độ -----
+    //  • Dễ:  thiên về hợp tác (dễ bị bắt nạt — cho người mới thắng).
+    //  • Vừa: Tit-for-Tat (hợp tác trước, rồi sao chép nước trước của đối thủ).
+    //  • Khó: Tit-for-Tat PHỦ ĐẦU (phản bội ngay vòng đầu, sau đó sao chép) —
+    //         khiến chiến thuật "luôn phản bội" chỉ HÒA chứ không thắng được.
     function aiMove() {
       if (over || revealing) return null;
-      const me = ctx.isOnline ? -1 : 1; // local: AI là seat 1
-      // nhìn nước trước của đối thủ (seat 0)
-      if (!history.length) return { k: "pick", c: "C" }; // mở màn: hợp tác
-      const last = history[history.length - 1];
-      const oppLast = me === 1 ? last.p0 : last.p1;
-      // ăn miếng trả miếng: lặp lại nước trước của đối thủ, đôi khi phản bội bất ngờ
-      if (ctx.rng() < 0.12) return { k: "pick", c: "D" };
-      return { k: "pick", c: oppLast };
+      const level = ctx.aiLevel || "normal";
+      const last = history.length ? history[history.length - 1] : null;
+      const oppLast = last ? last.p0 : null; // đối thủ là seat 0
+
+      if (level === "easy") {
+        // chủ yếu hợp tác, thỉnh thoảng phản bội
+        return { k: "pick", c: ctx.rng() < 0.25 ? "D" : "C" };
+      }
+      if (level === "normal") {
+        if (!oppLast) return { k: "pick", c: "C" };       // mở màn: hợp tác
+        if (ctx.rng() < 0.1) return { k: "pick", c: "D" }; // chút nhiễu
+        return { k: "pick", c: oppLast };                  // ăn miếng trả miếng
+      }
+      // hard: phủ đầu + trừng phạt. Mở màn PHẢN BỘI.
+      if (!oppLast) return { k: "pick", c: "D" };
+      // nếu đối thủ từng phản bội ở vòng ngay trước -> tiếp tục phản bội (trừng phạt)
+      if (oppLast === "D") return { k: "pick", c: "D" };
+      // đối thủ vừa hợp tác: phần lớn hợp tác lại để cùng ăn +3, nhưng thi thoảng
+      // thò phản bội bất ngờ để không bị đọc vị (vẫn không cho người chơi vượt lên dễ)
+      return { k: "pick", c: ctx.rng() < 0.25 ? "D" : "C" };
     }
 
     // ----- Giao diện -----
