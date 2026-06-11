@@ -548,6 +548,18 @@ var GAMES_EN_DATA = {
       "Options: code length, number of colors, and whether colors may repeat.",
     ],
   },
+  blackjackduel: {
+    name: "Blackjack Duel",
+    description: "Race to 21: take turns to 'Hit' for another card or 'Stand' to lock in. Go over 21 and you 'bust' and lose instantly. When both stand, whoever is closer to 21 wins the round. Race rounds to the target. Play locally, vs AI, or online.",
+    howTo: [
+      "Each round both players are dealt 2 cards from the same deck. You see your own cards; the opponent's second card is hidden until reveal.",
+      "Scoring: A = 11 (drops to 1 if you'd bust), 10/J/Q/K = 10, others by number.",
+      "On your turn choose 'HIT' to draw another card, or 'STAND' to lock in your current total.",
+      "If your total goes over 21 you 'BUST' and lose the round immediately.",
+      "When both have stood (or one busts), compare totals: closer to 21 (without busting) wins the round; equal totals tie.",
+      "The first player to win the chosen number of rounds wins the match. Play locally, vs AI, or online.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;

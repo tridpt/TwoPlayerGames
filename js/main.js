@@ -230,7 +230,7 @@
       icon: "🎲",
       hint: "Roll, ghi điểm, domino, đấu giá kín và lật cặp nhanh gọn.",
       hintKey: "grpDiceHint",
-      games: ["auctionwar", "memory", "pig", "yahtzee", "domino", "snakesladders", "liarsdice"],
+      games: ["auctionwar", "memory", "pig", "yahtzee", "domino", "snakesladders", "liarsdice", "blackjackduel"],
     },
   ];
 
