@@ -513,6 +513,17 @@ var GAMES_EN_DATA = {
       "If both are knocked out at the same time or both reach the goal, the match is a draw.",
     ],
   },
+  snakesladders: {
+    name: "Snakes & Ladders",
+    description: "The classic dice race: roll to chase the goal at square 100. Climb ladders to leap ahead, hit snakes to slide back. Roll a 6 for an extra turn. Play locally, vs AI, or online.",
+    howTo: [
+      "Players take turns rolling a die and moving their pawn from square 1 toward square 100.",
+      "Landing on the foot of a LADDER 🪜 climbs you to its top; landing on a SNAKE's head 🐍 slides you down to its tail.",
+      "Rolling a 6 grants an extra roll and move.",
+      "Reaching the goal needs an EXACT roll by default: overshooting 100 'bounces' you back — this rule can be turned off in options.",
+      "The first player to land exactly on square 100 wins. Play locally, vs the computer, or online via a room code.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
