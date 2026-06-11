@@ -573,6 +573,18 @@ var GAMES_EN_DATA = {
       "Online is best: each player on their own device, the secret word stays hidden until reveal. On one device, pass it back and forth as prompted.",
     ],
   },
+  wordduel: {
+    name: "Word Duel",
+    description: "A Vietnamese vocabulary battle: from a shared pool of syllable tiles, take turns picking syllables to form valid words and score points. Used tiles are replaced. First to the target score (or the highest when the pool runs out) wins. Play locally, vs AI, or online.",
+    howTo: [
+      "There's a shared POOL of syllable tiles on screen that both players draw from.",
+      "On your turn, tap 2 (or more) tiles in order to form a valid Vietnamese WORD, e.g. 'bình' + 'yên' = 'bình yên'.",
+      "The preview shows your word: a green ✓ means it's valid (in the dictionary) — then press 'Make word' to score (1 point per syllable).",
+      "The used tiles disappear and are replaced by new syllables from the pool.",
+      "If you can't form a word, press 'Pass'. If both players pass in a row, the game ends.",
+      "Reach the target score first to win; if playing until the pool empties, the higher score wins. Play locally, vs AI, or online.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
