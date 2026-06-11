@@ -10,7 +10,9 @@
 (function () {
   const PAYOFF = {
     // [me, opp] theo lựa chọn: C = hợp tác, D = phản bội
-    CC: 3, CD: 0, DC: 5, DD: 1,
+    // Biến thể "Game Con Gà": cả hai phản bội thì CẢ HAI BỊ TRỪ điểm
+    // -> phản bội không còn là nước an toàn, phải đọc vị đối thủ.
+    CC: 3, CD: 0, DC: 5, DD: -3,
   };
 
   function create(ctx) {
@@ -83,11 +85,11 @@
       }, 1900);
     }
 
-    // ----- AI: 3 chiến lược theo mức độ -----
-    //  • Dễ:  thiên về hợp tác (dễ bị bắt nạt — cho người mới thắng).
+    // ----- AI: 3 chiến lược theo mức độ (payoff DD = −3 nên phản bội đối đầu là tự hại) -----
+    //  • Dễ:  thiên về hợp tác (dễ bị lợi dụng — cho người mới thắng).
     //  • Vừa: Tit-for-Tat (hợp tác trước, rồi sao chép nước trước của đối thủ).
-    //  • Khó: Tit-for-Tat PHỦ ĐẦU (phản bội ngay vòng đầu, sau đó sao chép) —
-    //         khiến chiến thuật "luôn phản bội" chỉ HÒA chứ không thắng được.
+    //  • Khó: Tit-for-Tat có trừng phạt — sao chép đối thủ; ai cứ phản bội sẽ bị
+    //         phản bội lại (cả hai −3) nên không thể vượt lên bằng phản bội mù quáng.
     function aiMove() {
       if (over || revealing) return null;
       const level = ctx.aiLevel || "normal";
@@ -103,20 +105,22 @@
         if (ctx.rng() < 0.1) return { k: "pick", c: "D" }; // chút nhiễu
         return { k: "pick", c: oppLast };                  // ăn miếng trả miếng
       }
-      // hard: phủ đầu + trừng phạt. Mở màn PHẢN BỘI.
+      // hard: phòng thủ phủ đầu — KHÔNG tặng +5 miễn phí vòng đầu (mở màn PHẢN BỘI),
+      // sau đó sao chép. Người "luôn phản bội" sẽ chỉ hòa (cùng âm), không thắng được;
+      // muốn thắng phải chủ động hợp tác để tích điểm rồi phản bội đúng lúc.
       if (!oppLast) return { k: "pick", c: "D" };
-      // nếu đối thủ từng phản bội ở vòng ngay trước -> tiếp tục phản bội (trừng phạt)
+      // đối thủ vừa phản bội -> trừng phạt bằng phản bội (cả hai −3)
       if (oppLast === "D") return { k: "pick", c: "D" };
-      // đối thủ vừa hợp tác: phần lớn hợp tác lại để cùng ăn +3, nhưng thi thoảng
-      // thò phản bội bất ngờ để không bị đọc vị (vẫn không cho người chơi vượt lên dễ)
-      return { k: "pick", c: ctx.rng() < 0.25 ? "D" : "C" };
+      // đối thủ vừa hợp tác: chủ yếu hợp tác lại (+3/+3) để cùng tích điểm,
+      // thi thoảng thò phản bội bất ngờ ăn +5 và không bị đọc vị
+      return { k: "pick", c: ctx.rng() < 0.22 ? "D" : "C" };
     }
 
     // ----- Giao diện -----
     function buildShell() {
       root.innerHTML =
         `<div class="pd2-head" id="pd2Head"></div>` +
-        `<div class="pd2-payoff">${ctx.t("🤝🤝 +3 mỗi bên · 🔪🤝 kẻ phản +5, bị phản +0 · 🔪🔪 +1 mỗi bên", "🤝🤝 +3 each · 🔪🤝 betrayer +5, betrayed +0 · 🔪🔪 +1 each")}</div>` +
+        `<div class="pd2-payoff">${ctx.t("🤝🤝 +3 mỗi bên · 🔪🤝 kẻ phản +5, bị phản +0 · 🔪🔪 −3 mỗi bên!", "🤝🤝 +3 each · 🔪🤝 betrayer +5, betrayed +0 · 🔪🔪 −3 each!")}</div>` +
         `<div class="pd2-reveal" id="pd2Reveal"></div>` +
         `<div class="pd2-pickwrap" id="pd2PickWrap"></div>` +
         `<div class="pd2-hist" id="pd2Hist"></div>`;
@@ -162,7 +166,7 @@
 
     function verdictText(p0, p1) {
       if (p0 === "C" && p1 === "C") return ctx.t("Cả hai HỢP TÁC — đôi bên cùng có lợi! (+3/+3)", "Both COOPERATE — mutual benefit! (+3/+3)");
-      if (p0 === "D" && p1 === "D") return ctx.t("Cả hai PHẢN BỘI — nghi kỵ, ít điểm. (+1/+1)", "Both BETRAY — distrust, low points. (+1/+1)");
+      if (p0 === "D" && p1 === "D") return ctx.t("Cả hai PHẢN BỘI — cùng lãnh hậu quả! (−3/−3)", "Both BETRAY — both punished! (−3/−3)");
       const bSeat = p0 === "D" ? 0 : 1;
       const bname = ctx.vsAI ? (bSeat === 0 ? ctx.t("Bạn", "You") : ctx.t("Máy", "AI")) : "P" + (bSeat + 1);
       return ctx.t(`${bname} phản bội và ăn đậm! (+5/+0)`, `${bname} betrayed and cashed in! (+5/+0)`);
@@ -241,8 +245,8 @@
       "Khi cả hai đã chọn, lựa chọn được lật ra cùng lúc và tính điểm thưởng.",
       "Cả hai HỢP TÁC: mỗi người +3 (tin tưởng đôi bên cùng lợi).",
       "Một PHẢN BỘI, một HỢP TÁC: kẻ phản bội +5, người bị phản +0 (bị lừa).",
-      "Cả hai PHẢN BỘI: mỗi người chỉ +1 (nghi kỵ, ai cũng thiệt).",
-      "Sau số vòng đã chọn, ai NHIỀU ĐIỂM hơn sẽ thắng. Mẹo: phản bội ăn nhiều trước mắt nhưng dễ bị trả đũa — xây lòng tin hay chơi xấu là tùy bạn. Chơi chung máy, đấu máy (ăn miếng trả miếng), hoặc online.",
+      "Cả hai PHẢN BỘI: mỗi người bị TRỪ 3 điểm (−3/−3) — đối đầu thì cùng thiệt nặng!",
+      "Sau số vòng đã chọn, ai NHIỀU ĐIỂM hơn sẽ thắng. Mẹo: phản bội chỉ lời khi đối thủ hợp tác (+5); nếu cả hai cùng phản bội thì cùng mất điểm — nên phải đọc vị và xây lòng tin đúng lúc. Chơi chung máy, đấu máy, hoặc online.",
     ],
     create,
   });

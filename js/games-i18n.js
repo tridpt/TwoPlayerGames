@@ -629,8 +629,8 @@ var GAMES_EN_DATA = {
       "Once both have chosen, the picks are revealed together and scored.",
       "Both COOPERATE: +3 each (mutual trust pays off).",
       "One BETRAYS, one COOPERATES: the betrayer +5, the betrayed +0.",
-      "Both BETRAY: only +1 each (distrust hurts both).",
-      "After the chosen rounds, whoever has MORE points wins. Betraying scores big short-term but invites retaliation. Play locally, vs AI (tit-for-tat), or online.",
+      "Both BETRAY: each LOSES 3 points (−3/−3) — head-to-head betrayal hurts both badly!",
+      "After the chosen rounds, whoever has MORE points wins. Betraying only pays when the opponent cooperates (+5); if both betray, both lose points — so read your opponent and build trust at the right moment. Play locally, vs AI, or online.",
     ],
   },
   rpsplus: {
