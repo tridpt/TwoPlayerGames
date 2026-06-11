@@ -489,6 +489,30 @@ var GAMES_EN_DATA = {
       "The first player to empty their hand wins the round.",
     ],
   },
+  reactionduel: {
+    name: "Reaction Duel",
+    description: "Pure reflex showdown: wait for the light to turn GREEN, then tap as fast as you can. Tap early and you lose the round. First to win enough rounds takes the match.",
+    howTo: [
+      "Local game on one device (no online play).",
+      "Press \"Start round\". The light stays in a WAIT state (red/amber) for a random delay.",
+      "When it turns GREEN and shows \"TAP NOW!\", tap fast: Player 1 uses key A (or tap the left zone), Player 2 uses key L (or tap the right zone).",
+      "Whoever taps validly first wins the round; the reaction time (ms) is shown.",
+      "WARNING: if you tap BEFORE the light turns green, you foul and instantly lose the round.",
+      "The first player to win the chosen number of rounds wins the match.",
+    ],
+  },
+  dashdodge: {
+    name: "Dash Dodge",
+    description: "Real-time dodging race: each player steers a runner to avoid blocks falling down their lane. Survive longer (or reach the goal first) to win.",
+    howTo: [
+      "Local game on one keyboard (no online play).",
+      "The screen splits into two vertical lanes. Player 1 controls the red runner on the left with W (up) / S (down).",
+      "Player 2 controls the blue runner on the right with the arrow keys ↑ (up) / ↓ (down).",
+      "Blocks keep falling down your lane — move to dodge them; touching one knocks you out immediately.",
+      "With a goal distance set, reaching it while your opponent is out wins; in 'Endless' mode, whoever survives longer wins.",
+      "If both are knocked out at the same time or both reach the goal, the match is a draw.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;

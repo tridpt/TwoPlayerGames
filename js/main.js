@@ -206,7 +206,7 @@
       icon: "⚡",
       hint: "Canh lực, bắn, kéo thả, va chạm và phản xạ.",
       hintKey: "grpActionHint",
-      games: ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery", "fishingfrenzy"],
+      games: ["pong", "poolbattle", "slingshotbattle", "timeloopduel", "artillery", "fishingfrenzy", "reactionduel", "dashdodge"],
     },
     {
       title: "Ván dài & xây dựng",
