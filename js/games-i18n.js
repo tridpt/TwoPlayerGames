@@ -536,6 +536,18 @@ var GAMES_EN_DATA = {
       "The loser of each round bids first next round. Run out of dice and you lose.",
     ],
   },
+  codebreakerduel: {
+    name: "Codebreaker Duel",
+    description: "A pure deduction duel: each player has a secret color code; take turns guessing the opponent's. Feedback ● (right color, right spot) and ○ (right color, wrong spot) lets you narrow it down. First to crack the code wins. Play locally, vs AI, or online.",
+    howTo: [
+      "Each player has a SECRET CODE of colors (4 long from 6 colors by default). You only see your own code.",
+      "On your turn, pick a row of colors to GUESS the OPPONENT's code, then press \"Guess\".",
+      "After each guess you get feedback: ● = a peg is the right COLOR in the right SPOT; ○ = right color but wrong spot. No dot means that color isn't in the code.",
+      "Use the feedback to eliminate possibilities and narrow down — this is pure deduction.",
+      "The first player to guess the opponent's code exactly (all ●) wins.",
+      "Options: code length, number of colors, and whether colors may repeat.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
