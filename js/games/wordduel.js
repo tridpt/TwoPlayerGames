@@ -18,6 +18,8 @@
   function create(ctx) {
     const o = ctx.options || {};
     const WIN = o.target ? Number(o.target) : 20;
+    const CLOCK = o.clock ? Number(o.clock) : 0;      // giây mỗi lượt (0 = tắt)
+    const MOVES_LIMIT = o.moves ? Number(o.moves) : 0; // số lượt tối đa (0 = tắt)
     const dict = (typeof window !== "undefined" && window.VI_DICT) ? window.VI_DICT : new Set();
 
     // Danh sách từ 2 âm tiết để dựng kho chắc chắn ghép được + tính độ hiếm.
@@ -45,6 +47,9 @@
     let pool = [];
     let lastWord = null;
     let selected = [];
+    let movesLeft = MOVES_LIMIT;   // tổng số lượt còn lại (chế độ giới hạn lượt)
+    let clockLeft = CLOCK;         // giây còn lại của lượt hiện tại
+    let clockTimer = null;
 
     const root = document.createElement("div");
     root.className = "wd-root";
@@ -103,6 +108,32 @@
 
     function canPlay() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
 
+    // ----- Đồng hồ mỗi lượt -----
+    function stopClock() { if (clockTimer) { clearInterval(clockTimer); clockTimer = null; } }
+    function startClock() {
+      stopClock();
+      if (CLOCK <= 0 || over) return;
+      clockLeft = CLOCK;
+      updateClockUi();
+      // chỉ máy đang tới lượt mới đếm (để phát "bỏ lượt" tự động một lần)
+      if (ctx.isOnline && turn !== ctx.mySeat) return;
+      clockTimer = setInterval(() => {
+        clockLeft--;
+        updateClockUi();
+        if (clockLeft <= 0) {
+          stopClock();
+          if (canPlay()) { ctx.sound("miss"); applyMove({ k: "pass", timeout: true }, false); }
+        }
+      }, 1000);
+    }
+    function updateClockUi() {
+      const el = els && root.querySelector("#wdClock");
+      if (!el) return;
+      if (CLOCK <= 0) { el.textContent = ""; return; }
+      el.textContent = "⏱ " + Math.max(0, clockLeft) + "s";
+      el.classList.toggle("low", clockLeft <= 5);
+    }
+
     // Tìm một cặp ô ghép được (ưu tiên điểm cao) để gợi ý cho người chơi.
     function findHint() {
       let best = null, bestPts = -1;
@@ -141,9 +172,7 @@
 
         if (WIN > 0 && score[turn] >= WIN) { finish(turn); return; }
         if (!bag.length && !anyWordPossible()) { finishByScore(); return; }
-        turn = 1 - turn;
-        ctx.setTurn(turn);
-        render(); updateStatus();
+        endTurn();
       } else if (move.k === "refresh") {
         if (refreshes[turn] <= 0) return;
         if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "refresh" });
@@ -157,6 +186,7 @@
         selected = [];
         ctx.sound("place");
         lastWord = { by: turn, refresh: true };
+        startClock();           // đổi kho không mất lượt, chỉ làm mới đồng hồ
         render(); updateStatus();
       } else if (move.k === "pass") {
         if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "pass" });
@@ -164,15 +194,26 @@
         streak[turn] = 0;
         selected = [];
         ctx.sound("place");
-        if (passes >= 2) { finishByScore(); return; }
-        turn = 1 - turn;
-        ctx.setTurn(turn);
-        render(); updateStatus();
+        if (passes >= 2 && MOVES_LIMIT <= 0) { finishByScore(); return; }
+        endTurn();
       }
+    }
+
+    // Kết thúc một lượt: trừ số lượt (nếu có giới hạn), đổi người, khởi động đồng hồ.
+    function endTurn() {
+      if (MOVES_LIMIT > 0) {
+        movesLeft--;
+        if (movesLeft <= 0) { finishByScore(); return; }
+      }
+      turn = 1 - turn;
+      ctx.setTurn(turn);
+      startClock();
+      render(); updateStatus();
     }
 
     function finish(winner) {
       over = true;
+      stopClock();
       if (winner >= 0) ctx.incScore(winner);
       ctx.setTurn(-1);
       ctx.sound("win");
@@ -242,7 +283,11 @@
         `<div class="wd-pinfo p1 ${turn === 0 && !over ? "active" : ""}">` +
           `<span>🟥 P1${me === 0 ? ctx.t(" (bạn)", " (you)") : ""} ${combo(0)}</span><b>${score[0]}</b>` +
         `</div>` +
-        `<div class="wd-goal">${WIN > 0 ? ctx.t(`về đích ${WIN}`, `to ${WIN}`) : ""}</div>` +
+        `<div class="wd-goal">` +
+          `<span class="wd-clock" id="wdClock"></span>` +
+          `<span>${WIN > 0 ? ctx.t(`về đích ${WIN}`, `to ${WIN}`) : ctx.t("hết kho", "until empty")}</span>` +
+          `${MOVES_LIMIT > 0 ? `<span class="wd-moves">${ctx.t("còn", "left")} ${Math.ceil(movesLeft / 2)} ${ctx.t("lượt", "turns")}</span>` : ""}` +
+        `</div>` +
         `<div class="wd-pinfo p2 ${turn === 1 && !over ? "active" : ""}">` +
           `<span>🟦 P2${me === 1 ? ctx.t(" (bạn)", " (you)") : ""} ${combo(1)}</span><b>${score[1]}</b>` +
         `</div>`;
@@ -277,6 +322,7 @@
       }
 
       renderActs(valid);
+      updateClockUi();
     }
 
     function renderActs(valid) {
@@ -349,8 +395,9 @@
     ctx.setTurn(turn);
     render();
     updateStatus();
+    startClock();
 
-    function destroy() {}
+    function destroy() { stopClock(); }
     return { applyMove, aiMove, destroy };
   }
 
@@ -371,6 +418,23 @@
           { value: 0, label: "Chơi tới khi hết kho" },
         ],
       },
+      {
+        id: "clock", label: "Đồng hồ mỗi lượt", default: 0,
+        choices: [
+          { value: 0, label: "Tắt (thong thả)" },
+          { value: 30, label: "30 giây/lượt" },
+          { value: 20, label: "20 giây/lượt" },
+          { value: 12, label: "12 giây/lượt (căng)" },
+        ],
+      },
+      {
+        id: "moves", label: "Giới hạn số lượt", default: 0,
+        choices: [
+          { value: 0, label: "Không (chơi tới mốc điểm)" },
+          { value: 12, label: "6 lượt mỗi người" },
+          { value: 20, label: "10 lượt mỗi người" },
+        ],
+      },
     ],
     howTo: [
       "Trên màn có một KHO ÂM TIẾT chung. Đến lượt, bấm chọn 2+ ô theo thứ tự để ghép thành một TỪ tiếng Việt CÓ NGHĨA (vd 'bình' + 'yên').",
@@ -379,6 +443,7 @@
       "Thưởng TỪ DÀI: ghép từ 3 âm tiết trở lên được +3 điểm. COMBO 🔥: ghép liên tiếp không bỏ lượt sẽ cộng thêm điểm tăng dần; bỏ lượt hoặc đổi kho sẽ mất combo.",
       "Bí nước? Bấm '🔄 Đổi kho' để thay toàn bộ âm tiết (mỗi người có giới hạn lượt). Hoặc bấm '💡 Gợi ý' để hệ thống tô sáng & chọn sẵn một cặp ô ghép được (cũng giới hạn lượt). Hoặc 'Bỏ lượt' — cả hai bỏ lượt liên tiếp thì ván kết thúc.",
       "Người đạt điểm mốc trước sẽ thắng; nếu chơi tới khi hết kho thì ai nhiều điểm hơn thắng. Chơi chung máy, đấu với máy, hoặc online.",
+      "Cơ chế đấu thêm (tùy chọn): bật ĐỒNG HỒ mỗi lượt — hết giờ tự động bỏ lượt (mất combo!); hoặc bật GIỚI HẠN SỐ LƯỢT — đánh đủ số lượt thì so điểm, ai cao hơn thắng.",
     ],
     create,
   });
