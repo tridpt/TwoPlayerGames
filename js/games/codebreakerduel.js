@@ -268,7 +268,7 @@
     id: "codebreakerduel",
     name: "Phá Mã Đối Kháng",
     emoji: "🧩",
-    description: "Đấu suy luận: mỗi người có một mã màu bí mật, thay nhau đoán mã của đối thủ. Phản hồi ● (đúng màu đúng chỗ) và ○ (đúng màu sai chỗ) giúp bạn loại trừ dần. Ai phá mã trước sẽ thắng. Chơi chung máy, đấu máy hoặc online.",
+    description: "Đoán mã màu bí mật của đối thủ qua các gợi ý ●/○ — ai phá mã trước thắng.",
     onlineReady: true,
     supportsAI: true,
     options: [

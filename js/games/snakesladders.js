@@ -216,7 +216,7 @@
     id: "snakesladders",
     name: "Rắn & Thang",
     emoji: "🪜",
-    description: "Trò chơi xúc xắc kinh điển: gieo xúc xắc đua nhau về ô 100. Leo thang để nhảy vọt, đụng rắn thì tụt lại. Gieo 6 được đi thêm lượt. Chơi chung máy, đấu máy hoặc online.",
+    description: "Gieo xúc xắc đua về ô 100: leo thang nhảy vọt, đụng rắn tụt lại.",
     onlineReady: true,
     supportsAI: true,
     options: [

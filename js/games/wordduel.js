@@ -423,7 +423,7 @@
     id: "wordduel",
     name: "Ghép Từ Đối Kháng",
     emoji: "🔤",
-    description: "Đấu vốn từ tiếng Việt có chiều sâu: ghép âm tiết thành từ có nghĩa để ăn điểm. Âm tiết hiếm, ô nhân điểm ×2/×3, từ dài và chuỗi combo đều cho thêm điểm. Bí thì đổi kho. Ai đạt mốc trước (hoặc nhiều điểm hơn khi hết kho) sẽ thắng. Chơi chung máy, đấu máy hoặc online.",
+    description: "Ghép âm tiết thành từ tiếng Việt để ăn điểm — đua vốn từ, ô ×2/×3 và combo.",
     onlineReady: true,
     supportsAI: true,
     options: [

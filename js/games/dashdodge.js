@@ -220,7 +220,7 @@
     id: "dashdodge",
     name: "Đua Né Chướng Ngại",
     emoji: "🏃",
-    description: "Đua phản xạ thời gian thực: mỗi người điều khiển một runner né các khối lao xuống làn của mình. Ai trụ lâu hơn (hoặc về đích trước) sẽ thắng.",
+    description: "Điều khiển nhân vật né khối lao xuống — ai trụ lâu hơn thì thắng.",
     onlineReady: false,
     supportsAI: false,
     options: [

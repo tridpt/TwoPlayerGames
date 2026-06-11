@@ -151,7 +151,7 @@
     id: "reactionduel",
     name: "Đua Bấm Nút",
     emoji: "⚡",
-    description: "Đấu phản xạ thuần túy: chờ đèn chuyển XANH rồi bấm thật nhanh. Bấm sớm là thua vòng. Ai thắng đủ số vòng trước sẽ vô địch.",
+    description: "Chờ đèn xanh rồi bấm thật nhanh — bấm sớm là thua. Đấu phản xạ thuần túy.",
     onlineReady: false,
     supportsAI: false,
     options: [

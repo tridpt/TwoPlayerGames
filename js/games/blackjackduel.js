@@ -254,7 +254,7 @@
     id: "blackjackduel",
     name: "Xì Dách Đối Kháng",
     emoji: "🃏",
-    description: "Đua tới 21 điểm: lần lượt 'Rút' thêm lá hoặc 'Dừng' chốt điểm. Quá 21 là 'quắc' và thua ngay. Khi cả hai dừng, ai gần 21 hơn thắng ván. Đua nhiều ván tới mốc thắng. Chơi chung máy, đấu máy hoặc online.",
+    description: "Rút bài đua tới 21 điểm, gần hơn thì thắng — quá tay là 'quắc'.",
     onlineReady: true,
     supportsAI: true,
     options: [

@@ -491,7 +491,7 @@ var GAMES_EN_DATA = {
   },
   reactionduel: {
     name: "Reaction Duel",
-    description: "Pure reflex showdown: wait for the light to turn GREEN, then tap as fast as you can. Tap early and you lose the round. First to win enough rounds takes the match.",
+    description: "Wait for the green light then tap fast — tap early and you lose. Pure reflexes.",
     howTo: [
       "Local game on one device (no online play).",
       "Press \"Start round\". The light stays in a WAIT state (red/amber) for a random delay.",
@@ -503,7 +503,7 @@ var GAMES_EN_DATA = {
   },
   dashdodge: {
     name: "Dash Dodge",
-    description: "Real-time dodging race: each player steers a runner to avoid blocks falling down their lane. Survive longer (or reach the goal first) to win.",
+    description: "Steer your runner to dodge falling blocks — survive longer to win.",
     howTo: [
       "Local game on one keyboard (no online play).",
       "The screen splits into two vertical lanes. Player 1 controls the red runner on the left with W (up) / S (down).",
@@ -515,7 +515,7 @@ var GAMES_EN_DATA = {
   },
   snakesladders: {
     name: "Snakes & Ladders",
-    description: "The classic dice race: roll to chase the goal at square 100. Climb ladders to leap ahead, hit snakes to slide back. Roll a 6 for an extra turn. Play locally, vs AI, or online.",
+    description: "Roll dice to race to square 100: climb ladders to leap ahead, hit snakes to slide back.",
     howTo: [
       "Players take turns rolling a die and moving their pawn from square 1 toward square 100.",
       "Landing on the foot of a LADDER 🪜 climbs you to its top; landing on a SNAKE's head 🐍 slides you down to its tail.",
@@ -526,7 +526,7 @@ var GAMES_EN_DATA = {
   },
   liarsdice: {
     name: "Liar's Dice",
-    description: "A game of bluffing: each player hides 5 dice and takes turns 'bidding' how many of a face exist across all dice — or calls 'Challenge!' to reveal. Over-bid or a wrong challenge costs you a die. Lose all your dice and you lose. Play locally, vs AI, or online.",
+    description: "Hide your dice, bluff a bid, then 'Challenge!' to catch the liar — last with dice wins.",
     howTo: [
       "A quick example: you have 5 dice, the opponent has 5 — 10 dice total on the table, but you only see your own 5.",
       "On your turn you 'BID' a number, like: \"there are AT LEAST 4 dice showing ⚄\". This counts BOTH players' dice (including the hidden ones).",
@@ -539,7 +539,7 @@ var GAMES_EN_DATA = {
   },
   codebreakerduel: {
     name: "Codebreaker Duel",
-    description: "A pure deduction duel: each player has a secret color code; take turns guessing the opponent's. Feedback ● (right color, right spot) and ○ (right color, wrong spot) lets you narrow it down. First to crack the code wins. Play locally, vs AI, or online.",
+    description: "Crack your opponent's secret color code using ●/○ clues — first to break it wins.",
     howTo: [
       "Each player has a SECRET CODE of colors (4 long from 6 colors by default). You only see your own code.",
       "On your turn, pick a row of colors to GUESS the OPPONENT's code, then press \"Guess\".",
@@ -551,7 +551,7 @@ var GAMES_EN_DATA = {
   },
   blackjackduel: {
     name: "Blackjack Duel",
-    description: "Race to 21: take turns to 'Hit' for another card or 'Stand' to lock in. Go over 21 and you 'bust' and lose instantly. When both stand, whoever is closer to 21 wins the round. Race rounds to the target. Play locally, vs AI, or online.",
+    description: "Draw cards racing to 21 — closer wins, but go over and you bust.",
     howTo: [
       "Each round both players are dealt 2 cards from the same deck. You see your own cards; the opponent's second card is hidden until reveal.",
       "Scoring: A = 11 (drops to 1 if you'd bust), 10/J/Q/K = 10, others by number.",
@@ -563,7 +563,7 @@ var GAMES_EN_DATA = {
   },
   twentyquestions: {
     name: "Twenty Questions",
-    description: "One player thinks of a secret thing and picks a category; the other has up to 20 Yes/No questions to guess it. Guess in time and the guesser wins; run out and the keeper wins. Best played online with friends.",
+    description: "One player keeps a secret; the other asks up to 20 Yes/No questions to guess it.",
     howTo: [
       "One player is the KEEPER: think of something (animal, object, person, place...), type it in (hidden from the opponent) and pick a hint category.",
       "The other player is the GUESSER: ask questions that can only be answered YES or NO to narrow it down.",
@@ -575,7 +575,7 @@ var GAMES_EN_DATA = {
   },
   wordduel: {
     name: "Word Duel",
-    description: "A Vietnamese vocabulary battle: from a shared pool of syllable tiles, take turns picking syllables to form valid words and score points. Used tiles are replaced. First to the target score (or the highest when the pool runs out) wins. Play locally, vs AI, or online.",
+    description: "Form Vietnamese words from syllable tiles to score — vocab race with ×2/×3 tiles and combos.",
     howTo: [
       "There's a shared POOL of syllable tiles on screen that both players draw from.",
       "On your turn, tap 2 (or more) tiles in order to form a valid Vietnamese WORD, e.g. 'bình' + 'yên' = 'bình yên'.",

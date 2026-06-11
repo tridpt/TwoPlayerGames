@@ -335,7 +335,7 @@
     id: "twentyquestions",
     name: "20 Câu Hỏi",
     emoji: "❓",
-    description: "Một người nghĩ ra một thứ bí mật và chọn chủ đề; người kia có tối đa 20 câu hỏi Có/Không để đoán ra. Đoán đúng trong giới hạn thì người đoán thắng, hết câu thì người giữ bí mật thắng. Tuyệt nhất khi chơi online với bạn bè.",
+    description: "Một người giữ bí mật, người kia hỏi tối đa 20 câu Có/Không để đoán ra.",
     onlineReady: true,
     supportsAI: false,
     options: [

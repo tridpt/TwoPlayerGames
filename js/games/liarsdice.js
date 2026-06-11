@@ -366,7 +366,7 @@
     id: "liarsdice",
     name: "Cá Ngựa Nói Dối",
     emoji: "🎲",
-    description: "Đấu trí bịp bợm: mỗi người giấu 5 xúc xắc, lần lượt 'tố' số lượng một mặt trên tất cả xúc xắc — hoặc hô 'Nghi ngờ!' để lật bài. Tố hớ hoặc nghi sai đều mất xúc xắc. Ai hết xúc xắc trước sẽ thua. Chơi chung máy, đấu máy hoặc online.",
+    description: "Giấu xúc xắc, tố phét rồi 'Nghi ngờ!' để bắt bài đối thủ — ai hết xúc xắc thì thua.",
     onlineReady: true,
     supportsAI: true,
     options: [
