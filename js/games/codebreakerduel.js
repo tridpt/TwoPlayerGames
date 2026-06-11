@@ -154,26 +154,38 @@
       if (!els) buildShell();
       const me = mySeatIdx();
       const opp = 1 - me;
+      // tiến độ: số ● cao nhất từng đạt khi đoán mã đối thủ
+      const myBest = guesses[me].reduce((mx, r) => Math.max(mx, r.fb.exact), 0);
+      const oppBest = guesses[opp].reduce((mx, r) => Math.max(mx, r.fb.exact), 0);
+      function pips(n) { let s = ""; for (let i = 0; i < LEN; i++) s += `<i class="cb2-pip ${i < n ? "on" : ""}"></i>`; return s; }
       els.head.innerHTML =
         `<div class="cb2-hcol ${turn === me && !over ? "active" : ""}">` +
-          `<b>${ctx.t("Bạn phá mã của", "You crack")} P${opp + 1}</b>` +
-          `<small>${guesses[me].length} ${ctx.t("lượt", "guesses")}</small>` +
+          `<b>🔓 ${ctx.t("Bạn phá mã", "You crack")} P${opp + 1}</b>` +
+          `<div class="cb2-prog">${pips(myBest)}</div>` +
+          `<small>${guesses[me].length} ${ctx.t("lượt", "guesses")} · ${myBest}/${LEN} ●</small>` +
         `</div>` +
         `<div class="cb2-hcol ${turn === opp && !over ? "active" : ""}">` +
-          `<b>P${opp + 1} ${ctx.t("phá mã của bạn", "cracks yours")}</b>` +
-          `<small>${guesses[opp].length} ${ctx.t("lượt", "guesses")}</small>` +
+          `<b>🔒 P${opp + 1} ${ctx.t("phá mã bạn", "cracks yours")}</b>` +
+          `<div class="cb2-prog">${pips(oppBest)}</div>` +
+          `<small>${guesses[opp].length} ${ctx.t("lượt", "guesses")} · ${oppBest}/${LEN} ●</small>` +
         `</div>`;
 
       // hai cột: trái = đoán của mình (mã đối thủ), phải = đoán của đối thủ (mã mình)
       function colHtml(seat, hideTargetSecret) {
-        const list = guesses[seat].map((row) =>
-          `<div class="cb2-guess">${row.code.map(pegHtml).join("")}${fbHtml(row.fb)}</div>`
-        ).reverse().join("");
-        // mã bí mật của target (1-seat) — chỉ lộ khi revealAll hoặc đó là mã của mình
+        const rows = guesses[seat];
+        const list = rows.map((row, idx) => {
+          const isLast = idx === rows.length - 1;
+          const solved = row.fb.exact === LEN;
+          return `<div class="cb2-guess${isLast ? " latest" : ""}${solved ? " solved" : ""}">` +
+            `<span class="cb2-gn">${idx + 1}</span>` +
+            row.code.map(pegHtml).join("") + fbHtml(row.fb) + `</div>`;
+        }).reverse().join("");
         const target = 1 - seat;
         const showSecret = revealAll || target === me;
-        const secretRow = `<div class="cb2-secret">${ctx.t("Mã", "Code")}: ${showSecret ? secret[target].map(pegHtml).join("") : secret[target].map(holeHtml).join("")}</div>`;
-        return `<div class="cb2-col"><div class="cb2-guesses">${list || `<div class="cb2-empty">—</div>`}</div>${secretRow}</div>`;
+        const label = seat === me ? ctx.t("Mã của đối thủ", "Opponent's code") : ctx.t("Mã của bạn", "Your code");
+        const secretRow = `<div class="cb2-secret"><span class="cb2-secret-lbl">${label}</span> ${showSecret ? secret[target].map(pegHtml).join("") : secret[target].map(holeHtml).join("")}</div>`;
+        const title = `<div class="cb2-coltitle">${seat === me ? ctx.t("🎯 Bạn đoán", "🎯 Your guesses") : ctx.t("👤 Đối thủ đoán", "👤 Their guesses")}</div>`;
+        return `<div class="cb2-col">${title}<div class="cb2-guesses">${list || `<div class="cb2-empty">${ctx.t("Chưa có lượt đoán", "No guesses yet")}</div>`}</div>${secretRow}</div>`;
       }
       els.board.innerHTML = colHtml(me, revealAll) + colHtml(opp, revealAll);
       renderInput();
@@ -194,13 +206,20 @@
       let palette = "";
       for (let c = 0; c < PALETTE; c++) palette += `<button type="button" class="cb2-pal" data-col="${c}" style="--pc:${COLORS[c]}">${GLYPH[c]}</button>`;
       const ready = draft.every((c) => c >= 0);
+      const legend = `<div class="cb2-legend">` +
+        `<span><i class="cb2-fb exact"></i> ${ctx.t("đúng màu + đúng chỗ", "right color + spot")}</span>` +
+        `<span><i class="cb2-fb color"></i> ${ctx.t("đúng màu, sai chỗ", "right color, wrong spot")}</span>` +
+        `<span><i class="cb2-fb none"></i> ${ctx.t("không có", "not in code")}</span>` +
+      `</div>`;
       els.input.innerHTML =
+        `<div class="cb2-buildlabel">${ctx.t("Chọn màu cho từng ô rồi bấm Đoán", "Fill each slot then press Guess")}</div>` +
         `<div class="cb2-slots">${slots}</div>` +
         `<div class="cb2-palette">${palette}</div>` +
         `<div class="cb2-acts">` +
-          `<button type="button" class="btn cb2-clear">${ctx.t("Xóa", "Clear")}</button>` +
-          `<button type="button" class="btn primary cb2-go${ready ? "" : " disabled"}">${ctx.t("Đoán", "Guess")}</button>` +
-        `</div>`;
+          `<button type="button" class="btn cb2-clear">${ctx.t("↺ Xóa", "↺ Clear")}</button>` +
+          `<button type="button" class="btn primary cb2-go${ready ? "" : " disabled"}">${ctx.t("🔍 Đoán", "🔍 Guess")}</button>` +
+        `</div>` +
+        legend;
       wireInput();
     }
 
