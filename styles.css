@@ -12810,3 +12810,39 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 .rps2-cannon { background: linear-gradient(135deg, #ff8f5a, #ff5d73) !important; color: #fff !important; }
 .rps2-cannon.disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.6); }
 .rps2-cannote { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+
+
+/* ====================== Cờ Tỷ Phú (tycoon) ====================== */
+.tc-root { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 540px; margin: 0 auto; }
+.tc-top { display: flex; align-items: stretch; justify-content: space-between; gap: 10px; }
+.tc-pinfo { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 10px; border-radius: 12px; background: rgba(42,48,96,0.45); border: 1px solid rgba(255,255,255,0.12); }
+.tc-pinfo b { font-size: 1.25rem; color: var(--accent); }
+.tc-pinfo small { font-size: 0.72rem; color: var(--muted); }
+.tc-pinfo.p1 { box-shadow: inset 0 0 0 2px rgba(255,93,115,0.32); }
+.tc-pinfo.p2 { box-shadow: inset 0 0 0 2px rgba(77,208,225,0.32); }
+.tc-pinfo.active { background: rgba(60,68,120,0.7); box-shadow: 0 0 16px rgba(255,209,102,0.4); }
+.tc-mid { display: flex; align-items: center; text-align: center; font-size: 0.74rem; color: var(--muted); padding: 0 6px; }
+.tc-board { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(6, 1fr); gap: 3px; aspect-ratio: 1/1; width: 100%; }
+.tc-inner { background: transparent; }
+#tcCenter { grid-column: 2 / 6; grid-row: 2 / 6; display: flex; align-items: center; justify-content: center; }
+.tc-logo { text-align: center; font-weight: 800; font-size: 1.4rem; color: rgba(255,255,255,0.25); line-height: 1.2; }
+.tc-cell { position: relative; border-radius: 6px; background: rgba(42,48,96,0.5); border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px; font-size: 0.5rem; overflow: hidden; text-align: center; }
+.tc-cell.t-go { background: rgba(110,231,183,0.18); }
+.tc-cell.t-tax { background: rgba(255,93,115,0.14); }
+.tc-cell.t-chance { background: rgba(255,209,102,0.14); }
+.tc-cell.t-jail { background: rgba(120,130,170,0.2); }
+.tc-cell.own-p1 { box-shadow: inset 0 0 0 2px #ff5d73; }
+.tc-cell.own-p2 { box-shadow: inset 0 0 0 2px #4dd0e1; }
+.tc-pname { font-weight: 600; line-height: 1.05; }
+.tc-pprice { color: var(--muted); }
+.tc-ic { font-size: 0.95rem; }
+.tc-pawns { position: absolute; bottom: 1px; right: 1px; display: flex; gap: 1px; }
+.tc-pawn { font-size: 0.7rem; animation: tc-hop 0.4s ease; }
+@keyframes tc-hop { from { transform: translateY(-6px) scale(0.6); } to { transform: none; } }
+.tc-log { min-height: 48px; display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; border-radius: 10px; background: rgba(20,26,55,0.4); border: 1px solid rgba(255,255,255,0.08); font-size: 0.8rem; color: var(--muted); }
+.tc-logline:last-child { color: var(--text); }
+.tc-controls { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 46px; }
+.tc-buy-q { font-size: 0.95rem; text-align: center; }
+.tc-buy-btns { display: flex; gap: 10px; }
+.tc-wait { color: var(--muted); font-style: italic; padding: 10px; }
+@media (max-width: 480px) { .tc-cell { font-size: 0.45rem; } .tc-logo { font-size: 1.1rem; } }

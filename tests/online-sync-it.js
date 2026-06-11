@@ -40,6 +40,7 @@ const CASES = [
   { gameId: "numberduel", move: { k: "pick", n: 4 }, check: (m) => m.move.k === "pick" && m.move.n === 4 },
   { gameId: "prisonersdilemma", move: { k: "pick", c: "D" }, check: (m) => m.move.k === "pick" && m.move.c === "D" },
   { gameId: "rpsplus", move: { k: "pick", c: "R" }, check: (m) => m.move.k === "pick" && m.move.c === "R" },
+  { gameId: "tycoon", move: { k: "roll", die: 4 }, check: (m) => m.move.k === "roll" && m.move.die === 4 },
 ];
 
 (async () => {

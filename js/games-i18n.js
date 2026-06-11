@@ -645,6 +645,17 @@ var GAMES_EN_DATA = {
       "First to win the chosen number of rounds wins. Play locally, vs AI, or online.",
     ],
   },
+  tycoon: {
+    name: "Tycoon",
+    description: "Roll dice around the board, buy properties and collect rent — bankrupt your opponent to win.",
+    howTo: [
+      "Each player starts with $1500. Take turns rolling the dice and moving around the 20-space board.",
+      "Land on an empty PROPERTY: you may BUY it (it becomes yours). Land on the OPPONENT's property: pay them RENT.",
+      "Each time you pass 🏁 GO, collect $200. 💸 Tax spaces cost money; ❓ Chance adds/subtracts randomly; ⏸️ makes you rest a turn.",
+      "If your cash drops below 0 (bankrupt), you LOSE immediately. In a round-limited mode, whoever has more ASSETS (cash + property value) wins when rounds run out.",
+      "Strategy: buy properties to earn rent, but keep enough cash for when you land on the opponent's land. Play locally, vs AI, or online.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
