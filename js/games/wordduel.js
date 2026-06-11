@@ -82,6 +82,21 @@
       while (pool.length < POOL && bag.length) pool.push(makeTile(bag.shift()));
     }
 
+    // Đảm bảo kho LUÔN có ít nhất một cặp ghép được: nếu không, chèn thẳng 2 âm tiết
+    // của một từ thật vào 2 ô (tất định theo rng để online đồng bộ).
+    function ensurePlayable() {
+      if (anyWordPossible() || !twoSylWords.length || pool.length < 2) return;
+      const w = twoSylWords[Math.floor(ctx.rng() * twoSylWords.length)];
+      // chọn 2 vị trí KHÔNG đang được chọn để thay (tránh phá lựa chọn dở của người chơi)
+      const slots = [];
+      for (let i = 0; i < pool.length && slots.length < 2; i++) {
+        if (!selected.includes(i)) slots.push(i);
+      }
+      if (slots.length < 2) { slots.length = 0; slots.push(0, 1); }
+      pool[slots[0]] = makeTile(w[0]);
+      pool[slots[1]] = makeTile(w[1]);
+    }
+
     function isWord(syls) {
       if (syls.length < 2) return false;
       return dict.has(norm(syls.join(" ")));
@@ -167,6 +182,7 @@
         const sortedDesc = [...idx].sort((a, b) => b - a);
         for (const i of sortedDesc) pool.splice(i, 1);
         refillPool();
+        ensurePlayable();
         lastWord = { by: turn, text: syls.join(" "), pts: sc.pts, mult: sc.mult, longBonus: sc.longBonus, comboBonus: sc.comboBonus };
         selected = [];
 
@@ -183,6 +199,7 @@
         refillPool();
         let guard = 0;
         while (!anyWordPossible() && bag.length && guard++ < 30) pool.push(makeTile(bag.shift()));
+        ensurePlayable();
         selected = [];
         ctx.sound("place");
         lastWord = { by: turn, refresh: true };
@@ -392,6 +409,7 @@
     refillPool();
     let guard = 0;
     while (!anyWordPossible() && bag.length && guard++ < 20) { pool.push(makeTile(bag.shift())); }
+    ensurePlayable();
     ctx.setTurn(turn);
     render();
     updateStatus();
