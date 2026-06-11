@@ -586,6 +586,29 @@ var GAMES_EN_DATA = {
       "Reach the target score first to win; if playing until the pool empties, the higher score wins. Play locally, vs AI, or online.",
     ],
   },
+  tugofwar: {
+    name: "Tug of War",
+    description: "Tap your key as fast as you can to drag the knot past your line — fastest fingers win.",
+    howTo: [
+      "Local game on one keyboard (no online play).",
+      "Press \"Start round\" and wait for the 3-2-1 countdown.",
+      "When the round starts: Player 1 taps the A key repeatedly, Player 2 taps the L key. Each tap drags the gold knot toward your side.",
+      "If you stop tapping, the rope slowly drifts back to the center — tap steadily and faster than your opponent.",
+      "Drag the knot past your side's line to win that round.",
+      "The first player to win the chosen number of rounds wins the match.",
+    ],
+  },
+  typingrace: {
+    name: "Typing Race",
+    description: "Two players race to type Vietnamese words correctly — first to finish all words wins.",
+    howTo: [
+      "Local game on one device (no online play) — best with a keyboard each, or take turns for a speed drill.",
+      "Press \"Start race\". Both players get the same sequence of Vietnamese words.",
+      "Each player types in their own box: Player 1 the top box, Player 2 the bottom box. Type the shown word exactly (with accents) then press Space/Enter for the next.",
+      "Typing in the wrong direction turns the box red as a warning; correct it to match.",
+      "Whoever correctly types all the words first wins; the finish time is shown.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
