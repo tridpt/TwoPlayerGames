@@ -12538,3 +12538,33 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 @media (max-width: 480px) {
   .bj-card { width: 42px; height: 58px; font-size: 1.05rem; }
 }
+
+
+/* Liar's Dice — bổ sung giao diện thân thiện người mới */
+.ld-help {
+  font-size: 0.86rem; line-height: 1.5; color: var(--text);
+  background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.32);
+  border-radius: 12px; padding: 9px 13px;
+}
+.ld-help b { color: var(--accent); }
+.ld-hint { font-size: 0.76rem; color: var(--muted); }
+.ld-secret-note { font-style: italic; }
+.ld-bid { flex-direction: column; gap: 4px; text-align: center; padding: 10px 18px; }
+.ld-bid-main { display: flex; align-items: center; gap: 10px; justify-content: center; }
+.ld-bid-sentence { font-size: 0.84rem; color: var(--muted); }
+.ld-bid-sentence b { color: var(--text); }
+.ld-bid-mine { color: var(--accent); }
+.ld-preview {
+  font-size: 0.88rem; text-align: center; padding: 8px 12px; border-radius: 10px;
+  background: rgba(77,208,225,0.1); border: 1px solid rgba(77,208,225,0.28);
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center;
+}
+.ld-prev-lead { color: var(--muted); }
+.ld-prev-sentence b { color: var(--accent); }
+.ld-prev-mine { font-size: 0.78rem; color: var(--muted); }
+.ld-prev-bad { font-size: 0.78rem; color: #ff8f5a; width: 100%; }
+.ld-build { gap: 18px; align-items: flex-end; }
+.ld-field { display: flex; flex-direction: column; gap: 5px; align-items: center; }
+.ld-flabel { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.ld-tip { font-size: 0.78rem; color: var(--muted); text-align: center; max-width: 420px; line-height: 1.45; }
+.ld-do-ch { border-color: rgba(255,159,122,0.5); }

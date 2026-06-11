@@ -528,12 +528,13 @@ var GAMES_EN_DATA = {
     name: "Liar's Dice",
     description: "A game of bluffing: each player hides 5 dice and takes turns 'bidding' how many of a face exist across all dice — or calls 'Challenge!' to reveal. Over-bid or a wrong challenge costs you a die. Lose all your dice and you lose. Play locally, vs AI, or online.",
     howTo: [
-      "Each player has a set of hidden dice (5 by default). You only see your own dice.",
-      "On your turn you 'BID': claim there are at least N dice showing a given face, counting ALL dice from both players.",
-      "Each new bid must be HIGHER: raise the quantity, or keep the quantity but pick a higher face.",
-      "Instead of bidding you can call 'CHALLENGE!'. All dice are revealed and counted: if the actual count is at least the bid, the bidder was RIGHT (the challenger loses a die); if fewer, the bidder was WRONG (loses a die).",
+      "A quick example: you have 5 dice, the opponent has 5 — 10 dice total on the table, but you only see your own 5.",
+      "On your turn you 'BID' a number, like: \"there are AT LEAST 4 dice showing ⚄\". This counts BOTH players' dice (including the hidden ones).",
+      "Tip: use your own dice to reason. If you already hold 2× ⚄, the opponent only needs 2 more for \"at least 4 of ⚄\" to be true.",
+      "The opponent must then bid HIGHER (more dice, or the same count but a higher face) — or hit 'CHALLENGE!' if they think you're lying.",
+      "On a 'CHALLENGE!', all dice are revealed and counted: if the real count MEETS the bid, the bidder was right (the challenger loses a die); if it FALLS SHORT, the bidder lied (loses a die).",
       "By default the ★ (1) face is 'wild' — it counts as every face (can be turned off in options).",
-      "The loser of each round bids first next round. Run out of dice and you lose.",
+      "Fewer dice make bluffs easier to catch. The first player to lose all their dice loses the match.",
     ],
   },
   codebreakerduel: {

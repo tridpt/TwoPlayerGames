@@ -177,9 +177,11 @@
     // ----- Giao diện -----
     function buildShell() {
       root.innerHTML =
+        `<div class="ld-help" id="ldHelp"></div>` +
         `<div class="ld-row ld-opp">` +
           `<div class="ld-side"><span class="ld-tag">🎲 P{OPP}</span><span class="ld-cnt" data-cnt="opp"></span></div>` +
           `<div class="ld-dice" data-dice="opp"></div>` +
+          `<div class="ld-hint" data-hint="opp"></div>` +
         `</div>` +
         `<div class="ld-mid">` +
           `<div class="ld-bid" id="ldBid"></div>` +
@@ -190,15 +192,28 @@
         `</div>` +
         `<div class="ld-panel" id="ldPanel"></div>`;
       elsCache = {
+        help: root.querySelector("#ldHelp"),
         oppDice: root.querySelector('[data-dice="opp"]'),
         meDice: root.querySelector('[data-dice="me"]'),
         oppCnt: root.querySelector('[data-cnt="opp"]'),
         meCnt: root.querySelector('[data-cnt="me"]'),
+        oppHint: root.querySelector('[data-hint="opp"]'),
         bid: root.querySelector("#ldBid"),
         panel: root.querySelector("#ldPanel"),
         oppTag: root.querySelector(".ld-opp .ld-tag"),
         meTag: root.querySelector(".ld-me .ld-tag"),
       };
+    }
+
+    // Đếm số xúc xắc của CHÍNH mình khớp một mặt (kèm wild) — giúp người mới suy luận.
+    function myMatches(face) {
+      const me = mySeatIdx();
+      let n = 0;
+      for (const d of dice[me]) {
+        if (d === face) n++;
+        else if (WILD && d === 1 && face !== 1) n++;
+      }
+      return n;
     }
 
     function mySeatIdx() { return ctx.isOnline ? ctx.mySeat : turn; }
@@ -218,17 +233,29 @@
       elsCache.oppCnt.textContent = "× " + counts[opp];
       elsCache.meCnt.textContent = "× " + counts[me];
 
+      // thanh hướng dẫn ngắn (luôn hiển thị) — giúp người mới
+      elsCache.help.innerHTML = ctx.t(
+        `🎯 <b>Mục tiêu:</b> đoán xem trên <u>tất cả ${totalDice()} xúc xắc</u> có ÍT NHẤT bao nhiêu con mang một mặt. ${WILD ? "★ là mặt hoang (tính cho mọi mặt). " : ""}Nâng lời tố, hoặc bấm <b>Nghi ngờ</b> nếu nghĩ đối thủ tố quá tay.`,
+        `🎯 <b>Goal:</b> guess how many of a face exist across <u>all ${totalDice()} dice</u> (at least). ${WILD ? "★ is wild (counts as any face). " : ""}Raise the bid, or hit <b>Challenge</b> if you think it's too high.`);
+
       // xúc xắc của mình: luôn hiện; của đối thủ: ẩn trừ khi revealAll
       elsCache.meDice.innerHTML = dice[me].map((v) => dieHtml(v, false)).join("");
       elsCache.oppDice.innerHTML = dice[opp].map((v) => dieHtml(v, !revealAll)).join("");
       elsCache.oppDice.classList.toggle("revealed", !!revealAll);
+      if (elsCache.oppHint) {
+        elsCache.oppHint.innerHTML = revealAll ? "" :
+          `<span class="ld-secret-note">🙈 ${ctx.t("Bài đối thủ đang giấu", "Opponent's dice are hidden")}</span>`;
+      }
 
-      // bid hiện tại
+      // bid hiện tại — diễn giải thành câu tự nhiên
       if (bid) {
         const f = PIPS[bid.face - 1];
-        elsCache.bid.innerHTML = `<span class="ld-bid-label">${ctx.t("Tố hiện tại", "Current bid")}</span>` +
-          `<span class="ld-bid-val"><b>${bid.qty}</b> × <span class="ld-bid-face">${f}</span></span>` +
-          `<span class="ld-bid-by">P${bid.by + 1}</span>`;
+        const mine = myMatches(bid.face);
+        elsCache.bid.innerHTML =
+          `<div class="ld-bid-main"><span class="ld-bid-label">${bid.by === me ? ctx.t("Bạn vừa tố", "You bid") : ctx.t("Đối thủ tố", "Opponent bids")}</span>` +
+          `<span class="ld-bid-val"><b>≥ ${bid.qty}</b> × <span class="ld-bid-face">${f}</span></span></div>` +
+          `<div class="ld-bid-sentence">${ctx.t(`"Có ít nhất <b>${bid.qty}</b> con mặt ${f} trên bàn"`, `"At least <b>${bid.qty}</b> dice show ${f} on the table"`)}` +
+          ` · <span class="ld-bid-mine">${ctx.t(`bạn có ${mine} con ${f}`, `you hold ${mine}× ${f}`)}</span></div>`;
       } else {
         elsCache.bid.innerHTML = `<span class="ld-bid-label">${ctx.t("Chưa ai tố — hãy mở màn!", "No bid yet — open the round!")}</span>`;
       }
@@ -250,17 +277,20 @@
       let faceOpts = "";
       for (let f = 1; f <= 6; f++) faceOpts += `<button type="button" class="ld-face" data-face="${f}">${PIPS[f - 1]}</button>`;
       elsCache.panel.innerHTML =
+        `<div class="ld-preview" id="ldPreview"></div>` +
         `<div class="ld-build">` +
-          `<div class="ld-qty"><button type="button" class="ld-qd" data-qd="-1">−</button>` +
-            `<span class="ld-qtyval" id="ldQty">${Math.max(minQty, defQty)}</span>` +
-            `<button type="button" class="ld-qd" data-qd="1">+</button></div>` +
-          `<span class="ld-x">×</span>` +
-          `<div class="ld-faces">${faceOpts}</div>` +
+          `<div class="ld-field"><span class="ld-flabel">${ctx.t("Số lượng", "How many")}</span>` +
+            `<div class="ld-qty"><button type="button" class="ld-qd" data-qd="-1" aria-label="−">−</button>` +
+              `<span class="ld-qtyval" id="ldQty">${Math.max(minQty, defQty)}</span>` +
+              `<button type="button" class="ld-qd" data-qd="1" aria-label="+">+</button></div></div>` +
+          `<div class="ld-field"><span class="ld-flabel">${ctx.t("Mặt xúc xắc", "Which face")}</span>` +
+            `<div class="ld-faces">${faceOpts}</div></div>` +
         `</div>` +
         `<div class="ld-acts">` +
-          `<button type="button" class="btn primary ld-do-bid">${ctx.t("Tố", "Bid")}</button>` +
-          `<button type="button" class="btn ld-do-ch"${bid ? "" : " disabled"}>${ctx.t("Nghi ngờ!", "Challenge!")}</button>` +
-        `</div>`;
+          `<button type="button" class="btn primary ld-do-bid">${ctx.t("📢 Tố", "📢 Bid")}</button>` +
+          `<button type="button" class="btn ld-do-ch"${bid ? "" : " disabled"}>${ctx.t("🤨 Nghi ngờ!", "🤨 Challenge!")}</button>` +
+        `</div>` +
+        (bid ? `<div class="ld-tip">${ctx.t("Lời tố phải cao hơn: tăng số lượng, hoặc cùng số lượng nhưng mặt lớn hơn.", "Your bid must beat the current one: raise the quantity, or keep it but pick a higher face.")}</div>` : "");
       wirePanel(Math.max(minQty, defQty), defFace, minQty, maxQty);
     }
 
@@ -268,6 +298,7 @@
       let selQty = initQty;
       let selFace = initFace;
       const qtyEl = elsCache.panel.querySelector("#ldQty");
+      const previewEl = elsCache.panel.querySelector("#ldPreview");
       const faceBtns = [...elsCache.panel.querySelectorAll(".ld-face")];
       function refreshFaces() {
         faceBtns.forEach((b) => b.classList.toggle("on", Number(b.dataset.face) === selFace));
@@ -275,25 +306,37 @@
       function valid() {
         return bidHigher({ qty: selQty, face: selFace }, bid);
       }
+      function refreshPreview() {
+        const f = PIPS[selFace - 1];
+        const mine = myMatches(selFace);
+        const ok = valid();
+        previewEl.innerHTML =
+          `<span class="ld-prev-lead">${ctx.t("Bạn sắp tố:", "You'll bid:")}</span> ` +
+          `<span class="ld-prev-sentence">${ctx.t(`"Trên bàn có ít nhất <b>${selQty}</b> con mặt ${f}"`, `"At least <b>${selQty}</b> dice show ${f}"`)}</span>` +
+          `<span class="ld-prev-mine">${ctx.t(`bạn đang giữ ${mine} con ${f}`, `you hold ${mine}× ${f}`)}</span>` +
+          (ok ? "" : `<span class="ld-prev-bad">${ctx.t("⚠ phải cao hơn lời tố hiện tại", "⚠ must beat the current bid")}</span>`);
+      }
       function refreshBidBtn() {
         const bidBtn = elsCache.panel.querySelector(".ld-do-bid");
         if (bidBtn) bidBtn.classList.toggle("disabled", !valid());
       }
       refreshFaces();
       refreshBidBtn();
+      refreshPreview();
       elsCache.panel.querySelectorAll(".ld-qd").forEach((b) => {
         b.addEventListener("click", () => {
           selQty = Math.max(1, Math.min(maxQty, selQty + Number(b.dataset.qd)));
           qtyEl.textContent = selQty;
           refreshBidBtn();
+          refreshPreview();
         });
       });
       faceBtns.forEach((b) => {
-        b.addEventListener("click", () => { selFace = Number(b.dataset.face); refreshFaces(); refreshBidBtn(); });
+        b.addEventListener("click", () => { selFace = Number(b.dataset.face); refreshFaces(); refreshBidBtn(); refreshPreview(); });
       });
       const bidBtn = elsCache.panel.querySelector(".ld-do-bid");
       bidBtn.addEventListener("click", () => {
-        if (!valid()) { ctx.setStatus(ctx.t("Tố phải cao hơn tố hiện tại.", "Bid must beat the current bid.")); return; }
+        if (!valid()) { ctx.setStatus(ctx.t("Lời tố phải cao hơn lời tố hiện tại.", "Your bid must beat the current bid.")); return; }
         applyMove({ k: "bid", qty: selQty, face: selFace }, false);
       });
       const chBtn = elsCache.panel.querySelector(".ld-do-ch");
@@ -344,12 +387,13 @@
       },
     ],
     howTo: [
-      "Mỗi người có một số xúc xắc giấu kín (mặc định 5). Bạn chỉ nhìn thấy xúc xắc của chính mình.",
-      "Đến lượt, bạn 'TỐ': tuyên bố có ít nhất N xúc xắc mang một mặt nào đó, tính trên TẤT CẢ xúc xắc của cả hai người.",
-      "Lời tố sau phải CAO HƠN: tăng số lượng, hoặc giữ số lượng nhưng chọn mặt lớn hơn.",
-      "Thay vì tố, bạn có thể hô 'NGHI NGỜ!'. Khi đó lật hết xúc xắc và đếm: nếu thực tế ≥ con số vừa tố thì người tố ĐÚNG (người nghi ngờ mất 1 xúc xắc); nếu ít hơn thì người tố SAI (mất 1 xúc xắc).",
-      "Mặc định mặt ★ (1) là 'hoang' — tính cho mọi mặt khi đếm (có thể tắt trong tùy chọn).",
-      "Người thua mỗi vòng được tố trước ở vòng sau. Ai mất hết xúc xắc trước sẽ THUA.",
+      "Ví dụ cho dễ hiểu: bạn có 5 xúc xắc, đối thủ có 5 — tổng 10 con trên bàn, nhưng bạn chỉ thấy 5 con của mình.",
+      "Đến lượt, bạn 'TỐ' một con số, kiểu: \"trên bàn có ÍT NHẤT 4 con mặt ⚄\". Con số này tính gộp xúc xắc của CẢ HAI người (kể cả những con đang giấu).",
+      "Mẹo: nhìn xúc xắc của mình để đoán. Nếu bạn đã có sẵn 2 con ⚄, chỉ cần đối thủ có thêm 2 con nữa là lời tố \"ít nhất 4 con ⚄\" thành đúng.",
+      "Đối thủ phải tố CAO HƠN bạn (nhiều con hơn, hoặc cùng số con nhưng mặt lớn hơn) — hoặc bấm 'NGHI NGỜ!' nếu nghĩ bạn nói dối.",
+      "Khi 'NGHI NGỜ!', lật hết xúc xắc và đếm thật: nếu thực tế ĐỦ con số vừa tố thì người tố đúng (người nghi ngờ thua, mất 1 xúc xắc); nếu THIẾU thì người tố nói dối (mất 1 xúc xắc).",
+      "Mặc định mặt ★ (số 1) là 'hoang', được tính như mọi mặt khi đếm (có thể tắt trong tùy chọn).",
+      "Càng ít xúc xắc thì lời tố càng dễ bị bắt bài. Ai mất hết xúc xắc trước sẽ THUA cả ván.",
     ],
     create,
   });
