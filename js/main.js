@@ -245,6 +245,8 @@
       round: online ? online.round : 1,
       rng: window.makeRng(seed || 1),
       options: currentOptions,
+      vsAI: !online && vsAI,
+      aiLevel: aiLevel,
       setStatus(text) {
         el.status.textContent = text || "";
         // Tự động phát âm thanh + màn chúc mừng khi kết thúc ván

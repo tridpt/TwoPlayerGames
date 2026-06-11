@@ -39,17 +39,18 @@
       if (over || revealing || move.k !== "pick") return;
       const c = move.c === "D" ? "D" : "C";
       let seat;
-      if (ctx.isOnline) {
-        seat = fromRemote ? (1 - ctx.mySeat) : ctx.mySeat;
-      } else {
-        seat = picks[0] == null ? 0 : 1;
-      }
+      if (ctx.isOnline) seat = fromRemote ? (1 - ctx.mySeat) : ctx.mySeat;
+      else if (ctx.vsAI) seat = fromRemote ? 1 : 0;
+      else seat = picks[0] == null ? 0 : 1;
       if (picks[seat] != null) return;
       picks[seat] = c;
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "pick", c });
       ctx.sound("place");
-      if (bothPicked()) reveal();
-      else { render(); updateStatus(); }
+      if (bothPicked()) { reveal(); return; }
+      render(); updateStatus();
+      if (ctx.vsAI && !fromRemote && picks[1] == null) {
+        setTimeout(() => { const mv = aiMove(); if (mv) applyMove(mv, true); }, 550);
+      }
     }
 
     function reveal() {
@@ -155,6 +156,9 @@
       let label;
       if (ctx.isOnline) {
         if (picks[ctx.mySeat] != null) { els.pickWrap.innerHTML = `<div class="pd2-waitpick">${ctx.t("Đã chọn — chờ đối thủ...", "Chosen — waiting for opponent...")}</div>`; return; }
+        label = ctx.t("Lựa chọn của bạn:", "Your choice:");
+      } else if (ctx.vsAI) {
+        if (picks[0] != null) { els.pickWrap.innerHTML = `<div class="pd2-waitpick">${ctx.t("Đã chọn — máy đang nghĩ...", "Chosen — computer is thinking...")}</div>`; return; }
         label = ctx.t("Lựa chọn của bạn:", "Your choice:");
       } else {
         const cur = picks[0] == null ? 0 : 1;

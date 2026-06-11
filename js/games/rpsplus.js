@@ -52,14 +52,18 @@
       const c = ["R", "S", "P", "X"].includes(move.c) ? move.c : "R";
       let seat;
       if (ctx.isOnline) seat = fromRemote ? (1 - ctx.mySeat) : ctx.mySeat;
+      else if (ctx.vsAI) seat = fromRemote ? 1 : 0;
       else seat = picks[0] == null ? 0 : 1;
       if (picks[seat] != null) return;
       if (c === "X" && !canCannon(seat)) return;        // chưa đủ sạc, không cho
       picks[seat] = c;
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "pick", c });
       ctx.sound("place");
-      if (bothPicked()) reveal();
-      else { render(); updateStatus(); }
+      if (bothPicked()) { reveal(); return; }
+      render(); updateStatus();
+      if (ctx.vsAI && !fromRemote && picks[1] == null) {
+        setTimeout(() => { const mv = aiMove(); if (mv) applyMove(mv, true); }, 550);
+      }
     }
 
     function reveal() {
@@ -128,10 +132,11 @@
     function render() {
       if (!els) buildShell();
       const me = mySeatIdx();
+      const p2label = ctx.vsAI ? ctx.t("🤖 Máy", "🤖 AI") : `🟦 P2${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}`;
       els.head.innerHTML =
-        `<div class="rps2-pinfo p1"><span>🟥 P1${me === 0 ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[0]}</b>${chargeBar(0)}</div>` +
+        `<div class="rps2-pinfo p1"><span>🟥 P1${me === 0 || ctx.vsAI ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[0]}</b>${chargeBar(0)}</div>` +
         `<div class="rps2-goal">${ctx.t("đua tới", "to")} ${WIN_ROUNDS}</div>` +
-        `<div class="rps2-pinfo p2"><span>🟦 P2${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[1]}</b>${chargeBar(1)}</div>`;
+        `<div class="rps2-pinfo p2"><span>${p2label}</span><b>${score[1]}</b>${chargeBar(1)}</div>`;
 
       if (lastResult && (revealing || bothPicked())) {
         const { a, b, winner } = lastResult;
@@ -159,6 +164,10 @@
       if (ctx.isOnline) {
         seat = ctx.mySeat;
         if (picks[seat] != null) { els.pickWrap.innerHTML = `<div class="rps2-waitpick">${ctx.t("Đã chọn — chờ đối thủ...", "Chosen — waiting...")}</div>`; return; }
+        label = ctx.t("Lựa chọn của bạn:", "Your choice:");
+      } else if (ctx.vsAI) {
+        seat = 0;
+        if (picks[0] != null) { els.pickWrap.innerHTML = `<div class="rps2-waitpick">${ctx.t("Đã chọn — máy đang nghĩ...", "Chosen — computer is thinking...")}</div>`; return; }
         label = ctx.t("Lựa chọn của bạn:", "Your choice:");
       } else {
         seat = picks[0] == null ? 0 : 1;

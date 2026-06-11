@@ -33,26 +33,34 @@
       if (over || revealing || move.k !== "pick") return;
       const n = Number(move.n);
       if (!(n >= 1 && n <= N)) return;
-      // xác định ai chọn: online -> theo mySeat của người gửi; local -> theo lượt thao tác
+      // xác định ai chọn:
+      //  - online: theo mySeat của người gửi
+      //  - đấu máy: người = seat 0, máy = seat 1
+      //  - chung máy: P1 chọn trước (picks[0]), rồi P2 (picks[1])
       let seat;
-      if (ctx.isOnline) {
-        seat = fromRemote ? (1 - ctx.mySeat) : ctx.mySeat;
-      } else {
-        // chung máy: P1 chọn trước (picks[0]), rồi P2 (picks[1])
-        seat = picks[0] == null ? 0 : 1;
-      }
+      if (ctx.isOnline) seat = fromRemote ? (1 - ctx.mySeat) : ctx.mySeat;
+      else if (ctx.vsAI) seat = fromRemote ? 1 : 0;
+      else seat = picks[0] == null ? 0 : 1;
       if (picks[seat] != null) return; // đã chọn rồi
       picks[seat] = n;
       if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "pick", n });
       ctx.sound("place");
 
-      if (bothPicked()) reveal();
-      else { render(); updateStatus(); }
+      if (bothPicked()) { reveal(); return; }
+      render(); updateStatus();
+      // đấu máy: người vừa chọn -> máy chọn ngay sau đó
+      if (ctx.vsAI && !fromRemote && picks[1] == null) {
+        setTimeout(() => {
+          const mv = aiMove();
+          if (mv) applyMove(mv, true);
+        }, 500);
+      }
     }
 
     function reveal() {
       revealing = true;
       const a = picks[0], b = picks[1];
+      oppHist.push(a);   // ghi lại số người chơi (seat 0) đã ra cho AI hard học
       let winner = -1;
       if (a !== b) winner = a > b ? 0 : 1;
       if (winner >= 0) score[winner] += picks[winner];
@@ -67,9 +75,10 @@
           const w = score[0] === score[1] ? -1 : (score[0] > score[1] ? 0 : 1);
           if (w >= 0) ctx.incScore(w);
           ctx.setTurn(-1);
+          const wname = (s) => ctx.vsAI ? (s === 0 ? ctx.t("Bạn", "You") : ctx.t("Máy", "AI")) : ctx.t("Người chơi " + (s + 1), "Player " + (s + 1));
           ctx.setStatus(w < 0
             ? ctx.t(`🤝 Hòa ${score[0]}–${score[1]}!`, `🤝 Draw ${score[0]}–${score[1]}!`)
-            : ctx.t(`🎉 Người chơi ${w + 1} thắng ${score[0]}–${score[1]}!`, `🎉 Player ${w + 1} wins ${score[0]}–${score[1]}!`));
+            : ctx.t(`🎉 ${wname(w)} thắng ${score[0]}–${score[1]}!`, `🎉 ${wname(w)} wins ${score[0]}–${score[1]}!`));
           render();
           return;
         }
@@ -79,14 +88,28 @@
       }, 1700);
     }
 
-    // ----- AI: chọn số có kỳ vọng tốt; tránh quá dễ đoán -----
+    // ----- AI: chọn số khó đoán; mức Khó dựa trên lịch sử để né/đè -----
+    let oppHist = [];   // lịch sử số người chơi (seat 0) đã ra
     function aiMove() {
       if (over || revealing) return null;
-      // easy/normal/hard không phân biệt nhiều vì luật đơn giản; thêm chút ngẫu nhiên
-      // ưu tiên số tầm trung-cao nhưng đôi khi chọn thấp để khó đoán
-      const r = ctx.rng();
-      if (r < 0.55) return { k: "pick", n: 1 + Math.floor(ctx.rng() * N) }; // ngẫu nhiên
-      // nghiêng về số lớn vừa phải
+      const level = ctx.aiLevel || "normal";
+      if (level === "easy") return { k: "pick", n: 1 + Math.floor(ctx.rng() * N) };
+      if (level === "normal") {
+        // nghiêng về số trung-cao, có nhiễu
+        if (ctx.rng() < 0.4) return { k: "pick", n: 1 + Math.floor(ctx.rng() * N) };
+        const hi = Math.max(2, Math.round(N * 0.55));
+        return { k: "pick", n: hi + Math.floor(ctx.rng() * (N - hi + 1)) };
+      }
+      // hard: đoán người chơi hay ra số nào để "đè" (ra cao hơn 1) hoặc né trùng
+      if (oppHist.length >= 2 && ctx.rng() < 0.55) {
+        const freq = {};
+        oppHist.forEach((x) => (freq[x] = (freq[x] || 0) + 1));
+        let likely = oppHist[oppHist.length - 1], best = -1;
+        for (const k in freq) if (freq[k] > best) { best = freq[k]; likely = +k; }
+        // ra cao hơn dự đoán 1 bậc (nếu được), không thì né bằng số trung
+        const guess = Math.min(N, likely + 1);
+        return { k: "pick", n: guess >= 1 ? guess : Math.ceil(N / 2) };
+      }
       const hi = Math.max(2, Math.round(N * 0.6));
       return { k: "pick", n: hi + Math.floor(ctx.rng() * (N - hi + 1)) };
     }
@@ -109,18 +132,21 @@
     function render() {
       if (!els) buildShell();
       const me = mySeatIdx();
+      const p2label = ctx.vsAI ? ctx.t("🤖 Máy", "🤖 AI") : `🟦 P2${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}`;
+      const pct = (s) => Math.min(100, Math.round(s / WIN * 100));
       els.head.innerHTML =
-        `<div class="nd2-pinfo p1"><span>🟥 P1${me === 0 ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[0]}</b></div>` +
-        `<div class="nd2-goal">${ctx.t("vòng", "round")} ${roundNo} · ${ctx.t("đích", "goal")} ${WIN}</div>` +
-        `<div class="nd2-pinfo p2"><span>🟦 P2${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[1]}</b></div>`;
+        `<div class="nd2-pinfo p1"><span>🟥 P1${me === 0 || ctx.vsAI ? ctx.t(" (bạn)", " (you)") : ""}</span><b>${score[0]}</b><span class="nd2-pbar"><i style="width:${pct(score[0])}%"></i></span></div>` +
+        `<div class="nd2-goal">${ctx.t("vòng", "round")} ${roundNo}<br><small>${ctx.t("đích", "goal")} ${WIN}</small></div>` +
+        `<div class="nd2-pinfo p2"><span>${p2label}</span><b>${score[1]}</b><span class="nd2-pbar p2"><i style="width:${pct(score[1])}%"></i></span></div>`;
 
       // khu lật kết quả
       if (lastResult && (revealing || bothPicked())) {
         const { a, b, winner } = lastResult;
+        const pname = (s) => ctx.vsAI ? (s === 0 ? ctx.t("Bạn", "You") : ctx.t("Máy", "AI")) : "P" + (s + 1);
         const verdict = a === b
           ? ctx.t(`Cùng chọn ${a} — đụng nhau, không ai ghi điểm!`, `Both picked ${a} — clash, no points!`)
-          : ctx.t(`P${winner + 1} chọn ${winner === 0 ? a : b} (lớn hơn) → +${winner === 0 ? a : b} điểm!`,
-                  `P${winner + 1} picked ${winner === 0 ? a : b} (higher) → +${winner === 0 ? a : b} points!`);
+          : ctx.t(`${pname(winner)} chọn ${winner === 0 ? a : b} (lớn hơn) → +${winner === 0 ? a : b} điểm!`,
+                  `${pname(winner)} picked ${winner === 0 ? a : b} (higher) → +${winner === 0 ? a : b} points!`);
         els.reveal.innerHTML =
           `<div class="nd2-cards">` +
             `<span class="nd2-card p1${winner === 0 ? " win" : ""}${a === b ? " clash" : ""}">${a}</span>` +
@@ -147,6 +173,15 @@
           return;
         }
         els.pickLabel.textContent = ctx.t("Chọn số của bạn (bí mật):", "Pick your number (secret):");
+        els.nums.innerHTML = numButtons();
+      } else if (ctx.vsAI) {
+        // đấu máy: chỉ người (seat 0) chọn; máy tự chọn ngầm
+        if (picks[0] != null) {
+          els.pickLabel.textContent = ctx.t("Đã chọn — máy đang nghĩ...", "Picked — computer is thinking...");
+          els.nums.innerHTML = "";
+          return;
+        }
+        els.pickLabel.textContent = ctx.t("Chọn số của bạn:", "Pick your number:");
         els.nums.innerHTML = numButtons();
       } else {
         // chung máy: lần lượt P1 rồi P2, che số đã chọn
