@@ -154,7 +154,7 @@
 
       // nhật ký hỏi đáp
       els.log.innerHTML = log.length
-        ? log.map((e, i) => `<div class="tq-qa"><span class="tq-qn">${i + 1}</span><span class="tq-q">${escapeHtml(e.q)}</span><span class="tq-a tq-a-${e.a}">${ANS[e.a]}</span></div>`).join("")
+        ? log.map((e, i) => `<div class="tq-qa tq-row-${e.a}"><span class="tq-qn">${i + 1}</span><span class="tq-q">${escapeHtml(e.q)}</span><span class="tq-a tq-a-${e.a}">${ANS[e.a]}</span></div>`).join("")
         : `<div class="tq-empty">${ctx.t("Chưa có câu hỏi nào. Người đoán bắt đầu hỏi!", "No questions yet. The guesser starts asking!")}</div>`;
       els.log.scrollTop = els.log.scrollHeight;
 
