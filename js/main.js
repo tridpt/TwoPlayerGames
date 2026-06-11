@@ -222,7 +222,7 @@
       icon: "🕵️",
       hint: "Giấu vị trí, đoán tọa độ, tìm mìn, giải từ và đọc dấu hiệu.",
       hintKey: "grpHiddenHint",
-      games: ["battleship", "seabattleplus", "submarinehunt", "hiddenassassin", "trapmansion", "minesweeper", "treasure", "bullscows", "hangman", "noitu", "codebreakerduel"],
+      games: ["battleship", "seabattleplus", "submarinehunt", "hiddenassassin", "trapmansion", "minesweeper", "treasure", "bullscows", "hangman", "noitu", "codebreakerduel", "twentyquestions"],
     },
     {
       title: "Xúc xắc, bài & may rủi",
