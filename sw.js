@@ -4,10 +4,11 @@
      chỉ fallback sang cache khi offline. Tránh tình trạng "kẹt bản cũ".
    - Tài nguyên tĩnh khác (ảnh, icon, font): CACHE-FIRST cho nhanh.
 */
-const CACHE = "tpg-v34";
+const CACHE = "tpg-v35";
 const CORE = [
   "./",
   "./index.html",
+  "./offline.html",
   "./styles.css",
   "./icon.svg",
   "./manifest.webmanifest",
@@ -58,7 +59,7 @@ self.addEventListener("fetch", (e) => {
           caches.open(CACHE).then((c) => c.put(req, copy));
         }
         return res;
-      }).catch(() => caches.match(req).then((hit) => hit || caches.match("./index.html")))
+      }).catch(() => caches.match(req).then((hit) => hit || caches.match("./index.html").then((idx) => idx || caches.match("./offline.html"))))
     );
     return;
   }

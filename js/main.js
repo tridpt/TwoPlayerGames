@@ -2615,6 +2615,17 @@
     if (el.tourOverlay && !el.tourOverlay.classList.contains("hidden")) { endTour(); return; }
     if (el.replayOverlay && !el.replayOverlay.classList.contains("hidden")) { closeReplay(); return; }
     if (el.helpOverlay && !el.helpOverlay.classList.contains("hidden")) { closeHelp(); return; }
+    if (el.winOverlay && !el.winOverlay.classList.contains("hidden")) { hideWinScreen(); return; }
+  });
+
+  // Phím mũi tên/space điều khiển trình xem lại ván khi overlay replay đang mở.
+  document.addEventListener("keydown", (e) => {
+    if (!el.replayOverlay || el.replayOverlay.classList.contains("hidden")) return;
+    if (e.key === "ArrowLeft") { e.preventDefault(); stopReplayPlay(); rebuildReplay(replayIdx - 1); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); stopReplayPlay(); replayStepForward(); }
+    else if (e.key === " ") { e.preventDefault(); toggleReplayPlay(); }
+    else if (e.key === "Home") { e.preventDefault(); stopReplayPlay(); rebuildReplay(0); }
+    else if (e.key === "End") { e.preventDefault(); stopReplayPlay(); rebuildReplay(replayMoves.length); }
   });
 
   function maybeStartTour() {
