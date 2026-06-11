@@ -9,13 +9,19 @@
     const MIN_WAIT = (o.wait === "fast" ? 700 : o.wait === "slow" ? 2000 : 1200);
     const MAX_WAIT = MIN_WAIT + (o.wait === "fast" ? 1500 : o.wait === "slow" ? 4000 : 2800);
 
+    const BEST_KEY = "tpg_rd2_best";
+    function getBest() { try { const v = +localStorage.getItem(BEST_KEY); return v > 0 ? v : 0; } catch (e) { return 0; } }
+    function setBest(v) { try { localStorage.setItem(BEST_KEY, String(v)); } catch (e) { /* ignore */ } }
+
     let score = [0, 0];
     let over = false;
-    let phase = "idle";      // idle | waiting | go | done
+    let phase = "idle";      // idle | countdown | waiting | go | done
     let signalAt = 0;        // mốc thời gian đèn chuyển xanh
     let goTimer = null;
+    let cdTimer = null;
     let winnerThisRound = -1;
     let rt = [-1, -1];       // thời gian phản xạ (ms) mỗi người trong vòng
+    let bestRt = getBest();
 
     const root = document.createElement("div");
     root.className = "rd2-root";
@@ -30,6 +36,7 @@
         `</button>` +
       `</div>` +
       `<div class="rd2-score"><b class="rd2-s1">0</b><span class="rd2-vs">${ctx.t("vòng", "round")} 1/${WIN_ROUNDS}</span><b class="rd2-s2">0</b></div>` +
+      `<div class="rd2-best" id="rd2Best"></div>` +
       `<button type="button" class="btn primary rd2-start">${ctx.t("Bắt đầu vòng", "Start round")}</button>`;
     ctx.boardEl.appendChild(root);
 
@@ -39,8 +46,15 @@
     const s1El = root.querySelector(".rd2-s1");
     const s2El = root.querySelector(".rd2-s2");
     const vsEl = root.querySelector(".rd2-vs");
+    const bestEl = root.querySelector("#rd2Best");
     const rtEls = [root.querySelector('[data-rt="0"]'), root.querySelector('[data-rt="1"]')];
     const pads = [root.querySelector(".rd2-p1"), root.querySelector(".rd2-p2")];
+
+    function renderBest() {
+      bestEl.innerHTML = bestRt > 0
+        ? ctx.t(`🏅 Kỷ lục phản xạ: <b>${bestRt}ms</b>`, `🏅 Best reaction: <b>${bestRt}ms</b>`)
+        : ctx.t("🏅 Chưa có kỷ lục — bấm nhanh để lập!", "🏅 No record yet — be fast to set one!");
+    }
 
     function setLight(cls, text) {
       lightEl.className = "rd2-light " + cls;
@@ -48,12 +62,26 @@
     }
 
     function startRound() {
-      if (over || phase === "waiting" || phase === "go") return;
+      if (over || phase === "countdown" || phase === "waiting" || phase === "go") return;
       winnerThisRound = -1;
       rt = [-1, -1];
       rtEls.forEach((e) => (e.textContent = ""));
       pads.forEach((p) => p.classList.remove("foul", "win", "lose"));
       startBtn.disabled = true;
+      // Đếm ngược 3-2-1 trước khi vào pha chờ
+      phase = "countdown";
+      let cd = 3;
+      setLight("count", String(cd));
+      ctx.sound("place");
+      ctx.setStatus(ctx.t("Chuẩn bị...", "Get ready..."));
+      cdTimer = setInterval(() => {
+        cd--;
+        if (cd > 0) { setLight("count", String(cd)); ctx.sound("place"); }
+        else { clearInterval(cdTimer); cdTimer = null; beginWait(); }
+      }, 700);
+    }
+
+    function beginWait() {
       phase = "waiting";
       setLight("wait", ctx.t("Chờ đèn XANH...", "Wait for GREEN..."));
       ctx.setStatus(ctx.t("Đừng bấm sớm! Bấm trước khi xanh sẽ thua vòng.", "Don't jump the gun! Tapping before green loses the round."));
@@ -68,7 +96,7 @@
 
     function press(seat) {
       if (over) return;
-      if (phase === "idle" || phase === "done") return;
+      if (phase === "idle" || phase === "done" || phase === "countdown") return;
       if (phase === "waiting") {
         // bấm sớm -> phạm quy, đối thủ thắng vòng
         clearTimeout(goTimer);
@@ -82,6 +110,13 @@
         rt[seat] = Date.now() - signalAt;
         rtEls[seat].textContent = rt[seat] + "ms";
         ctx.sound("place");
+        // cập nhật kỷ lục phản xạ tốt nhất
+        if (rt[seat] > 0 && (bestRt === 0 || rt[seat] < bestRt)) {
+          bestRt = rt[seat];
+          setBest(bestRt);
+          rtEls[seat].textContent = rt[seat] + "ms 🏅";
+          renderBest();
+        }
         // người đầu tiên bấm hợp lệ thắng vòng (đối thủ chưa cần bấm)
         finishRound(seat, false, -1);
       }
@@ -131,7 +166,7 @@
     }
     window.addEventListener("keydown", onKey);
 
-    const cleanup = () => { clearTimeout(goTimer); window.removeEventListener("keydown", onKey); };
+    const cleanup = () => { clearTimeout(goTimer); clearInterval(cdTimer); window.removeEventListener("keydown", onKey); };
     const observer = new MutationObserver(() => {
       if (!document.body.contains(root)) { cleanup(); observer.disconnect(); }
     });
@@ -139,6 +174,7 @@
 
     ctx.setTurn(-1);
     setLight("idle", ctx.t("Sẵn sàng", "Ready"));
+    renderBest();
     ctx.setStatus(ctx.t(`Bấm "Bắt đầu vòng". P1 dùng phím A, P2 dùng phím L. Chờ đèn XANH rồi bấm thật nhanh!`,
       `Press "Start round". P1 uses key A, P2 uses key L. Wait for GREEN then tap fast!`));
 

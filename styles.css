@@ -12365,6 +12365,8 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
   background: #3a4060; transition: background 0.1s;
 }
 .rd2-light.idle { background: #3a4060; color: #c9d2ff; }
+.rd2-light.count { background: radial-gradient(circle, #4dd0e1, #2a3068); color: #fff; font-size: 2.4rem; animation: rd2-count 0.7s ease; }
+@keyframes rd2-count { from { transform: scale(1.4); opacity: 0.4; } to { transform: scale(1); opacity: 1; } }
 .rd2-light.wait { background: linear-gradient(160deg, #ff8f5a, #ff5d73); color: #2a1606; animation: rd2-pulse 0.8s ease-in-out infinite; }
 .rd2-light.go { background: linear-gradient(160deg, #6ee7b7, #34d399); color: #07331f; box-shadow: 0 0 30px rgba(52,211,153,0.7); }
 .rd2-light.done { background: #2a3068; color: #ffd166; }
@@ -12373,6 +12375,8 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 .rd2-score .rd2-s1 { color: #ff5d73; }
 .rd2-score .rd2-s2 { color: #4dd0e1; }
 .rd2-vs { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+.rd2-best { font-size: 0.85rem; color: var(--muted); text-align: center; }
+.rd2-best b { color: var(--accent); }
 @media (max-width: 480px) {
   .rd2-light { width: 84px; font-size: 0.85rem; }
   .rd2-pad { min-height: 150px; }
@@ -12383,6 +12387,7 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 .dd2-canvas { max-width: 100%; height: auto; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: #0f1226; touch-action: none; }
 .dd2-info { display: flex; justify-content: space-between; align-items: center; gap: 18px; width: 100%; max-width: 614px; color: var(--muted); font-size: 0.9rem; }
 .dd2-info .dd2-dist { font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.dd2-spd { font-size: 0.8rem; color: #6ee7b7; font-weight: 700; margin-left: 4px; }
 
 
 /* ====================== Rắn & Thang (snakesladders) ====================== */

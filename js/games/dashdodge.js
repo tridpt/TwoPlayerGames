@@ -45,12 +45,23 @@
     let over = false;
     let running = false;
     let raf = null;
+    const particles = [];
+    function curSpeed() { return SPEED * (1 + Math.min(dist / 3000, 1.2)); } // tăng dần theo quãng đường
+
+    function burst(cx, cy, color) {
+      for (let i = 0; i < 18; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const sp = 1.5 + Math.random() * 4;
+        particles.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, color });
+      }
+    }
 
     function runnerX(lane) { return lane.x0 + LANE_W / 2 - RUNNER / 2; }
 
     function reset() {
       lanes.forEach((l, i) => { l.alive = true; l.y = H - 70; l.obstacles = []; l.spawn = 30 + i * 30; });
       dist = 0;
+      particles.length = 0;
     }
 
     function spawnObstacle(lane) {
@@ -66,7 +77,8 @@
       if (keys["arrowup"]) lanes[1].y -= RUNNER_SPEED;
       if (keys["arrowdown"]) lanes[1].y += RUNNER_SPEED;
 
-      dist += SPEED;
+      const spd = curSpeed();
+      dist += spd;
 
       lanes.forEach((lane, idx) => {
         if (!lane.alive) return;
@@ -76,16 +88,24 @@
         const rx = runnerX(lane);
         for (let i = lane.obstacles.length - 1; i >= 0; i--) {
           const ob = lane.obstacles[i];
-          ob.y += SPEED;
+          ob.y += spd;
           if (ob.y > H + 30) { lane.obstacles.splice(i, 1); continue; }
           // va chạm AABB
           if (rx < ob.x + ob.w && rx + RUNNER > ob.x && lane.y < ob.y + ob.h && lane.y + RUNNER > ob.y) {
             lane.alive = false;
+            burst(rx + RUNNER / 2, lane.y + RUNNER / 2, COLORS[idx]);
             ctx.sound("miss");
             checkEnd();
           }
         }
       });
+
+      // cập nhật particle
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life -= 0.025;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
 
       // điều kiện về đích
       if (GOAL > 0 && dist >= GOAL && !over) {
@@ -162,13 +182,22 @@
       // vạch giữa
       g.fillStyle = "rgba(255,255,255,0.15)";
       g.fillRect(LANE_W, 0, 14, H);
+
+      // particle khi va chạm
+      particles.forEach((p) => {
+        g.globalAlpha = Math.max(0, p.life);
+        g.fillStyle = p.color;
+        g.fillRect(p.x, p.y, 4, 4);
+      });
+      g.globalAlpha = 1;
     }
 
     function loop() {
       if (running) update();
       draw();
-      const shown = GOAL > 0 ? `${Math.round(dist)}/${GOAL}m` : `${Math.round(dist)}m`;
-      distEl.textContent = shown;
+      const distTxt = GOAL > 0 ? `${Math.round(dist)}/${GOAL}m` : `${Math.round(dist)}m`;
+      const spdX = (curSpeed() / SPEED).toFixed(1);
+      distEl.innerHTML = `${distTxt} <span class="dd2-spd">⚡${spdX}×</span>`;
       if (!over) raf = requestAnimationFrame(loop);
     }
 
