@@ -188,9 +188,14 @@
     function mySeatIdx() { return ctx.isOnline ? ctx.mySeat : turn; }
 
     function cardHtml(c, hidden) {
-      if (hidden) return `<span class="bj-card back">🂠</span>`;
+      if (hidden) return `<span class="bj-card back"><span class="bj-back-deco">🂠</span></span>`;
       const red = c.s === 1 || c.s === 2;
-      return `<span class="bj-card${red ? " red" : ""}">${RANKS[c.r]}<small>${SUITS[c.s]}</small></span>`;
+      const r = RANKS[c.r], s = SUITS[c.s];
+      return `<span class="bj-card${red ? " red" : ""}">` +
+        `<span class="bj-corner tl"><b>${r}</b><i>${s}</i></span>` +
+        `<span class="bj-pip">${s}</span>` +
+        `<span class="bj-corner br"><b>${r}</b><i>${s}</i></span>` +
+      `</span>`;
     }
 
     function render(revealAll) {
@@ -212,6 +217,8 @@
       els.meCards.innerHTML = hands[me].map((c) => cardHtml(c, false)).join("");
       const mt = handTotal(hands[me]);
       els.meTotal.innerHTML = `<b>${busted[me] ? ctx.t("QUẮC", "BUST") : mt}</b> ${ctx.t("điểm", "pts")}`;
+      els.meTotal.classList.toggle("bust", busted[me]);
+      els.meTotal.classList.toggle("bj21", !busted[me] && mt === 21);
 
       renderActs();
     }

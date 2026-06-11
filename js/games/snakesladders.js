@@ -67,15 +67,48 @@
       }
     }
 
+    // Lớp SVG vẽ đường thang (xanh) & rắn (cam) nối hai ô.
+    function cellCenter(n) {
+      const { top, col } = cellToRC(n);
+      return { x: (col + 0.5) / SIZE * 100, y: (top + 0.5) / SIZE * 100 };
+    }
+    (function drawLinks() {
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("class", "sl-links");
+      svg.setAttribute("viewBox", "0 0 100 100");
+      svg.setAttribute("preserveAspectRatio", "none");
+      function line(a, b, cls, width) {
+        const p1 = cellCenter(a), p2 = cellCenter(b);
+        const ln = document.createElementNS(ns, "line");
+        ln.setAttribute("x1", p1.x); ln.setAttribute("y1", p1.y);
+        ln.setAttribute("x2", p2.x); ln.setAttribute("y2", p2.y);
+        ln.setAttribute("class", cls);
+        ln.setAttribute("stroke-width", width);
+        svg.appendChild(ln);
+        // nút tròn ở hai đầu
+        [p1, p2].forEach((p, idx) => {
+          const c = document.createElementNS(ns, "circle");
+          c.setAttribute("cx", p.x); c.setAttribute("cy", p.y);
+          c.setAttribute("r", idx === 0 ? 1.6 : 2.2);
+          c.setAttribute("class", cls + "-dot");
+          svg.appendChild(c);
+        });
+      }
+      Object.keys(LADDERS).forEach((k) => line(+k, LADDERS[k], "sl-link-ladder", 1.4));
+      if (SNAKE_ON) Object.keys(SNAKES).forEach((k) => line(+k, SNAKES[k], "sl-link-snake", 1.8));
+      boardEl.appendChild(svg);
+    })();
+
     function canPlay() { return !over && !rolling && (!ctx.isOnline || turn === ctx.mySeat); }
 
-    function renderPawns() {
+    function renderPawns(hopSeat) {
       boardEl.querySelectorAll(".sl-pawns").forEach((e) => (e.innerHTML = ""));
       [0, 1].forEach((p) => {
         if (pos[p] >= 1 && pos[p] <= GOAL) {
           const holder = cellEls[pos[p]].querySelector(".sl-pawns");
           const pawn = document.createElement("span");
-          pawn.className = "sl-pawn sl-pawn-p" + (p + 1);
+          pawn.className = "sl-pawn sl-pawn-p" + (p + 1) + (hopSeat === p ? " hop" : "");
           pawn.textContent = p === 0 ? "🔴" : "🔵";
           holder.appendChild(pawn);
         }
@@ -118,6 +151,9 @@
 
       const mover = turn;
       dieEl.textContent = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][die - 1];
+      dieEl.classList.remove("rolling");
+      void dieEl.offsetWidth; // reflow để chạy lại animation
+      dieEl.classList.add("rolling");
       ctx.sound("place");
 
       let next = pos[mover] + die;
@@ -133,7 +169,7 @@
       if (LADDERS[next]) { pos[mover] = LADDERS[next]; special = "ladder"; ctx.sound("powerup"); }
       else if (SNAKE_ON && SNAKES[next]) { pos[mover] = SNAKES[next]; special = "snake"; ctx.sound("miss"); }
 
-      renderPawns();
+      renderPawns(mover);
       renderHeader();
 
       if (pos[mover] === GOAL) {
