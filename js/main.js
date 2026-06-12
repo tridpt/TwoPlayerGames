@@ -214,7 +214,7 @@
       icon: "🏰",
       hint: "Có tiến triển lâu hơn: thủ nhà, gửi quái, đi dungeon và lên cấp.",
       hintKey: "grpLongHint",
-      games: ["coopdefense", "basedefenseduel", "robotfactorywar", "dungeonrival", "tycoon"],
+      games: ["coopdefense", "basedefenseduel", "robotfactorywar", "dungeonrival", "tycoon", "boxpush", "mazecoop"],
     },
     {
       title: "Ẩn thông tin & suy luận",

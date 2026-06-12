@@ -12945,3 +12945,64 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 .tq-role-pick { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 0; }
 .tq-rolebtns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 .tq-rolebtns .btn { padding: 14px 20px; font-size: 0.95rem; }
+
+/* ===================== Co-op: Đẩy Thùng Đôi (boxpush) ===================== */
+.bx-root, .mz-root { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.bx-hud, .mz-hud { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 16px; width: 100%; max-width: 560px; font-size: 0.9rem; }
+.bx-hud .bx-info, .mz-hud .mz-info { color: var(--muted); }
+.bx-hud .bx-info b, .mz-hud .mz-info b { color: var(--text); }
+.bx-stage, .mz-stage {
+  display: grid;
+  grid-template-columns: repeat(var(--bx-w, 8), 1fr);
+  grid-template-rows: repeat(var(--bx-h, 5), 1fr);
+  gap: 2px;
+  width: min(520px, 96vw);
+  aspect-ratio: var(--bx-w, 8) / var(--bx-h, 5);
+  background: #0a1430;
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+.mz-stage { grid-template-columns: repeat(var(--mz-w, 8), 1fr); grid-template-rows: repeat(var(--mz-h, 5), 1fr); aspect-ratio: var(--mz-w, 8) / var(--mz-h, 5); }
+.bx-cell, .mz-cell {
+  position: relative; min-width: 0; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; font-size: clamp(0.9rem, 4.2vw, 1.7rem); line-height: 1; user-select: none;
+}
+.bx-floor, .mz-floor { background: #16315a; }
+.bx-wall, .mz-wall { background: #0c1a33; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4); border-radius: 2px; }
+.bx-goal { background: radial-gradient(circle at 50% 50%, rgba(110,231,183,0.32), #16315a 70%); box-shadow: inset 0 0 0 2px rgba(110,231,183,0.55); }
+.bx-goal::after { content: "🎯"; position: absolute; font-size: 0.7em; opacity: 0.5; }
+.bx-box, .bx-p, .mz-p, .mz-ex, .mz-lv { position: relative; z-index: 2; }
+.bx-box-on { filter: drop-shadow(0 0 4px #6ee7b7); }
+.bx-p1, .mz-p1 { filter: drop-shadow(0 0 3px #ff5d73); }
+.bx-p2, .mz-p2 { filter: drop-shadow(0 0 3px #4dd0e1); }
+.bx-plate, .mz-plate { box-shadow: inset 0 0 0 3px currentColor; }
+.bx-grp-a, .mz-grp-a { color: #f0b429; }
+.bx-grp-b, .mz-grp-b { color: #c084fc; }
+.bx-grp-c, .mz-grp-c { color: #38bdf8; }
+.bx-plate::before, .mz-plate::before { content: ""; position: absolute; width: 42%; height: 42%; border-radius: 50%; background: currentColor; opacity: 0.4; }
+.bx-door, .mz-door, .mz-gate { background: #3a2a4a; }
+.bx-door.bx-closed, .mz-door.mz-closed, .mz-gate.mz-closed { background: repeating-linear-gradient(45deg, #5a3a2a, #5a3a2a 5px, #3a2418 5px, #3a2418 10px); box-shadow: inset 0 0 0 2px currentColor; }
+.bx-door.bx-open, .mz-door.mz-open, .mz-gate.mz-open { background: rgba(110,231,183,0.12); box-shadow: inset 0 0 0 1px currentColor; opacity: 0.7; }
+.mz-exit1 { box-shadow: inset 0 0 0 3px #ff5d73; background: radial-gradient(circle, rgba(255,93,115,0.28), #16315a 70%); }
+.mz-exit2 { box-shadow: inset 0 0 0 3px #4dd0e1; background: radial-gradient(circle, rgba(77,208,225,0.28), #16315a 70%); }
+.mz-ex { position: absolute; font-size: 0.62em; opacity: 0.5; }
+.mz-lever { background: #2a3a5a; }
+.bx-pads, .mz-pads { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+.bx-dpad, .mz-dpad { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bx-dpad-lbl, .mz-dpad-lbl { font-size: 0.78rem; font-weight: 800; color: var(--mz-pc, var(--bx-pc, #fff)); }
+.bx-dpad-grid, .mz-dpad-grid {
+  display: grid; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(2, 40px); gap: 4px;
+  grid-template-areas: ". up ." "left down right";
+}
+.bx-db, .mz-db {
+  border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: var(--text);
+  border-radius: 8px; font-size: 1rem; cursor: pointer; padding: 0;
+}
+.bx-db:disabled, .mz-db:disabled { opacity: 0.3; cursor: default; }
+.bx-db[data-dir="up"], .mz-db[data-dir="up"] { grid-area: up; }
+.bx-db[data-dir="left"], .mz-db[data-dir="left"] { grid-area: left; }
+.bx-db[data-dir="down"], .mz-db[data-dir="down"] { grid-area: down; }
+.bx-db[data-dir="right"], .mz-db[data-dir="right"] { grid-area: right; }
+.bx-db:not(:disabled):active, .mz-db:not(:disabled):active { background: var(--bx-pc, var(--mz-pc, #4dd0e1)); transform: scale(0.92); }

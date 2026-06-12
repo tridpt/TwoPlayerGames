@@ -36,7 +36,7 @@ const GAMES = [
   "seabattleplus", "slingshotbattle", "stratego", "submarinehunt", "tankarena",
   "territorywar", "timeloopduel", "trapmansion", "treasure", "yahtzee",
   "reactionduel", "dashdodge", "snakesladders", "liarsdice", "codebreakerduel", "blackjackduel", "twentyquestions", "wordduel", "tugofwar", "typingrace", "numberduel", "prisonersdilemma", "rpsplus", "tycoon", "colorwar",
-  "sim", "minichess", "sprouts",
+  "sim", "minichess", "sprouts", "boxpush", "mazecoop",
 ];
 
 for (const id of GAMES) {

@@ -47,6 +47,8 @@ const CASES = [
   { gameId: "sprouts", move: { a: 0, b: 1 }, check: (m) => m.move.a === 0 && m.move.b === 1 },
   { gameId: "typingrace", move: { k: "prog", i: 3 }, check: (m) => m.move.k === "prog" && m.move.i === 3 },
   { gameId: "reactionduel", move: { k: "rt", ms: 240 }, check: (m) => m.move.k === "rt" && m.move.ms === 240 },
+  { gameId: "boxpush", move: { k: "move", seat: 0, dir: "right" }, check: (m) => m.move.k === "move" && m.move.dir === "right" },
+  { gameId: "mazecoop", move: { k: "move", seat: 1, dir: "up" }, check: (m) => m.move.k === "move" && m.move.seat === 1 },
 ];
 
 (async () => {

@@ -706,6 +706,29 @@ var GAMES_EN_DATA = {
       "This version uses straight lines (no self-loops). Play locally, vs AI, or online.",
     ],
   },
+  boxpush: {
+    name: "Co-op Sokoban",
+    description: "Co-op puzzle: both players push every box onto a target. Plates hold doors open — you must coordinate. Local or online.",
+    howTo: [
+      "This is a CO-OP game: both players are on the same team, aiming to push EVERY box 📦 onto a target 🎯 to clear the level.",
+      "Each player controls one character. Local: P1 uses W/A/S/D, P2 uses arrow keys (or the on-screen D-pad). Online: you control only your own character.",
+      "Walk into a box to push it (only if the cell behind it is free). You can't push two boxes in a row, or push into a wall or closed door.",
+      "A floor plate (bright colored cell) opens the same-colored door WHILE it's pressed — by a standing player or a box on it. One player can hold a plate while the other pushes a box through.",
+      "Clear all levels and the team wins. Stuck? Press '↺ Restart level' to reset the boxes.",
+    ],
+  },
+  mazecoop: {
+    name: "Co-op Maze",
+    description: "Co-op maze: open the way for each other with plates & levers so both reach their exits. Local or online.",
+    howTo: [
+      "A CO-OP game: both players team up. Get BOTH characters to their own exit (🟥 P1, 🟦 P2) to clear the level.",
+      "Each player controls one character. Local: P1 uses W/A/S/D, P2 uses arrows (or the D-pad). Online: you control only your own character.",
+      "PLATES (bright colored cells): the same-colored door OPENS while someone stands on it — one player holds the plate so the other can pass.",
+      "LEVERS 🎚️: step on one to TOGGLE the same-colored gate on/off (it stays that way). Usually one player flips it to open a gate for the other.",
+      "Closed gates and unopened doors block you — coordinate the order of your moves to open the right path.",
+      "Both must stand on their exits to clear the maze. Solve all mazes and the team wins. Stuck? Press '↺ Restart'.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
