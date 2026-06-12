@@ -101,15 +101,38 @@
     function subSVG(variant) {
       const hull = variant === "final" ? "#b91c3c" : "#f5c542";
       const dark = variant === "final" ? "#7f1020" : "#c9990f";
+      const glow = variant === "final" ? "#ffcaca" : "#bff4ff";
       return `<svg class="sh-sub-svg" viewBox="0 0 64 40" aria-hidden="true">
+        <g opacity="0.85">
+          <circle cx="6" cy="14" r="1.4" fill="${glow}" opacity="0">
+            <animate attributeName="cy" values="20;6" dur="1.8s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0;0.8;0" dur="1.8s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="9" cy="14" r="1" fill="${glow}" opacity="0">
+            <animate attributeName="cy" values="22;8" dur="2.3s" begin="0.6s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0;0.7;0" dur="2.3s" begin="0.6s" repeatCount="indefinite"/>
+          </circle>
+        </g>
         <g>
+          <g transform="translate(6 22)">
+            <g>
+              <ellipse cx="0" cy="0" rx="2" ry="7" fill="${dark}"/>
+              <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="0.5s" repeatCount="indefinite"/>
+            </g>
+          </g>
           <path d="M2 22 q6 -11 24 -11 h18 q14 0 18 11 q-4 11 -18 11 h-18 q-18 0 -24 -11 z" fill="${hull}" stroke="${dark}" stroke-width="2"/>
+          <path d="M6 17 q8 -5 22 -5 h16 q11 0 15 6 q-30 -3 -53 -1 z" fill="#ffffff" opacity="0.18"/>
           <rect x="28" y="4" width="11" height="10" rx="2.5" fill="${hull}" stroke="${dark}" stroke-width="2"/>
           <line x1="33" y1="4" x2="33" y2="-2" stroke="${dark}" stroke-width="2.5"/>
-          <circle cx="33" cy="-2" r="2" fill="${dark}"/>
-          <circle cx="16" cy="22" r="3" fill="#0c1a2e"/>
-          <circle cx="28" cy="22" r="3" fill="#0c1a2e"/>
-          <circle cx="40" cy="22" r="3" fill="#0c1a2e"/>
+          <circle cx="33" cy="-2" r="2.2" fill="${glow}">
+            <animate attributeName="opacity" values="0.4;1;0.4" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="16" cy="22" r="3.2" fill="#0c1a2e"/>
+          <circle cx="28" cy="22" r="3.2" fill="#0c1a2e"/>
+          <circle cx="40" cy="22" r="3.2" fill="#0c1a2e"/>
+          <circle cx="16" cy="22" r="1.6" fill="${glow}"><animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/></circle>
+          <circle cx="28" cy="22" r="1.6" fill="${glow}"><animate attributeName="opacity" values="0.5;1;0.5" dur="2s" begin="0.4s" repeatCount="indefinite"/></circle>
+          <circle cx="40" cy="22" r="1.6" fill="${glow}"><animate attributeName="opacity" values="0.5;1;0.5" dur="2s" begin="0.8s" repeatCount="indefinite"/></circle>
           <path d="M60 14 l4 8 l-4 8 q-3 -8 0 -16 z" fill="${dark}"/>
         </g>
       </svg>`;
