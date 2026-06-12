@@ -1,6 +1,7 @@
-/* Cờ Quân Úp (Stratego) - bản gọn 10x10, mỗi bên 2 hàng quân. */
+/* Cờ Quân Úp (Stratego) - bản gọn 10x8 (ít ô trống hơn), mỗi bên 2 hàng quân (20 quân). */
 (function () {
-  const N = 10;
+  const COLS = 10;
+  const ROWS = 8;
   const LAKES = new Set();
   const FORMATION = [
     9, 8,
@@ -29,7 +30,7 @@
   };
 
   function create(ctx) {
-    const total = N * N;
+    const total = COLS * ROWS;
     const board = new Array(total).fill(null);
     let turn = 0;
     let selected = null;
@@ -56,7 +57,7 @@
     wrap.className = "st-wrap";
     const grid = document.createElement("div");
     grid.className = "st-grid";
-    grid.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+    grid.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
     wrap.appendChild(grid);
     root.appendChild(wrap);
 
@@ -78,12 +79,12 @@
 
     function setupSide(owner) {
       const ranks = shuffled(FORMATION);
-      const rows = owner === 0 ? [8, 9] : [0, 1];
+      const rows = owner === 0 ? [ROWS - 2, ROWS - 1] : [0, 1];
       let k = 0;
       rows.forEach((r) => {
-        for (let c = 0; c < N; c++) {
+        for (let c = 0; c < COLS; c++) {
           const rank = ranks[k++];
-          board[r * N + c] = { owner, rank, revealed: false, moved: false };
+          board[r * COLS + c] = { owner, rank, revealed: false, moved: false };
         }
       });
     }
@@ -98,11 +99,11 @@
     }
 
     function rc(i) {
-      return [Math.floor(i / N), i % N];
+      return [Math.floor(i / COLS), i % COLS];
     }
 
     function index(r, c) {
-      return r * N + c;
+      return r * COLS + c;
     }
 
     function viewSeat() {
@@ -117,11 +118,11 @@
     function visualToBoard(i) {
       if (!shouldFlipBoard()) return i;
       const [r, c] = rc(i);
-      return index(N - 1 - r, N - 1 - c);
+      return index(ROWS - 1 - r, COLS - 1 - c);
     }
 
     function inBounds(r, c) {
-      return r >= 0 && r < N && c >= 0 && c < N;
+      return r >= 0 && r < ROWS && c >= 0 && c < COLS;
     }
 
     function isLake(i) {
@@ -379,7 +380,7 @@
         </div>
         <div class="st-mid">
           <b>${over ? ctx.t("Kết thúc", "Finished") : ctx.t("Lượt", "Turn") + " " + (turn + 1)}</b>
-          <span>${ctx.t("Bàn 10x10 · 20 quân mỗi bên · chỉ 2 hàng quân", "10x10 board · 20 pieces each · only 2 rows")}</span>
+          <span>${ctx.t("Bàn 10×8 · 20 quân mỗi bên · chỉ 2 hàng quân", "10×8 board · 20 pieces each · only 2 rows")}</span>
           <small>${log[0] || ""}</small>
         </div>
         <div class="st-player ${turn === 1 && !over ? "active" : ""}">
@@ -436,11 +437,11 @@
     id: "stratego",
     name: "Cờ Quân Úp (Stratego)",
     emoji: "🎖️",
-    description: "Stratego gọn: bàn 10x10 rộng, mỗi bên 2 hàng quân úp, bắt Cờ đối thủ để thắng.",
+    description: "Stratego gọn: bàn 10×8, mỗi bên 2 hàng quân úp (20 quân), bắt Cờ đối thủ để thắng.",
     onlineReady: true,
     options: [],
     howTo: [
-      "Bàn 10x10 rộng nhưng mỗi người chỉ có 20 quân úp ở 2 hàng phía mình.",
+      "Bàn 10×8 nhưng mỗi người chỉ có 20 quân úp ở 2 hàng phía mình.",
       "Bạn chỉ thấy quân của mình; quân đối thủ úp cho tới khi giao tranh.",
       "Chọn một quân có thể đi rồi chọn ô hợp lệ. Phần lớn quân đi 1 ô ngang/dọc; 🔎 Trinh sát có thể đi thẳng nhiều ô nếu đường không bị chặn.",
       "Khi đâm vào quân địch, cả hai quân lộ mặt. Cấp cao hơn thắng; cùng cấp thì cả hai bị loại.",

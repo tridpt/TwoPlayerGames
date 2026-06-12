@@ -5627,7 +5627,7 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   padding: 9px;
   border-radius: 10px;
   box-shadow: var(--shadow);
-  width: min(520px, 96vw);
+  width: min(760px, 100%);
   max-width: 100%;
 }
 .st-cell {
