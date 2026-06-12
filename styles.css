@@ -2030,21 +2030,22 @@ body.theme-light .profile-view > .back-btn:hover {
   grid-template-columns: repeat(8, 48px);
   grid-template-rows: repeat(8, 48px);
   gap: 3px;
-  background: #0c5c2e;
-  padding: 8px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+  background: linear-gradient(160deg, #0e6e38, #083f21);
+  padding: 10px;
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(255,255,255,0.06), inset 0 0 30px rgba(0,0,0,0.35);
 }
 .rv-cell {
-  background: #14914a;
-  border-radius: 4px;
+  background: linear-gradient(150deg, #169a52, #11793f);
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   position: relative;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12), inset 0 1px 2px rgba(255,255,255,0.08);
 }
-.rv-cell.legal { background: #18a557; }
+.rv-cell.legal { background: linear-gradient(150deg, #1cae5d, #169a52); }
 .rv-cell.legal::after {
   content: "";
   position: absolute;
@@ -2052,33 +2053,32 @@ body.theme-light .profile-view > .back-btn:hover {
   height: 16px;
   border-radius: 50%;
   border: 2px dashed rgba(255, 255, 255, 0.55);
+  animation: rv-hintspin 4s linear infinite;
 }
-.rv-cell.legal:hover, .rv-cell.preview { background: #21c46b; }
+@keyframes rv-hintspin { to { transform: rotate(360deg); } }
+.rv-cell.legal:hover, .rv-cell.preview { background: linear-gradient(150deg, #27c873, #1cae5d); }
 .rv-hint {
   position: relative;
   z-index: 2;
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 800;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
-.rv-cell.lastmove { box-shadow: inset 0 0 0 3px var(--accent); }
-.rv-disc {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  transition: transform 0.2s;
-}
-.rv-disc.p1 { background: #1a1a1a; box-shadow: inset 0 2px 4px rgba(255,255,255,0.2); }
-.rv-disc.p2 { background: #f5f5f5; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.2); }
-.rv-disc.ghost { opacity: 0.45; }
-.rv-disc.flip { animation: rv-flip 0.45s ease; }
-.rv-disc.placed { animation: rv-pop 0.3s ease; }
-.rv-cell.willflip .rv-disc { animation: rv-pulse 0.6s ease infinite; }
+.rv-cell.lastmove { box-shadow: inset 0 0 0 3px var(--accent), inset 0 0 12px rgba(255,209,102,0.4); }
+.rv-disc { width: 38px; height: 38px; perspective: 240px; }
+.rv-disc.ghost { opacity: 0.42; }
+.rv-coin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
+.rv-face { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; }
+.rv-face.back { transform: rotateY(180deg); }
+.rv-face.p1 { background: radial-gradient(circle at 38% 30%, #545454, #0a0a0a 78%); box-shadow: inset 0 2px 3px rgba(255,255,255,0.28), inset 0 -3px 6px rgba(0,0,0,0.7), 0 3px 5px rgba(0,0,0,0.55); }
+.rv-face.p2 { background: radial-gradient(circle at 38% 30%, #ffffff, #ccd0db 80%); box-shadow: inset 0 2px 3px rgba(255,255,255,0.95), inset 0 -3px 6px rgba(0,0,0,0.28), 0 3px 5px rgba(0,0,0,0.5); }
+.rv-coin.flip { animation: rv-flip 0.5s ease both; }
+.rv-disc.placed { animation: rv-pop 0.32s cubic-bezier(0.2,1.6,0.4,1); }
+.rv-cell.willflip .rv-coin { animation: rv-pulse 0.6s ease infinite; }
 @keyframes rv-flip {
-  0%   { transform: rotateY(0deg) scale(1); }
-  50%  { transform: rotateY(90deg) scale(1.15); }
-  100% { transform: rotateY(0deg) scale(1); }
+  from { transform: rotateY(180deg); }
+  to   { transform: rotateY(360deg); }
 }
 @keyframes rv-pop {
   0% { transform: scale(0.1); }
@@ -2086,8 +2086,8 @@ body.theme-light .profile-view > .back-btn:hover {
   100% { transform: scale(1); }
 }
 @keyframes rv-pulse {
-  0%, 100% { transform: scale(1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-  50% { transform: scale(1.12); box-shadow: 0 0 10px 2px var(--accent); }
+  0%, 100% { transform: scale(1) translateZ(0); }
+  50% { transform: scale(1.1) translateZ(8px); }
 }
 
 /* Memory */
@@ -13228,4 +13228,9 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 
 @media (prefers-reduced-motion: reduce) {
   .pig-die.rolling, .pig-die.landed, .pig-die.bust, .yz-die.rolling { animation: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-coin.flip, .rv-disc.placed, .rv-cell.willflip .rv-coin, .rv-cell.legal::after { animation: none !important; }
+  .rv-coin.flip { transform: rotateY(360deg); }
 }

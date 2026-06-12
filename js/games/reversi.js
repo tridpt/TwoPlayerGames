@@ -100,7 +100,8 @@
       // hiển thị quân ma tại ô sẽ đặt
       cellEls[r][c].classList.add("preview");
       const ghost = document.createElement("div");
-      ghost.className = "rv-disc ghost " + (turn === 0 ? "p1" : "p2");
+      ghost.className = "rv-disc ghost";
+      ghost.innerHTML = `<div class="rv-coin"><div class="rv-face front ${turn === 0 ? "p1" : "p2"}"></div></div>`;
       cellEls[r][c].appendChild(ghost);
       // làm nổi các quân sẽ bị lật
       flips.forEach(([fr, fc]) => cellEls[fr][fc].classList.add("willflip"));
@@ -222,10 +223,21 @@
           cell.className = "rv-cell";
           const v = board[r][c];
           if (v !== null) {
+            const isFlip = lastFlipSet.has(r * N + c);
+            const isPlaced = lastMove && lastMove[0] === r && lastMove[1] === c;
+            const back = isFlip ? 1 - v : v;
             const disc = document.createElement("div");
-            disc.className = "rv-disc " + (v === 0 ? "p1" : "p2");
-            if (lastFlipSet.has(r * N + c)) disc.classList.add("flip");
-            if (lastMove && lastMove[0] === r && lastMove[1] === c) disc.classList.add("placed");
+            disc.className = "rv-disc" + (isPlaced ? " placed" : "");
+            const coin = document.createElement("div");
+            coin.className = "rv-coin" + (isFlip ? " flip" : "");
+            if (isFlip && lastMove) {
+              const d = Math.max(Math.abs(r - lastMove[0]), Math.abs(c - lastMove[1]));
+              coin.style.animationDelay = Math.min(d * 0.05, 0.4) + "s";
+            }
+            coin.innerHTML =
+              `<div class="rv-face front ${v === 0 ? "p1" : "p2"}"></div>` +
+              `<div class="rv-face back ${back === 0 ? "p1" : "p2"}"></div>`;
+            disc.appendChild(coin);
             cell.appendChild(disc);
           } else if (flipCount.has(r * N + c)) {
             cell.classList.add("legal");
