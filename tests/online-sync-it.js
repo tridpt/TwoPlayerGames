@@ -42,6 +42,9 @@ const CASES = [
   { gameId: "rpsplus", move: { k: "pick", c: "R" }, check: (m) => m.move.k === "pick" && m.move.c === "R" },
   { gameId: "tycoon", move: { k: "roll", die: 4 }, check: (m) => m.move.k === "roll" && m.move.die === 4 },
   { gameId: "colorwar", move: { k: "color", ci: 2 }, check: (m) => m.move.k === "color" && m.move.ci === 2 },
+  { gameId: "sim", move: { e: 0 }, check: (m) => m.move.e === 0 },
+  { gameId: "minichess", move: { from: 18, to: 13 }, check: (m) => m.move.from === 18 && m.move.to === 13 },
+  { gameId: "sprouts", move: { a: 0, b: 1 }, check: (m) => m.move.a === 0 && m.move.b === 1 },
 ];
 
 (async () => {

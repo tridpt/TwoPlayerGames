@@ -12868,3 +12868,64 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 .cw-sw:active { transform: scale(0.92); }
 .cw-sw.disabled { opacity: 0.25; pointer-events: none; filter: grayscale(0.5); }
 .cw-wait, .cw-over { color: var(--muted); font-style: italic; padding: 14px; }
+
+/* ===================== Sim — Tam Giác Cấm ===================== */
+.sim-root { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.sim-hud { display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%; max-width: 420px; }
+.sim-side { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 16px; border-radius: 12px; background: rgba(255,255,255,0.05); min-width: 92px; transition: box-shadow 0.2s, transform 0.2s; }
+.sim-side span { font-size: 0.85rem; color: var(--muted); }
+.sim-side b { font-size: 1.35rem; font-weight: 900; }
+.sim-side.p1.active { box-shadow: 0 0 0 2px var(--p1), 0 4px 16px rgba(255,93,115,0.35); transform: translateY(-2px); }
+.sim-side.p2.active { box-shadow: 0 0 0 2px var(--p2), 0 4px 16px rgba(61,169,252,0.35); transform: translateY(-2px); }
+.sim-mid { font-size: 1.6rem; }
+.sim-stage { width: 100%; max-width: 420px; aspect-ratio: 1; background: radial-gradient(circle at 50% 42%, rgba(255,255,255,0.06), rgba(0,0,0,0.18)); border-radius: 18px; padding: 8px; }
+.sim-svg { width: 100%; height: 100%; overflow: visible; }
+.sim-edge { stroke-width: 1.1; stroke-linecap: round; }
+.sim-edge.empty { stroke: rgba(255,255,255,0.14); transition: stroke 0.15s; }
+.sim-svg:hover .sim-edge.empty { stroke: rgba(255,255,255,0.2); }
+.sim-hit { stroke: transparent; stroke-width: 6; cursor: pointer; }
+.sim-hit:hover + .sim-edge, .sim-edge.empty:hover { stroke: rgba(255,255,255,0.5); }
+.sim-edge.owned { stroke-width: 2.6; stroke-linecap: round; filter: drop-shadow(0 0 3px currentColor); }
+.sim-edge.owned.last { stroke-width: 3.4; animation: simPop 0.35s ease; }
+.sim-edge.owned.lose { animation: simFlash 0.7s ease infinite alternate; stroke-width: 3.6; }
+@keyframes simPop { from { opacity: 0.2; } to { opacity: 1; } }
+@keyframes simFlash { from { filter: drop-shadow(0 0 2px #fff); } to { filter: drop-shadow(0 0 8px #fff); } }
+.sim-dot { fill: #f4f7ff; stroke: rgba(0,0,0,0.4); stroke-width: 0.6; }
+
+/* ===================== Cờ Vua Mini 5×5 ===================== */
+.mc-root { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.mc-hud { display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; max-width: 380px; }
+.mc-side { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 12px; background: rgba(255,255,255,0.05); font-size: 0.86rem; color: var(--muted); transition: box-shadow 0.2s, transform 0.2s; }
+.mc-side.p1.active { box-shadow: 0 0 0 2px var(--p1); transform: translateY(-2px); }
+.mc-side.p2.active { box-shadow: 0 0 0 2px var(--p2); transform: translateY(-2px); }
+.mc-chk { font-style: normal; background: #ff4d4d; color: #fff; font-size: 0.7rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; animation: mcChk 0.6s ease infinite alternate; }
+@keyframes mcChk { from { opacity: 0.6; } to { opacity: 1; } }
+.mc-mid { font-size: 1.4rem; }
+.mc-board { display: grid; grid-template-columns: repeat(5, 1fr); width: 100%; max-width: 360px; aspect-ratio: 1; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 26px rgba(0,0,0,0.4); border: 3px solid rgba(0,0,0,0.35); }
+.mc-cell { position: relative; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; transition: background 0.12s; }
+.mc-cell.light { background: #ecd9b7; }
+.mc-cell.dark { background: #a87a55; }
+.mc-cell:disabled { cursor: default; }
+.mc-pc { font-size: clamp(1.6rem, 9vw, 2.6rem); line-height: 1; user-select: none; }
+.mc-pc.w { color: #fdfdfd; text-shadow: 0 1px 2px rgba(0,0,0,0.7), 0 0 4px rgba(0,0,0,0.5); }
+.mc-pc.b { color: #1a1a22; text-shadow: 0 1px 1px rgba(255,255,255,0.35); }
+.mc-cell.sel { background: #f4e58a !important; box-shadow: inset 0 0 0 3px #f0b429; }
+.mc-cell.last::after { content: ""; position: absolute; inset: 0; background: rgba(240,180,41,0.28); pointer-events: none; }
+.mc-cell.move::before { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: rgba(46,160,67,0.6); box-shadow: 0 0 6px rgba(46,160,67,0.5); }
+.mc-cell.capture::before { content: ""; position: absolute; inset: 8%; border-radius: 50%; border: 4px solid rgba(255,77,77,0.75); box-sizing: border-box; }
+.mc-cell.incheck { background: #ff7a7a !important; }
+
+/* ===================== Mầm Cây (Sprouts) ===================== */
+.spr-root { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.spr-hud { display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%; max-width: 420px; }
+.spr-side { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 12px; background: rgba(255,255,255,0.05); font-size: 0.86rem; color: var(--muted); transition: box-shadow 0.2s, transform 0.2s; }
+.spr-side.p1.active { box-shadow: 0 0 0 2px var(--p1); transform: translateY(-2px); }
+.spr-side.p2.active { box-shadow: 0 0 0 2px var(--p2); transform: translateY(-2px); }
+.spr-mid { font-size: 1.5rem; }
+.spr-stage { width: 100%; max-width: 420px; aspect-ratio: 1; background: radial-gradient(circle at 50% 45%, rgba(120,200,140,0.1), rgba(0,0,0,0.18)); border-radius: 18px; padding: 8px; }
+.spr-svg { width: 100%; height: 100%; overflow: visible; }
+.spr-seg { stroke-width: 1.6; stroke-linecap: round; filter: drop-shadow(0 0 2px currentColor); }
+.spr-dot { fill: #d7f5dd; stroke: #2e7d46; stroke-width: 0.7; cursor: pointer; transition: r 0.12s, fill 0.12s; }
+.spr-dot.dead { fill: rgba(255,255,255,0.18); stroke: rgba(255,255,255,0.25); cursor: default; }
+.spr-dot.sel { fill: #ffe27a; stroke: #f0b429; stroke-width: 1.1; filter: drop-shadow(0 0 4px #f0b429); }
+.spr-hit { fill: transparent; cursor: pointer; }

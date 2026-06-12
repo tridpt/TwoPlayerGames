@@ -36,6 +36,7 @@ const GAMES = [
   "seabattleplus", "slingshotbattle", "stratego", "submarinehunt", "tankarena",
   "territorywar", "timeloopduel", "trapmansion", "treasure", "yahtzee",
   "reactionduel", "dashdodge", "snakesladders", "liarsdice", "codebreakerduel", "blackjackduel", "twentyquestions", "wordduel", "tugofwar", "typingrace", "numberduel", "prisonersdilemma", "rpsplus", "tycoon", "colorwar",
+  "sim", "minichess", "sprouts",
 ];
 
 for (const id of GAMES) {
@@ -63,7 +64,7 @@ for (const id of GAMES) {
 }
 
 // ---- AI: gọi được và trả nước, không ném lỗi (mức Khó) ----
-const AI_GAMES = ["checkers", "isolation", "orderchaos", "pentago"];
+const AI_GAMES = ["checkers", "isolation", "orderchaos", "pentago", "sim", "minichess", "sprouts"];
 for (const id of AI_GAMES) {
   test(`coverage AI: ${id} aiMove("hard") trả nước không lỗi`, () => {
     const cfg = loadGame(id);

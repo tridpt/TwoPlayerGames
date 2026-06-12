@@ -667,6 +667,42 @@ var GAMES_EN_DATA = {
       "Strategy: choose colors that swallow big adjacent clusters while blocking the opponent's spread. Play locally, vs AI, or online.",
     ],
   },
+  sim: {
+    name: "Sim (Forbidden Triangle)",
+    description: "6 dots, 15 edges — take turns coloring edges. Whoever first forms a triangle in THEIR OWN color loses. Never a draw.",
+    howTo: [
+      "There are 6 dots and 15 edges connecting every pair. Player 1 colors RED, player 2 colors BLUE.",
+      "On your turn, color one empty edge with your color.",
+      "TRAP: if three of YOUR OWN colored edges form a triangle (a closed loop of 3 dots), you LOSE immediately.",
+      "A triangle in the opponent's color is fine — only a same-color triangle of your own kills you.",
+      "Mathematically the game can never tie: eventually someone is forced to make a triangle. Push your opponent into that spot!",
+      "Play locally, vs AI, or online with a friend.",
+    ],
+  },
+  minichess: {
+    name: "Mini Chess 5×5",
+    description: "Chess shrunk onto a 5×5 board with all pieces — standard rules, win by checkmate. Quick games, real tactics.",
+    howTo: [
+      "A 5×5 board; each side has a Rook ♜, Knight ♞, Bishop ♝, Queen ♛, King ♚ and 5 Pawns ♟. White (Player 1) moves first.",
+      "Pieces move by standard chess rules: rook straight, bishop diagonal, queen both, knight in an L, king one square.",
+      "Pawns move straight one square (NO double step) and capture diagonally. No castling or en passant. A pawn reaching the last rank auto-promotes to a Queen.",
+      "Select one of your pieces to see its moves (green = move, red = capture), then tap the destination.",
+      "You may not leave your own king in check. Force the opponent's king into CHECKMATE (in check with no escape) to win.",
+      "No legal move without being in check is a DRAW (stalemate). Play locally, vs AI, or online.",
+    ],
+  },
+  sprouts: {
+    name: "Sprouts",
+    description: "Connect two dots with a line; a new dot sprouts at its middle. Each dot allows up to 3 links and lines can't cross. Stuck = lose.",
+    howTo: [
+      "Start with a few dots. On your turn, pick two dots and connect them with a straight line.",
+      "As soon as you connect, a NEW DOT sprouts at the middle of that line (it already has 2 links).",
+      "Each dot allows at most 3 links. A dot with 3 links is 'dead' (dimmed) and can't be used.",
+      "A new line may NOT cross an existing line and may NOT pass through another dot.",
+      "Whoever has no legal pair of dots to connect on their turn LOSES. Plan ahead to trap your opponent.",
+      "This version uses straight lines (no self-loops). Play locally, vs AI, or online.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
