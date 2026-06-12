@@ -656,6 +656,17 @@ var GAMES_EN_DATA = {
       "Strategy: buy properties to earn rent, but keep enough cash for when you land on the opponent's land. Play locally, vs AI, or online.",
     ],
   },
+  colorwar: {
+    name: "Color War",
+    description: "Pick colors to spread your area and swallow adjacent cells — claim over half the board to win.",
+    howTo: [
+      "The board is filled with random colored cells. You own the bottom-left corner, the opponent the top-right.",
+      "On your turn, pick a COLOR from the palette — your whole area changes to that color and 'swallows' all adjacent cells of that color, expanding your territory.",
+      "You can't pick your own current color, nor the opponent's current color (those swatches are dimmed).",
+      "Each player's cell count shows at the top. Claim MORE THAN HALF the board to win instantly; if the board fills up, the larger area wins.",
+      "Strategy: choose colors that swallow big adjacent clusters while blocking the opponent's spread. Play locally, vs AI, or online.",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;

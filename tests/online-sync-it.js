@@ -41,6 +41,7 @@ const CASES = [
   { gameId: "prisonersdilemma", move: { k: "pick", c: "D" }, check: (m) => m.move.k === "pick" && m.move.c === "D" },
   { gameId: "rpsplus", move: { k: "pick", c: "R" }, check: (m) => m.move.k === "pick" && m.move.c === "R" },
   { gameId: "tycoon", move: { k: "roll", die: 4 }, check: (m) => m.move.k === "roll" && m.move.die === 4 },
+  { gameId: "colorwar", move: { k: "color", ci: 2 }, check: (m) => m.move.k === "color" && m.move.ci === 2 },
 ];
 
 (async () => {

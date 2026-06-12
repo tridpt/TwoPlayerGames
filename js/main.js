@@ -198,7 +198,7 @@
       icon: "🗺️",
       hint: "Đi quân trên lưới, chiếm vùng, dùng tài nguyên và kỹ năng theo lượt.",
       hintKey: "grpMapHint",
-      games: ["tankarena", "dicebattle", "territorywar", "crystalconquest"],
+      games: ["tankarena", "dicebattle", "territorywar", "crystalconquest", "colorwar"],
     },
     {
       title: "Đối kháng hành động & vật lý",
