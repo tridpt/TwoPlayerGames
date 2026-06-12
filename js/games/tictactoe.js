@@ -64,6 +64,11 @@
     }
 
     function symbol(p) { return p === 0 ? "X" : "O"; }
+    function markHTML(p) {
+      if (p === 0) return '<svg class="ttt-svg ttt-x" viewBox="0 0 100 100" aria-hidden="true"><line x1="24" y1="24" x2="76" y2="76"/><line x1="76" y1="24" x2="24" y2="76"/></svg>';
+      return '<svg class="ttt-svg ttt-o" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="28"/></svg>';
+    }
+    const renderedMark = Array(9).fill(undefined);
     function myTurnNow() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
 
     function onHover(i) {
@@ -75,14 +80,14 @@
         !(MOVE_MODE && phase === "move");
       if (canPlaceHere) {
         cells[i].classList.add("ghost", turn === 0 ? "gx" : "go");
-        cells[i].textContent = symbol(turn);
+        cells[i].innerHTML = markHTML(turn);
         ghostIdx = i;
       }
     }
     function clearHover() {
       if (ghostIdx !== null && board[ghostIdx] === null) {
         cells[ghostIdx].classList.remove("ghost", "gx", "go");
-        cells[ghostIdx].textContent = "";
+        cells[ghostIdx].innerHTML = "";
       }
       ghostIdx = null;
     }
@@ -321,13 +326,16 @@
         const wasWin = c.classList.contains("win");
         c.className = "ttt-cell" + (wasWin ? " win" : "");
         const v = board[i];
+        // chỉ cập nhật nội dung khi quân đổi -> không vẽ lại animation mỗi lượt
+        if (renderedMark[i] !== v) {
+          c.innerHTML = v === null ? "" : markHTML(v);
+          renderedMark[i] = v;
+        }
         if (v !== null) {
-          c.textContent = symbol(v);
           c.classList.add(v === 0 ? "x" : "o");
           if (lastCells.includes(i)) c.classList.add("last");
           if (selected === i) c.classList.add("selected");
         } else {
-          c.textContent = "";
           if (hints.has(i)) c.classList.add("movehint");
           if (lastCells.includes(i)) c.classList.add("lastempty");
         }

@@ -1511,59 +1511,71 @@ body.theme-light .profile-view > .back-btn:hover {
   display: grid;
   grid-template-columns: repeat(3, 100px);
   grid-template-rows: repeat(3, 100px);
-  gap: 8px;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(110,150,255,0.12), transparent 60%),
+    linear-gradient(160deg, #1b2240 0%, #141a30 100%);
+  background-color: #161d33;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.05);
 }
 .ttt-cell {
-  background: var(--panel);
-  border-radius: 12px;
-  font-size: 3rem;
-  font-weight: 700;
+  position: relative;
+  background: linear-gradient(160deg, #242c47, #1a2138);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-  box-shadow: var(--shadow);
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.06), inset 0 -3px 6px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.3);
 }
-.ttt-cell:hover { background: var(--panel-2); }
-.ttt-cell.x { color: var(--p1); }
-.ttt-cell.o { color: var(--p2); }
-.ttt-cell.x:not(.ghost), .ttt-cell.o:not(.ghost) { animation: ttt-pop 0.22s ease; }
-.ttt-cell.ghost { opacity: 0.35; }
-.ttt-cell.ghost.gx { color: var(--p1); }
-.ttt-cell.ghost.go { color: var(--p2); }
-.ttt-cell.last { box-shadow: 0 0 0 3px var(--accent), var(--shadow); }
-.ttt-cell.lastempty { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25); }
-.ttt-cell.selected { box-shadow: 0 0 0 3px var(--good), var(--shadow); transform: scale(1.06); }
-.ttt-cell.movehint { background: var(--panel-2); }
+.ttt-cell:hover { background: linear-gradient(160deg, #2c3656, #202842); transform: translateY(-2px); }
+/* X / O vẽ bằng nét SVG, có hiệu ứng "vẽ tay" */
+.ttt-svg { width: 64%; height: 64%; overflow: visible; }
+.ttt-svg line, .ttt-svg circle { fill: none; stroke-width: 13; stroke-linecap: round; }
+.ttt-svg.ttt-x line { stroke: var(--p1); filter: drop-shadow(0 0 6px rgba(255,93,115,0.55)); stroke-dasharray: 78; stroke-dashoffset: 78; animation: tttDraw 0.22s ease forwards; }
+.ttt-svg.ttt-x line:nth-child(2) { animation-delay: 0.16s; }
+.ttt-svg.ttt-o circle { stroke: var(--p2); filter: drop-shadow(0 0 6px rgba(77,208,225,0.55)); stroke-dasharray: 182; stroke-dashoffset: 182; transform: rotate(-90deg); transform-origin: 50% 50%; animation: tttDraw 0.34s ease forwards; }
+@keyframes tttDraw { to { stroke-dashoffset: 0; } }
+.ttt-cell.ghost .ttt-svg { opacity: 0.32; }
+.ttt-cell.ghost .ttt-svg line, .ttt-cell.ghost .ttt-svg circle { animation: none; stroke-dashoffset: 0; }
+.ttt-cell.last { box-shadow: 0 0 0 3px var(--accent), inset 0 -3px 6px rgba(0,0,0,0.4); }
+.ttt-cell.lastempty { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.22); }
+.ttt-cell.selected { box-shadow: 0 0 0 3px var(--good), 0 0 14px rgba(46,160,67,0.5); transform: scale(1.05); }
 .ttt-cell.movehint::after {
-  content: ""; width: 24px; height: 24px; border-radius: 50%;
-  border: 3px dashed var(--good);
+  content: ""; position: absolute; width: 26px; height: 26px; border-radius: 50%;
+  border: 3px dashed var(--good); animation: tttHint 1.1s ease-in-out infinite;
 }
-.ttt-cell.win { background: var(--good); color: #0f1226; animation: ttt-winpulse 0.7s ease infinite; }
+@keyframes tttHint { 0%,100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.18); opacity: 1; } }
+.ttt-cell.win { background: linear-gradient(160deg, #3ddc84, #1f9d57); animation: ttt-winpulse 0.7s ease infinite; }
+.ttt-cell.win .ttt-svg line, .ttt-cell.win .ttt-svg circle { stroke: #0f1226; filter: none; }
 @keyframes ttt-pop { 0% { transform: scale(0.2); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
 @keyframes ttt-winpulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 
 /* Connect Four */
 .c4-board {
-  background: #243b8a;
-  border-radius: 16px;
-  padding: 12px;
+  background:
+    radial-gradient(circle at 30% 15%, rgba(255,255,255,0.14), transparent 50%),
+    linear-gradient(165deg, #2c4aa8, #1a2c66);
+  border-radius: 18px;
+  padding: 14px;
   display: grid;
   gap: 8px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(255,255,255,0.08), inset 0 -6px 14px rgba(0,0,0,0.4);
 }
 .c4-cell {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--bg);
+  background: radial-gradient(circle at 38% 32%, #0c1330, #060a1c);
   cursor: pointer;
   transition: transform 0.1s;
-  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 -2px 3px rgba(255,255,255,0.05);
 }
-.c4-cell.p1 { background: var(--p1); box-shadow: inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 3px 5px rgba(255,255,255,0.3); }
-.c4-cell.p2 { background: var(--p2); box-shadow: inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 3px 5px rgba(255,255,255,0.3); }
+.c4-cell.p1 { background: radial-gradient(circle at 35% 30%, #ff97a6 0%, var(--p1) 45%, #c43048 100%); box-shadow: inset 0 -4px 8px rgba(0,0,0,0.4), inset 0 4px 7px rgba(255,255,255,0.45), 0 0 8px rgba(255,93,115,0.4); }
+.c4-cell.p2 { background: radial-gradient(circle at 35% 30%, #b6f0f8 0%, var(--p2) 45%, #2592a6 100%); box-shadow: inset 0 -4px 8px rgba(0,0,0,0.4), inset 0 4px 7px rgba(255,255,255,0.45), 0 0 8px rgba(77,208,225,0.4); }
 /* quân xem trước (ghost) khi rê chuột lên cột */
 .c4-cell.ghost.g1 { background: var(--p1); opacity: 0.32; }
 .c4-cell.ghost.g2 { background: var(--p2); opacity: 0.32; }
