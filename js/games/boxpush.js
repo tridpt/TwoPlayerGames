@@ -12,51 +12,21 @@
    Cửa nhóm X mở khi MỌI nút nhóm X đang bị đè (bởi người hoặc thùng). */
 (function () {
   const LEVELS = [
-    {
-      name: "Khởi động", nameEn: "Warm-up",
-      rows: [
-        "#######",
-        "#1 $ g#",
-        "#######",
-        "#g $ 2#",
-        "#######",
-      ],
-    },
-    {
-      name: "Mở cửa giúp nhau", nameEn: "Open the door",
-      rows: [
-        "#########",
-        "#1 $ A g#",
-        "#########",
-        "#a   2  #",
-        "#########",
-      ],
-    },
-    {
-      name: "Giữ cửa, đẩy đôi", nameEn: "Hold & double push",
-      rows: [
-        "############",
-        "#1 $  $ A gg#",
-        "#          #",
-        "#a    2    #",
-        "############",
-      ],
-    },
+    { name: "Khởi động", nameEn: "Warm-up", rows: ["#######", "#1 $ g#", "#######", "#g $ 2#", "#######"] },
+    { name: "Mở cửa giúp nhau", nameEn: "Open the door", rows: ["#########", "#1 $ A g#", "#########", "#a   2  #", "#########"] },
+    { name: "Giữ cửa, đẩy đôi", nameEn: "Hold & double push", rows: ["############", "#1 $  $ A gg#", "#          #", "#a    2    #", "############"] },
   ];
-
   const DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
+  const COLORS = ["#ff5d73", "#4dd0e1"];
 
   function create(ctx) {
     const online = ctx.isOnline;
     const mySeat = online ? ctx.mySeat : -1;
-    let li = 0;             // chỉ số màn
-    let W = 0, H = 0;
-    let walls, goals, plates, doors; // Set / Map theo cell index
-    let boxes;              // Set cell
-    let players;            // [cell0, cell1]
-    let moves = 0;
-    let over = false;
-    let solvedAll = false;
+    let li = 0, W = 0, H = 0;
+    let walls, goals, plates, doors, boxes, players;
+    let moves = 0, over = false, transitioning = false;
+    let nextBoxId = 1;
+    let faceDir = [1, 1]; // hướng nhìn (1 phải, -1 trái)
 
     const root = document.createElement("div");
     root.className = "bx-root";
@@ -71,82 +41,75 @@
     pads.className = "bx-pads";
     root.appendChild(pads);
 
-    function idx(r, c) { return r * W + c; }
-    function rc(i) { return [Math.floor(i / W), i % W]; }
+    let board, tilesEl, entsEl, overlayEl;
+    let playerEls = [null, null];
+    const boxEls = new Map(); // id -> el
+
+    const idx = (r, c) => r * W + c;
+    const rc = (i) => [Math.floor(i / W), i % W];
+    function bestKey() { return "tpg_bx_best_" + li; }
+    function getBest() { try { return +localStorage.getItem(bestKey()) || 0; } catch (e) { return 0; } }
+    function setBest(v) { try { localStorage.setItem(bestKey(), String(v)); } catch (e) { /* ignore */ } }
 
     function loadLevel(n) {
       const lv = LEVELS[n];
       W = Math.max(...lv.rows.map((s) => s.length));
       H = lv.rows.length;
-      walls = new Set(); goals = new Set(); plates = new Map(); doors = new Map(); boxes = new Set();
-      players = [-1, -1];
+      walls = new Set(); goals = new Set(); plates = new Map(); doors = new Map(); boxes = []; players = [-1, -1];
+      nextBoxId = 1;
       for (let r = 0; r < H; r++) {
         const row = lv.rows[r];
         for (let c = 0; c < W; c++) {
-          const ch = row[c] || "#"; // pad ô thiếu bằng tường
-          const i = idx(r, c);
+          const ch = row[c] || "#"; const i = idx(r, c);
           if (ch === "#") { walls.add(i); continue; }
           if (ch === "1") players[0] = i;
           else if (ch === "2") players[1] = i;
-          else if (ch === "$") boxes.add(i);
+          else if (ch === "$") boxes.push({ id: nextBoxId++, cell: i });
           else if (ch === "g") goals.add(i);
-          else if (ch === "*") { boxes.add(i); goals.add(i); }
+          else if (ch === "*") { boxes.push({ id: nextBoxId++, cell: i }); goals.add(i); }
           else if (ch >= "a" && ch <= "c") plates.set(i, ch);
           else if (ch >= "A" && ch <= "C") doors.set(i, ch.toLowerCase());
         }
       }
-      moves = 0;
+      moves = 0; faceDir = [1, 1];
     }
 
-    // nhóm cửa X mở khi MỌI nút nhóm X đang bị đè (người hoặc thùng)
+    function boxAt(cell) { return boxes.find((b) => b.cell === cell) || null; }
+    function occupied(cell) { return players[0] === cell || players[1] === cell; }
+
     function activeGroups() {
-      const need = {}; const have = {};
+      const need = {}, have = {};
       plates.forEach((g, cell) => {
         need[g] = (need[g] || 0) + 1;
-        const pressed = boxes.has(cell) || players[0] === cell || players[1] === cell;
-        if (pressed) have[g] = (have[g] || 0) + 1;
+        if (boxAt(cell) || occupied(cell)) have[g] = (have[g] || 0) + 1;
       });
       const active = new Set();
       Object.keys(need).forEach((g) => { if ((have[g] || 0) >= need[g]) active.add(g); });
       return active;
     }
-
-    function doorOpen(cell, active) {
-      const g = doors.get(cell);
-      return g ? active.has(g) : true;
-    }
-
-    function passable(cell, active, ignorePlayers) {
-      if (cell < 0) return false;
-      if (walls.has(cell)) return false;
-      if (doors.has(cell) && !doorOpen(cell, active)) return false;
-      if (!ignorePlayers && (players[0] === cell || players[1] === cell)) return false;
-      return true;
-    }
+    function doorOpen(cell, active) { const g = doors.get(cell); return g ? active.has(g) : true; }
 
     function tryMove(seat, dir, fromRemote) {
-      if (over) return false;
+      if (over || transitioning) return false;
       if (online && !fromRemote && seat !== mySeat) return false;
       const d = DIRS[dir]; if (!d) return false;
       const [r, c] = rc(players[seat]);
       const nr = r + d[0], nc = c + d[1];
-      if (nr < 0 || nr >= H || nc < 0 || nc >= W) return false;
+      if (d[1] !== 0) faceDir[seat] = d[1] > 0 ? 1 : -1;
+      if (nr < 0 || nr >= H || nc < 0 || nc >= W) { bump(seat); return false; }
       const ncell = idx(nr, nc);
       const active = activeGroups();
-      if (walls.has(ncell)) return false;
-      if (doors.has(ncell) && !doorOpen(ncell, active)) return false;
-      if (players[1 - seat] === ncell) return false; // không đẩy người
-      if (boxes.has(ncell)) {
+      if (walls.has(ncell) || (doors.has(ncell) && !doorOpen(ncell, active)) || players[1 - seat] === ncell) { bump(seat); return false; }
+      const box = boxAt(ncell);
+      if (box) {
         const br = nr + d[0], bc = nc + d[1];
-        if (br < 0 || br >= H || bc < 0 || bc >= W) return false;
+        if (br < 0 || br >= H || bc < 0 || bc >= W) { bump(seat); return false; }
         const bcell = idx(br, bc);
-        // ô sau thùng phải trống (sàn/đích/nút/cửa mở) và không có thùng/người
-        if (walls.has(bcell) || boxes.has(bcell)) return false;
-        if (doors.has(bcell) && !doorOpen(bcell, active)) return false;
-        if (players[0] === bcell || players[1] === bcell) return false;
-        boxes.delete(ncell); boxes.add(bcell);
+        if (walls.has(bcell) || boxAt(bcell) || occupied(bcell) || (doors.has(bcell) && !doorOpen(bcell, active))) { bump(seat); return false; }
+        box.cell = bcell;
         players[seat] = ncell;
         ctx.sound("place");
+        if (boxEls.get(box.id)) boxEls.get(box.id).classList.add("bx-pushed");
       } else {
         players[seat] = ncell;
         ctx.sound("select");
@@ -157,28 +120,36 @@
       return true;
     }
 
-    function afterMove() {
-      if (isSolved()) {
-        if (li >= LEVELS.length - 1) {
-          finishAll();
-        } else {
-          // qua màn — cả hai client tự tính nên đồng bộ
-          ctx.sound("win");
-          li++;
-          loadLevel(li);
-        }
-      }
-      render();
-      updateStatus();
+    function bump(seat) {
+      const el = playerEls[seat];
+      if (!el) return;
+      el.classList.remove("bx-bump"); void el.offsetWidth; el.classList.add("bx-bump");
     }
 
-    function isSolved() {
-      for (const g of goals) if (!boxes.has(g)) return false;
-      return true;
+    function afterMove() {
+      positionEnts(); renderTiles(); renderHud();
+      if (isSolved()) {
+        transitioning = true;
+        ctx.sound("win");
+        const best = getBest();
+        if (!best || moves < best) setBest(moves);
+        celebrate();
+        const last = li >= LEVELS.length - 1;
+        showOverlay(last
+          ? ctx.t("🎉 Hoàn thành tất cả!", "🎉 All levels cleared!")
+          : ctx.t(`✅ Qua màn ${li + 1}! (${moves} bước)`, `✅ Level ${li + 1} done! (${moves} moves)`), last ? "win" : "clear");
+        setTimeout(() => {
+          transitioning = false;
+          if (last) { finishAll(); return; }
+          li++; loadLevel(li); buildStage(); renderAll(); introBanner();
+        }, 1150);
+      }
     }
+
+    function isSolved() { for (const g of goals) if (!boxAt(g)) return false; return true; }
 
     function finishAll() {
-      over = true; solvedAll = true;
+      over = true;
       ctx.setTurn(-1);
       ctx.incScore(0);
       ctx.sound("win");
@@ -187,9 +158,8 @@
 
     function restart(fromRemote) {
       if (!fromRemote && online) ctx.sendMove({ k: "restart" });
-      loadLevel(li);
-      over = false; solvedAll = false;
-      render(); updateStatus();
+      transitioning = false; over = false;
+      loadLevel(li); buildStage(); renderAll(); updateStatus();
     }
 
     function applyMove(move, fromRemote) {
@@ -198,44 +168,108 @@
       if (move.k === "restart") { restart(true); return; }
     }
 
-    // ---------- Giao diện ----------
-    const COLORS = ["#ff5d73", "#4dd0e1"];
-    function render() {
-      const lv = LEVELS[li];
-      const done = [...goals].filter((g) => boxes.has(g)).length;
-      hud.innerHTML =
-        `<div class="bx-info"><b>${ctx.t("Màn", "Level")} ${li + 1}/${LEVELS.length}</b> · <span>${ctx.t(lv.name, lv.nameEn)}</span></div>` +
-        `<div class="bx-info">📦 ${done}/${goals.size} · 👣 ${moves}` +
-        (online ? ` · <span class="bx-me" style="color:${COLORS[mySeat] || "#fff"}">${ctx.t("bạn là P", "you are P")}${mySeat + 1}</span>` : "") + `</div>` +
-        `<button type="button" class="btn small bx-restart">↺ ${ctx.t("Làm lại màn", "Restart level")}</button>`;
-      hud.querySelector(".bx-restart").addEventListener("click", () => restart(false));
+    // ---------- Dựng sân khấu (1 lần mỗi màn) ----------
+    function buildStage() {
+      stage.innerHTML = `<div class="bx-board" style="--bx-w:${W};--bx-h:${H};aspect-ratio:${W}/${H}">
+        <div class="bx-tiles"></div><div class="bx-ents"></div><div class="bx-overlay"></div></div>`;
+      board = stage.querySelector(".bx-board");
+      tilesEl = stage.querySelector(".bx-tiles");
+      entsEl = stage.querySelector(".bx-ents");
+      overlayEl = stage.querySelector(".bx-overlay");
+      tilesEl.style.gridTemplateColumns = `repeat(${W},1fr)`;
+      tilesEl.style.gridTemplateRows = `repeat(${H},1fr)`;
+      // token thực thể
+      entsEl.innerHTML = "";
+      boxEls.clear();
+      boxes.forEach((b) => {
+        const el = document.createElement("div");
+        el.className = "bx-ent bx-box";
+        el.innerHTML = `<span class="bx-box-face">📦</span>`;
+        entsEl.appendChild(el);
+        boxEls.set(b.id, el);
+      });
+      for (let s = 0; s < 2; s++) {
+        const el = document.createElement("div");
+        el.className = "bx-ent bx-p bx-p" + (s + 1);
+        el.style.setProperty("--pc", COLORS[s]);
+        el.innerHTML = `<span class="bx-p-face">🧑</span>`;
+        entsEl.appendChild(el);
+        playerEls[s] = el;
+      }
+    }
 
+    function renderTiles() {
       const active = activeGroups();
-      stage.style.setProperty("--bx-w", W);
-      stage.style.setProperty("--bx-h", H);
       let html = "";
       for (let i = 0; i < W * H; i++) {
         if (walls.has(i)) { html += `<div class="bx-cell bx-wall"></div>`; continue; }
         let cls = "bx-cell bx-floor";
-        let inner = "";
-        if (goals.has(i)) cls += " bx-goal";
-        if (plates.has(i)) { cls += " bx-plate bx-grp-" + plates.get(i); }
-        if (doors.has(i)) { cls += " bx-door bx-grp-" + doors.get(i) + (doorOpen(i, active) ? " bx-open" : " bx-closed"); }
-        if (boxes.has(i)) inner += `<span class="bx-box${goals.has(i) ? " bx-box-on" : ""}">📦</span>`;
-        if (players[0] === i) inner += `<span class="bx-p bx-p1">🧑</span>`;
-        if (players[1] === i) inner += `<span class="bx-p bx-p2">🧑</span>`;
-        html += `<div class="bx-cell ${cls}">${inner}</div>`;
+        if (goals.has(i)) cls += boxAt(i) ? " bx-goal bx-goal-on" : " bx-goal";
+        if (plates.has(i)) cls += " bx-plate bx-grp-" + plates.get(i) + (boxAt(i) || occupied(i) ? " bx-pressed" : "");
+        if (doors.has(i)) cls += " bx-door bx-grp-" + doors.get(i) + (doorOpen(i, active) ? " bx-open" : " bx-closed");
+        html += `<div class="${cls}"></div>`;
       }
-      stage.innerHTML = html;
+      tilesEl.innerHTML = html;
+    }
 
-      renderPads();
+    function place(el, cell) {
+      const [r, c] = rc(cell);
+      el.style.left = (c * 100 / W) + "%";
+      el.style.top = (r * 100 / H) + "%";
+      el.style.width = (100 / W) + "%";
+      el.style.height = (100 / H) + "%";
+    }
+    function positionEnts() {
+      boxes.forEach((b) => { const el = boxEls.get(b.id); if (el) { place(el, b.cell); el.classList.toggle("bx-on", goals.has(b.cell)); } });
+      for (let s = 0; s < 2; s++) {
+        const el = playerEls[s]; if (!el) continue;
+        place(el, players[s]);
+        const f = el.querySelector(".bx-p-face");
+        if (f) f.style.transform = `scaleX(${faceDir[s]})`;
+      }
+    }
+
+    function renderHud() {
+      const lv = LEVELS[li];
+      const done = [...goals].filter((g) => boxAt(g)).length;
+      const best = getBest();
+      hud.innerHTML =
+        `<div class="bx-info"><b>${ctx.t("Màn", "Level")} ${li + 1}/${LEVELS.length}</b> · <span>${ctx.t(lv.name, lv.nameEn)}</span></div>` +
+        `<div class="bx-info">🎯 ${done}/${goals.size} · 👣 ${moves}${best ? " · 🏅 " + best : ""}` +
+        (online ? ` · <span style="color:${COLORS[mySeat] || "#fff"}">P${mySeat + 1} ${ctx.t("(bạn)", "(you)")}</span>` : "") + `</div>` +
+        `<button type="button" class="btn small bx-restart">↺ ${ctx.t("Làm lại màn", "Restart level")}</button>`;
+      hud.querySelector(".bx-restart").addEventListener("click", () => restart(false));
+    }
+
+    function showOverlay(text, cls) {
+      if (!overlayEl) return;
+      overlayEl.innerHTML = `<div class="bx-banner bx-banner-${cls}">${text}</div>`;
+      overlayEl.classList.add("show");
+    }
+    function hideOverlay() { if (overlayEl) { overlayEl.classList.remove("show"); overlayEl.innerHTML = ""; } }
+    function introBanner() {
+      const lv = LEVELS[li];
+      showOverlay(`<small>${ctx.t("Màn", "Level")} ${li + 1}/${LEVELS.length}</small><b>${ctx.t(lv.name, lv.nameEn)}</b>`, "intro");
+      setTimeout(hideOverlay, 1100);
+    }
+    function celebrate() {
+      if (!overlayEl) return;
+      let conf = "";
+      for (let i = 0; i < 18; i++) {
+        const x = Math.round(Math.random() * 100), delay = (Math.random() * 0.3).toFixed(2), hue = Math.floor(Math.random() * 360);
+        conf += `<span class="bx-conf" style="left:${x}%;animation-delay:${delay}s;background:hsl(${hue},85%,60%)"></span>`;
+      }
+      const layer = document.createElement("div");
+      layer.className = "bx-confetti";
+      layer.innerHTML = conf;
+      overlayEl.appendChild(layer);
+      setTimeout(() => layer.remove(), 1400);
     }
 
     function dpad(seat, enabled) {
       const dis = enabled ? "" : "disabled";
-      const c = COLORS[seat];
-      return `<div class="bx-dpad bx-dpad-${seat}" style="--bx-pc:${c}">` +
-        `<div class="bx-dpad-lbl">P${seat + 1}${online && seat === mySeat ? ctx.t(" (bạn)", " (you)") : ""}</div>` +
+      return `<div class="bx-dpad" style="--bx-pc:${COLORS[seat]}">` +
+        `<div class="bx-dpad-lbl">🧑 P${seat + 1}${online && seat === mySeat ? ctx.t(" (bạn)", " (you)") : ""}</div>` +
         `<div class="bx-dpad-grid">` +
           `<button type="button" class="bx-db" data-seat="${seat}" data-dir="up" ${dis}>▲</button>` +
           `<button type="button" class="bx-db" data-seat="${seat}" data-dir="left" ${dis}>◀</button>` +
@@ -243,53 +277,40 @@
           `<button type="button" class="bx-db" data-seat="${seat}" data-dir="right" ${dis}>▶</button>` +
         `</div></div>`;
     }
-
     function renderPads() {
-      if (online) {
-        pads.innerHTML = dpad(mySeat, !over);
-      } else {
-        pads.innerHTML = dpad(0, !over) + dpad(1, !over);
-      }
-      pads.querySelectorAll(".bx-db").forEach((b) => {
-        b.addEventListener("click", () => tryMove(Number(b.dataset.seat), b.dataset.dir, false));
-      });
+      pads.innerHTML = online ? dpad(mySeat, true) : dpad(0, true) + dpad(1, true);
+      pads.querySelectorAll(".bx-db").forEach((b) => b.addEventListener("click", () => tryMove(Number(b.dataset.seat), b.dataset.dir, false)));
     }
+
+    function renderAll() { renderTiles(); positionEnts(); renderHud(); renderPads(); }
 
     function updateStatus() {
       if (over) return;
-      if (online) {
-        ctx.setStatus(ctx.t("Cùng phối hợp đẩy mọi thùng 📦 vào đích 🎯. Bạn điều khiển nhân vật của mình.",
-          "Work together to push every box 📦 onto a target 🎯. You control your own character."));
-      } else {
-        ctx.setStatus(ctx.t("P1: W/A/S/D · P2: phím mũi tên. Đẩy mọi thùng vào đích. Đứng lên nút sàn để mở cửa.",
+      ctx.setStatus(online
+        ? ctx.t("Cùng phối hợp đẩy mọi thùng 📦 vào đích 🎯. Bạn điều khiển nhân vật của mình.",
+          "Work together to push every box 📦 onto a target 🎯. You control your own character.")
+        : ctx.t("P1: W/A/S/D · P2: phím mũi tên. Đẩy mọi thùng vào đích. Đứng lên nút sàn để mở cửa.",
           "P1: W/A/S/D · P2: arrow keys. Push every box onto a target. Stand on plates to open doors."));
-      }
     }
 
     function onKey(e) {
-      if (over) return;
+      if (over || transitioning) return;
       const k = e.key.toLowerCase();
-      const map0 = { w: "up", a: "left", s: "down", d: "right" };
-      const mapArr = { arrowup: "up", arrowleft: "left", arrowdown: "down", arrowright: "right" };
-      if (online) {
-        const dir = map0[k] || mapArr[k];
-        if (dir) { e.preventDefault(); tryMove(mySeat, dir, false); }
-        return;
-      }
-      if (map0[k]) { e.preventDefault(); tryMove(0, map0[k], false); }
-      else if (mapArr[k]) { e.preventDefault(); tryMove(1, mapArr[k], false); }
+      const m0 = { w: "up", a: "left", s: "down", d: "right" };
+      const ma = { arrowup: "up", arrowleft: "left", arrowdown: "down", arrowright: "right" };
+      if (online) { const dir = m0[k] || ma[k]; if (dir) { e.preventDefault(); tryMove(mySeat, dir, false); } return; }
+      if (m0[k]) { e.preventDefault(); tryMove(0, m0[k], false); }
+      else if (ma[k]) { e.preventDefault(); tryMove(1, ma[k], false); }
     }
     window.addEventListener("keydown", onKey);
     const cleanup = () => window.removeEventListener("keydown", onKey);
     const observer = new MutationObserver(() => { if (!document.body.contains(root)) { cleanup(); observer.disconnect(); } });
     observer.observe(ctx.boardEl.parentNode || document.body, { childList: true, subtree: true });
 
-    if (online) ctx.setNames(ctx.t("P1", "P1") + (mySeat === 0 ? ctx.t(" (bạn)", " (you)") : ""), ctx.t("P2", "P2") + (mySeat === 1 ? ctx.t(" (bạn)", " (you)") : ""));
+    if (online) ctx.setNames("P1" + (mySeat === 0 ? ctx.t(" (bạn)", " (you)") : ""), "P2" + (mySeat === 1 ? ctx.t(" (bạn)", " (you)") : ""));
     else ctx.setNames(ctx.t("Người chơi 1", "Player 1"), ctx.t("Người chơi 2", "Player 2"));
     ctx.setTurn(-1);
-    loadLevel(0);
-    render();
-    updateStatus();
+    loadLevel(0); buildStage(); renderAll(); introBanner(); updateStatus();
 
     function destroy() { cleanup(); observer.disconnect(); }
     return { applyMove, destroy };
