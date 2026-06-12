@@ -12899,22 +12899,45 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 .mc-side { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 12px; background: rgba(255,255,255,0.05); font-size: 0.86rem; color: var(--muted); transition: box-shadow 0.2s, transform 0.2s; }
 .mc-side.p1.active { box-shadow: 0 0 0 2px var(--p1); transform: translateY(-2px); }
 .mc-side.p2.active { box-shadow: 0 0 0 2px var(--p2); transform: translateY(-2px); }
-.mc-chk { font-style: normal; background: #ff4d4d; color: #fff; font-size: 0.7rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; animation: mcChk 0.6s ease infinite alternate; }
+.mc-chk { font-style: normal; background: #ff4d4d; color: #fff; font-size: 0.7rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; animation: mcChk 0.6s ease infinite alternate; box-shadow: 0 0 10px rgba(255,77,77,0.6); }
 @keyframes mcChk { from { opacity: 0.6; } to { opacity: 1; } }
 .mc-mid { font-size: 1.4rem; }
-.mc-board { display: grid; grid-template-columns: repeat(5, 1fr); width: 100%; max-width: 360px; aspect-ratio: 1; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 26px rgba(0,0,0,0.4); border: 3px solid rgba(0,0,0,0.35); }
-.mc-cell { position: relative; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; transition: background 0.12s; }
-.mc-cell.light { background: #ecd9b7; }
-.mc-cell.dark { background: #a87a55; }
+.mc-board {
+  display: grid; grid-template-columns: repeat(5, 1fr); width: 100%; max-width: 360px; aspect-ratio: 1;
+  border-radius: 10px; overflow: hidden; position: relative;
+  border: 9px solid #3a2417;
+  border-image: linear-gradient(135deg, #5a3a22, #2c1a0f) 1;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+}
+.mc-cell { position: relative; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; transition: filter 0.12s; }
+.mc-cell.light { background: linear-gradient(135deg, #f3e3c3, #e6cfa6); }
+.mc-cell.dark { background: linear-gradient(135deg, #b78a62, #9c6f49); }
+.mc-cell::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); pointer-events: none; }
+.mc-cell:not(:disabled):hover { filter: brightness(1.08); }
 .mc-cell:disabled { cursor: default; }
-.mc-pc { font-size: clamp(1.6rem, 9vw, 2.6rem); line-height: 1; user-select: none; }
-.mc-pc.w { color: #fdfdfd; text-shadow: 0 1px 2px rgba(0,0,0,0.7), 0 0 4px rgba(0,0,0,0.5); }
-.mc-pc.b { color: #1a1a22; text-shadow: 0 1px 1px rgba(255,255,255,0.35); }
-.mc-cell.sel { background: #f4e58a !important; box-shadow: inset 0 0 0 3px #f0b429; }
-.mc-cell.last::after { content: ""; position: absolute; inset: 0; background: rgba(240,180,41,0.28); pointer-events: none; }
-.mc-cell.move::before { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: rgba(46,160,67,0.6); box-shadow: 0 0 6px rgba(46,160,67,0.5); }
-.mc-cell.capture::before { content: ""; position: absolute; inset: 8%; border-radius: 50%; border: 4px solid rgba(255,77,77,0.75); box-sizing: border-box; }
-.mc-cell.incheck { background: #ff7a7a !important; }
+.mc-pc {
+  font-size: clamp(1.7rem, 9.5vw, 2.8rem); line-height: 1; user-select: none; position: relative; z-index: 3;
+  transition: transform 0.12s; -webkit-font-smoothing: antialiased;
+}
+.mc-pc.w { color: #fbfbfd; -webkit-text-stroke: 1.4px #2b2b33; paint-order: stroke fill; filter: drop-shadow(0 3px 2px rgba(0,0,0,0.5)); }
+.mc-pc.b { color: #20222c; -webkit-text-stroke: 1px #05060a; paint-order: stroke fill; filter: drop-shadow(0 3px 2px rgba(0,0,0,0.4)) drop-shadow(0 -1px 0 rgba(255,255,255,0.25)); }
+/* ô đang chọn: viền sáng + nhấc quân lên */
+.mc-cell.sel { box-shadow: inset 0 0 0 3px #f0b429, inset 0 0 18px rgba(240,180,41,0.5); }
+.mc-cell.sel::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 50% 60%, rgba(240,180,41,0.35), transparent 65%); }
+.mc-cell.sel .mc-pc { transform: translateY(-4px) scale(1.08); filter: drop-shadow(0 7px 5px rgba(0,0,0,0.55)); }
+/* nước đi gần nhất: ô xuất phát mờ, ô đi tới đậm + viền */
+.mc-cell.mc-lastfrom::after { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); background: rgba(240,180,41,0.18); }
+.mc-cell.mc-lastto::after { box-shadow: inset 0 0 0 3px rgba(240,180,41,0.85); background: rgba(240,180,41,0.22); }
+.mc-cell.mc-lastto .mc-pc { animation: mcDrop 0.26s cubic-bezier(0.3,1.5,0.5,1); }
+@keyframes mcDrop { 0% { transform: translateY(-22%) scale(1.12); } 60% { transform: translateY(3%) scale(0.97); } 100% { transform: none; } }
+/* ô có thể đi tới */
+.mc-cell.move::before { content: ""; position: absolute; width: 30%; height: 30%; border-radius: 50%; background: radial-gradient(circle, rgba(46,160,67,0.85), rgba(46,160,67,0.4)); box-shadow: 0 0 8px rgba(46,160,67,0.6); z-index: 2; animation: mcDotPulse 1.2s ease-in-out infinite; }
+@keyframes mcDotPulse { 0%,100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.25); opacity: 1; } }
+.mc-cell.capture::before { content: ""; position: absolute; inset: 7%; border-radius: 50%; border: 4px solid rgba(255,77,77,0.85); box-sizing: border-box; z-index: 2; box-shadow: 0 0 10px rgba(255,77,77,0.5), inset 0 0 8px rgba(255,77,77,0.4); animation: mcCapPulse 0.9s ease-in-out infinite; }
+@keyframes mcCapPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+/* vua bị chiếu */
+.mc-cell.incheck::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(255,60,60,0.75), rgba(255,60,60,0.15) 70%); z-index: 1; animation: mcCheck 0.75s ease-in-out infinite; }
+@keyframes mcCheck { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
 
 /* ===================== Mầm Cây (Sprouts) ===================== */
 .spr-root { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
@@ -13162,4 +13185,9 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
   .sh-board-wrap::before, .sh-board-wrap::after, .sh-cell.sh-sub::after,
   .sh-cell.sh-mark.sh-pending::after, .sh-noise-zone::after, .sh-decoy-zone::after,
   .sh-cell.sh-exit::before, .sh-cell.sh-exit::after, .sh-reef-ic { animation: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-cell.move::before, .mc-cell.capture::before, .mc-cell.incheck::before,
+  .mc-cell.mc-lastto .mc-pc, .mc-chk { animation: none !important; }
 }

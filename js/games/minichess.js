@@ -243,7 +243,8 @@
         }
         if (i === sel) cls += " sel";
         if (legalTo.has(i)) cls += p ? " capture" : " move";
-        if (lastMove && (i === lastMove.from || i === lastMove.to)) cls += " last";
+        if (lastMove && i === lastMove.from) cls += " mc-lastfrom";
+        if (lastMove && i === lastMove.to) cls += " mc-lastto";
         cell.disabled = !canAct();
         cell.className = cls;
       });
