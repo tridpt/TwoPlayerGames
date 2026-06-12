@@ -13309,3 +13309,33 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 @media (prefers-reduced-motion: reduce) {
   .nt-timer.low, .nt-word { animation: none !important; }
 }
+
+/* Đoán Số — ô số + chấm peg màu cho từng lần đoán */
+.bc-digits { display: flex; gap: 4px; flex: 1; letter-spacing: 0; }
+.bc-dt {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 24px; padding: 0 4px; border-radius: 6px;
+  background: linear-gradient(160deg, #2c3656, #1f2742); color: var(--text);
+  font-size: 0.95rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3);
+}
+.bc-fb { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; max-width: 96px; justify-content: flex-end; }
+.bc-peg { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+.bc-peg.bull { background: radial-gradient(circle at 35% 30%, #aef0c0, #1f9d57); box-shadow: 0 0 6px rgba(46,160,67,0.7), inset 0 -1px 2px rgba(0,0,0,0.3); }
+.bc-peg.cow { background: radial-gradient(circle at 35% 30%, #ffd9a0, #f0a429); box-shadow: 0 0 5px rgba(240,164,41,0.6), inset 0 -1px 2px rgba(0,0,0,0.3); }
+.bc-peg.none { background: rgba(255,255,255,0.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16); }
+.bc-guess { animation: bcRowIn 0.25s ease; }
+@keyframes bcRowIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+.bc-guess.bc-solved {
+  background: linear-gradient(160deg, rgba(46,160,67,0.35), rgba(46,160,67,0.12)) !important;
+  box-shadow: inset 0 0 0 1px rgba(110,231,183,0.5);
+  animation: bcSolved 0.55s ease;
+}
+.bc-guess.bc-solved .bc-dt { background: linear-gradient(160deg, #6ff0a0, #1f9d57); color: #0f1226; }
+@keyframes bcSolved { 0% { transform: scale(0.96); } 50% { transform: scale(1.04); } 100% { transform: scale(1); } }
+.bc-key { box-shadow: 0 2px 0 rgba(0,0,0,0.32), inset 0 1px 1px rgba(255,255,255,0.1); transition: transform 0.06s, background 0.1s; }
+.bc-key:active { transform: translateY(1px); box-shadow: 0 0 0 rgba(0,0,0,0.32); }
+.bc-input:focus { box-shadow: 0 0 14px rgba(255,209,102,0.3); }
+@media (prefers-reduced-motion: reduce) {
+  .bc-guess, .bc-guess.bc-solved { animation: none !important; }
+}

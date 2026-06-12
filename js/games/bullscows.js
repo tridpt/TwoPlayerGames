@@ -348,13 +348,18 @@
 
     // ====================== Theo dõi lần đoán gần nhất (cho hint count) ======================
     function logGuess(logEl, digits, bulls, cows, roundNo) {
-      // lưu lần đoán gần nhất theo log
       const row = document.createElement("div");
-      row.className = "bc-guess";
+      row.className = "bc-guess" + (bulls === LEN ? " bc-solved" : "");
+      const tiles = [...String(digits)].map((d) => `<span class="bc-dt">${d}</span>`).join("");
+      let pegs = "";
+      for (let i = 0; i < bulls; i++) pegs += `<i class="bc-peg bull" title="bull"></i>`;
+      for (let i = 0; i < cows; i++) pegs += `<i class="bc-peg cow" title="cow"></i>`;
+      const miss = Math.max(0, LEN - bulls - cows);
+      for (let i = 0; i < miss; i++) pegs += `<i class="bc-peg none"></i>`;
       row.innerHTML =
         `<span class="bc-rd">#${roundNo}</span>` +
-        `<span class="bc-digits">${digits}</span>` +
-        `<span class="bc-fb">${"🎯".repeat(bulls)}${"🐮".repeat(cows)}${bulls === 0 && cows === 0 ? "—" : ""}</span>`;
+        `<span class="bc-digits">${tiles}</span>` +
+        `<span class="bc-fb">${pegs}</span>`;
       logEl.appendChild(row);
       logEl.scrollTop = logEl.scrollHeight;
     }
