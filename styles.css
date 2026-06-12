@@ -8555,28 +8555,43 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
 .hm-setinput:focus { outline: 2px solid var(--accent); }
 .hm-note { color: var(--muted); font-size: 0.85rem; margin: 12px 0 0; }
 .hm-err { color: var(--p1); font-size: 0.9rem; min-height: 1.2em; }
-.hm-gallows { font-size: 4rem; line-height: 1; }
-.hm-gallows.dead { animation: pop 0.5s ease; }
-.hm-word { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.hm-gallows { width: 150px; height: 184px; }
+.hm-svg { width: 100%; height: 100%; overflow: visible; }
+.hm-struct { stroke: #8a5a2b; stroke-width: 6; stroke-linecap: round; }
+.hm-brace { stroke: #8a5a2b; stroke-width: 4; stroke-linecap: round; }
+.hm-rope { stroke: #c9a06a; stroke-width: 3; stroke-linecap: round; }
+.hm-part { stroke: #e8ecff; stroke-width: 4; fill: none; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 0.5s ease, stroke 0.3s; }
+.hm-part.on { stroke-dashoffset: 0; }
+.hm-gallows.danger .hm-part.on { stroke: #ffb15c; }
+.hm-gallows.dead .hm-part.on { stroke: #ff5d73; }
+.hm-eyes { opacity: 0; transition: opacity 0.3s; }
+.hm-eyes line { stroke: #ff5d73; stroke-width: 2.6; stroke-linecap: round; }
+.hm-gallows.dead .hm-eyes { opacity: 1; }
+.hm-gallows.dead { animation: hmShake 0.5s ease; }
+@keyframes hmShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+.hm-word { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .hm-ch {
-  min-width: 26px; text-align: center;
-  font-size: 1.6rem; font-weight: 800;
-  border-bottom: 3px solid var(--muted); padding: 0 2px;
-  color: var(--accent);
+  min-width: 30px; height: 40px;
+  display: inline-flex; align-items: flex-end; justify-content: center;
+  font-size: 1.7rem; font-weight: 800;
+  border-bottom: 3px solid rgba(255,255,255,0.3); padding-bottom: 3px;
+  color: var(--accent); text-shadow: 0 2px 6px rgba(255,209,102,0.4);
 }
 .hm-status { color: var(--muted); font-size: 0.95rem; }
-.hm-keys { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; width: 100%; max-width: 440px; }
+.hm-keys { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; width: 100%; max-width: 460px; }
 .hm-key {
-  aspect-ratio: 1 / 1; border-radius: 8px;
-  background: var(--panel-2); color: var(--text);
-  border: 1px solid rgba(255,255,255,0.1);
-  font-weight: 700; cursor: pointer; font-size: 0.95rem;
-  transition: background 0.1s;
+  aspect-ratio: 1 / 1; border-radius: 9px;
+  background: linear-gradient(160deg, #2c3656, #1f2742); color: var(--text);
+  border: 1px solid rgba(255,255,255,0.12);
+  font-weight: 800; cursor: pointer; font-size: 0.98rem;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.12);
+  transition: background 0.1s, transform 0.06s, box-shadow 0.1s;
 }
-.hm-key:hover:not(:disabled) { background: var(--accent); color: #1a1a1a; }
-.hm-key:disabled { cursor: default; opacity: 0.5; }
-.hm-key.hit { background: var(--good); color: #0f1226; opacity: 1; }
-.hm-key.miss { background: rgba(255,93,115,0.4); opacity: 1; }
+.hm-key:hover:not(:disabled) { background: linear-gradient(160deg, #ffe08a, #f0b429); color: #1a1a1a; transform: translateY(-2px); }
+.hm-key:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 0 0 rgba(0,0,0,0.35); }
+.hm-key:disabled { cursor: default; opacity: 0.55; box-shadow: none; }
+.hm-key.hit { background: linear-gradient(160deg, #6ff0a0, #1f9d57); color: #0f1226; opacity: 1; box-shadow: 0 0 10px rgba(46,160,67,0.5); }
+.hm-key.miss { background: rgba(255,93,115,0.42); opacity: 1; box-shadow: inset 0 0 0 1px rgba(255,93,115,0.6); }
 
 /* ---------- Màn hình chúc mừng chiến thắng ---------- */
 .win-overlay {
@@ -13263,4 +13278,9 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 
 @media (prefers-reduced-motion: reduce) {
   .mnc-pit.playable, .nim-stone.taking { animation: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-gallows.dead { animation: none !important; }
+  .hm-part { transition: none !important; }
 }

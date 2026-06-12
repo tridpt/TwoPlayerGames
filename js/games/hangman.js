@@ -218,13 +218,34 @@
       drawGallows();
     }
 
+    function gallowsSVG() {
+      return `<svg class="hm-svg" viewBox="0 0 120 152" aria-hidden="true">
+        <line class="hm-struct" x1="6" y1="146" x2="80" y2="146"/>
+        <line class="hm-struct" x1="26" y1="146" x2="26" y2="8"/>
+        <line class="hm-struct" x1="26" y1="8" x2="86" y2="8"/>
+        <line class="hm-brace" x1="26" y1="30" x2="46" y2="8"/>
+        <line class="hm-rope" x1="86" y1="8" x2="86" y2="24"/>
+        <circle class="hm-part" data-i="0" cx="86" cy="38" r="13" pathLength="1"/>
+        <line class="hm-part" data-i="1" x1="86" y1="51" x2="86" y2="95" pathLength="1"/>
+        <line class="hm-part" data-i="2" x1="86" y1="62" x2="68" y2="80" pathLength="1"/>
+        <line class="hm-part" data-i="3" x1="86" y1="62" x2="104" y2="80" pathLength="1"/>
+        <line class="hm-part" data-i="4" x1="86" y1="95" x2="70" y2="120" pathLength="1"/>
+        <line class="hm-part" data-i="5" x1="86" y1="95" x2="102" y2="120" pathLength="1"/>
+        <g class="hm-eyes">
+          <line x1="80" y1="34" x2="84" y2="38"/><line x1="84" y1="34" x2="80" y2="38"/>
+          <line x1="88" y1="34" x2="92" y2="38"/><line x1="92" y1="34" x2="88" y2="38"/>
+        </g>
+      </svg>`;
+    }
+
     function drawGallows() {
       const el = root.querySelector("#hmGallows");
       if (!el) return;
-      const faces = ["😀", "😟", "😨", "😰", "😵", "🥵", "💀"];
-      // chia đều các nấc biểu cảm theo số mạng (để mode 8 mạng không hiện sọ khi còn sống)
-      const stage = wrong >= MAX_WRONG ? 6 : Math.min(5, Math.round((wrong / MAX_WRONG) * 6));
-      el.textContent = faces[stage];
+      if (!el.querySelector(".hm-svg")) el.innerHTML = gallowsSVG();
+      const parts = el.querySelectorAll(".hm-part");
+      const stage = wrong >= MAX_WRONG ? 6 : Math.min(6, Math.round((wrong / MAX_WRONG) * 6));
+      parts.forEach((p, i) => p.classList.toggle("on", i < stage));
+      el.classList.toggle("danger", wrong > 0 && wrong >= MAX_WRONG - 1 && wrong < MAX_WRONG);
       el.classList.toggle("dead", wrong >= MAX_WRONG);
     }
 
