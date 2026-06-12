@@ -2,12 +2,9 @@
    Mỗi người nhập một từ ghép 2 tiếng, bắt đầu bằng TIẾNG CUỐI của từ trước.
    Không được lặp từ đã dùng. Hết giờ hoặc bí thì thua.
 
-   CƠ CHẾ TRỌNG TÀI: từ được nối tự do (chỉ chặn gõ bậy theo cấu trúc âm tiết).
-   Khi tới lượt, bạn có thể "⚖️ Phản đối" từ đối thủ vừa nối. Trọng tài (từ điển
-   window.VI_DICT) chấm:
-     - Từ KHÔNG có trong từ điển  -> người nối sai phải nối lại, BỊ TRỪ 5s mỗi lượt.
-     - Từ CÓ trong từ điển         -> người phản đối sai, BỊ TRỪ 5s mỗi lượt.
-   Nước đi: { kind:"word", phrase } | { kind:"timeout" } | { kind:"challenge" }. */
+   Từ được CHẤM NGAY khi nhập bằng từ điển (window.VI_DICT): nếu từ không có trong
+   từ điển thì báo lỗi và cho nhập lại (không phạt). Bí mật không có gì để giấu.
+   Nước đi: { kind:"word", phrase } | { kind:"timeout" }. */
 (function () {
   const STARTERS = [
     "học sinh", "bầu trời", "con đường", "mặt trời", "hoa hồng",
@@ -70,7 +67,6 @@
     let lastWord = null;
     let timerId = null;
     let timeLeft = TIME;
-    const penalty = [0, 0];           // số giây bị trừ tích lũy mỗi người
     const chain = [];                 // [{ phrase, by, prevLast, el }]
 
     const root = document.createElement("div");
@@ -82,7 +78,6 @@
       `<input class="nt-input" id="ntInput" placeholder="${ctx.t("nhập từ 2 tiếng...", "enter a 2-word phrase...")}" autocomplete="off">` +
       `<button class="btn primary" id="ntSend">${ctx.t("Nối", "Link")}</button>` +
       `<button class="btn nt-hint" id="ntHint">${ctx.t("💡 Gợi ý", "💡 Hint")}</button>` +
-      `<button class="btn nt-challenge" id="ntChallenge">${ctx.t("⚖️ Phản đối", "⚖️ Challenge")}</button>` +
       `<button class="btn nt-give">${ctx.t("🏳️ Chịu thua", "🏳️ Give up")}</button>` +
       `</div>` +
       `<p class="nt-err" id="ntErr"></p>` +
@@ -93,7 +88,6 @@
     const timerEl = root.querySelector("#ntTimer");
     const input = root.querySelector("#ntInput");
     const sendBtn = root.querySelector("#ntSend");
-    const challengeBtn = root.querySelector("#ntChallenge");
     const hintBtn = root.querySelector("#ntHint");
     const giveBtn = root.querySelector(".nt-give");
     const errEl = root.querySelector("#ntErr");
@@ -103,7 +97,7 @@
     const opener = STARTERS[Math.floor(rand() * STARTERS.length)];
 
     function myTurn() { return !ctx.isOnline || turn === ctx.mySeat; }
-    function effTime() { return TIME > 0 ? Math.max(5, TIME - penalty[turn]) : 0; }
+    function effTime() { return TIME > 0 ? TIME : 0; }
 
     function startTimer() {
       stopTimer();
@@ -121,8 +115,7 @@
     }
     function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
     function renderTimer() {
-      const pen = penalty[turn] > 0 ? ctx.t(` (−${penalty[turn]}s phạt)`, ` (−${penalty[turn]}s penalty)`) : "";
-      timerEl.textContent = TIME > 0 ? `⏱️ ${Math.max(0, timeLeft)}s${pen}` : ctx.t("Không giới hạn giờ", "No time limit");
+      timerEl.textContent = TIME > 0 ? `⏱️ ${Math.max(0, timeLeft)}s` : ctx.t("Không giới hạn giờ", "No time limit");
       timerEl.classList.toggle("low", TIME > 0 && timeLeft <= 5);
     }
 
@@ -132,15 +125,12 @@
       if (!validVietnamese(phrase)) return ctx.t("Không phải tiếng Việt — đừng gõ bậy nhé!", "Not valid Vietnamese — no gibberish, please!");
       if (lastWord && sy[0] !== lastWord) return ctx.t(`Phải bắt đầu bằng tiếng "${lastWord}".`, `Must start with the word "${lastWord}".`);
       if (used.has(sy.join(" "))) return ctx.t("Từ này đã được dùng rồi.", "This phrase has already been used.");
+      if (window.VI_DICT && !inDictionary(phrase)) return ctx.t(`"${norm(phrase)}" không có trong từ điển — thử từ khác.`, `"${norm(phrase)}" is not in the dictionary — try another word.`);
       return null;
     }
 
     sendBtn.addEventListener("click", submit);
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
-    challengeBtn.addEventListener("click", () => {
-      if (!myTurn() || over) return;
-      applyMove({ kind: "challenge" }, false);
-    });
     hintBtn.addEventListener("click", onHint);
     giveBtn.addEventListener("click", () => {
       if (!myTurn() || over) return;
@@ -210,36 +200,6 @@
         updateUI();
         return;
       }
-
-      if (move.kind === "challenge") {
-        // người đang tới lượt (turn) phản đối từ cuối cùng (do đối thủ nối)
-        const target = chain[chain.length - 1];
-        if (!target || target.by === null) return; // không có gì để phản đối
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ kind: "challenge" });
-
-        const ok = inDictionary(target.phrase);
-        if (!ok) {
-          // người nối (target.by) SAI -> gỡ từ, phạt họ, bắt nối lại
-          used.delete(target.phrase);
-          if (target.el) target.el.remove();
-          chain.pop();
-          lastWord = target.prevLast;
-          penalty[target.by] += PENALTY;
-          ctx.sound("error");
-          flashJudge(ctx.t(`⚖️ "${target.phrase}" KHÔNG có trong từ điển! Người chơi ${target.by + 1} nối sai, bị trừ ${PENALTY}s và phải nối lại.`, `⚖️ "${target.phrase}" is NOT in the dictionary! Player ${target.by + 1} was wrong, −${PENALTY}s and must link again.`), false);
-          turn = target.by;            // người sai nối lại
-        } else {
-          // người phản đối (turn) SAI -> phạt người phản đối
-          penalty[turn] += PENALTY;
-          ctx.sound("error");
-          flashJudge(ctx.t(`⚖️ "${target.phrase}" CÓ trong từ điển — phản đối sai! Người chơi ${turn + 1} bị trừ ${PENALTY}s.`, `⚖️ "${target.phrase}" IS in the dictionary — wrong challenge! Player ${turn + 1} gets −${PENALTY}s.`), true);
-          // turn giữ nguyên: người phản đối vẫn phải nối
-        }
-        ctx.setTurn(turn);
-        startTimer();
-        updateUI();
-        return;
-      }
     }
 
     function flashJudge(text, challengerWrong) {
@@ -262,7 +222,7 @@
       over = true;
       stopTimer();
       ctx.setTurn(-1);
-      input.disabled = true; sendBtn.disabled = true; challengeBtn.disabled = true; giveBtn.disabled = true;
+      input.disabled = true; sendBtn.disabled = true; giveBtn.disabled = true;
       ctx.incScore(winner);
       ctx.setStatus(ctx.t(`🎉 Người chơi ${winner + 1} thắng — ${reason}!`, `🎉 Player ${winner + 1} wins — ${reason}!`));
     }
@@ -275,11 +235,6 @@
       input.disabled = !mine;
       sendBtn.disabled = !mine;
       giveBtn.disabled = !mine;
-      // chỉ cho phản đối khi tới lượt mình và có từ của đối thủ ở cuối chuỗi
-      const last = chain[chain.length - 1];
-      const canChallenge = mine && last && last.by !== null && last.by !== turn;
-      challengeBtn.disabled = !canChallenge;
-      challengeBtn.classList.toggle("hidden", !last || last.by === null);
       hintBtn.disabled = !mine || hintsLeft <= 0 || !lastWord;
       hintBtn.textContent = ctx.t(`💡 Gợi ý (${hintsLeft})`, `💡 Hint (${hintsLeft})`);
       hintBtn.classList.toggle("hidden", o.hints === "off");
@@ -287,7 +242,7 @@
       ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} nối từ.`, `Player ${turn + 1}'s turn to link a word.`));
     }
 
-    // mở màn: thêm từ gợi ý vào chuỗi như "hệ thống" (by = null), không bị phản đối
+    // mở màn: thêm từ gợi ý vào chuỗi như "hệ thống" (by = null)
     chain.push({ phrase: opener, by: null, prevLast: null, el: addChainWord(opener, null) });
     used.add(opener);
     lastWord = syllables(opener)[1];
@@ -295,7 +250,7 @@
     ctx.setTurn(0);
     updateUI();
     startTimer();
-    ctx.setStatus(ctx.t("Nối từ 2 tiếng theo tiếng cuối. Nghi từ đối thủ vô nghĩa? Bấm '⚖️ Phản đối' để trọng tài chấm!", "Link 2-word phrases by the last word. Suspect a nonsense word? Press '⚖️ Challenge' to let the referee judge!"));
+    ctx.setStatus(ctx.t("Nối từ ghép 2 tiếng theo tiếng cuối. Từ phải có trong từ điển — gõ sai chỉ cần nhập lại.", "Link 2-word phrases by the last word. The word must be in the dictionary — if wrong, just try again."));
     return { applyMove };
   }
 
@@ -303,7 +258,7 @@
     id: "noitu",
     name: "Nối Từ",
     emoji: "🔤",
-    description: "Nối từ ghép 2 tiếng. Nghi từ đối thủ vô nghĩa thì phản đối — trọng tài (từ điển) sẽ chấm.",
+    description: "Nối từ ghép 2 tiếng theo tiếng cuối. Từ được chấm ngay bằng từ điển — gõ sai chỉ cần nhập lại, không phạt.",
     onlineReady: true,
     options: [
       {
@@ -327,11 +282,9 @@
     howTo: [
       "Mở màn bằng một từ gợi ý. Người tiếp theo nối bằng từ 2 tiếng bắt đầu bằng TIẾNG CUỐI của từ trước (ví dụ 'học sinh' → 'sinh viên').",
       "Không dùng lại từ đã xuất hiện. Mỗi lượt có đồng hồ đếm ngược — hết giờ là thua.",
-      "Từ được nối khá tự do (chỉ chặn gõ bậy). Nếu bạn NGHI từ đối thủ vừa nối là vô nghĩa, bấm '⚖️ Phản đối'.",
-      "Trọng tài là từ điển tiếng Việt: nếu từ đó KHÔNG có trong từ điển, người nối sai phải nối lại và bị TRỪ 5 giây mỗi lượt từ đó về sau.",
-      "Nhưng nếu từ đó CÓ trong từ điển (phản đối sai), thì CHÍNH BẠN bị trừ 5 giây mỗi lượt. Vậy nên chỉ phản đối khi chắc chắn!",
+      "Từ bạn nhập được TRỌNG TÀI (từ điển tiếng Việt) chấm ngay: nếu từ KHÔNG có trong từ điển, hệ thống báo lỗi và bạn chỉ cần nhập lại từ khác — không bị phạt gì.",
       "Bí từ? Bấm '💡 Gợi ý' để được từ điển mách một từ nối tiếp hợp lệ — nhưng số lần có hạn và bị trừ thời gian, nên đừng lạm dụng.",
-      "Thời gian mỗi lượt không bao giờ xuống dưới 5 giây. Ai hết giờ hoặc chịu thua sẽ thua.",
+      "Ai hết giờ hoặc chịu thua (🏳️) sẽ thua. Người còn lại thắng.",
     ],
     create,
   });
