@@ -491,14 +491,14 @@ var GAMES_EN_DATA = {
   },
   reactionduel: {
     name: "Reaction Duel",
-    description: "Wait for the green light then tap fast — tap early and you lose. Pure reflexes.",
+    description: "Wait for the green light then tap fast — tap early and you lose. Pure reflexes, local or online.",
     howTo: [
-      "Local game on one device (no online play).",
-      "Press \"Start round\". The light stays in a WAIT state (red/amber) for a random delay.",
-      "When it turns GREEN and shows \"TAP NOW!\", tap fast: Player 1 uses key A (or tap the left zone), Player 2 uses key L (or tap the right zone).",
-      "Whoever taps validly first wins the round; the reaction time (ms) is shown.",
+      "Press \"Start round\". Online: one tap starts the round for both. The light stays in a WAIT state for a random delay (identical on both devices online).",
+      "When it turns GREEN and shows \"TAP NOW!\", tap fast. Local: Player 1 uses key A (left zone), Player 2 uses key L (right zone). Online: tap your pad / key A,L / Space.",
+      "Online compares REACTION TIME: each device measures from its own green light, so network lag doesn't matter — the faster reaction (lower ms) takes the round.",
+      "Local: whoever taps validly first wins the round; the reaction time (ms) shows on the pad.",
       "WARNING: if you tap BEFORE the light turns green, you foul and instantly lose the round.",
-      "The first player to win the chosen number of rounds wins the match.",
+      "The first player to win the chosen number of rounds wins. Your best reaction time is saved on the device.",
     ],
   },
   dashdodge: {
@@ -602,13 +602,14 @@ var GAMES_EN_DATA = {
   },
   typingrace: {
     name: "Typing Race",
-    description: "Two players race to type Vietnamese words correctly — first to finish all words wins.",
+    description: "Two players race to type Vietnamese words correctly — first to finish all words wins. Local or online.",
     howTo: [
-      "Local game on one device (no online play) — best with a keyboard each, or take turns for a speed drill.",
-      "Press \"Start race\". Both players get the same sequence of Vietnamese words.",
-      "Each player types in their own box: Player 1 the top box, Player 2 the bottom box. Type the shown word exactly (with accents) then press Space/Enter for the next.",
-      "Typing in the wrong direction turns the box red as a warning; correct it to match.",
+      "Both players get the SAME sequence of Vietnamese words (generated deterministically, so both devices always match).",
+      "Press \"Start race\". Online: one tap starts both; you type ONLY your own lane. Local: Player 1 the top box, Player 2 the bottom box.",
+      "Type the shown word exactly (with accents) then press Space/Enter for the next. Typing in the wrong direction turns the box red — correct it to match.",
+      "The progress bars show how far each player has typed (updated live over the network when online).",
       "Whoever correctly types all the words first wins; the finish time is shown.",
+      "Online is perfectly fair: time is counted from when EACH device starts, so network lag doesn't affect who's faster.",
     ],
   },
   numberduel: {

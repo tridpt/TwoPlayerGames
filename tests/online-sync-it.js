@@ -45,6 +45,8 @@ const CASES = [
   { gameId: "sim", move: { e: 0 }, check: (m) => m.move.e === 0 },
   { gameId: "minichess", move: { from: 18, to: 13 }, check: (m) => m.move.from === 18 && m.move.to === 13 },
   { gameId: "sprouts", move: { a: 0, b: 1 }, check: (m) => m.move.a === 0 && m.move.b === 1 },
+  { gameId: "typingrace", move: { k: "prog", i: 3 }, check: (m) => m.move.k === "prog" && m.move.i === 3 },
+  { gameId: "reactionduel", move: { k: "rt", ms: 240 }, check: (m) => m.move.k === "rt" && m.move.ms === 240 },
 ];
 
 (async () => {
