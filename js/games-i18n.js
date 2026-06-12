@@ -565,6 +565,7 @@ var GAMES_EN_DATA = {
     name: "Twenty Questions",
     description: "One player keeps a secret; the other asks up to 20 Yes/No questions to guess it.",
     howTo: [
+      "At the start of each round, both sides FREELY PICK roles: who keeps the secret and who guesses — no fixed player. You can swap next round.",
       "One player is the KEEPER: think of something (animal, object, person, place...), type it in (hidden from the opponent) and pick a hint category.",
       "The other player is the GUESSER: ask questions that can only be answered YES or NO to narrow it down.",
       "The keeper taps an answer: ✅ Yes, ❌ No, 🤔 Sort of, or 🚫 Skip (invalid question — doesn't use a turn).",

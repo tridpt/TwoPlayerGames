@@ -17,11 +17,12 @@
     const o = ctx.options || {};
     const LIMIT = o.limit ? Number(o.limit) : MAX_Q;
 
-    // keeper = người giữ bí mật; guesser = người đoán
-    const keeper = ctx.isOnline ? ctx.firstSeat : 0;
-    const guesser = 1 - keeper;
+    // keeper = người giữ bí mật; guesser = người đoán. Vai do người chơi TỰ CHỌN
+    // ở đầu mỗi ván (phase "role") nên có thể trao quyền tự do, không cố định.
+    let keeper = ctx.isOnline ? ctx.firstSeat : 0;
+    let guesser = 1 - keeper;
 
-    let phase = "setup";   // setup | ask | answer | over
+    let phase = "role";    // role | setup | ask | answer | verdict | over
     let myWord = "";       // chỉ lưu ở máy keeper
     let category = -1;
     let asked = 0;
@@ -41,6 +42,7 @@
     // Trong chế độ chung máy, cả hai vai do người trước màn hình đảm nhận luân phiên.
     function localSeatActing() {
       // ai đang cần thao tác (để chung máy hiển thị đúng panel)
+      if (phase === "role") return -1;
       if (phase === "setup") return keeper;
       if (phase === "ask") return guesser;
       if (phase === "answer") return keeper;
@@ -61,6 +63,16 @@
     function applyMove(move, fromRemote) {
       if (over && move.k !== "verdict") return;
       switch (move.k) {
+        case "role": {
+          if (phase !== "role") return;
+          keeper = Number(move.keeper) === 1 ? 1 : 0;
+          guesser = 1 - keeper;
+          phase = "setup";
+          if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "role", keeper });
+          ctx.sound("place");
+          render(); updateStatus();
+          break;
+        }
         case "setup": {
           category = Number(move.cat);
           phase = "ask";
@@ -162,10 +174,14 @@
       els.count.classList.toggle("low", left <= 5);
 
       const meRole = ctx.isOnline ? (ctx.mySeat === keeper ? ctx.t("Bạn GIỮ bí mật", "You KEEP the secret") : ctx.t("Bạn ĐOÁN", "You GUESS")) : "";
-      els.roles.innerHTML = ctx.isOnline
-        ? `<span class="tq-role">${meRole}</span>`
-        : `<span class="tq-role">🔒 P${keeper + 1} ${ctx.t("giữ bí mật", "keeps secret")} · 🔍 P${guesser + 1} ${ctx.t("đoán", "guesses")}</span>`;
-      if (category >= 0) els.roles.innerHTML += `<span class="tq-cat">${ctx.t("Chủ đề", "Category")}: <b>${catName(category)}</b></span>`;
+      if (phase === "role") {
+        els.roles.innerHTML = `<span class="tq-role">${ctx.t("Đang chọn vai...", "Choosing roles...")}</span>`;
+      } else {
+        els.roles.innerHTML = ctx.isOnline
+          ? `<span class="tq-role">${meRole}</span>`
+          : `<span class="tq-role">🔒 P${keeper + 1} ${ctx.t("giữ bí mật", "keeps secret")} · 🔍 P${guesser + 1} ${ctx.t("đoán", "guesses")}</span>`;
+        if (category >= 0) els.roles.innerHTML += `<span class="tq-cat">${ctx.t("Chủ đề", "Category")}: <b>${catName(category)}</b></span>`;
+      }
 
       // nhật ký hỏi đáp
       els.log.innerHTML = log.length
@@ -184,6 +200,40 @@
       const p = els.panel;
       if (over) {
         p.innerHTML = `<div class="tq-over">${revealWord ? ctx.t(`Đáp án: <b>${escapeHtml(revealWord)}</b>`, `Answer: <b>${escapeHtml(revealWord)}</b>`) : ctx.t("Ván đã kết thúc.", "Game over.")}</div>`;
+        return;
+      }
+
+      // ROLE: chọn ai giữ bí mật / ai đoán (trao quyền tự do)
+      if (phase === "role") {
+        if (ctx.isOnline) {
+          p.innerHTML =
+            `<div class="tq-role-pick">` +
+              `<div class="tq-hint">${ctx.t("Chọn vai của bạn cho ván này:", "Pick your role for this round:")}</div>` +
+              `<div class="tq-rolebtns">` +
+                `<button type="button" class="btn primary tq-rb" data-keep="me">🔒 ${ctx.t("Tôi giữ bí mật", "I'll keep the secret")}</button>` +
+                `<button type="button" class="btn tq-rb" data-keep="opp">🔍 ${ctx.t("Tôi đoán", "I'll guess")}</button>` +
+              `</div>` +
+              `<div class="tq-note">${ctx.t("Ai bấm trước sẽ quyết định. Mỗi ván có thể đổi vai thoải mái.", "Whoever taps first decides. You can freely swap roles each round.")}</div>` +
+            `</div>`;
+          p.querySelectorAll(".tq-rb").forEach((b) => {
+            b.addEventListener("click", () => {
+              const k = b.dataset.keep === "me" ? ctx.mySeat : (1 - ctx.mySeat);
+              applyMove({ k: "role", keeper: k }, false);
+            });
+          });
+        } else {
+          p.innerHTML =
+            `<div class="tq-role-pick">` +
+              `<div class="tq-hint">${ctx.t("Ai sẽ GIỮ BÍ MẬT ván này? (người kia sẽ đoán)", "Who KEEPS the secret this round? (the other guesses)")}</div>` +
+              `<div class="tq-rolebtns">` +
+                `<button type="button" class="btn primary tq-rb" data-keep="0">🔒 ${ctx.t("Người 1 giữ", "Player 1 keeps")}</button>` +
+                `<button type="button" class="btn primary tq-rb" data-keep="1">🔒 ${ctx.t("Người 2 giữ", "Player 2 keeps")}</button>` +
+              `</div>` +
+            `</div>`;
+          p.querySelectorAll(".tq-rb").forEach((b) => {
+            b.addEventListener("click", () => applyMove({ k: "role", keeper: Number(b.dataset.keep) }, false));
+          });
+        }
         return;
       }
 
@@ -360,7 +410,8 @@
       if (over) return;
       const acting = ctx.isOnline ? null : localSeatActing();
       let msg;
-      if (phase === "setup") msg = ctx.t("Người giữ bí mật: nghĩ ra một thứ và chọn chủ đề.", "Keeper: think of something and pick a category.");
+      if (phase === "role") msg = ctx.t("Chọn vai: ai giữ bí mật, ai đoán.", "Pick roles: who keeps the secret and who guesses.");
+      else if (phase === "setup") msg = ctx.t("Người giữ bí mật: nghĩ ra một thứ và chọn chủ đề.", "Keeper: think of something and pick a category.");
       else if (phase === "ask") msg = ctx.t("Người đoán: đặt câu hỏi Có/Không, hoặc bấm 'Tôi đoán ra rồi!'.", "Guesser: ask a Yes/No question, or hit 'I know it!'.");
       else if (phase === "answer") msg = ctx.t("Người giữ bí mật: trả lời câu hỏi.", "Keeper: answer the question.");
       else if (phase === "verdict") msg = ctx.t("Người giữ bí mật: xác nhận lời đoán đúng hay sai.", "Keeper: confirm if the guess is right.");
@@ -395,6 +446,7 @@
       },
     ],
     howTo: [
+      "Đầu mỗi ván, hai bên TỰ CHỌN vai: ai giữ bí mật, ai đoán — trao quyền thoải mái, không cố định người nào. Ván sau có thể đổi vai.",
       "Một người là NGƯỜI GIỮ BÍ MẬT: nghĩ ra một thứ (con vật, đồ vật, người, địa điểm...), gõ vào máy (đối thủ không thấy) và chọn chủ đề gợi ý.",
       "Người còn lại là NGƯỜI ĐOÁN: lần lượt đặt các câu hỏi mà chỉ trả lời được bằng CÓ / KHÔNG để thu hẹp dần.",
       "Người giữ bí mật bấm trả lời: ✅ Có, ❌ Không, 🤔 Tùy/Không rõ, hoặc 🚫 Không tính (câu hỏi không hợp lệ — không trừ lượt).",
