@@ -8509,18 +8509,30 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
 
 /* ---------- Nối Từ ---------- */
 .nt-root { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(520px, 96vw); }
-.nt-need { font-size: 1.1rem; }
-.nt-need b { color: var(--accent); }
-.nt-timer { font-size: 1.4rem; font-weight: 800; color: var(--good); }
-.nt-timer.low { color: var(--p1); animation: pop 0.5s ease infinite; }
+.nt-need {
+  font-size: 1.05rem; padding: 10px 18px; border-radius: 12px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+.nt-need b { color: var(--accent); text-shadow: 0 0 8px rgba(255,209,102,0.4); }
+.nt-timer {
+  font-size: 1.25rem; font-weight: 900; color: #0f1226;
+  background: linear-gradient(160deg, #7af0a6, #1f9d57);
+  padding: 6px 18px; border-radius: 999px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.4);
+}
+.nt-timer.low { background: linear-gradient(160deg, #ff97a6, #d6243f); color: #fff; animation: ntPulse 0.6s ease infinite; }
+@keyframes ntPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.09); } }
 .nt-inputrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; width: 100%; }
 .nt-input {
   flex: 1; min-width: 160px;
   background: var(--bg); border: 1px solid rgba(255,255,255,0.14);
   border-radius: 10px; color: var(--text); padding: 10px 14px; font-size: 1.1rem;
+  transition: outline 0.1s, box-shadow 0.15s;
 }
-.nt-input:focus { outline: 2px solid var(--accent); }
-.nt-err { color: var(--p1); font-size: 0.9rem; min-height: 1.2em; margin: 0; }
+.nt-input:focus { outline: 2px solid var(--accent); box-shadow: 0 0 14px rgba(255,209,102,0.3); }
+.nt-input:disabled { opacity: 0.55; }
+.nt-err { color: var(--p1); font-size: 0.9rem; min-height: 1.2em; margin: 0; text-align: center; }
 .nt-give { font-size: 0.85rem; }
 .nt-challenge { font-size: 0.85rem; background: rgba(255,209,102,0.18); color: var(--accent); }
 .nt-challenge:hover:not(:disabled) { background: var(--accent); color: #1a1a1a; }
@@ -8534,14 +8546,23 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   padding: 8px 12px; border-radius: 8px;
 }
 .nt-chain {
-  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
-  background: var(--panel); border-radius: 12px; padding: 12px;
-  max-height: 200px; overflow-y: auto; width: 100%; box-shadow: var(--shadow);
+  display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 0%, #1d2750, #11172e 80%); border-radius: 14px; padding: 14px;
+  max-height: 220px; overflow-y: auto; width: 100%;
+  box-shadow: inset 0 0 24px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05);
 }
-.nt-word { padding: 4px 10px; border-radius: 999px; font-size: 0.9rem; }
-.nt-word.p1 { background: rgba(255,93,115,0.25); }
-.nt-word.p2 { background: rgba(77,208,225,0.25); }
+.nt-word {
+  position: relative; padding: 5px 12px; border-radius: 999px; font-size: 0.92rem; font-weight: 700;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.15);
+  animation: ntPop 0.28s cubic-bezier(0.3,1.6,0.5,1);
+}
+.nt-word:not(:first-child)::before {
+  content: "→"; color: var(--muted); margin-right: 7px; font-weight: 400; opacity: 0.7;
+}
+.nt-word.p1 { background: linear-gradient(160deg, rgba(255,93,115,0.5), rgba(255,93,115,0.28)); box-shadow: 0 2px 5px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,93,115,0.5); }
+.nt-word.p2 { background: linear-gradient(160deg, rgba(77,208,225,0.5), rgba(77,208,225,0.28)); box-shadow: 0 2px 5px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(77,208,225,0.5); }
 .nt-word.sys { background: rgba(255,255,255,0.12); color: var(--muted); font-style: italic; }
+@keyframes ntPop { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
 /* ---------- Đoán Chữ (Hangman) ---------- */
 .hm-root { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(560px, 96vw); }
@@ -13283,4 +13304,8 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 @media (prefers-reduced-motion: reduce) {
   .hm-gallows.dead { animation: none !important; }
   .hm-part { transition: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nt-timer.low, .nt-word { animation: none !important; }
 }
