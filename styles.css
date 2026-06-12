@@ -8182,12 +8182,14 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
 .sh-grid {
   display: grid;
   gap: 3px;
+  aspect-ratio: 1 / 1;
 }
 .sh-cell {
   appearance: none;
   -webkit-appearance: none;
-  aspect-ratio: 1 / 1;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
   border: 0;
   border-radius: 6px;
   padding: 0;

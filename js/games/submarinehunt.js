@@ -43,6 +43,7 @@
     const grid = document.createElement("div");
     grid.className = "sh-grid";
     grid.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${N}, 1fr)`;
     boardWrap.appendChild(grid);
     root.appendChild(boardWrap);
 
