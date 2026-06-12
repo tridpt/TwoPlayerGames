@@ -2155,6 +2155,58 @@
     });
   }
 
+  // ---- Bộ chọn màu nhấn (accent) ----
+  const ACCENT_KEY = "tpg_accent";
+  const ACCENTS = [
+    { id: "gold", color: "#ffd166", vi: "Vàng", en: "Gold" },
+    { id: "coral", color: "#ff7a8a", vi: "San hô", en: "Coral" },
+    { id: "purple", color: "#c084fc", vi: "Tím", en: "Purple" },
+    { id: "emerald", color: "#34d399", vi: "Lục", en: "Emerald" },
+    { id: "sky", color: "#38bdf8", vi: "Lam", en: "Sky" },
+    { id: "amber", color: "#ff9d5c", vi: "Cam", en: "Amber" },
+  ];
+  let currentAccent = "gold";
+  try { currentAccent = localStorage.getItem(ACCENT_KEY) || "gold"; } catch (e) { /* ignore */ }
+  function applyAccent(id) {
+    if (id && id !== "gold") document.body.dataset.accent = id;
+    else delete document.body.dataset.accent;
+  }
+  applyAccent(currentAccent);
+  const accentBtn = $("accentToggle");
+  let accentPop = null;
+  function onDocClickAccent(e) { if (accentPop && !accentPop.contains(e.target) && e.target !== accentBtn) closeAccentPop(); }
+  function closeAccentPop() {
+    if (!accentPop) return;
+    accentPop.remove(); accentPop = null;
+    document.removeEventListener("click", onDocClickAccent, true);
+  }
+  function openAccentPop() {
+    if (accentPop) { closeAccentPop(); return; }
+    accentPop = document.createElement("div");
+    accentPop.className = "accent-pop";
+    const lang = (window.I18n && I18n.getLang) ? I18n.getLang() : "vi";
+    ACCENTS.forEach((a) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "accent-sw" + (a.id === currentAccent ? " active" : "");
+      b.style.background = a.color;
+      const label = lang === "en" ? a.en : a.vi;
+      b.title = label; b.setAttribute("aria-label", label);
+      b.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        currentAccent = a.id;
+        try { localStorage.setItem(ACCENT_KEY, a.id); } catch (e) { /* ignore */ }
+        applyAccent(a.id);
+        closeAccentPop();
+        if (window.Sound) Sound.play("select");
+      });
+      accentPop.appendChild(b);
+    });
+    document.body.appendChild(accentPop);
+    setTimeout(() => document.addEventListener("click", onDocClickAccent, true), 0);
+  }
+  if (accentBtn) accentBtn.addEventListener("click", (e) => { e.stopPropagation(); openAccentPop(); });
+
   // ---- Modal hướng dẫn ----
   function openHelp() {
     if (!selectedGame) return;

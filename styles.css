@@ -79,7 +79,8 @@ body {
 .sound-toggle:active { transform: scale(0.94); }
 .sound-toggle.muted { opacity: 0.6; }
 .theme-toggle { right: 74px; }
-.lang-toggle { right: 128px; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.5px; }
+.accent-toggle { right: 128px; }
+.lang-toggle { right: 182px; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.5px; }
 
 /* Nút "Cài app" (PWA) — kiểu pill, chỉ hiện khi trình duyệt cho phép cài */
 .install-btn {
@@ -133,7 +134,8 @@ body {
   .app-header { padding-top: 62px; }
   .sound-toggle { width: 40px; height: 40px; font-size: 1.05rem; top: 12px; right: 14px; }
   .theme-toggle { right: 60px; }
-  .lang-toggle { right: 106px; font-size: 0.8rem; }
+  .accent-toggle { right: 106px; }
+  .lang-toggle { right: 152px; font-size: 0.8rem; }
   /* Nút cài app: đưa xuống dưới hàng toggle để không chồng lên nhau */
   .install-btn { top: 56px; right: 14px; height: 34px; padding: 0 12px; font-size: 0.8rem; }
   .profile-chip { top: 12px; left: 12px; padding: 6px 11px 6px 7px; }
@@ -13339,3 +13341,30 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 @media (prefers-reduced-motion: reduce) {
   .bc-guess, .bc-guess.bc-solved { animation: none !important; }
 }
+
+/* ============ Bộ chọn màu nhấn (accent themes) ============ */
+body[data-accent="coral"] { --accent: #ff7a8a; --accent-2: #ff5d73; --grad-accent: linear-gradient(135deg, #ff7a8a, #ff5d73); }
+body[data-accent="purple"] { --accent: #c084fc; --accent-2: #a855f7; --grad-accent: linear-gradient(135deg, #c084fc, #7c3aed); }
+body[data-accent="emerald"] { --accent: #34d399; --accent-2: #6ee7b7; --grad-accent: linear-gradient(135deg, #34d399, #059669); }
+body[data-accent="sky"] { --accent: #38bdf8; --accent-2: #60a5fa; --grad-accent: linear-gradient(135deg, #38bdf8, #2563eb); }
+body[data-accent="amber"] { --accent: #ff9d5c; --accent-2: #ffbe7a; --grad-accent: linear-gradient(135deg, #ff9d5c, #f97316); }
+
+.accent-pop {
+  position: fixed; top: 70px; right: 16px; z-index: 200;
+  display: flex; gap: 10px; flex-wrap: wrap; max-width: 232px;
+  padding: 13px; border-radius: 14px;
+  background: var(--panel); border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: var(--glow);
+  animation: accentPopIn 0.16s ease;
+}
+@keyframes accentPopIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.accent-sw {
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer; padding: 0;
+  border: 2px solid rgba(255,255,255,0.22);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 2px 3px rgba(255,255,255,0.4);
+  transition: transform 0.1s;
+}
+.accent-sw:hover { transform: scale(1.14); }
+.accent-sw.active { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,0.4), 0 2px 6px rgba(0,0,0,0.4); }
+@media (max-width: 480px) { .accent-pop { top: 58px; right: 12px; } }
+@media (prefers-reduced-motion: reduce) { .accent-pop { animation: none; } }
