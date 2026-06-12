@@ -19,6 +19,45 @@
   const DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
   const COLORS = ["#ff5d73", "#4dd0e1"];
 
+  // Nhân vật chibi anime vẽ bằng SVG (P1 tóc cam-đỏ, P2 tóc xanh).
+  function chibiSVG(seat) {
+    if (seat === 0) {
+      return `<svg class="bx-chibi" viewBox="0 0 64 78" aria-hidden="true">
+        <ellipse cx="32" cy="72" rx="18" ry="6" fill="rgba(0,0,0,0.28)"/>
+        <path d="M15 76 Q13 50 32 50 Q51 50 49 76 Z" fill="#ff5d73"/>
+        <path d="M24 76 V60 M40 76 V60" stroke="#d4374f" stroke-width="2" stroke-linecap="round"/>
+        <path d="M26 51 Q32 57 38 51 L38 47 L26 47 Z" fill="#ffd9bd"/>
+        <circle cx="32" cy="28" r="20" fill="#ffe6cf"/>
+        <path d="M10 31 Q6 3 32 3 Q58 3 54 31 Q49 17 45 19 Q42 7 32 8 Q22 7 19 19 Q15 17 10 31 Z" fill="#ff8a3d"/>
+        <path d="M12 30 Q16 22 21 25 L16 33 Z" fill="#ff8a3d"/>
+        <path d="M52 30 Q48 22 43 25 L48 33 Z" fill="#ff8a3d"/>
+        <ellipse cx="24" cy="30" rx="4.3" ry="5.6" fill="#43302b"/>
+        <ellipse cx="40" cy="30" rx="4.3" ry="5.6" fill="#43302b"/>
+        <circle cx="25.6" cy="27.8" r="1.6" fill="#fff"/>
+        <circle cx="41.6" cy="27.8" r="1.6" fill="#fff"/>
+        <circle cx="17.5" cy="35" r="2.6" fill="#ff9aa6" opacity="0.7"/>
+        <circle cx="46.5" cy="35" r="2.6" fill="#ff9aa6" opacity="0.7"/>
+        <path d="M29 39 Q32 42 35 39" stroke="#b5715a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      </svg>`;
+    }
+    return `<svg class="bx-chibi" viewBox="0 0 64 78" aria-hidden="true">
+      <ellipse cx="32" cy="72" rx="18" ry="6" fill="rgba(0,0,0,0.28)"/>
+      <path d="M15 76 Q13 50 32 50 Q51 50 49 76 Z" fill="#4dd0e1"/>
+      <path d="M24 76 V60 M40 76 V60" stroke="#2aa6ba" stroke-width="2" stroke-linecap="round"/>
+      <path d="M26 51 Q32 57 38 51 L38 47 L26 47 Z" fill="#ffd9bd"/>
+      <circle cx="32" cy="28" r="20" fill="#ffe6cf"/>
+      <path d="M9 34 Q5 4 32 4 Q59 4 55 34 Q56 22 48 20 L48 38 Q44 22 38 20 Q35 12 32 12 Q29 12 26 20 Q20 22 16 38 L16 20 Q8 22 9 34 Z" fill="#5aa9ff"/>
+      <path d="M20 16 Q32 9 44 16 Q32 13 20 16 Z" fill="#7cc0ff"/>
+      <ellipse cx="24" cy="31" rx="4.3" ry="5.6" fill="#33384a"/>
+      <ellipse cx="40" cy="31" rx="4.3" ry="5.6" fill="#33384a"/>
+      <circle cx="25.6" cy="28.8" r="1.6" fill="#fff"/>
+      <circle cx="41.6" cy="28.8" r="1.6" fill="#fff"/>
+      <circle cx="17.5" cy="36" r="2.6" fill="#ff9aa6" opacity="0.65"/>
+      <circle cx="46.5" cy="36" r="2.6" fill="#ff9aa6" opacity="0.65"/>
+      <path d="M29 40 Q32 43 35 40" stroke="#b5715a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </svg>`;
+  }
+
   function create(ctx) {
     const online = ctx.isOnline;
     const mySeat = online ? ctx.mySeat : -1;
@@ -192,7 +231,7 @@
         const el = document.createElement("div");
         el.className = "bx-ent bx-p bx-p" + (s + 1);
         el.style.setProperty("--pc", COLORS[s]);
-        el.innerHTML = `<span class="bx-p-face">🧑</span>`;
+        el.innerHTML = `<span class="bx-p-face">${chibiSVG(s)}</span>`;
         entsEl.appendChild(el);
         playerEls[s] = el;
       }

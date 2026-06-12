@@ -13015,6 +13015,10 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 .bx-p1 .bx-p-face, .mz-p1 .mz-p-face { filter: drop-shadow(0 0 4px #ff5d73); }
 .bx-p2 .bx-p-face, .mz-p2 .mz-p-face { filter: drop-shadow(0 0 4px #4dd0e1); }
 .bx-p-face, .mz-p-face { position: relative; z-index: 2; transition: transform 0.12s; }
+.bx-p .bx-p-face { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.bx-chibi { width: 96%; height: 96%; overflow: visible; animation: bxIdle 2.2s ease-in-out infinite; transform-origin: 50% 90%; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4)); }
+.bx-p2 .bx-chibi { animation-delay: 0.5s; }
+@keyframes bxIdle { 0%,100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-7%) scaleY(1.03); } }
 .mz-p.mz-at-exit::before { animation: platePulse 0.8s ease-in-out infinite; }
 .bx-bump, .mz-bump { animation: coopBump 0.18s ease; }
 @keyframes coopBump { 0% { transform: translate(0,0); } 50% { transform: scale(0.9); } 100% { transform: translate(0,0); } }
