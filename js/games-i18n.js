@@ -568,6 +568,7 @@ var GAMES_EN_DATA = {
       "One player is the KEEPER: think of something (animal, object, person, place...), type it in (hidden from the opponent) and pick a hint category.",
       "The other player is the GUESSER: ask questions that can only be answered YES or NO to narrow it down.",
       "The keeper taps an answer: ✅ Yes, ❌ No, 🤔 Sort of, or 🚫 Skip (invalid question — doesn't use a turn).",
+      "Misclicked? After answering, the keeper gets a '✏️ Fix last answer' button to change the most recent answer (syncs in online play too).",
       "When confident, the guesser hits '💡 I know it!' and enters an answer; the keeper confirms right or wrong.",
       "Guess correctly within the question limit → the GUESSER wins. Run out of questions (or guess wrong) → the KEEPER wins.",
       "Online is best: each player on their own device, the secret word stays hidden until reveal. On one device, pass it back and forth as prompted.",

@@ -94,6 +94,21 @@
           render(); updateStatus();
           break;
         }
+        case "fix": {
+          // Người giữ bí mật sửa lại câu trả lời GẦN NHẤT nếu lỡ bấm sai.
+          if (!log.length) return;
+          const a = ["yes", "no", "maybe", "na"].includes(move.a) ? move.a : "maybe";
+          const last = log[log.length - 1];
+          const old = last.a;
+          if (old === a) return;
+          if (old !== "na" && a === "na") asked = Math.max(0, asked - 1);
+          else if (old === "na" && a !== "na") asked++;
+          last.a = a;
+          if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "fix", a });
+          ctx.sound("place");
+          render(); updateStatus();
+          break;
+        }
         case "guess": {
           if (over) return;
           pending = { guess: String(move.text || "").slice(0, 120) };
@@ -193,19 +208,26 @@
 
       // ASK: guesser gõ câu hỏi Có/Không, hoặc bấm "Tôi đoán ra rồi"
       if (phase === "ask") {
-        if (iAmGuesser()) {
-          const canFinalGuess = log.length > 0;
-          p.innerHTML =
-            `<div class="tq-ask">` +
-              `<div class="tq-hint">${ctx.t("Đặt câu hỏi CÓ/KHÔNG để thu hẹp dần. Khi tự tin, bấm \"Tôi đoán ra rồi!\".", "Ask YES/NO questions to narrow it down. When confident, hit \"I know it!\".")}</div>` +
-              `<div class="tq-askrow"><input class="tq-qin" id="tqQ" maxlength="120" placeholder="${ctx.t("Nó có sống được không? ...", "Is it alive? ...")}" autocomplete="off" />` +
-              `<button type="button" class="btn primary tq-send">${ctx.t("Hỏi", "Ask")}</button></div>` +
-              `<button type="button" class="btn tq-final${canFinalGuess ? "" : " disabled"}">${ctx.t("💡 Tôi đoán ra rồi!", "💡 I know it!")}</button>` +
-            `</div>`;
-          wireAsk();
-        } else {
-          p.innerHTML = `<div class="tq-wait">${ctx.t("Đối thủ đang nghĩ câu hỏi...", "Opponent is thinking of a question...")}</div>`;
+        // ONLINE — người GIỮ bí mật đang chờ: cho phép sửa lại câu trả lời vừa rồi
+        if (ctx.isOnline && ctx.mySeat === keeper) {
+          p.innerHTML = `<div class="tq-wait">${ctx.t("Đối thủ đang nghĩ câu hỏi...", "Opponent is thinking of a question...")}</div>` + fixMarkup();
+          wireFix();
+          return;
         }
+        // NGƯỜI ĐOÁN (online) hoặc CHUNG MÁY: ô đặt câu hỏi
+        const canFinalGuess = log.length > 0;
+        let html =
+          `<div class="tq-ask">` +
+            `<div class="tq-hint">${ctx.t("Đặt câu hỏi CÓ/KHÔNG để thu hẹp dần. Khi tự tin, bấm \"Tôi đoán ra rồi!\".", "Ask YES/NO questions to narrow it down. When confident, hit \"I know it!\".")}</div>` +
+            `<div class="tq-askrow"><input class="tq-qin" id="tqQ" maxlength="120" placeholder="${ctx.t("Nó có sống được không? ...", "Is it alive? ...")}" autocomplete="off" />` +
+            `<button type="button" class="btn primary tq-send">${ctx.t("Hỏi", "Ask")}</button></div>` +
+            `<button type="button" class="btn tq-final${canFinalGuess ? "" : " disabled"}">${ctx.t("💡 Tôi đoán ra rồi!", "💡 I know it!")}</button>` +
+          `</div>`;
+        // Chung máy: người giữ bí mật cũng sửa được câu trả lời vừa rồi
+        if (!ctx.isOnline) html += fixMarkup();
+        p.innerHTML = html;
+        wireAsk();
+        if (!ctx.isOnline) wireFix();
         return;
       }
 
@@ -273,6 +295,30 @@
         if (!w || category < 0) return;
         myWord = w; // lưu cục bộ ở máy keeper
         applyMove({ k: "setup", cat: category }, false);
+      });
+    }
+
+    function fixMarkup() {
+      if (!log.length || over) return "";
+      const last = log[log.length - 1];
+      return `<div class="tq-fix" id="tqFix">` +
+        `<button type="button" class="tq-fixtoggle">✏️ ${ctx.t("Sửa câu trả lời vừa rồi", "Fix last answer")} <span class="tq-fixcur">${ANS[last.a]}</span></button>` +
+        `<div class="tq-fixbtns" hidden>` +
+          `<button type="button" class="btn tq-fixans" data-a="yes">✅ ${ctx.t("Có", "Yes")}</button>` +
+          `<button type="button" class="btn tq-fixans" data-a="no">❌ ${ctx.t("Không", "No")}</button>` +
+          `<button type="button" class="btn tq-fixans" data-a="maybe">🤔 ${ctx.t("Tùy", "Sort of")}</button>` +
+          `<button type="button" class="btn tq-fixans" data-a="na">🚫 ${ctx.t("Không tính", "Skip")}</button>` +
+        `</div></div>`;
+    }
+
+    function wireFix() {
+      const box = els.panel.querySelector("#tqFix");
+      if (!box) return;
+      const toggle = box.querySelector(".tq-fixtoggle");
+      const btns = box.querySelector(".tq-fixbtns");
+      toggle.addEventListener("click", () => { btns.hidden = !btns.hidden; });
+      box.querySelectorAll(".tq-fixans").forEach((b) => {
+        b.addEventListener("click", () => applyMove({ k: "fix", a: b.dataset.a }, false));
       });
     }
 
@@ -352,6 +398,7 @@
       "Một người là NGƯỜI GIỮ BÍ MẬT: nghĩ ra một thứ (con vật, đồ vật, người, địa điểm...), gõ vào máy (đối thủ không thấy) và chọn chủ đề gợi ý.",
       "Người còn lại là NGƯỜI ĐOÁN: lần lượt đặt các câu hỏi mà chỉ trả lời được bằng CÓ / KHÔNG để thu hẹp dần.",
       "Người giữ bí mật bấm trả lời: ✅ Có, ❌ Không, 🤔 Tùy/Không rõ, hoặc 🚫 Không tính (câu hỏi không hợp lệ — không trừ lượt).",
+      "Lỡ bấm sai? Sau khi trả lời, người giữ bí mật có nút '✏️ Sửa câu trả lời vừa rồi' để đổi lại câu trả lời gần nhất (đồng bộ cả khi chơi online).",
       "Khi tự tin, người đoán bấm '💡 Tôi đoán ra rồi!' và nhập đáp án; người giữ bí mật xác nhận đúng/sai.",
       "Đoán đúng trong số câu cho phép → NGƯỜI ĐOÁN thắng. Dùng hết câu hỏi mà chưa đoán ra (hoặc đoán sai) → NGƯỜI GIỮ BÍ MẬT thắng.",
       "Chơi online là tuyệt nhất: mỗi người ngồi một máy, từ bí mật được giấu cho tới khi lật. Chơi chung máy thì chuyền máy qua lại theo gợi ý trên màn.",

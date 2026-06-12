@@ -12929,3 +12929,12 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 .spr-dot.dead { fill: rgba(255,255,255,0.18); stroke: rgba(255,255,255,0.25); cursor: default; }
 .spr-dot.sel { fill: #ffe27a; stroke: #f0b429; stroke-width: 1.1; filter: drop-shadow(0 0 4px #f0b429); }
 .spr-hit { fill: transparent; cursor: pointer; }
+
+/* 20 Câu Hỏi — nút sửa câu trả lời vừa rồi */
+.tq-fix { margin-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tq-fixtoggle { background: none; border: 1px dashed rgba(255,255,255,0.25); color: var(--muted); font-size: 0.82rem; padding: 6px 12px; border-radius: 999px; cursor: pointer; transition: color 0.15s, border-color 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+.tq-fixtoggle:hover { color: var(--text); border-color: rgba(255,255,255,0.5); }
+.tq-fixcur { font-size: 1rem; }
+.tq-fixbtns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.tq-fixbtns[hidden] { display: none; }
+.tq-fixbtns .btn { padding: 8px 12px; font-size: 0.86rem; }
