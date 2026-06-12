@@ -89,7 +89,7 @@
           stone.style.setProperty("--sc", STONE_COLORS[v]);
           stone.style.width = size + "px";
           stone.style.height = size + "px";
-          stone.style.transform = `rotate(${((i * 37) % 40) - 20}deg)`;
+          stone.style.setProperty("--rot", `${((i * 37) % 40) - 20}deg`);
           const cnt = n - i; // bốc từ viên này tới hết hàng
           const takeable = cnt <= limit;
           if (selRow === r && i >= n - selCount) stone.classList.add("taking");
