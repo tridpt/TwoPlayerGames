@@ -8090,7 +8090,7 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
   background-size: 16px 16px;
   border: 3px solid #0d3b20;
-  border-radius: 14px; box-shadow: var(--shadow);
+  border-radius: 14px; box-shadow: var(--shadow), inset 0 0 30px rgba(0,0,0,0.4);
   width: fit-content; min-width: min(640px, 92vw); max-width: 96vw;
   align-items: stretch;
   justify-content: center;
@@ -8107,19 +8107,20 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   --pip-cell: 9px;
   display: flex;
   align-items: center;
-  background: #f7f5ee;
-  border-radius: 7px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(0,0,0,0.15);
+  background: linear-gradient(160deg, #fffefb 0%, #f3efe2 55%, #ddd6c4 100%);
+  border-radius: 8px;
+  box-shadow: 0 3px 7px rgba(0,0,0,0.45), inset 0 2px 2px rgba(255,255,255,0.95), inset 0 -3px 5px rgba(120,108,84,0.4), inset 0 0 0 1px rgba(0,0,0,0.13);
   padding: 5px;
   gap: 3px;
   user-select: none;
+  transition: transform 0.1s, box-shadow 0.12s;
 }
 /* quân dọc: 2 mặt xếp trên-dưới, vạch ngăn ngang */
 .dom-tile.dom-v { flex-direction: column; }
-.dom-tile.dom-v .dom-divider { width: 78%; height: 2px; }
+.dom-tile.dom-v .dom-divider { width: 80%; height: 2px; box-shadow: 0 1px 0 rgba(255,255,255,0.7); }
 /* quân ngang: 2 mặt cạnh nhau, vạch ngăn dọc */
 .dom-tile.dom-h { flex-direction: row; }
-.dom-tile.dom-h .dom-divider { width: 2px; height: 78%; }
+.dom-tile.dom-h .dom-divider { width: 2px; height: 80%; box-shadow: 1px 0 0 rgba(255,255,255,0.7); }
 
 .dom-face {
   display: grid;
@@ -8129,12 +8130,12 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
 }
 .dom-pip-slot { display: flex; align-items: center; justify-content: center; }
 .dom-pip {
-  width: 6px; height: 6px;
+  width: 6.5px; height: 6.5px;
   border-radius: 50%;
-  background: #1a1a1a;
-  box-shadow: inset 0 -1px 1px rgba(255,255,255,0.4);
+  background: radial-gradient(circle at 36% 30%, #4a4a4a, #0a0a0a 72%);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.85), inset 0 -1px 1px rgba(255,255,255,0.45), 0 1px 0 rgba(255,255,255,0.55);
 }
-.dom-divider { background: rgba(0,0,0,0.55); border-radius: 2px; }
+.dom-divider { background: linear-gradient(90deg, rgba(0,0,0,0.42), rgba(0,0,0,0.22)); border-radius: 2px; }
 
 /* ---------- Submarine Hunt ---------- */
 .sh-root {
@@ -8475,8 +8476,8 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
     grid-template-columns: 1fr;
   }
 }
-.dom-tile.playable { cursor: pointer; outline: 3px solid var(--good); }
-.dom-tile.playable:hover { transform: translateY(-4px); transition: transform 0.1s; }
+.dom-tile.playable { cursor: pointer; outline: 3px solid var(--good); outline-offset: 1px; box-shadow: 0 3px 7px rgba(0,0,0,0.45), 0 0 14px rgba(46,160,67,0.45), inset 0 2px 2px rgba(255,255,255,0.95); }
+.dom-tile.playable:hover { transform: translateY(-5px) scale(1.04); transition: transform 0.1s; box-shadow: 0 9px 14px rgba(0,0,0,0.5), 0 0 18px rgba(46,160,67,0.6), inset 0 2px 2px rgba(255,255,255,0.95); }
 .dom-actions { display: flex; gap: 10px; }
 .dom-glow {
   animation: domGlow 1s ease-in-out infinite;
