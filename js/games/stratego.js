@@ -326,7 +326,6 @@
           const data = PIECES[p.rank];
           const seeIt = visibleToMe(p);
           cell.classList.add(p.owner === 0 ? "st-p1" : "st-p2");
-          if (p.moved) cell.classList.add("st-moved");
           if (seeIt) {
             const icon = document.createElement("span");
             icon.className = "st-icon";
@@ -415,12 +414,12 @@
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) {
-        ctx.setStatus(ctx.t("Đối thủ đang đi. Quân đã từng di chuyển sẽ có dấu xanh lá để bạn đọc dấu vết.",
-          "Opponent is moving. Pieces that have moved get a green mark so you can read their trail."));
+        ctx.setStatus(ctx.t("Đối thủ đang đi. Nước đi gần nhất được đánh dấu xanh lá (ô đi tới sáng, ô xuất phát viền nét đứt).",
+          "Opponent is moving. The last move is marked green (destination glows, origin is dashed)."));
         return;
       }
-      ctx.setStatus(ctx.t("Chọn quân của bạn rồi chọn ô hợp lệ. Bàn rộng hơn đội hình, quân đã di chuyển được đánh dấu xanh lá.",
-        "Pick your piece then a legal cell. The board is larger than the armies; moved pieces are marked green."));
+      ctx.setStatus(ctx.t("Chọn quân của bạn rồi chọn ô hợp lệ. Nước đi của lượt vừa rồi được đánh dấu xanh lá.",
+        "Pick your piece then a legal cell. The previous turn's move is marked green."));
     }
 
     if (ctx.isOnline) {
@@ -447,7 +446,7 @@
       "Khi đâm vào quân địch, cả hai quân lộ mặt. Cấp cao hơn thắng; cùng cấp thì cả hai bị loại.",
       "Luật đặc biệt: 💣 Bom đứng yên và hạ quân tấn công, trừ 🛠️ Công binh gỡ được bom. 🕵️ Điệp viên hạ 👑 Tướng nếu chủ động tấn công.",
       "🏳️ Cờ và 💣 Bom không di chuyển được. Bắt được Cờ đối thủ là thắng ngay.",
-      "Quân đã từng di chuyển được đánh dấu xanh lá. Dùng dấu này để suy luận quân nào không thể là Bom hoặc Cờ.",
+      "Nước đi của lượt vừa rồi được đánh dấu xanh lá (ô quân đi tới sáng lên, ô xuất phát có viền nét đứt) để bạn theo dõi đối thủ vừa đi đâu.",
     ],
     create,
   });
