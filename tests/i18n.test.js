@@ -36,7 +36,7 @@ test("i18n: setLang đổi ngôn ngữ và t() theo đó", () => {
   assert.strictEqual(I18n.t("playNow"), I18n.DICT.vi.playNow);
 });
 
-// ---------- games-i18n: phủ đủ 47 game ----------
+// ---------- games-i18n: phủ đủ toàn bộ game trong registry ----------
 test("games-i18n: mọi game trong registry đều có bản dịch EN", () => {
   const dir = path.join(__dirname, "..", "js", "games");
   const realIds = [];
