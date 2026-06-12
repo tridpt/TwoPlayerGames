@@ -8,7 +8,10 @@
 (function () {
   const LEVELS = [
     { name: "Mở lối cho nhau", nameEn: "Open the way", rows: ["########", "#1  P x#", "##### ##", "#2 p  y#", "########"] },
+    { name: "Gạt cần tiếp sức", nameEn: "Lever relay", rows: ["#########", "#1  p  x#", "### # ###", "#2  P  y#", "#########"] },
     { name: "Giữ cửa & gạt cần", nameEn: "Hold & switch", rows: ["##########", "#1 A   px#", "#### #####", "#a 2 P  y#", "##########"] },
+    { name: "Hai cần gạt", nameEn: "Two levers", rows: ["##########", "#1  P  q x#", "#### #####", "#p 2 Q  y#", "##########"] },
+    { name: "Hai cửa giữ", nameEn: "Two held doors", rows: ["##########", "#1 A  B x#", "## # # ###", "#a 2  b y#", "##########"] },
     { name: "Phối hợp kép", nameEn: "Double coordination", rows: ["###########", "#1  A  p  x#", "##### #####", "#a   2   q#", "##### #####", "#Q  b   y#", "###########"] },
   ];
   const DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };

@@ -13,48 +13,38 @@
 (function () {
   const LEVELS = [
     { name: "Khởi động", nameEn: "Warm-up", rows: ["#######", "#1 $ g#", "#######", "#g $ 2#", "#######"] },
+    { name: "Hai phía", nameEn: "Both sides", rows: ["########", "#1 $  g#", "#      #", "#g  $ 2#", "########"] },
+    { name: "Ba thùng", nameEn: "Three boxes", rows: ["########", "#1    2#", "# $$$  #", "# ggg  #", "#      #", "########"] },
+    { name: "Vòng vèo", nameEn: "Detour", rows: ["#########", "#1 $   g#", "### ### #", "#g   $ 2#", "#########"] },
+    { name: "Xếp hàng", nameEn: "Line them up", rows: ["#########", "#1     2#", "# $ $ $ #", "# g g g #", "#       #", "#########"] },
+    { name: "Căn phòng", nameEn: "The room", rows: ["#########", "#1 $   g#", "#  ###  #", "#  $ g  #", "#2      #", "#########"] },
     { name: "Mở cửa giúp nhau", nameEn: "Open the door", rows: ["#########", "#1 $ A g#", "#########", "#a   2  #", "#########"] },
     { name: "Giữ cửa, đẩy đôi", nameEn: "Hold & double push", rows: ["############", "#1 $  $ A gg#", "#          #", "#a    2    #", "############"] },
+    { name: "Hành lang dài", nameEn: "Long hall", rows: ["#############", "#1 $   $ A gg#", "#           #", "#a     2     #", "#############"] },
   ];
   const DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
   const COLORS = ["#ff5d73", "#4dd0e1"];
 
-  // Nhân vật chibi anime vẽ bằng SVG (P1 tóc cam-đỏ, P2 tóc xanh).
-  function chibiSVG(seat) {
-    if (seat === 0) {
-      return `<svg class="bx-chibi" viewBox="0 0 64 78" aria-hidden="true">
-        <ellipse cx="32" cy="72" rx="18" ry="6" fill="rgba(0,0,0,0.28)"/>
-        <path d="M15 76 Q13 50 32 50 Q51 50 49 76 Z" fill="#ff5d73"/>
-        <path d="M24 76 V60 M40 76 V60" stroke="#d4374f" stroke-width="2" stroke-linecap="round"/>
-        <path d="M26 51 Q32 57 38 51 L38 47 L26 47 Z" fill="#ffd9bd"/>
-        <circle cx="32" cy="28" r="20" fill="#ffe6cf"/>
-        <path d="M10 31 Q6 3 32 3 Q58 3 54 31 Q49 17 45 19 Q42 7 32 8 Q22 7 19 19 Q15 17 10 31 Z" fill="#ff8a3d"/>
-        <path d="M12 30 Q16 22 21 25 L16 33 Z" fill="#ff8a3d"/>
-        <path d="M52 30 Q48 22 43 25 L48 33 Z" fill="#ff8a3d"/>
-        <ellipse cx="24" cy="30" rx="4.3" ry="5.6" fill="#43302b"/>
-        <ellipse cx="40" cy="30" rx="4.3" ry="5.6" fill="#43302b"/>
-        <circle cx="25.6" cy="27.8" r="1.6" fill="#fff"/>
-        <circle cx="41.6" cy="27.8" r="1.6" fill="#fff"/>
-        <circle cx="17.5" cy="35" r="2.6" fill="#ff9aa6" opacity="0.7"/>
-        <circle cx="46.5" cy="35" r="2.6" fill="#ff9aa6" opacity="0.7"/>
-        <path d="M29 39 Q32 42 35 39" stroke="#b5715a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-      </svg>`;
-    }
-    return `<svg class="bx-chibi" viewBox="0 0 64 78" aria-hidden="true">
-      <ellipse cx="32" cy="72" rx="18" ry="6" fill="rgba(0,0,0,0.28)"/>
-      <path d="M15 76 Q13 50 32 50 Q51 50 49 76 Z" fill="#4dd0e1"/>
-      <path d="M24 76 V60 M40 76 V60" stroke="#2aa6ba" stroke-width="2" stroke-linecap="round"/>
-      <path d="M26 51 Q32 57 38 51 L38 47 L26 47 Z" fill="#ffd9bd"/>
-      <circle cx="32" cy="28" r="20" fill="#ffe6cf"/>
-      <path d="M9 34 Q5 4 32 4 Q59 4 55 34 Q56 22 48 20 L48 38 Q44 22 38 20 Q35 12 32 12 Q29 12 26 20 Q20 22 16 38 L16 20 Q8 22 9 34 Z" fill="#5aa9ff"/>
-      <path d="M20 16 Q32 9 44 16 Q32 13 20 16 Z" fill="#7cc0ff"/>
-      <ellipse cx="24" cy="31" rx="4.3" ry="5.6" fill="#33384a"/>
-      <ellipse cx="40" cy="31" rx="4.3" ry="5.6" fill="#33384a"/>
-      <circle cx="25.6" cy="28.8" r="1.6" fill="#fff"/>
-      <circle cx="41.6" cy="28.8" r="1.6" fill="#fff"/>
-      <circle cx="17.5" cy="36" r="2.6" fill="#ff9aa6" opacity="0.65"/>
-      <circle cx="46.5" cy="36" r="2.6" fill="#ff9aa6" opacity="0.65"/>
-      <path d="M29 40 Q32 43 35 40" stroke="#b5715a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  // Robot kho hàng vẽ bằng SVG (hợp bối cảnh đẩy thùng) — P1 đỏ, P2 xanh.
+  function robotSVG(seat) {
+    const c = seat === 0 ? "#ff5d73" : "#4dd0e1";
+    const hi = seat === 0 ? "#ff8193" : "#86e6f1";
+    const dk = seat === 0 ? "#c93651" : "#2b9aac";
+    return `<svg class="bx-bot" viewBox="0 0 64 80" aria-hidden="true">
+      <ellipse cx="32" cy="75" rx="18" ry="5" fill="rgba(0,0,0,0.3)"/>
+      <rect x="13" y="58" width="38" height="15" rx="7" fill="#2b3242"/>
+      <circle cx="22" cy="66" r="4.2" fill="#0e121b"/><circle cx="32" cy="66" r="4.2" fill="#0e121b"/><circle cx="42" cy="66" r="4.2" fill="#0e121b"/>
+      <circle cx="22" cy="66" r="1.6" fill="#566"/><circle cx="32" cy="66" r="1.6" fill="#566"/><circle cx="42" cy="66" r="1.6" fill="#566"/>
+      <rect x="7" y="40" width="8" height="17" rx="4" fill="${dk}"/>
+      <rect x="49" y="40" width="8" height="17" rx="4" fill="${dk}"/>
+      <rect x="13" y="24" width="38" height="36" rx="10" fill="${c}"/>
+      <rect x="13" y="24" width="38" height="16" rx="10" fill="${hi}"/>
+      <rect x="18" y="31" width="28" height="19" rx="6" fill="#0e141f"/>
+      <circle cx="26" cy="40" r="3.4" fill="#aef4ff"><animate attributeName="opacity" values="1;0.5;1" dur="2.4s" repeatCount="indefinite"/></circle>
+      <circle cx="38" cy="40" r="3.4" fill="#aef4ff"><animate attributeName="opacity" values="1;0.5;1" dur="2.4s" repeatCount="indefinite"/></circle>
+      <path d="M28 45 Q32 48 36 45" stroke="#aef4ff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <line x1="32" y1="24" x2="32" y2="15" stroke="${dk}" stroke-width="2"/>
+      <circle class="bx-led" cx="32" cy="13" r="3" fill="#ffe066"/>
     </svg>`;
   }
 
@@ -231,7 +221,7 @@
         const el = document.createElement("div");
         el.className = "bx-ent bx-p bx-p" + (s + 1);
         el.style.setProperty("--pc", COLORS[s]);
-        el.innerHTML = `<span class="bx-p-face">${chibiSVG(s)}</span>`;
+        el.innerHTML = `<span class="bx-p-face">${robotSVG(s)}</span>`;
         entsEl.appendChild(el);
         playerEls[s] = el;
       }
