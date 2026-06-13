@@ -156,6 +156,8 @@
   let online = null; // null = chơi chung máy; {roomSeat, seat, seed} = online
   let sessionToken = null; // token phiên để kết nối lại phòng
   let reconnecting = false;
+  let resuming = false;    // đang thử khôi phục ván online sau khi tải lại trang
+  const SESSION_KEY = "tpg_online_session"; // lưu phiên để rejoin khi lỡ refresh
   let vsAI = false;  // true = đang đấu với máy (local)
   let aiLevel = "normal"; // easy | normal | hard
   const AI_SEAT = 1; // máy luôn cầm người chơi 2
@@ -1107,6 +1109,52 @@
     target.innerHTML = `${gameIconHtml(game, "small")}<span>${escapeHtml(gameName(game))}</span>`;
   }
 
+  // ---- Lưu phiên online để khôi phục ván khi lỡ tải lại trang ----
+  // Chỉ lưu thông tin tối thiểu cần để rejoin (mã phòng, ghế, token). Trạng thái
+  // ván được server phát lại qua history khi rejoin thành công.
+  function saveSession() {
+    if (!online || !online.code || !sessionToken) return;
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        code: online.code,
+        seat: online.roomSeat,
+        token: sessionToken,
+        gameId: online.gameId || (selectedGame && selectedGame.id) || "",
+        ts: Date.now(),
+      }));
+    } catch (e) { /* ignore */ }
+  }
+  function clearSavedSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
+  }
+  // Tải lại trang giữa ván online: thử rejoin lại phòng bằng token đã lưu.
+  // Trả về true nếu đang thử khôi phục (để bỏ qua định tuyến URL mặc định).
+  function attemptResume() {
+    const s = readSavedSession();
+    if (!s) return false;
+    const game = getGameById(s.gameId);
+    if (!game) { clearSavedSession(); return false; }
+    resuming = true;
+    sessionToken = s.token;
+    selectedGame = game;
+    Net.connect().then(() => {
+      Net.send("rejoin", { code: s.code, seat: s.seat, token: s.token });
+    }).catch(() => { resuming = false; clearSavedSession(); });
+    return true;
+  }
+  function readSavedSession() {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || !s.code || typeof s.seat !== "number" || !s.token) return null;
+      // phiên chỉ còn ý nghĩa trong thời gian ân hạn của server (45s); nới rộng
+      // một chút để bù thời gian tải lại trang.
+      if (Date.now() - (s.ts || 0) > 60_000) { clearSavedSession(); return null; }
+      return s;
+    } catch (e) { return null; }
+  }
+
   function normalizeOnlineSession(m) {
     const roomSeat = typeof m.seat === "number" ? m.seat : 0;
     const firstSeat = typeof m.firstSeat === "number" ? m.firstSeat : 0;
@@ -1702,6 +1750,7 @@
     if (m.options) currentOptions = m.options; // dùng tùy chỉnh của chủ phòng
     setLobbyState(tt("oppJoinedStart").replace("{opp}", opponentName()), "live");
     startGame(m.seed, { autoHelp: true });
+    saveSession();
     const joinedText = online.roomSeat === 0
       ? tt("oppJoinedHost").replace("{opp}", opponentName())
       : tt("youJoinedStart");
@@ -1726,6 +1775,7 @@
     clearSessionLock();
     describeOnlineGameState("live");
     startGame(m.seed);
+    saveSession();
   });
 
   Net.on("restart_pending", applyRestartPending);
@@ -1762,11 +1812,20 @@
   Net.on("netfail", () => {
     if (online) {
       reconnecting = false;
+      clearSavedSession();
       stopOnlineSessionAndReturn(tt("netFail"));
     }
   });
 
   Net.on("rejoin_failed", (m) => {
+    clearSavedSession();
+    if (resuming) {
+      // đang khôi phục ván sau khi tải lại trang mà phiên đã hết hạn -> về menu lặng lẽ
+      resuming = false;
+      Net.disconnect();
+      online = null;
+      return;
+    }
     if (online) {
       reconnecting = false;
       stopOnlineSessionAndReturn(m.message || tt("sessionExpired"));
@@ -1775,6 +1834,7 @@
 
   Net.on("rejoined", (m) => {
     reconnecting = false;
+    resuming = false;
     const game = getGameById(m.gameId);
     if (game) selectedGame = game;
     online = normalizeOnlineSession(m);
@@ -1784,9 +1844,11 @@
     // phát lại lịch sử nước đi để dựng lại ván
     const hist = Array.isArray(m.history) ? m.history : [];
     hist.forEach((mv) => { if (instance && instance.applyMove) { try { instance.applyMove(mv, true); } catch (e) { /* ignore */ } } });
+    replayMoves = hist.slice();
     describeOnlineGameState("live");
     setGameRoomState(tt("reconnected"), "live");
     addChatMessage(tt("reconnectedChat"), "sys");
+    saveSession();
   });
 
   Net.on("opponent_disconnected", () => {
@@ -2039,7 +2101,9 @@
     leavePendingRoom();
     if (online) { Net.send("leave"); Net.disconnect(); online = null; }
     reconnecting = false;
+    resuming = false;
     sessionToken = null;
+    clearSavedSession();
     clearSessionLock();
     setGameRoomState("", "info");
     setLobbyState("", "info");
@@ -2725,7 +2789,7 @@
   });
 
   renderMenu();
-  handleRoute();
+  if (!attemptResume()) handleRoute();
   updateProfileChip();
   maybeStartTour();
   if (window.Sound && Sound.isMusicOn()) Sound.startMusic();
