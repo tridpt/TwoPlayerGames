@@ -171,6 +171,15 @@
         <h3 class="options-title" data-i18n="optionsTitle">⚙️ Tùy chỉnh ván chơi</h3>
         <div class="options-list" id="optionsList"></div>
       </div>
+      <div class="bestof-row">
+        <label class="option-label" for="bestOfSelect" data-i18n="bestOfLabel">🏆 Thể thức (chung máy / đấu máy)</label>
+        <select class="option-select bestof-select" id="bestOfSelect">
+          <option value="1" data-i18n="bestOfOff">Một ván</option>
+          <option value="3" data-i18n="bestOf3">Đấu 3 ván (thắng 2)</option>
+          <option value="5" data-i18n="bestOf5">Đấu 5 ván (thắng 3)</option>
+          <option value="7" data-i18n="bestOf7">Đấu 7 ván (thắng 4)</option>
+        </select>
+      </div>
       <div class="mode-cards">
         <div class="mode-card" id="modeLocal">
           <div class="mode-icon mode-icon-local" aria-hidden="true"></div>
@@ -270,6 +279,8 @@
           <span class="score-val" id="p2Score">0</span>
         </div>
       </div>
+
+      <div class="match-badge hidden" id="matchBadge"></div>
 
       <div class="online-badge hidden" id="onlineBadge"></div>
       <div class="room-state online-room-state hidden" id="gameRoomState"></div>

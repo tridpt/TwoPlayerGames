@@ -30,6 +30,7 @@
     modeLocal: $("modeLocal"),
     modeAI: $("modeAI"),
     aiLevel: $("aiLevel"),
+    bestOfSelect: $("bestOfSelect"),
     modeOnline: $("modeOnline"),
     modeBackBtn: $("modeBackBtn"),
     optionsPanel: $("optionsPanel"),
@@ -61,6 +62,7 @@
     status: $("status"),
     turnBanner: $("turnBanner"),
     onlineBadge: $("onlineBadge"),
+    matchBadge: $("matchBadge"),
     gameRoomState: $("gameRoomState"),
     p1Name: $("p1Name"),
     p2Name: $("p2Name"),
@@ -161,6 +163,12 @@
   let vsAI = false;  // true = đang đấu với máy (local)
   let aiLevel = "normal"; // easy | normal | hard
   const AI_SEAT = 1; // máy luôn cầm người chơi 2
+  // Best-of-N (chỉ chung máy / đấu máy): chơi nhiều ván, tính tổng số ván thắng.
+  let bestOf = 1;            // 1 = tắt; 3/5/7 = số ván tối đa của trận
+  let matchWins = [0, 0];    // số ván mỗi bên đã thắng trong trận
+  let matchGameNo = 0;       // ván thứ mấy trong trận (1-based)
+  let matchOver = false;     // trận đã kết thúc chưa
+  let matchInProgress = false; // đang giữa loạt đấu (còn ván tiếp theo)
   let currentOptions = {}; // giá trị tùy chỉnh ván chơi đang dùng
   let currentCategory = "all"; // thể loại đang xem ở menu
   let menuCategories = [];     // danh sách thể loại đã dựng
@@ -266,8 +274,11 @@
             recordOutcomeFlags(kind);
             if (selectedGame.id === dailyGameId()) markDailyDone();
           }
+          // Best-of-N (chỉ chung máy / đấu máy): cộng điểm trận, quyết định còn đấu tiếp không
+          let matchInfo = null;
+          if (bestOf > 1 && !online) matchInfo = recordMatchResult(kind);
           if (el.winOverlay.classList.contains("hidden")) {
-            showWinScreen(kind, text);
+            showWinScreen(kind, text, matchInfo);
           }
         }
       },
@@ -305,6 +316,36 @@
   function renderScores() {
     el.p1Score.textContent = scores[0];
     el.p2Score.textContent = scores[1];
+  }
+
+  // ---- Best-of-N (chung máy / đấu máy) ----
+  function matchTarget() { return Math.floor(bestOf / 2) + 1; } // 3->2, 5->3, 7->4
+  function playerLabel(idx) {
+    if (vsAI && !online) return idx === 0 ? tt("youName") : tt("aiName");
+    return idx === 0 ? el.p1Name.textContent : el.p2Name.textContent;
+  }
+  // Ghi kết quả một ván vào loạt đấu; trả về thông tin để hiển thị ở màn kết thúc.
+  function recordMatchResult(kind) {
+    if (kind !== "draw" && lastWinner >= 0) matchWins[lastWinner]++;
+    const need = matchTarget();
+    matchOver = matchWins[0] >= need || matchWins[1] >= need;
+    const champ = matchWins[0] >= need ? 0 : matchWins[1] >= need ? 1 : -1;
+    renderMatchBadge();
+    return { over: matchOver, champ, kind };
+  }
+  function renderMatchBadge() {
+    if (!el.matchBadge) return;
+    if (bestOf <= 1 || online) { el.matchBadge.classList.add("hidden"); return; }
+    el.matchBadge.classList.remove("hidden");
+    el.matchBadge.innerHTML = tt("matchProgress")
+      .replace("{game}", matchGameNo)
+      .replace("{p1}", matchWins[0])
+      .replace("{p2}", matchWins[1])
+      .replace("{need}", matchTarget());
+  }
+  function startNextMatchGame() {
+    matchGameNo++;
+    startGame(null);
   }
 
   // Máy suy nghĩ rồi đi (chặn thao tác người trong lúc chờ)
@@ -1544,9 +1585,22 @@
     return result;
   }
 
+  function readBestOf() {
+    const v = el.bestOfSelect ? parseInt(el.bestOfSelect.value, 10) : 1;
+    return [3, 5, 7].includes(v) ? v : 1;
+  }
+  function resetMatch() {
+    matchWins = [0, 0];
+    matchGameNo = 0;
+    matchOver = false;
+    matchInProgress = false;
+  }
+
   el.modeLocal.addEventListener("click", () => {
     if (selectedGame.localReady === false) return;
     vsAI = false;
+    bestOf = readBestOf();
+    resetMatch();
     startLocalGame(selectedGame, readOptions(selectedGame));
   });
 
@@ -1554,6 +1608,8 @@
     if (!selectedGame.supportsAI) return;
     vsAI = true;
     aiLevel = (el.aiLevel && el.aiLevel.value) || "normal";
+    bestOf = readBestOf();
+    resetMatch();
     online = null;
     selectedGame = selectedGame;
     currentOptions = readOptions(selectedGame);
@@ -1986,6 +2042,14 @@
     renderScores();
     setGameHeading(el.gameTitle, selectedGame);
 
+    // Best-of-N (chung máy / đấu máy): ván đầu của trận thì đánh số 1.
+    if (bestOf > 1 && !online) {
+      if (matchGameNo === 0) matchGameNo = 1;
+      renderMatchBadge();
+    } else if (el.matchBadge) {
+      el.matchBadge.classList.add("hidden");
+    }
+
     if (online) {
       el.onlineBadge.classList.remove("hidden");
       const orderText = online.seat === 0 ? tt("goFirst") : tt("goSecond");
@@ -2085,7 +2149,11 @@
     const m = h.match(/^play\/([a-z0-9_-]+)$/i);
     if (m) {
       const game = getGameById(m[1]);
-      if (game && game.localReady !== false) { startLocalGame(game, defaultOptions(game)); return; }
+      if (game && game.localReady !== false) {
+        bestOf = 1; resetMatch(); // vào trực tiếp qua URL: thể thức một ván
+        startLocalGame(game, defaultOptions(game));
+        return;
+      }
     }
     resetToMenu();
   }
@@ -2298,7 +2366,7 @@
 
   // ====================== Màn hình chúc mừng ======================
   let confettiRaf = null;
-  function showWinScreen(kind, rawText) {
+  function showWinScreen(kind, rawText, matchInfo) {
     // bỏ emoji đầu để lấy nội dung gọn
     const msg = rawText.replace(/^[🎉🤝💀]\s*/u, "").trim();
     el.winEmoji.textContent = "";
@@ -2311,6 +2379,28 @@
       el.winTitle.textContent = tt("winTitle");
     }
     el.winSub.textContent = msg;
+
+    // Best-of-N: giữa loạt đấu thì đổi nút "Chơi lại" thành "Ván tiếp theo";
+    // khi cả trận xong thì hiện nhà vô địch.
+    matchInProgress = !!(matchInfo && !matchInfo.over);
+    if (matchInfo) {
+      if (matchInfo.over) {
+        const champ = matchInfo.champ;
+        el.winTitle.textContent = tt("matchWon")
+          .replace("{name}", champ >= 0 ? playerLabel(champ) : "")
+          .replace("{p1}", matchWins[0]).replace("{p2}", matchWins[1]);
+        el.winAgain.textContent = tt("restart");
+      } else {
+        el.winSub.textContent = tt("matchGameWin")
+          .replace("{game}", matchGameNo)
+          .replace("{name}", kind === "draw" ? tt("drawTitle").replace(/[!.]$/, "") : (lastWinner >= 0 ? playerLabel(lastWinner) : ""))
+          .replace("{p1}", matchWins[0]).replace("{p2}", matchWins[1]);
+        el.winAgain.textContent = tt("matchNext");
+      }
+    } else {
+      el.winAgain.textContent = online ? tt("againLocal") : tt("restart");
+    }
+
     lastWinSummary = (el.winTitle.textContent || "").replace(/!$/, "");
     if (el.winReplay) el.winReplay.classList.toggle("hidden", !(replayMeta && replayMoves.length));
     el.winOverlay.classList.remove("hidden");
@@ -2467,6 +2557,14 @@
       return;
     }
     hideWinScreen();
+    // Giữa loạt đấu best-of: sang ván tiếp theo (giữ tỉ số trận, đổi người đi trước).
+    if (matchInProgress) {
+      matchInProgress = false;
+      startNextMatchGame();
+      return;
+    }
+    // Trận đã xong (hoặc chơi đơn): chơi lại từ đầu trận.
+    if (bestOf > 1) resetMatch();
     restartGame();
   });
   el.winMenu.addEventListener("click", () => { hideWinScreen(); goHome(); });
