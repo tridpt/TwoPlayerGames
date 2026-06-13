@@ -2823,7 +2823,7 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   align-items: center;
   justify-content: center;
   padding: 20px;
-  z-index: 120;
+  z-index: 320;
 }
 .replay-modal {
   background: var(--panel);
