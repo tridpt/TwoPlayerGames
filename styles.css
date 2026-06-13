@@ -110,6 +110,7 @@ body {
   position: absolute;
   top: 20px;
   left: 20px;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -331,7 +332,8 @@ body.theme-light .cat-empty { background: rgba(20,30,80,0.03); border-color: rgb
 body.theme-light .status { color: #b06a00; }
 
 .logo {
-  margin: 0;
+  margin: 0 auto;
+  width: fit-content;
   font-family: var(--font-head);
   font-weight: 800;
   font-size: 2.6rem;
