@@ -4,6 +4,17 @@
 
 Bộ trò chơi đối kháng cho 2 người chơi, hỗ trợ **chơi chung một máy** (hot-seat) hoặc **chơi online qua mạng** bằng mã phòng. Viết bằng HTML/CSS/JavaScript thuần ở phía client, server Node.js nhỏ gọn lo phần phục vụ web và relay nước đi qua WebSocket.
 
+## 📸 Ảnh chụp màn hình
+
+<!-- Thả ảnh vào docs/screenshots/ rồi bỏ comment các dòng dưới (đổi tên file cho khớp). -->
+<!--
+| Menu chọn game | Đang chơi |
+|:---:|:---:|
+| ![Menu](docs/screenshots/menu.png) | ![Gameplay](docs/screenshots/gameplay.png) |
+-->
+
+> 💡 Chưa có ảnh? Xem hướng dẫn chụp tại [`docs/screenshots/README.md`](docs/screenshots/README.md).
+
 ## ✨ Tính năng
 
 - **68 trò chơi** trong cùng một ứng dụng
