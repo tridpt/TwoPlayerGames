@@ -13488,8 +13488,9 @@ body[data-preset="mono"] {
 
 
 /* ============ Best-of-N (thể thức nhiều ván, chung máy / đấu máy) ============ */
-.bestof-row { display: flex; flex-direction: column; gap: 6px; max-width: 360px; margin: 0 auto 14px; }
-.bestof-row .option-label { font-size: 0.88rem; color: var(--muted); }
+.bestof-row { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 360px; margin: 0 auto 14px; }
+.bestof-row .option-label { font-size: 0.88rem; color: var(--muted); text-align: center; }
+.bestof-row .bestof-select { width: 100%; text-align: center; text-align-last: center; }
 .match-badge {
   margin: 6px auto 0; padding: 6px 16px; border-radius: 999px;
   font-size: 0.9rem; font-weight: 800; color: var(--text);
