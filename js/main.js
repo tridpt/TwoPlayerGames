@@ -2155,23 +2155,25 @@
     });
   }
 
-  // ---- Bộ chọn màu nhấn (accent) ----
-  const ACCENT_KEY = "tpg_accent";
-  const ACCENTS = [
-    { id: "gold", color: "#ffd166", vi: "Vàng", en: "Gold" },
-    { id: "coral", color: "#ff7a8a", vi: "San hô", en: "Coral" },
-    { id: "purple", color: "#c084fc", vi: "Tím", en: "Purple" },
-    { id: "emerald", color: "#34d399", vi: "Lục", en: "Emerald" },
-    { id: "sky", color: "#38bdf8", vi: "Lam", en: "Sky" },
-    { id: "amber", color: "#ff9d5c", vi: "Cam", en: "Amber" },
+  // ---- Bộ chọn theme (preset đổi cả nền + màu nhấn) ----
+  const ACCENT_KEY = "tpg_accent"; // giữ key cũ để tương thích lựa chọn đã lưu
+  // mỗi preset có swatch (gradient hiển thị trên nút) gồm màu nền + màu nhấn
+  const PRESETS = [
+    { id: "default", vi: "Tím than (mặc định)", en: "Midnight (default)", sw: "linear-gradient(135deg, #20254a 45%, #ffd166 45%)" },
+    { id: "ocean", vi: "Đại dương", en: "Ocean", sw: "linear-gradient(135deg, #123047 45%, #38e0d0 45%)" },
+    { id: "sunset", vi: "Hoàng hôn", en: "Sunset", sw: "linear-gradient(135deg, #3a1d3d 45%, #ff8a5c 45%)" },
+    { id: "forest", vi: "Rừng xanh", en: "Forest", sw: "linear-gradient(135deg, #15301f 45%, #7ee08a 45%)" },
+    { id: "rose", vi: "Hồng đào", en: "Rose", sw: "linear-gradient(135deg, #3a1c2c 45%, #ff7aa8 45%)" },
+    { id: "mono", vi: "Xám đêm", en: "Charcoal", sw: "linear-gradient(135deg, #23262e 45%, #c8cdd8 45%)" },
   ];
-  let currentAccent = "gold";
-  try { currentAccent = localStorage.getItem(ACCENT_KEY) || "gold"; } catch (e) { /* ignore */ }
-  function applyAccent(id) {
-    if (id && id !== "gold") document.body.dataset.accent = id;
-    else delete document.body.dataset.accent;
+  let currentPreset = "default";
+  try { currentPreset = localStorage.getItem(ACCENT_KEY) || "default"; } catch (e) { /* ignore */ }
+  if (!PRESETS.some((p) => p.id === currentPreset)) currentPreset = "default"; // bỏ giá trị accent cũ không còn dùng
+  function applyPreset(id) {
+    if (id && id !== "default") document.body.dataset.preset = id;
+    else delete document.body.dataset.preset;
   }
-  applyAccent(currentAccent);
+  applyPreset(currentPreset);
   const accentBtn = $("accentToggle");
   let accentPop = null;
   function onDocClickAccent(e) { if (accentPop && !accentPop.contains(e.target) && e.target !== accentBtn) closeAccentPop(); }
@@ -2185,18 +2187,18 @@
     accentPop = document.createElement("div");
     accentPop.className = "accent-pop";
     const lang = (window.I18n && I18n.getLang) ? I18n.getLang() : "vi";
-    ACCENTS.forEach((a) => {
+    PRESETS.forEach((p) => {
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "accent-sw" + (a.id === currentAccent ? " active" : "");
-      b.style.background = a.color;
-      const label = lang === "en" ? a.en : a.vi;
+      b.className = "accent-sw" + (p.id === currentPreset ? " active" : "");
+      b.style.background = p.sw;
+      const label = lang === "en" ? p.en : p.vi;
       b.title = label; b.setAttribute("aria-label", label);
       b.addEventListener("click", (ev) => {
         ev.stopPropagation();
-        currentAccent = a.id;
-        try { localStorage.setItem(ACCENT_KEY, a.id); } catch (e) { /* ignore */ }
-        applyAccent(a.id);
+        currentPreset = p.id;
+        try { localStorage.setItem(ACCENT_KEY, p.id); } catch (e) { /* ignore */ }
+        applyPreset(p.id);
         closeAccentPop();
         if (window.Sound) Sound.play("select");
       });

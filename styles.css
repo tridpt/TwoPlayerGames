@@ -13359,12 +13359,41 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
   .bc-guess, .bc-guess.bc-solved { animation: none !important; }
 }
 
-/* ============ Bộ chọn màu nhấn (accent themes) ============ */
-body[data-accent="coral"] { --accent: #ff7a8a; --accent-2: #ff5d73; --grad-accent: linear-gradient(135deg, #ff7a8a, #ff5d73); }
-body[data-accent="purple"] { --accent: #c084fc; --accent-2: #a855f7; --grad-accent: linear-gradient(135deg, #c084fc, #7c3aed); }
-body[data-accent="emerald"] { --accent: #34d399; --accent-2: #6ee7b7; --grad-accent: linear-gradient(135deg, #34d399, #059669); }
-body[data-accent="sky"] { --accent: #38bdf8; --accent-2: #60a5fa; --grad-accent: linear-gradient(135deg, #38bdf8, #2563eb); }
-body[data-accent="amber"] { --accent: #ff9d5c; --accent-2: #ffbe7a; --grad-accent: linear-gradient(135deg, #ff9d5c, #f97316); }
+/* ============ Preset theme (đổi cả nền + màu nhấn) ============ */
+/* Mỗi preset chỉnh các biến nền + accent; nền body dùng các biến này nên đổi theo. */
+body[data-preset] {
+  background:
+    radial-gradient(900px 500px at 12% -8%, var(--tint-a, rgba(255,93,115,0.16)), transparent 60%),
+    radial-gradient(900px 500px at 88% -4%, var(--tint-b, rgba(77,208,225,0.16)), transparent 60%),
+    radial-gradient(1200px 700px at 50% 110%, var(--tint-c, rgba(122,140,255,0.12)), transparent 55%),
+    linear-gradient(180deg, var(--bg-top, #11142e) 0%, var(--bg) 55%);
+  background-attachment: fixed;
+}
+body[data-preset="ocean"] {
+  --bg: #07182a; --bg-top: #0b2233; --bg-soft: #143049; --panel: #122c44; --panel-2: #1a3b58;
+  --accent: #38e0d0; --accent-2: #6ef0e0; --grad-accent: linear-gradient(135deg, #38e0d0, #1f9ec0);
+  --tint-a: rgba(56,224,208,0.16); --tint-b: rgba(56,160,224,0.16); --tint-c: rgba(40,120,200,0.12);
+}
+body[data-preset="sunset"] {
+  --bg: #1f0f24; --bg-top: #2c1530; --bg-soft: #3a1d3d; --panel: #341a3a; --panel-2: #46264e;
+  --accent: #ff8a5c; --accent-2: #ffb27a; --grad-accent: linear-gradient(135deg, #ff8a5c, #ff5d73);
+  --tint-a: rgba(255,138,92,0.18); --tint-b: rgba(255,93,115,0.16); --tint-c: rgba(200,80,140,0.13);
+}
+body[data-preset="forest"] {
+  --bg: #0b1f14; --bg-top: #102a1b; --bg-soft: #163a24; --panel: #14331f; --panel-2: #1d4530;
+  --accent: #7ee08a; --accent-2: #a7f3b8; --grad-accent: linear-gradient(135deg, #7ee08a, #34a85a);
+  --tint-a: rgba(126,224,138,0.15); --tint-b: rgba(77,208,160,0.15); --tint-c: rgba(60,160,90,0.12);
+}
+body[data-preset="rose"] {
+  --bg: #210f18; --bg-top: #2e1422; --bg-soft: #3a1c2c; --panel: #371a28; --panel-2: #4a2436;
+  --accent: #ff7aa8; --accent-2: #ffa7c4; --grad-accent: linear-gradient(135deg, #ff7aa8, #e0457f);
+  --tint-a: rgba(255,122,168,0.18); --tint-b: rgba(200,90,200,0.14); --tint-c: rgba(160,60,120,0.13);
+}
+body[data-preset="mono"] {
+  --bg: #16181d; --bg-top: #1d2026; --bg-soft: #262a32; --panel: #23262e; --panel-2: #30343e;
+  --accent: #c8cdd8; --accent-2: #e6e9f0; --grad-accent: linear-gradient(135deg, #c8cdd8, #9aa0b0);
+  --tint-a: rgba(200,205,216,0.10); --tint-b: rgba(150,160,180,0.10); --tint-c: rgba(120,130,150,0.08);
+}
 
 .accent-pop {
   position: fixed; top: 70px; right: 16px; z-index: 200;
