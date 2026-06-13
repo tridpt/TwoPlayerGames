@@ -49,6 +49,7 @@ const CASES = [
   { gameId: "reactionduel", move: { k: "rt", ms: 240 }, check: (m) => m.move.k === "rt" && m.move.ms === 240 },
   { gameId: "boxpush", move: { k: "move", seat: 0, dir: "right" }, check: (m) => m.move.k === "move" && m.move.dir === "right" },
   { gameId: "mazecoop", move: { k: "move", seat: 1, dir: "up" }, check: (m) => m.move.k === "move" && m.move.seat === 1 },
+  { gameId: "defusebomb", move: { k: "cut", m: 0, idx: 2 }, check: (m) => m.move.k === "cut" && m.move.m === 0 && m.move.idx === 2 },
 ];
 
 (async () => {

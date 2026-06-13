@@ -48,7 +48,7 @@ test("games-i18n: mọi game trong registry đều có bản dịch EN", () => {
   }
   const missing = realIds.filter((id) => !(id in GAMES_EN));
   assert.deepStrictEqual(missing, [], "game chưa dịch EN: " + missing.join(", "));
-  assert.strictEqual(realIds.length, 67, "phải có đúng 67 game");
+  assert.strictEqual(realIds.length, 68, "phải có đúng 68 game");
 });
 
 test("games-i18n: mỗi mục có name và description không rỗng", () => {

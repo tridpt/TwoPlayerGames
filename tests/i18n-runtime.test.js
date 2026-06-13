@@ -85,7 +85,7 @@ function collect(el, out) {
 const ids = fs.readdirSync(path.join(__dirname, "..", "js", "games"))
   .filter((f) => f.endsWith(".js")).map((f) => f.replace(/\.js$/, ""));
 
-assert.strictEqual(ids.length, 67, "phải có đúng 67 game");
+assert.strictEqual(ids.length, 68, "phải có đúng 68 game");
 
 for (const id of ids) {
   test(`i18n runtime EN sạch tiếng Việt: ${id}`, () => {

@@ -729,6 +729,18 @@ var GAMES_EN_DATA = {
       "Both must stand on their exits to clear the maze. Solve all mazes and the team wins. Stuck? Press '↺ Restart'.",
     ],
   },
+  defusebomb: {
+    name: "Defuse Duo",
+    description: "Co-op: one sees the bomb and cuts wires, the other holds the manual. Talk it out to defuse in time. Best online.",
+    howTo: [
+      "An asymmetric CO-OP game, best played ONLINE (one device each). One player is the 🔧 DEFUSER, the other the 📖 EXPERT.",
+      "The 🔧 Defuser SEES the bomb: the serial number and wire modules — but has no cutting rules. They are the one who cuts.",
+      "The 📖 Expert has the MANUAL (cutting rules by wire count) but CANNOT see the bomb. The two must TALK to each other.",
+      "Flow: the defuser reads how many wires the current module has, the colors in order, and whether the serial is odd or even. The expert finds the matching section and says which wire to cut.",
+      "Defuse all 3 modules before time runs out to WIN. Three wrong cuts (3 ✕) or running out of time means the bomb EXPLODES — the team loses.",
+      "Local play works too: the screen shows both the bomb and the manual so two people can solve together (a bit less thrilling than online).",
+    ],
+  },
 };
 
 if (typeof window !== "undefined") window.GAMES_EN = GAMES_EN_DATA;
