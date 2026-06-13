@@ -123,7 +123,7 @@
       const card = cards[i];
       if (card.matched || i === firstIdx) return;
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(i);
+      if (!fromRemote) ctx.sendMove(i);
 
       showFace(i, true);
       ctx.sound("flip");

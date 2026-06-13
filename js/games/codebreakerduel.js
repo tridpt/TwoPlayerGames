@@ -66,7 +66,7 @@
       if (over || move.k !== "guess") return;
       const guess = move.code.map(Number);
       if (guess.length !== LEN || guess.some((c) => c < 0 || c >= PALETTE)) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "guess", code: guess });
+      if (!fromRemote) ctx.sendMove({ k: "guess", code: guess });
 
       const guesser = turn;
       const target = secret[1 - guesser];

@@ -46,7 +46,7 @@
       else seat = picks[0] == null ? 0 : 1;
       if (picks[seat] != null) return;
       picks[seat] = c;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "pick", c });
+      if (!fromRemote) ctx.sendMove({ k: "pick", c });
       ctx.sound("place");
       if (bothPicked()) { reveal(); return; }
       render(); updateStatus();

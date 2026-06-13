@@ -422,7 +422,7 @@
 
     function handleRecover(move, fromRemote) {
       const side = Number(move.side);
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "recover", side });
+      if (!fromRemote) ctx.sendMove({ t: "recover", side });
       actor(side).stun = 0;
       addLog(ctx.t(`P${side + 1} thoát khỏi cơ chế khóa và đứng dậy.`, `P${side + 1} broke free from the snare and stood up.`));
       ctx.sound("select");

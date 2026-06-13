@@ -71,11 +71,11 @@
         if (phase !== "roll") return;
         const die = Number(move.die);
         if (!(die >= 1 && die <= 6)) return;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "roll", die });
+        if (!fromRemote) ctx.sendMove({ k: "roll", die });
         doRoll(die);
       } else if (move.k === "buy") {
         if (phase !== "decide") return;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "buy", yes: !!move.yes });
+        if (!fromRemote) ctx.sendMove({ k: "buy", yes: !!move.yes });
         doBuy(!!move.yes);
       }
     }

@@ -127,7 +127,7 @@
 
       if (move.kind === "play") {
         const t = move.tile;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (!fromRemote) ctx.sendMove(move);
         placeTile(t, move.end);
         removeFromHand(turn, t);
         passes = 0;
@@ -138,7 +138,7 @@
       }
 
       if (move.kind === "draw") {
-        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (!fromRemote) ctx.sendMove(move);
         if (boneyard.length) {
           const t = boneyard.shift();
           hands[turn].push(t);
@@ -152,7 +152,7 @@
       }
 
       if (move.kind === "pass") {
-        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (!fromRemote) ctx.sendMove(move);
         passes++;
         ctx.sound("error");
         if (passes >= 2) return finishBlocked();

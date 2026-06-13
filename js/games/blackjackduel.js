@@ -101,7 +101,7 @@
       if (roundOver || matchOver) return;
       if (stood[turn] || busted[turn]) return;
       if (move.k === "hit") {
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "hit" });
+        if (!fromRemote) ctx.sendMove({ k: "hit" });
         hands[turn].push(deck.pop());
         ctx.sound("place");
         const total = handTotal(hands[turn]);
@@ -111,7 +111,7 @@
         if (busted[turn] || stood[turn]) advanceTurn();
         else updateStatus();
       } else if (move.k === "stand") {
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "stand" });
+        if (!fromRemote) ctx.sendMove({ k: "stand" });
         stood[turn] = true;
         ctx.sound("place");
         advanceTurn();

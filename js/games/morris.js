@@ -119,7 +119,7 @@
       selected = null;
       hover = null;
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      if (!fromRemote) ctx.sendMove(move);
       ctx.sound(move.type === "move" ? "select" : "place");
 
       if (hasLine(turn)) {

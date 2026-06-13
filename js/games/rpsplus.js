@@ -57,7 +57,7 @@
       if (picks[seat] != null) return;
       if (c === "X" && !canCannon(seat)) return;        // chưa đủ sạc, không cho
       picks[seat] = c;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "pick", c });
+      if (!fromRemote) ctx.sendMove({ k: "pick", c });
       ctx.sound("place");
       if (bothPicked()) { reveal(); return; }
       render(); updateStatus();

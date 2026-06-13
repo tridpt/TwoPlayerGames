@@ -252,7 +252,7 @@
 
       pl.aim = { dx, dy };
       pl.mana -= SPELLS[spellId].cost;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ dx, dy, spell: spellId });
+      if (!fromRemote) ctx.sendMove({ dx, dy, spell: spellId });
       startProjectile(pl, spellId);
     }
 

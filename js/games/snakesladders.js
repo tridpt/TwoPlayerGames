@@ -147,7 +147,7 @@
       if (over) return;
       const die = Number(move.die);
       if (!(die >= 1 && die <= 6)) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ die });
+      if (!fromRemote) ctx.sendMove({ die });
 
       const mover = turn;
       dieEl.textContent = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][die - 1];

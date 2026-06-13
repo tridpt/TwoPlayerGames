@@ -68,7 +68,7 @@
           keeper = Number(move.keeper) === 1 ? 1 : 0;
           guesser = 1 - keeper;
           phase = "setup";
-          if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "role", keeper });
+          if (!fromRemote) ctx.sendMove({ k: "role", keeper });
           ctx.sound("place");
           render(); updateStatus();
           break;
@@ -76,7 +76,7 @@
         case "setup": {
           category = Number(move.cat);
           phase = "ask";
-          if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "setup", cat: category });
+          if (!fromRemote) ctx.sendMove({ k: "setup", cat: category });
           ctx.sound("place");
           render(); updateStatus();
           break;
@@ -85,7 +85,7 @@
           if (phase !== "ask") return;
           pending = { text: String(move.text || "").slice(0, 120) };
           phase = "answer";
-          if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "ask", text: pending.text });
+          if (!fromRemote) ctx.sendMove({ k: "ask", text: pending.text });
           ctx.sound("place");
           render(); updateStatus();
           break;
@@ -97,7 +97,7 @@
           log.push({ q: pending.text, a });
           pending = null;
           phase = "ask";
-          if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "answer", a });
+          if (!fromRemote) ctx.sendMove({ k: "answer", a });
           ctx.sound("place");
           if (asked >= LIMIT) {
             // hết lượt hỏi -> người giữ bí mật thắng (người đoán phải đoán ngay nếu muốn)
@@ -116,7 +116,7 @@
           if (old !== "na" && a === "na") asked = Math.max(0, asked - 1);
           else if (old === "na" && a !== "na") asked++;
           last.a = a;
-          if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "fix", a });
+          if (!fromRemote) ctx.sendMove({ k: "fix", a });
           ctx.sound("place");
           render(); updateStatus();
           break;
@@ -125,7 +125,7 @@
           if (over) return;
           pending = { guess: String(move.text || "").slice(0, 120) };
           phase = "verdict";
-          if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "guess", text: pending.guess });
+          if (!fromRemote) ctx.sendMove({ k: "guess", text: pending.guess });
           ctx.sound("notify");
           render(); updateStatus();
           break;
@@ -133,7 +133,7 @@
         case "verdict": {
           const correct = !!move.correct;
           revealWord = String(move.word || "").slice(0, 80);
-          if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "verdict", correct, word: revealWord });
+          if (!fromRemote) ctx.sendMove({ k: "verdict", correct, word: revealWord });
           finish(correct ? guesser : keeper, correct);
           break;
         }

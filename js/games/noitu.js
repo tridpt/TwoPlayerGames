@@ -172,7 +172,7 @@
       if (over) return;
 
       if (move.kind === "timeout") {
-        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (!fromRemote) ctx.sendMove(move);
         stopTimer();
         return endGame(1 - turn, ctx.t(`Người chơi ${turn + 1} hết giờ / chịu thua`, `Player ${turn + 1} ran out of time / gave up`));
       }
@@ -185,7 +185,7 @@
         if (used.has(key)) return;
         if (!validVietnamese(key)) return;
 
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ kind: "word", phrase: key });
+        if (!fromRemote) ctx.sendMove({ kind: "word", phrase: key });
 
         const entry = { phrase: key, by: turn, prevLast: lastWord };
         entry.el = addChainWord(key, turn);

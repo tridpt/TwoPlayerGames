@@ -278,7 +278,7 @@
         activeMap = idx;
         selectedSlot = null;
         addLog(ctx.t(`Đổi sang map ${currentMap().name}.`, `Switched to map ${mapName(currentMap())}.`));
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "map", map: currentMap().id });
+        if (!fromRemote) ctx.sendMove({ t: "map", map: currentMap().id });
         render();
         return;
       }
@@ -294,7 +294,7 @@
         selectedSlot = { lane, slot };
         addLog(ctx.t(`Xây ${def.name} ở đường ${lane + 1}.`, `Built ${towerName(type)} on path ${lane + 1}.`));
         ctx.sound("place");
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "build", lane, slot, type });
+        if (!fromRemote) ctx.sendMove({ t: "build", lane, slot, type });
         render();
         return;
       }
@@ -311,7 +311,7 @@
         selectedSlot = { lane, slot };
         addLog(ctx.t(`Nâng ${TOWERS[tower.type].name} đường ${lane + 1} lên cấp ${tower.level}.`, `Upgraded ${towerName(tower.type)} on path ${lane + 1} to level ${tower.level}.`));
         ctx.sound("capture");
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "upgrade", lane, slot });
+        if (!fromRemote) ctx.sendMove({ t: "upgrade", lane, slot });
         render();
         return;
       }
@@ -326,14 +326,14 @@
         towers[lane][slot] = null;
         selectedSlot = null;
         addLog(ctx.t(`Bán tháp lấy lại ${refund} vàng.`, `Sold tower for ${refund} gold back.`));
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "sell", lane, slot });
+        if (!fromRemote) ctx.sendMove({ t: "sell", lane, slot });
         render();
         return;
       }
 
       if (move.t === "start") {
         if (phase !== "prep" || over) return;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "start" });
+        if (!fromRemote) ctx.sendMove({ t: "start" });
         startWave();
       }
 
@@ -341,7 +341,7 @@
         if (phase !== "wave" || over || strikeCd > 0 || coins < STRIKE_COST) return;
         coins -= STRIKE_COST;
         strikeCd = STRIKE_CD;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "airstrike" });
+        if (!fromRemote) ctx.sendMove({ t: "airstrike" });
         let hitCount = 0;
         monsters.forEach((m) => { m.hp -= STRIKE_DMG; m.slowUntil = Math.max(m.slowUntil, tick + 18); hitCount++; });
         addLog(ctx.t(`💥 Không kích! Giáng ${STRIKE_DMG} sát thương lên ${hitCount} quái.`, `💥 Airstrike! Dealt ${STRIKE_DMG} damage to ${hitCount} monsters.`));

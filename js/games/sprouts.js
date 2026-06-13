@@ -119,7 +119,7 @@
       applyConnect(S, a, b, turn);
       sel = -1;
       ctx.sound("place");
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ a, b });
+      if (!fromRemote) ctx.sendMove({ a, b });
 
       // sau nước đi này, đối thủ còn nước không?
       const next = 1 - turn;

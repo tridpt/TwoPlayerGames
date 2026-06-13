@@ -239,7 +239,7 @@
       const s = getSuspect(move.id);
       const to = Number(move.spot);
       if (!s || s.owner !== turn || !legalMove(s, to)) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "move", id: s.id, spot: to });
+      if (!fromRemote) ctx.sendMove({ t: "move", id: s.id, spot: to });
       const from = s.spot;
       s.spot = to;
       s.route.push(to);
@@ -256,7 +256,7 @@
     function doTrap(move, fromRemote) {
       const where = Number(move.spot);
       if (!SPOTS.some((s) => s.id === where)) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "trap", spot: where });
+      if (!fromRemote) ctx.sendMove({ t: "trap", spot: where });
       const mine = traps.filter((t) => t.owner === turn);
       if (mine.length >= MAX_TRAPS) {
         const oldest = mine[0];
@@ -272,7 +272,7 @@
       const target = getSuspect(move.target);
       if (!target || target.owner === turn || !target.alive) return;
       if (!spendFocus(turn, actionCost("follow"))) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "follow", target: target.id });
+      if (!fromRemote) ctx.sendMove({ t: "follow", target: target.id });
       addWatcher(turn, target.id);
       addLog(ctx.t(`P${turn + 1} cho người bám theo ${target.name} trong 3 nhịp di chuyển.`, `P${turn + 1} had someone tail ${target.name} for 3 moves.`));
       ctx.sound("select");
@@ -378,7 +378,7 @@
       const s = getSuspect(move.id);
       if (!s || s.owner !== turn || !s.alive) return;
       if (!spendFocus(turn, actionCost("decoy"))) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "decoy", id: s.id });
+      if (!fromRemote) ctx.sendMove({ t: "decoy", id: s.id });
       s.decoy = Math.max(s.decoy, 2);
       addLog(ctx.t(`P${turn + 1} dựng mồi nhử quanh ${s.name}, quan sát lên người này sẽ bị nhiễu.`, `P${turn + 1} set decoys around ${s.name}; observing them will be scrambled.`));
       ctx.sound("select");
@@ -389,7 +389,7 @@
       const s = getSuspect(move.id);
       if (!s || s.owner !== turn || !s.alive) return;
       if (!spendFocus(turn, actionCost("disguise"))) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "disguise", id: s.id });
+      if (!fromRemote) ctx.sendMove({ t: "disguise", id: s.id });
       s.disguise = Math.max(s.disguise, 2);
       s.revealed = false;
       addLog(ctx.t(`P${turn + 1} cho ${s.name} thay vỏ bọc, hồ sơ và quan sát tạm thời kém chính xác.`, `P${turn + 1} had ${s.name} change cover; dossier and observation are temporarily less accurate.`));

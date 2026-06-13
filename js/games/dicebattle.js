@@ -193,7 +193,7 @@
       else if (move.t === "attack") ok = doAttack(move);
       else if (move.t === "focus") ok = doFocus(move);
       if (!ok) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      if (!fromRemote) ctx.sendMove(move);
       render();
       flushFloats();
       updateStatus();

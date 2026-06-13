@@ -307,7 +307,12 @@
       incScore(idx) { scores[idx]++; lastWinner = idx; renderScores(); },
       decScore(idx) { scores[idx] = Math.max(0, scores[idx] - 1); renderScores(); },
       getScore(idx) { return scores[idx]; },
-      sendMove(move) { if (online && !sessionLocked) { replayMoves.push(move); Net.send("move", { move }); } },
+      sendMove(move) {
+        // Luôn ghi nước vào replay (kể cả chung máy / đấu máy) để xem lại ván;
+        // chỉ relay qua mạng khi đang chơi online.
+        replayMoves.push(move);
+        if (online && !sessionLocked) Net.send("move", { move });
+      },
       sound(name) { window.Sound && Sound.play(name); },
       t(vi, en) { return (window.I18n && I18n.getLang() === "en" && en != null) ? en : vi; },
     };
@@ -2037,8 +2042,8 @@
     resultRecorded = false;
     lastWinner = -1;
     replayMoves = [];
-    replaySeed = seed;
-    replayMeta = online ? { gameId: selectedGame.id, firstSeat: online.firstSeat, round: online.round, options: currentOptions } : null;
+    replaySeed = seed || 1;
+    replayMeta = { gameId: selectedGame.id, firstSeat: online ? online.firstSeat : 0, round: online ? online.round : 1, options: currentOptions };
     renderScores();
     setGameHeading(el.gameTitle, selectedGame);
 

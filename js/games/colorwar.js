@@ -83,7 +83,7 @@
       if (over || move.k !== "color") return;
       const ci = Number(move.ci);
       if (ci < 0 || ci >= NC || !legalColor(ci)) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "color", ci });
+      if (!fromRemote) ctx.sendMove({ k: "color", ci });
 
       const me = turn;
       // đổi toàn vùng của mình sang màu mới

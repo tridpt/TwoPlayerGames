@@ -241,7 +241,7 @@
       else if (move.t === "sabotage") ok = doSabotage(move.kind);
       else if (move.t === "shop") { ok = doShop(move.item); endsTurn = false; }
       if (!ok) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      if (!fromRemote) ctx.sendMove(move);
       if (!over && endsTurn) endTurn();
       render();
       updateStatus();

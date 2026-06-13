@@ -207,7 +207,7 @@
       const att = board[from];
       if (!att || att.owner !== turn || !legalTargets(from).includes(to)) return;
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ from, to });
+      if (!fromRemote) ctx.sendMove({ from, to });
 
       const def = board[to];
       lastMove = { from, to, landed: -1, battle: !!def };

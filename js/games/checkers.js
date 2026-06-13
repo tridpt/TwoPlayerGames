@@ -149,7 +149,7 @@
         promoted = true;
       }
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ from: [fr, fc], to: [tr, tc], cap });
+      if (!fromRemote) ctx.sendMove({ from: [fr, fc], to: [tr, tc], cap });
       ctx.sound(cap ? "capture" : "place");
 
       if (cap && !promoted && pieceMoves(tr, tc, true).length) {

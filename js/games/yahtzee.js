@@ -176,7 +176,7 @@
 
       if (move.kind === "roll") {
         if (rollsLeft <= 0) return;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (!fromRemote) ctx.sendMove(move);
         rollsLeft--;
         rolledThisTurn = true;
         ctx.sound("shot");
@@ -187,7 +187,7 @@
       if (move.kind === "score") {
         const cat = CATS.find((c) => c.id === move.cat);
         if (!cat || scores[turn][move.cat] !== undefined) return;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (!fromRemote) ctx.sendMove(move);
         // Luật Yahtzee Bonus: nếu đang có 5 viên giống nhau VÀ ô ⭐ đã ghi 50 điểm,
         // mỗi Yahtzee thêm được +100 điểm thưởng.
         const isYahtzee = ofAKind(dice, 5);

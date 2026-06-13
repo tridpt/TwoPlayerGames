@@ -43,7 +43,7 @@
       else seat = picks[0] == null ? 0 : 1;
       if (picks[seat] != null) return; // đã chọn rồi
       picks[seat] = n;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "pick", n });
+      if (!fromRemote) ctx.sendMove({ k: "pick", n });
       ctx.sound("place");
 
       if (bothPicked()) { reveal(); return; }

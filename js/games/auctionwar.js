@@ -212,7 +212,7 @@
 
         const amount = clampInt(move.amount, 0, cash[seat]);
         bids[seat] = amount;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ kind: "bid", amount });
+        if (!fromRemote) ctx.sendMove({ kind: "bid", amount });
 
         if (!ctx.isOnline) {
           const order = bidOrder();
@@ -229,7 +229,7 @@
 
       if (move.kind === "next") {
         if (phase !== "result") return;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ kind: "next" });
+        if (!fromRemote) ctx.sendMove({ kind: "next" });
         nextRound();
       }
     }

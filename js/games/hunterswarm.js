@@ -190,7 +190,7 @@
       ctx.sound(didCapture ? "capture" : "place");
 
       if (piece.side === 1) swarmTurns++;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ from, to });
+      if (!fromRemote) ctx.sendMove({ from, to });
 
       if (checkEnd(piece.side)) { render(); return; }
 

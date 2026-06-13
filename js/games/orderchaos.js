@@ -155,7 +155,7 @@
       el.classList.add(sym === "X" ? "x" : "o", "last");
       ctx.sound("place");
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ r, c, sym });
+      if (!fromRemote) ctx.sendMove({ r, c, sym });
 
       const line = fiveLine(r, c, sym);
       if (line) {

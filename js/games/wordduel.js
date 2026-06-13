@@ -172,7 +172,7 @@
         if (idx.some((i) => i < 0 || i >= pool.length) || new Set(idx).size !== idx.length) return;
         const syls = idx.map((i) => pool[i].s);
         if (!isWord(syls)) return;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "word", idx });
+        if (!fromRemote) ctx.sendMove({ k: "word", idx });
 
         const sc = scoreFor(idx, turn);
         score[turn] += sc.pts;
@@ -191,7 +191,7 @@
         endTurn();
       } else if (move.k === "refresh") {
         if (refreshes[turn] <= 0) return;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "refresh" });
+        if (!fromRemote) ctx.sendMove({ k: "refresh" });
         refreshes[turn]--;
         streak[turn] = 0;       // đổi kho làm mất combo
         pool = [];
@@ -206,7 +206,7 @@
         startClock();           // đổi kho không mất lượt, chỉ làm mới đồng hồ
         render(); updateStatus();
       } else if (move.k === "pass") {
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "pass" });
+        if (!fromRemote) ctx.sendMove({ k: "pass" });
         passes++;
         streak[turn] = 0;
         selected = [];

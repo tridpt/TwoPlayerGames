@@ -158,7 +158,7 @@
       }
       lastIdx = i;
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      if (!fromRemote) ctx.sendMove(move);
 
       const p0 = hasRoute(0);
       const p1 = hasRoute(1);

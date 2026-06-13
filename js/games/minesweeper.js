@@ -121,7 +121,7 @@
       const idx = move.idx;
       if (over || revealed[idx]) return;
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ idx });
+      if (!fromRemote) ctx.sendMove({ idx });
 
       if (isMine[idx]) {
         // cắm cờ trúng mìn: ghi điểm, giữ lượt

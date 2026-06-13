@@ -273,7 +273,7 @@
         pawns[turn].r = move.r; pawns[turn].c = move.c;
         lastCell = [move.r, move.c]; lastWall = null;
         ctx.sound("place");
-        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (!fromRemote) ctx.sendMove(move);
         if (pawns[turn].r === pawns[turn].goalRow) return endGame(turn);
       } else {
         if (!wallLegal(move.o, move.r, move.c) || wallsLeft[turn] <= 0) return;
@@ -281,7 +281,7 @@
         wallsLeft[turn]--;
         lastWall = { o: move.o, r: move.r, c: move.c }; lastCell = null;
         ctx.sound("capture");
-        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (!fromRemote) ctx.sendMove(move);
       }
 
       turn = 1 - turn;

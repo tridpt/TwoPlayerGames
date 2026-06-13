@@ -317,7 +317,7 @@
         if (!fromRemote && inventory[turn][mode] <= 0) mode = "normal";
         else inventory[turn][mode] = Math.max(0, inventory[turn][mode] - 1);
       }
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ angle: pl.angle, power: pl.power, mode, cx: cue ? cue.x : 0, cy: cue ? cue.y : 0 });
+      if (!fromRemote) ctx.sendMove({ angle: pl.angle, power: pl.power, mode, cx: cue ? cue.x : 0, cy: cue ? cue.y : 0 });
       startShot(mode);
     }
 

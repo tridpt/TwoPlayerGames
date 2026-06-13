@@ -171,7 +171,7 @@
       locked[side] = true;
       energy[side] = planEnergyLeft(side, clean);
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ t: "plan", side, plan: clean });
+      if (!fromRemote) ctx.sendMove({ t: "plan", side, plan: clean });
 
       if (!ctx.isOnline && side === activePlanner && !locked[1 - side]) {
         activePlanner = 1 - side;

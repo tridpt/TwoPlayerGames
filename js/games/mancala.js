@@ -123,7 +123,7 @@
       if (busy) { if (fromRemote) remoteQueue.push(i); return; }
       if (!ownsPit(turn, i) || pits[i] === 0) return;
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(i);
+      if (!fromRemote) ctx.sendMove(i);
 
       busy = true;
       const mover = turn;

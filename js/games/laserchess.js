@@ -114,7 +114,7 @@
       }
       selected = -1;
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      if (!fromRemote) ctx.sendMove(move);
 
       const shot = fireLaser(turn);
       lastBeam = shot.path;

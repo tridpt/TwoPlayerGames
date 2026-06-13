@@ -145,7 +145,7 @@
       lastFlips = flips;
       ctx.sound(flips.length >= 3 ? "capture" : "place");
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ r, c });
+      if (!fromRemote) ctx.sendMove({ r, c });
 
       render();
       nextTurn();

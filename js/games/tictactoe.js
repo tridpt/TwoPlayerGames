@@ -168,7 +168,7 @@
       selected = null;
       ctx.sound("place");
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      if (!fromRemote) ctx.sendMove(move);
 
       // chuyển sang giai đoạn di chuyển khi cả hai đã đặt đủ 3 quân
       if (MOVE_MODE && phase === "place" && placed[0] >= 3 && placed[1] >= 3) {

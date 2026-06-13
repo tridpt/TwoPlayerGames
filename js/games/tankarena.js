@@ -236,7 +236,7 @@
       else if (move.t === "end") ok = doEnd(fromRemote);
 
       if (!ok) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      if (!fromRemote) ctx.sendMove(move);
       render();
       flushFx();
       updateStatus();

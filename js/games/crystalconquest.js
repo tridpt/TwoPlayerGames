@@ -167,7 +167,7 @@
       else if (move.t === "heal") ok = doHeal();
       else if (move.t === "channel") ok = doChannel();
       if (!ok) return;
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      if (!fromRemote) ctx.sendMove(move);
       render();
       flushFloats();
       updateStatus();

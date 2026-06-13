@@ -82,7 +82,7 @@
       if (over) return;
 
       if (move.kind === "roll") {
-        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (!fromRemote) ctx.sendMove(move);
         lastDie = move.die;
         // hoạt ảnh kiểu Yahtzee: rung lắc + đổi mặt ngẫu nhiên rồi dừng
         rolling = true;
@@ -107,7 +107,7 @@
       }
 
       if (move.kind === "hold") {
-        if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+        if (!fromRemote) ctx.sendMove(move);
         totals[turn] += temp;
         tEls[turn].textContent = totals[turn];
         ctx.sound("capture");

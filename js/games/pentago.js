@@ -114,7 +114,7 @@
         render();
       }
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+      if (!fromRemote) ctx.sendMove(move);
       ctx.sound("rotate");
 
       animateRotate(move.quad, move.dir, () => {

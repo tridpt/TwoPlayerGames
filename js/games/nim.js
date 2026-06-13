@@ -131,7 +131,7 @@
 
       rows[row] -= count;
       ctx.sound("capture");
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ row, count });
+      if (!fromRemote) ctx.sendMove({ row, count });
 
       selRow = null;
       selCount = 0;

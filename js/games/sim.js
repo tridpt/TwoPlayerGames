@@ -64,7 +64,7 @@
       owner[e] = p;
       lastEdge = e;
       ctx.sound("place");
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ e });
+      if (!fromRemote) ctx.sendMove({ e });
 
       const tri = triangleOf(p);
       if (tri) {

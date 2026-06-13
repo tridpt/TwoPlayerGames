@@ -86,7 +86,7 @@
       if (move.k === "bid") {
         const nb = { qty: Number(move.qty), face: Number(move.face), by: turn };
         if (!bidHigher(nb, bid)) return;
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "bid", qty: nb.qty, face: nb.face });
+        if (!fromRemote) ctx.sendMove({ k: "bid", qty: nb.qty, face: nb.face });
         bid = nb;
         ctx.sound("place");
         turn = nextSeat(turn);
@@ -95,7 +95,7 @@
         updateStatus();
       } else if (move.k === "challenge") {
         if (!bid) return; // không thể nghi ngờ khi chưa ai tố
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ k: "challenge" });
+        if (!fromRemote) ctx.sendMove({ k: "challenge" });
         doReveal();
       }
     }

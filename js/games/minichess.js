@@ -133,7 +133,7 @@
       lastMove = { from, to };
       sel = -1; legalSel = [];
       ctx.sound(captured ? "capture" : "place");
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ from, to });
+      if (!fromRemote) ctx.sendMove({ from, to });
 
       const opp = 1 - turn;
       const oppMoves = legalMoves(board, opp);

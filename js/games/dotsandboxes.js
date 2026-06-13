@@ -106,7 +106,7 @@
       lastEl = el;
       ctx.sound("place");
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(m);
+      if (!fromRemote) ctx.sendMove(m);
 
       const gained = claimBoxes(m, turn);
       moveStack.push({ m, turnBefore: turn, boxes: gained.boxes, el });

@@ -93,7 +93,7 @@
         blocked[at] = true;
         lastBlock = at;
         ctx.sound("capture");
-        if (!fromRemote && ctx.isOnline) ctx.sendMove({ block: at });
+        if (!fromRemote) ctx.sendMove({ block: at });
         phase = "move";
         endTurn(turn);
         return;
@@ -109,7 +109,7 @@
       pos[player] = to;
       lastMove = to;
       ctx.sound("place");
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ to });
+      if (!fromRemote) ctx.sendMove({ to });
 
       if (MODE === "vacate") {
         blocked[old] = true;

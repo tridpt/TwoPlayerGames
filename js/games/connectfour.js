@@ -95,7 +95,7 @@
 
       ctx.sound("drop");
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove(c);
+      if (!fromRemote) ctx.sendMove(c);
 
       const line = winningLine(r, c, p);
       if (line) {

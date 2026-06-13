@@ -138,8 +138,8 @@ function applyMove(move, fromRemote) {
   // 1. validate move (luôn luôn, kể cả nước từ remote)
   if (over || !isLegal(move)) return;
 
-  // 2. chỉ relay khi nước đi do CHÍNH MÁY NÀY tạo ra (không phải nhận từ remote)
-  if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+  // 2. ghi nước đi (để xem lại ván); ctx.sendMove tự lo việc relay khi online
+  if (!fromRemote) ctx.sendMove(move);
 
   // 3. áp dụng vào trạng thái + render
   applyToState(move);
@@ -273,7 +273,7 @@ và xác minh đối thủ nhận đúng payload — bảo chứng relay không 
        // render vào ctx.boardEl, đọc ctx.options, dùng ctx.rng cho ngẫu nhiên
        function applyMove(move, fromRemote) {
          if (!isLegal(move)) return;
-         if (!fromRemote && ctx.isOnline) ctx.sendMove(move);
+         if (!fromRemote) ctx.sendMove(move); // ghi để xem lại + relay nếu online
          // ... áp dụng + render + ctx.setStatus / ctx.incScore
        }
        return { applyMove /*, aiMove, undo, destroy */ };

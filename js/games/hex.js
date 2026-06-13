@@ -64,7 +64,7 @@
       lastMove = [r, c];
       ctx.sound("place");
 
-      if (!fromRemote && ctx.isOnline) ctx.sendMove({ r, c });
+      if (!fromRemote) ctx.sendMove({ r, c });
 
       const path = checkWin(p);
       if (path) {
