@@ -3096,6 +3096,7 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
 .mnc-board {
   display: flex;
   align-items: stretch;
+  max-width: 100%;
   gap: 14px;
   background:
     repeating-linear-gradient(91deg, rgba(0,0,0,0.05) 0 7px, rgba(255,255,255,0.028) 7px 14px),
@@ -13301,6 +13302,22 @@ body.theme-light .activity-chart { background: linear-gradient(160deg, #ffffff, 
 
 @media (prefers-reduced-motion: reduce) {
   .mnc-pit.playable, .nim-stone.taking { animation: none !important; }
+}
+/* Mancala gọn trên màn nhỏ (board px cứng dễ tràn ngang) */
+@media (max-width: 560px) {
+  .mnc-board { gap: 9px; padding: 12px; border-radius: 20px; }
+  .mnc-row { gap: 8px; }
+  .mnc-mid { gap: 8px; }
+  .mnc-store { width: 56px; min-height: 120px; border-radius: 24px; }
+  .mnc-pit { width: 50px; height: 50px; }
+  .mnc-pit-num { font-size: 0.78rem; }
+}
+@media (max-width: 400px) {
+  .mnc-board { gap: 6px; padding: 8px; }
+  .mnc-row { gap: 5px; }
+  .mnc-store { width: 44px; min-height: 100px; }
+  .mnc-pit { width: 40px; height: 40px; }
+  .mnc-stone { width: 10px; height: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
