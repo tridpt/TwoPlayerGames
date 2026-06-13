@@ -161,11 +161,17 @@ TwoPlayerGames/
         └── treasure.js
 ```
 
+## 📚 Tài liệu kỹ thuật
+
+Muốn hiểu sâu kiến trúc bên trong (luồng dữ liệu, giao thức online, cách game tự đăng ký,
+đồng bộ tất định, kiểm thử)? Xem [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 ## ➕ Thêm game mới
 
 Tạo một file trong `js/games/`, gọi `window.GameRegistry.register({...})` với một
 hàm `create(ctx)` trả về `{ applyMove }`, rồi thêm một thẻ `<script>` vào `index.html`.
-Không cần sửa code cũ.
+Không cần sửa code cũ. (Xem hướng dẫn đầy đủ + checklist tất định trong
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#10-công-thức-thêm-một-game-mới).)
 
 ## 📡 Giao thức online (tóm tắt)
 
