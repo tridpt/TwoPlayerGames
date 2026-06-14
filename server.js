@@ -4,6 +4,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { WebSocketServer } = require("ws");
 
 const PORT = process.env.PORT || 8777;
@@ -11,6 +12,23 @@ const ROOT = path.resolve(__dirname);
 const MAX_MESSAGE_BYTES = 12_000;
 const MAX_OPTIONS_BYTES = 2_500;
 const MAX_MOVE_BYTES = 4_000;
+
+// ---------- Giới hạn chống lạm dụng / DoS ----------
+const MAX_CONNECTIONS = Number(process.env.MAX_CONNECTIONS) || 500;     // tổng kết nối đồng thời
+const MAX_CONNECTIONS_PER_IP = Number(process.env.MAX_CONNECTIONS_PER_IP) || 20; // mỗi IP
+const MAX_ROOMS = Number(process.env.MAX_ROOMS) || 2000;               // tổng số phòng tồn tại
+
+// Allowlist origin cho WebSocket (chống Cross-Site WebSocket Hijacking).
+// Khai báo qua biến môi trường ALLOWED_ORIGINS="https://a.com,https://b.com".
+// Mặc định luôn cho phép cùng host (origin trùng Host header) và localhost.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+// Đếm số kết nối đang mở theo IP để chặn một IP mở quá nhiều kết nối.
+const ipConnections = new Map(); // ip -> count
+let totalConnections = 0;
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -48,13 +66,34 @@ const server = http.createServer((req, res) => {
       return res.end("404 Not Found");
     }
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
+    res.writeHead(200, {
+      "Content-Type": MIME[ext] || "application/octet-stream",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "SAMEORIGIN",
+      "Referrer-Policy": "no-referrer",
+    });
     res.end(data);
   });
 });
 
 // ---------- WebSocket: phòng chơi online ----------
-const wss = new WebSocketServer({ server });
+// Cho phép origin nếu: không có Origin (client không phải trình duyệt, ví dụ test),
+// trùng host của request, là localhost, hoặc nằm trong ALLOWED_ORIGINS.
+function isAllowedOrigin(origin, host) {
+  if (!origin) return true; // ws client thuần (test, CLI) không gửi Origin
+  let parsed;
+  try { parsed = new URL(origin); } catch { return false; }
+  const originHost = parsed.host;
+  if (host && originHost === host) return true; // cùng host -> an toàn
+  if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") return true;
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
+const wss = new WebSocketServer({
+  server,
+  maxPayload: MAX_MESSAGE_BYTES, // chặn frame lớn ngay ở tầng ws, tránh buffer vào RAM
+  verifyClient: ({ origin, req }) => isAllowedOrigin(origin, req.headers.host),
+});
 
 /** rooms: code -> { players: [ws, ws], names: [string, string], gameId, seed, firstSeat, restartVotes } */
 const rooms = new Map();
@@ -62,13 +101,13 @@ const rooms = new Map();
 function makeCode() {
   let code;
   do {
-    code = Math.floor(1000 + Math.random() * 9000).toString(); // 4 chữ số
+    code = (1000 + crypto.randomInt(9000)).toString(); // 4 chữ số, RNG bảo mật
   } while (rooms.has(code));
   return code;
 }
 
 function makeToken() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return crypto.randomBytes(24).toString("base64url"); // token reconnect khó đoán
 }
 
 const RECONNECT_GRACE_MS = 45_000;
@@ -179,7 +218,24 @@ function handleDisconnect(ws) {
   ws.roomCode = null; ws.seat = null;
 }
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
+  // Giới hạn tổng kết nối + theo IP để chống DoS / lách rate-limit bằng nhiều socket.
+  const ip = (req.socket && req.socket.remoteAddress) || "unknown";
+  if (totalConnections >= MAX_CONNECTIONS) {
+    send(ws, "error", { message: "Máy chủ đang quá tải. Thử lại sau." });
+    ws.close(1013, "server busy");
+    return;
+  }
+  const ipCount = ipConnections.get(ip) || 0;
+  if (ipCount >= MAX_CONNECTIONS_PER_IP) {
+    send(ws, "error", { message: "Quá nhiều kết nối từ thiết bị của bạn." });
+    ws.close(1008, "too many connections");
+    return;
+  }
+  ipConnections.set(ip, ipCount + 1);
+  totalConnections++;
+  ws.ip = ip;
+
   ws.roomCode = null;
   ws.seat = null;
   ws.isAlive = true;
@@ -200,6 +256,7 @@ wss.on("connection", (ws) => {
       case "create": {
         if (!rateLimit(ws, "lobby", 18, 60_000)) return send(ws, "error", { message: "Bạn thao tác tạo/vào phòng quá nhanh. Hãy thử lại sau." });
         if (!isValidGameId(msg.gameId)) return send(ws, "error", { message: "Game không hợp lệ." });
+        if (rooms.size >= MAX_ROOMS) return send(ws, "error", { message: "Máy chủ đã đạt giới hạn số phòng. Thử lại sau." });
         const options = cleanOptions(msg.options);
         if (options === null) return send(ws, "error", { message: "Tùy chỉnh ván quá lớn." });
         leaveRoom(ws);
@@ -336,7 +393,14 @@ wss.on("connection", (ws) => {
     }
   });
 
-  ws.on("close", () => handleDisconnect(ws));
+  ws.on("close", () => {
+    handleDisconnect(ws);
+    // Giải phóng bộ đếm kết nối theo IP + tổng.
+    const n = (ipConnections.get(ws.ip) || 1) - 1;
+    if (n <= 0) ipConnections.delete(ws.ip);
+    else ipConnections.set(ws.ip, n);
+    totalConnections = Math.max(0, totalConnections - 1);
+  });
 });
 
 const heartbeatInterval = setInterval(() => {

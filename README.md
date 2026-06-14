@@ -193,6 +193,23 @@ có hạt giống chung) nên hai máy luôn đồng bộ trạng thái.
 Server không có xác thực — ai có mã phòng đều vào được. Chỉ nên chạy cục bộ hoặc
 trong mạng tin cậy, đừng mở công khai ra Internet lâu dài mà chưa thêm lớp bảo vệ.
 
+### 🔒 Lớp bảo vệ sẵn có & biến môi trường
+
+Server đã có sẵn một số lớp chống lạm dụng cơ bản, điều chỉnh qua biến môi trường:
+
+| Biến | Mặc định | Ý nghĩa |
+|------|----------|---------|
+| `ALLOWED_ORIGINS` | *(rỗng)* | Danh sách origin được phép kết nối WebSocket, ngăn cách bằng dấu phẩy (vd `https://a.com,https://b.com`). Cùng host và localhost luôn được phép. Chống Cross-Site WebSocket Hijacking. |
+| `MAX_CONNECTIONS` | `500` | Tổng số kết nối WebSocket đồng thời. |
+| `MAX_CONNECTIONS_PER_IP` | `20` | Số kết nối tối đa từ một IP (chống lách rate-limit bằng nhiều socket). |
+| `MAX_ROOMS` | `2000` | Tổng số phòng tồn tại cùng lúc (chống cạn bộ nhớ). |
+
+Ngoài ra: token kết nối lại sinh bằng `crypto` (khó đoán), mã phòng dùng RNG bảo mật,
+giới hạn kích thước frame WebSocket (`maxPayload`), và static server gửi kèm các header
+`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`.
+
+> Khi deploy public qua HTTPS, **nên** đặt `ALLOWED_ORIGINS` về đúng domain của bạn.
+
 ## 📄 Giấy phép
 
 MIT
