@@ -70,7 +70,7 @@
     pads.className = "bx-pads";
     root.appendChild(pads);
 
-    let board, tilesEl, entsEl, overlayEl;
+    let tilesEl, entsEl, overlayEl;
     let playerEls = [null, null];
     const boxEls = new Map(); // id -> el
 
@@ -201,7 +201,6 @@
     function buildStage() {
       stage.innerHTML = `<div class="bx-board" style="--bx-w:${W};--bx-h:${H};aspect-ratio:${W}/${H}">
         <div class="bx-tiles"></div><div class="bx-ents"></div><div class="bx-overlay"></div></div>`;
-      board = stage.querySelector(".bx-board");
       tilesEl = stage.querySelector(".bx-tiles");
       entsEl = stage.querySelector(".bx-ents");
       overlayEl = stage.querySelector(".bx-overlay");

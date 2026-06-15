@@ -1,6 +1,5 @@
 /* Kiểm tra tích hợp: phòng công khai (listRooms) + vào nhanh + ẩn phòng private. */
 "use strict";
-const assert = require("assert");
 const { spawn } = require("child_process");
 const path = require("path");
 const WebSocket = require("ws");

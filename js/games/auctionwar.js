@@ -536,7 +536,6 @@
     }
 
     function renderOwnedItem(item) {
-      const type = TYPE_INFO[item.type];
       const diff = item.trueValue - item.paid;
       return `
         <span class="aw-owned ${diff >= 0 ? "good" : "bad"}" title="${typeName(item.type)} · ${diff >= 0 ? ctx.t("lời", "profit") : ctx.t("hớ", "overpaid")} ${Math.abs(diff)}">

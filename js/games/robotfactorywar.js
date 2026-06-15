@@ -5,7 +5,6 @@
   const LANES = [188, 292, 396];
   const BASE_X = [92, W - 92];
   const SPAWN_X = [178, W - 178];
-  const BASE_HP = 760;
 
   const GROUPS = [
     { id: "head", label: "Đầu", title: "Đầu robot" },

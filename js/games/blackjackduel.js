@@ -12,7 +12,6 @@
   function create(ctx) {
     const o = ctx.options || {};
     const TARGET_WINS = o.wins ? Number(o.wins) : 3;
-    const STAND_MIN = 0; // không bắt buộc
 
     const seat0First = ctx.isOnline ? ctx.firstSeat : 0;
 

@@ -37,7 +37,6 @@
     const guesses = [[], []]; // lịch sử đoán của mỗi người (đoán mã đối thủ)
     let turn = seat0First;
     let over = false;
-    let winner = -1;
 
     const root = document.createElement("div");
     root.className = "cb2-root";
@@ -76,7 +75,6 @@
 
       if (fb.exact === LEN) {
         over = true;
-        winner = guesser;
         ctx.incScore(guesser);
         ctx.setTurn(-1);
         render(true);

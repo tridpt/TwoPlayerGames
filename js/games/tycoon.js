@@ -100,7 +100,6 @@
       // qua ô xuất phát
       if (posn[me] < before) { cash[me] += PASS_GO; addLog(`P${me + 1} qua Xuất phát +$${PASS_GO}.`, `P${me + 1} passed GO +$${PASS_GO}.`); }
       ctx.sound("place");
-      const cell = board[posn[me]];
       resolveCell(me, die);
     }
 

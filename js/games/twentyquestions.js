@@ -29,7 +29,6 @@
     let pending = null;     // câu hỏi đang chờ trả lời {text}
     let log = [];           // [{q, a}] lịch sử
     let over = false;
-    let winner = -1;
     let revealWord = "";
 
     const root = document.createElement("div");
@@ -38,7 +37,6 @@
     let els = null;
 
     function iAmKeeper() { return ctx.isOnline ? ctx.mySeat === keeper : true; }
-    function iAmGuesser() { return ctx.isOnline ? ctx.mySeat === guesser : true; }
     // Trong chế độ chung máy, cả hai vai do người trước màn hình đảm nhận luân phiên.
     function localSeatActing() {
       // ai đang cần thao tác (để chung máy hiển thị đúng panel)
@@ -143,7 +141,6 @@
     function finish(win, correct) {
       over = true;
       phase = "over";
-      winner = win;
       ctx.incScore(win);
       ctx.setTurn(-1);
       ctx.sound(win === guesser ? "win" : "lose");

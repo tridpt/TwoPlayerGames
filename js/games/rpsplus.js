@@ -20,7 +20,6 @@
     let score = [0, 0];
     let charge = [0, 0];
     let over = false;
-    let roundNo = 1;
     let picks = [null, null];
     let revealing = false;
     let lastResult = null;
@@ -94,7 +93,6 @@
           render();
           return;
         }
-        roundNo++;
         picks = [null, null];
         render(); updateStatus();
       }, 1700);

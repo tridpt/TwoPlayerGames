@@ -20,7 +20,6 @@
 
   // ---- Luật cắt dây (tất định theo số dây + màu + seri lẻ/chẵn). Trả index 0-based. ----
   function count(wires, c) { return wires.filter((w) => w === c).length; }
-  function lastIndexOfColor(wires, c) { for (let i = wires.length - 1; i >= 0; i--) if (wires[i] === c) return i; return -1; }
 
   function solveModule(wires, serialOdd) {
     const n = wires.length;

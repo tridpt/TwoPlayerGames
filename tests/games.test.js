@@ -38,7 +38,7 @@ test("Tic-Tac-Toe: AI Khó chặn nước thắng", () => {
 test("Connect Four: thắng dọc + undo", () => {
   const cfg = loadGame("connectfour");
   const ctx = makeCtx({});
-  const api = cfg.create(ctx);
+  cfg.create(ctx);
   const cols = ctx.boardEl.children[0].children;
   cols[0].fire("click"); cols[1].fire("click");
   cols[0].fire("click"); cols[1].fire("click");

@@ -14,7 +14,6 @@
     let temp = 0;        // điểm tạm của lượt hiện tại
     let turn = 0;
     let over = false;
-    let lastDie = 0;
     let rolling = false;
     let rollTimer = null;
 
@@ -83,7 +82,6 @@
 
       if (move.kind === "roll") {
         if (!fromRemote) ctx.sendMove(move);
-        lastDie = move.die;
         // hoạt ảnh kiểu Yahtzee: rung lắc + đổi mặt ngẫu nhiên rồi dừng
         rolling = true;
         updateButtons();

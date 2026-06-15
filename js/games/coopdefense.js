@@ -2,7 +2,6 @@
 (function () {
   const LANES = 3;
   const SLOTS = 6;
-  const LEAK_LIMIT = 1;
   const MAX_WAVE = 10;
   const BASE_HP = 20;          // máu căn cứ — quái lọt sẽ trừ máu thay vì thua ngay
   const STRIKE_COST = 90;      // chi phí Không kích

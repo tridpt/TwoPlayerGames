@@ -142,8 +142,8 @@
     // ----- AI: minimax alpha-beta -----
     function validCols() { const v = []; for (let c = 0; c < COLS; c++) if (board[0][c] === null) v.push(c); return v; }
     function windowScore(cells, me) {
-      let mine = 0, opp = 0, empty = 0;
-      for (const v of cells) { if (v === me) mine++; else if (v === null) empty++; else opp++; }
+      let mine = 0, opp = 0;
+      for (const v of cells) { if (v === me) mine++; else if (v !== null) opp++; }
       if (mine && opp) return 0;
       if (mine === NEED) return 10000;
       if (opp === NEED) return -10000;

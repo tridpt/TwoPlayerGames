@@ -26,7 +26,6 @@
     let bid = null;        // { qty, face, by }
     let over = false;
     let revealing = false;
-    let roundNo = 0;
 
     const root = document.createElement("div");
     root.className = "ld-root";
@@ -70,7 +69,6 @@
     function nextSeat(s) { return 1 - s; }
 
     function startRound(first) {
-      roundNo++;
       rollAll();
       bid = null;
       turn = first;

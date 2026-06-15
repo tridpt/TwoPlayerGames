@@ -1002,6 +1002,9 @@
       `</div>`;
   }
 
+  // Bộ render avatar dạng SVG riêng cho từng game — giữ lại làm renderer thay thế
+  // (hiện UI dùng gameAvatarHtml/.game-poster). Đừng xóa: còn dùng cho biến thể giao diện.
+  // eslint-disable-next-line no-unused-vars
   function gameAvatarHtmlSvg(game) {
     return `<div class="game-avatar game-avatar-${game.id}" aria-hidden="true">${renderGameAvatar(game.id, gameMark(game))}</div>`;
   }
@@ -1050,7 +1053,6 @@
 
   function avatarScene(id, p) {
     const line = `stroke="#ffffff" stroke-opacity=".18" stroke-width="2"`;
-    const soft = `fill="#ffffff" opacity=".08"`;
     switch (id) {
       case "tictactoe":
         return `<g transform="translate(88 24)"><rect width="108" height="84" rx="10" fill="#0d1430" opacity=".72"/><path d="M36 10v64M72 10v64M10 28h88M10 56h88" ${line}/><text x="20" y="24" fill="${p.a}" font-size="24" font-weight="900">X</text><circle cx="55" cy="20" r="10" fill="none" stroke="${p.b}" stroke-width="5"/><text x="80" y="50" fill="${p.c}" font-size="25" font-weight="900">X</text><circle cx="22" cy="66" r="10" fill="none" stroke="${p.b}" stroke-width="5"/></g>`;
@@ -2562,7 +2564,6 @@
         vr: -0.15 + Math.random() * 0.3,
       });
     }
-    let frames = 0;
     function tick() {
       g.clearRect(0, 0, cv.width, cv.height);
       pieces.forEach((p) => {
@@ -2575,7 +2576,6 @@
         g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
         g.restore();
       });
-      frames++;
       // sau ~4.5s ngừng sinh, để pháo giấy rơi hết thì tự dừng nhẹ
       confettiRaf = requestAnimationFrame(tick);
     }
@@ -2714,7 +2714,6 @@
   // ---- Chia sẻ (Web Share API + fallback clipboard) ----
   function tt(key) { return window.I18n ? I18n.t(key) : key; }
   async function shareOrCopy(text, url) {
-    const full = url ? `${text}` : text;
     try {
       if (navigator.share) {
         await navigator.share({ title: tt("shareTitle"), text, url: url || location.href });

@@ -27,7 +27,6 @@
     const foundByMe = [0, 0];        // [foundByP0, foundByP1] kho tìm được
     // lịch sử đào của từng người trên lưới đối thủ: attack[seat]["r,c"] = {dist,hit}
     const attack = [{}, {}];
-    const myDigs = {};               // (online) = attack của chính mình; giữ để tương thích
     const oppDigsOnMe = {};          // ô đối thủ đào trên lưới tôi (online)
 
     const root = document.createElement("div");
@@ -359,7 +358,6 @@
 
     // tương thích: vài chỗ cũ gọi renderMine()
     function renderMine(reveal) { renderAll(reveal); }
-    function renderOpp() { renderAll(); }
 
     function updateStatus() {
       if (phase !== "play") return;
