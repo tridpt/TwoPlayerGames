@@ -1900,10 +1900,14 @@
     online = normalizeOnlineSession(m);
     if (m.options) currentOptions = m.options;
     clearSessionLock();
-    startGame(m.seed);
-    // phát lại lịch sử nước đi để dựng lại ván
+    // phát lại lịch sử nước đi để dựng lại ván — chạy SAU khi instance đã tạo
+    // (startGame có thể nạp từ điển trễ cho game dùng từ tiếng Việt).
     const hist = Array.isArray(m.history) ? m.history : [];
-    hist.forEach((mv) => { if (instance && instance.applyMove) { try { instance.applyMove(mv, true); } catch (e) { /* ignore */ } } });
+    startGame(m.seed, {
+      onReady: () => {
+        hist.forEach((mv) => { if (instance && instance.applyMove) { try { instance.applyMove(mv, true); } catch (e) { /* ignore */ } } });
+      },
+    });
     replayMoves = hist.slice();
     describeOnlineGameState("live");
     setGameRoomState(tt("reconnected"), "live");
@@ -2025,8 +2029,36 @@
     }
   });
 
+  // ====================== Từ điển tiếng Việt (nạp trễ) ======================
+  // vi-dict.js (~650KB) chỉ cần cho 3 game dùng từ tiếng Việt. Nạp trễ để
+  // trang chính và các game khác không phải tải khối dữ liệu lớn này.
+  const DICT_GAMES = new Set(["noitu", "wordduel", "typingrace"]);
+  let dictPromise = null;
+  function dictReady() {
+    return typeof window !== "undefined" && window.VI_DICT instanceof Set;
+  }
+  function ensureDict() {
+    if (dictReady()) return Promise.resolve();
+    if (dictPromise) return dictPromise;
+    dictPromise = new Promise((resolve) => {
+      const s = document.createElement("script");
+      s.src = "js/vi-dict.js";
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = () => { dictPromise = null; resolve(); }; // lỗi tải: game tự fallback Set rỗng
+      document.head.appendChild(s);
+    });
+    return dictPromise;
+  }
+
   // ====================== Vòng chơi ======================
   function startGame(seed, opts = {}) {
+    // Game cần từ điển mà chưa nạp xong: nạp trễ rồi chạy lại đúng lượt này.
+    if (selectedGame && DICT_GAMES.has(selectedGame.id) && !dictReady()) {
+      el.status.textContent = tt("loadingDict");
+      ensureDict().then(() => startGame(seed, opts));
+      return;
+    }
     clearRoomExitNotice();
     clearSessionLock();
     el.boardWrap.innerHTML = "";
@@ -2080,6 +2112,7 @@
     el.undoBtn.classList.toggle("hidden", !!online || vsAI || !instance || typeof instance.undo !== "function");
     el.undoBtn.disabled = false;
     show("gameView");
+    if (typeof opts.onReady === "function") opts.onReady();
     if (opts.autoHelp) {
       setTimeout(openHelp, 0);
     }

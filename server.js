@@ -5,6 +5,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const zlib = require("zlib");
 const { WebSocketServer } = require("ws");
 
 const PORT = process.env.PORT || 8777;
@@ -41,6 +42,26 @@ const MIME = {
   ".svg": "image/svg+xml",
 };
 
+// Kiểu nội dung text nên nén gzip (giảm mạnh CSS/JS lớn như styles.css, vi-dict.js).
+const COMPRESSIBLE = new Set([".html", ".css", ".js", ".json", ".webmanifest", ".svg"]);
+
+// Cache-Control theo loại file:
+// - HTML/JS/CSS (mã nguồn app): cache ngắn + revalidate, vì service worker đã lo cập nhật.
+// - Ảnh/icon (tài nguyên tĩnh ít đổi): cache dài.
+function cacheControlFor(ext) {
+  if (ext === ".png" || ext === ".ico" || ext === ".svg") {
+    return "public, max-age=86400"; // 1 ngày
+  }
+  if (ext === ".html" || ext === ".webmanifest") {
+    return "no-cache"; // luôn revalidate trang/khung
+  }
+  return "public, max-age=3600, must-revalidate"; // js/css: 1 giờ + revalidate
+}
+
+function acceptsGzip(req) {
+  return /\bgzip\b/.test(req.headers["accept-encoding"] || "");
+}
+
 // ---------- HTTP: phục vụ file tĩnh ----------
 const server = http.createServer((req, res) => {
   let urlPath;
@@ -66,12 +87,30 @@ const server = http.createServer((req, res) => {
       return res.end("404 Not Found");
     }
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, {
+    const headers = {
       "Content-Type": MIME[ext] || "application/octet-stream",
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "SAMEORIGIN",
       "Referrer-Policy": "no-referrer",
-    });
+      "Cache-Control": cacheControlFor(ext),
+      "Vary": "Accept-Encoding",
+    };
+
+    // Nén gzip cho file text khi trình duyệt hỗ trợ (giảm mạnh dung lượng CSS/JS lớn).
+    if (COMPRESSIBLE.has(ext) && acceptsGzip(req) && data.length > 1024) {
+      zlib.gzip(data, (gzErr, gzipped) => {
+        if (gzErr) {
+          res.writeHead(200, headers);
+          return res.end(data);
+        }
+        headers["Content-Encoding"] = "gzip";
+        res.writeHead(200, headers);
+        res.end(gzipped);
+      });
+      return;
+    }
+
+    res.writeHead(200, headers);
     res.end(data);
   });
 });
