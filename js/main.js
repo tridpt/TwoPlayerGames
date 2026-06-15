@@ -1616,7 +1616,6 @@
     bestOf = readBestOf();
     resetMatch();
     online = null;
-    selectedGame = selectedGame;
     currentOptions = readOptions(selectedGame);
     startGame(null, { autoHelp: true });
     navTo("play/" + selectedGame.id);

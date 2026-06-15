@@ -121,6 +121,7 @@ function send(ws, type, payload = {}) {
 
 function cleanPlayerName(value, fallback) {
   const name = String(value || "")
+    // eslint-disable-next-line no-control-regex -- cố ý loại bỏ ký tự điều khiển khỏi tên người chơi
     .replace(/[\u0000-\u001f\u007f<>]/g, "")
     .replace(/\s+/g, " ")
     .trim()

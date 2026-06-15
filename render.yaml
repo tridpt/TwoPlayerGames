@@ -5,7 +5,7 @@ services:
     name: two-player-games
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm ci
     startCommand: npm start
     autoDeploy: true
     healthCheckPath: /
