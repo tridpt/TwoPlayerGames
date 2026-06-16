@@ -31,6 +31,7 @@ function log(ok, msg) { console.log((ok ? "\u2714 " : "\u2718 ") + msg); if (!ok
 
 // một nước đi mẫu cho mỗi game online mới
 const CASES = [
+  { gameId: "ultimatettt", move: { b: 4, c: 0 }, check: (m) => m.move.b === 4 && m.move.c === 0 },
   { gameId: "snakesladders", move: { die: 5 }, check: (m) => m.move.die === 5 },
   { gameId: "liarsdice", move: { k: "bid", qty: 3, face: 4 }, check: (m) => m.move.k === "bid" && m.move.qty === 3 && m.move.face === 4 },
   { gameId: "codebreakerduel", move: { k: "guess", code: [0, 1, 2, 3] }, check: (m) => m.move.k === "guess" && Array.isArray(m.move.code) && m.move.code.length === 4 },

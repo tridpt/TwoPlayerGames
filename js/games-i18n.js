@@ -13,6 +13,18 @@ var GAMES_EN_DATA = {
       "Optional modes: a larger board, or '3-piece move' where you slide your existing marks once all three are placed.",
     ],
   },
+  ultimatettt: {
+    name: "Ultimate Tic-Tac-Toe",
+    description: "Tic-tac-toe inside tic-tac-toe: nine small boards in one big board. Your move forces where your opponent must play next. Win three boards in a row to win.",
+    howTo: [
+      "The big board is made of nine small 3x3 tic-tac-toe boards. Final goal: claim three small boards in a row (horizontal, vertical or diagonal) on the big board.",
+      "Win a small board (line up 3 of your marks in it) to CLAIM the matching cell on the big board.",
+      "Core rule: the cell you play inside a small board decides WHICH small board your opponent must play in next — e.g. play the top-left cell and they must play in the top-left small board.",
+      "If the small board you're sent to is already finished (won or full/drawn), your opponent may play FREELY in any open board. Playable boards are always highlighted.",
+      "A full small board with no winner is a draw (belongs to no one). If the whole big board fills up, whoever claimed more small boards wins.",
+      "Tip: don't just chase small-board wins — think about which board your move sends your opponent to, and avoid handing them a chance.",
+    ],
+  },
   gomoku: {
     name: "Gomoku (Five in a Row)",
     description: "Place stones on a 15x15 board; the first to line up five in a row wins.",
