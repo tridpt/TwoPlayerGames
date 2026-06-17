@@ -121,9 +121,16 @@
       const cellPiece = occ[r][c];
       // chọn quân của mình (nằm trong danh sách được phép)
       if (cellPiece && cellPiece.p === turn) {
-        if (selectablePieces(turn).includes(cellPiece.idx)) {
+        const allowed = selectablePieces(turn);
+        if (allowed.includes(cellPiece.idx)) {
           selected = { p: turn, idx: cellPiece.idx };
           render();
+        } else if (forcedColor >= 0) {
+          // bấm nhầm quân không bị ép -> nhắc rõ
+          const cn = ctx.t(CNAME[forcedColor][0], CNAME[forcedColor][1]);
+          ctx.setStatus(ctx.t(
+            `⛔ Lượt này bạn BỊ ÉP đi quân màu ${cn} (quân sáng viền) — không chọn quân khác được.`,
+            `⛔ This turn you're FORCED to move your ${cn} tower (the glowing one) — you can't pick another.`));
         }
         return;
       }
@@ -133,6 +140,18 @@
         if (ms.some(([mr, mc]) => mr === r && mc === c)) {
           applyMove({ p: selected.p, idx: selected.idx, to: [r, c] }, false);
         }
+      }
+    }
+
+    // tự động chọn sẵn quân bị ép (chỉ có 1 quân) để người chơi chỉ cần bấm ô đích
+    function autoSelectForced() {
+      if (over) { selected = null; return; }
+      if (ctx.isOnline && turn !== ctx.mySeat) { selected = null; return; }
+      const allowed = selectablePieces(turn);
+      if (forcedColor >= 0 && allowed.length === 1) {
+        selected = { p: turn, idx: allowed[0] };
+      } else {
+        selected = null;
       }
     }
 
@@ -186,6 +205,7 @@
       }
 
       turn = next;
+      autoSelectForced();
       render();
       ctx.setTurn(turn);
       updateStatus();
@@ -250,8 +270,8 @@
       }
       const cn = ctx.t(CNAME[forcedColor][0], CNAME[forcedColor][1]);
       ctx.setStatus(ctx.t(
-        `Người chơi ${turn + 1}: bị ép đi quân màu ${cn}. Bấm quân sáng viền rồi bấm ô đích.`,
-        `Player ${turn + 1}: you must move your ${cn} tower. Click the glowing tower then a target cell.`));
+        `Người chơi ${turn + 1}: bị ép đi quân màu ${cn} (đã chọn sẵn) — bấm một ô SÁNG để đi.`,
+        `Player ${turn + 1}: forced to move your ${cn} tower (already selected) — click a LIT cell to move.`));
     }
 
     // ---------- AI ----------
