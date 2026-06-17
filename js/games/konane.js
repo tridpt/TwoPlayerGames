@@ -21,6 +21,7 @@
     let turn = 0;             // p1remove:0, p2remove:1, play: 0/1
     let selected = null;
     let over = false;
+    let winnerP = -1;         // người thắng (để tô sáng quân khi kết thúc)
     let lastMove = null;      // {from:[r,c], to:[r,c]}
     let lastRemoved = null;   // [r,c] ô vừa bị bỏ khi mở màn
     const captured = [0, 0];  // số quân mỗi bên đã ăn
@@ -171,6 +172,8 @@
       if (!hasMove(turn)) {
         over = true;
         const winner = 1 - turn;
+        winnerP = winner;
+        render();
         ctx.incScore(winner);
         ctx.setTurn(-1);
         ctx.setStatus(ctx.t(
@@ -221,6 +224,7 @@
           if (p != null) {
             const disc = document.createElement("div");
             disc.className = "kon-piece " + (p === 0 ? "p1" : "p2");
+            if (over && p === winnerP) disc.classList.add("win");
             cell.appendChild(disc);
           }
           if (lastMove) {

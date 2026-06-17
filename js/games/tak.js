@@ -26,6 +26,7 @@
     let plies = 0;            // số lượt đã hoàn tất (để xử lý 2 nước swap đầu)
     let over = false;
     let lastCells = [];       // các ô vừa tác động (highlight)
+    let winCells = [];        // các ô tạo đường thắng (để tô sáng khi kết thúc)
     const supply = [
       { flat: FLATS0, cap: CAPS0 },
       { flat: FLATS0, cap: CAPS0 },
@@ -101,6 +102,41 @@
       const leftSeeds = Array.from({ length: N }, (_, r) => [r, 0]);
       if (flood(leftSeeds, (_, c) => c === N - 1)) return true;
       return false;
+    }
+
+    // trả về danh sách ô tạo nên ĐƯỜNG thắng (để tô sáng), hoặc [] nếu không có
+    function roadCells(B, p) {
+      function bfsPath(seeds, isGoal) {
+        const prev = {};
+        const seen = Array.from({ length: N }, () => Array(N).fill(false));
+        const queue = [];
+        for (const [sr, sc] of seeds) {
+          const t = topAt(B, sr, sc);
+          if (isRoadTop(t) && t.p === p && !seen[sr][sc]) { seen[sr][sc] = true; queue.push([sr, sc]); prev[sr + "," + sc] = null; }
+        }
+        let head = 0;
+        while (head < queue.length) {
+          const [r, c] = queue[head++];
+          if (isGoal(r, c)) {
+            const path = []; let cur = [r, c];
+            while (cur) { path.push(cur); cur = prev[cur[0] + "," + cur[1]]; }
+            return path;
+          }
+          for (const [dr, dc] of DIRS) {
+            const nr = r + dr, nc = c + dc;
+            if (!inB(nr, nc) || seen[nr][nc]) continue;
+            const t = topAt(B, nr, nc);
+            if (isRoadTop(t) && t.p === p) { seen[nr][nc] = true; prev[nr + "," + nc] = [r, c]; queue.push([nr, nc]); }
+          }
+        }
+        return null;
+      }
+      const topSeeds = Array.from({ length: N }, (_, c) => [0, c]);
+      const v = bfsPath(topSeeds, (r) => r === N - 1);
+      if (v) return v;
+      const leftSeeds = Array.from({ length: N }, (_, r) => [r, 0]);
+      const h = bfsPath(leftSeeds, (_, c) => c === N - 1);
+      return h || [];
     }
 
     function boardFull(B) {
@@ -257,8 +293,9 @@
       const oppRoad = hasRoad(board, 1 - p);
       if (meRoad || oppRoad) {
         over = true;
-        render();
         const winner = meRoad ? p : (1 - p);
+        winCells = roadCells(board, winner);
+        render();
         ctx.incScore(winner);
         ctx.setTurn(-1);
         ctx.setStatus(ctx.t(
@@ -383,22 +420,39 @@
         return;
       }
       if (!myTurn || plies < 2) return;
+      // nhãn nhóm "Đặt"
+      const placeLbl = document.createElement("span");
+      placeLbl.className = "tak-grp";
+      placeLbl.textContent = ctx.t("Đặt:", "Place:");
+      toolbar.appendChild(placeLbl);
       // chọn kiểu quân đặt
+      const TIPS = {
+        flat: ["Phẳng — nằm ngang, TÍNH vào đường thắng & đếm điểm", "Flat — lies flat, counts for the road & scoring"],
+        wall: ["Tường — dựng đứng, CHẶN đường địch (không tính đường)", "Wall — stands up, BLOCKS roads (doesn't count)"],
+        cap: ["Đá trùm — tính đường, và ĐÈ BẸP được Tường", "Capstone — counts for roads, and can flatten a Wall"],
+      };
       const mk = (kind, label, dis) => {
         const b = document.createElement("button");
         b.className = "tak-btn" + (placeKind === kind ? " on" : "");
         b.disabled = !!dis;
         b.textContent = label;
-        b.addEventListener("click", () => { placeKind = kind; renderTools(); });
+        b.title = ctx.t(TIPS[kind][0], TIPS[kind][1]);
+        b.addEventListener("click", () => { placeKind = kind; renderTools(); updateStatus(); });
         toolbar.appendChild(b);
       };
       mk("flat", ctx.t("Phẳng ▭", "Flat ▭"), supply[turn].flat <= 0);
       mk("wall", ctx.t("Tường ◧", "Wall ◧"), supply[turn].flat <= 0);
       if (SUPPLY[N][1] > 0) mk("cap", ctx.t("Đá trùm ⬢", "Capstone ⬢"), supply[turn].cap <= 0);
+      // chú thích kiểu quân đang chọn
+      const tip = document.createElement("span");
+      tip.className = "tak-hint tak-tip";
+      tip.textContent = ctx.t(TIPS[placeKind][0], TIPS[placeKind][1]);
+      toolbar.appendChild(tip);
       // chọn số quân nhấc khi kéo
       const pc = document.createElement("span");
-      pc.className = "tak-hint";
-      pc.textContent = ctx.t(`Nhấc: ${pickCount}`, `Pick: ${pickCount}`);
+      pc.className = "tak-grp";
+      pc.textContent = ctx.t(`Kéo (nhấc ${pickCount}):`, `Move (pick ${pickCount}):`);
+      pc.title = ctx.t("Số quân nhấc lên khi kéo một chồng", "How many stones to pick up when moving a stack");
       toolbar.appendChild(pc);
       for (let i = 1; i <= CARRY; i++) {
         const b = document.createElement("button");
@@ -432,7 +486,7 @@
     function renderCell(r, c, dragHighlight) {
       const cell = cellEls[r][c];
       cell.innerHTML = "";
-      cell.classList.remove("last", "dragsrc", "dragtgt");
+      cell.classList.remove("last", "dragsrc", "dragtgt", "win");
       const a = board[r][c];
       // hiển thị tối đa vài quân trên cùng cho gọn
       const stack = document.createElement("div");
@@ -450,6 +504,7 @@
       }
       cell.appendChild(stack);
       if (lastCells.some(([lr, lc]) => lr === r && lc === c)) cell.classList.add("last");
+      if (winCells.some(([lr, lc]) => lr === r && lc === c)) cell.classList.add("win");
       if (dragHighlight && dragHighlight.has(r * N + c)) cell.classList.add("dragtgt");
       if (drag && drag.start[0] === r && drag.start[1] === c) cell.classList.add("dragsrc");
     }

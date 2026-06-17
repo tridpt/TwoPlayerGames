@@ -39,6 +39,7 @@
     let turn = 0;
     let over = false;
     let lastMove = null;        // {from?, to}
+    let winHexes = null;        // Set các key ô tô sáng khi thắng (Ong Chúa bị vây + quanh)
     let selected = null;        // {kind:"hand", t} | {kind:"board", q, r}
     const hands = [Object.assign({}, HAND), Object.assign({}, HAND)];
 
@@ -344,6 +345,17 @@
       const s1 = queenSurrounded(cells, 1);
       if (s0 || s1) {
         over = true;
+        // tô sáng Ong Chúa bị vây + 6 ô quanh
+        winHexes = new Set();
+        for (const lp of [0, 1]) {
+          if ((lp === 0 && s0) || (lp === 1 && s1)) {
+            const qc = queenCell(cells, lp);
+            if (qc) {
+              winHexes.add(key(qc[0], qc[1]));
+              neighbors(qc[0], qc[1]).forEach(([nq, nr]) => winHexes.add(key(nq, nr)));
+            }
+          }
+        }
         render();
         if (s0 && s1) {
           ctx.setStatus(ctx.t("🤝 Hòa — cả hai Ong Chúa cùng bị vây!", "🤝 Draw — both Queens surrounded!"));
@@ -489,6 +501,7 @@
         hex.className = "hive-hex pc-p" + (top.p + 1);
         if (a.length > 1) hex.classList.add("stacked");
         if (lastMove && lastMove.to && key(lastMove.to[0], lastMove.to[1]) === k) hex.classList.add("last");
+        if (winHexes && winHexes.has(k)) hex.classList.add("win");
         if (selected && selected.kind === "board" && key(selected.q, selected.r) === k) hex.classList.add("sel");
         hex.style.left = (x + padX) + "px";
         hex.style.top = (y + padY) + "px";
