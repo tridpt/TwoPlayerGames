@@ -3381,6 +3381,78 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
 .chk-piece.king i { font-style: normal; font-size: 1.2rem; color: #ffe08a; text-shadow: 0 1px 2px rgba(0,0,0,0.6); z-index: 1; }
 .chk-piece.king { box-shadow: 0 3px 6px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(255,209,102,0.85), inset 0 -5px 9px rgba(0,0,0,0.45); }
 
+/* ---------- Cờ Hawaii (Kōnane) ---------- */
+.kon-root { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.kon-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+}
+.kon-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid transparent;
+  transition: border-color 0.2s, background 0.2s;
+}
+.kon-side b { font-size: 0.95rem; }
+.kon-side.p2 { text-align: right; }
+.kon-side.active { border-color: var(--accent); background: rgba(255,209,102,0.1); }
+.kon-mid { font-weight: 700; opacity: 0.7; padding: 0 6px; }
+.kon-board {
+  display: grid;
+  gap: 0;
+  width: min(92vw, 520px);
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 6px solid #5b3b22;
+  box-shadow: var(--shadow), inset 0 0 30px rgba(0,0,0,0.4);
+}
+.kon-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.kon-cell.l { background: linear-gradient(135deg, #efd9b4, #e2c79a); }
+.kon-cell.d { background: linear-gradient(135deg, #c89a64, #b9874f); }
+.kon-cell.lastfrom::before, .kon-cell.lastto::before {
+  content: ""; position: absolute; inset: 0; background: rgba(255,209,102,0.28);
+}
+.kon-cell.lastto::before { background: rgba(255,209,102,0.4); }
+.kon-cell.sel { box-shadow: inset 0 0 0 4px var(--accent); }
+.kon-cell.hint::after {
+  content: ""; position: absolute; width: 30%; height: 30%; border-radius: 50%;
+  background: rgba(110, 231, 183, 0.75);
+  box-shadow: 0 0 8px rgba(110,231,183,0.5);
+}
+.kon-cell.remove::after {
+  content: ""; position: absolute; inset: 16%; border-radius: 50%;
+  border: 3px solid rgba(255,209,102,0.9);
+  box-shadow: 0 0 10px rgba(255,209,102,0.55);
+}
+.kon-piece {
+  width: 76%;
+  height: 76%;
+  border-radius: 50%;
+  position: relative;
+}
+.kon-piece::before {
+  content: ""; position: absolute; inset: 22%; border-radius: 50%;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.14);
+}
+.kon-piece.p1 { background: radial-gradient(circle at 36% 28%, #6a7180, #2a2e38 55%, #0c0e14); box-shadow: 0 2px 5px rgba(0,0,0,0.45); }
+.kon-piece.p2 { background: radial-gradient(circle at 36% 28%, #ffffff, #e6e6ea 55%, #b9b9c4); box-shadow: 0 2px 5px rgba(0,0,0,0.35); }
+
 /* ---------- Pong ---------- */
 .pong-canvas {
   width: min(700px, 96vw);

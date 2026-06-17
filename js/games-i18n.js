@@ -87,6 +87,18 @@ var GAMES_EN_DATA = {
       "'Flying king' mode lets kings move and capture along long diagonals. Win by capturing all enemy pieces or blocking all their moves.",
     ],
   },
+  konane: {
+    name: "Kōnane (Hawaiian Checkers)",
+    description: "An ancient Hawaiian capturing game. The board starts packed with alternating black/white stones; jump orthogonally over an enemy to capture (like checkers but no diagonals). Run out of jumps and you lose.",
+    howTo: [
+      "The board starts fully PACKED with alternating ⚫ black and ⚪ white stones, like a chessboard. Player 1 is Black, Player 2 is White.",
+      "Opening: Black removes one of their own stones from a CORNER or the CENTER (lit cells), then White removes one of their own stones ADJACENT to that empty cell.",
+      "Then players alternate CAPTURING by JUMPING: jump horizontally or vertically over exactly one adjacent enemy stone, landing on the empty square just beyond, and remove that enemy.",
+      "You may chain several jumps in the SAME direction in one turn (capturing multiple stones); click your stone then click the green destination cell.",
+      "No diagonals and no plain moves — every move must be a capturing jump. The player who has no jump left on their turn LOSES.",
+      "Tip: keep your own moves alive while squeezing the opponent's mobility — Kōnane is a race to see who runs dry first.",
+    ],
+  },
   isolation: {
     name: "Isolation",
     description: "Move your pawn then remove a tile. Trap your opponent until they cannot move.",
