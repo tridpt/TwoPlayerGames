@@ -3396,25 +3396,30 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 8px 12px;
+  padding: 8px 14px;
   border-radius: 12px;
   background: rgba(255,255,255,0.04);
-  border: 1px solid transparent;
-  transition: border-color 0.2s, background 0.2s;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
 }
 .kon-side b { font-size: 0.95rem; }
 .kon-side.p2 { text-align: right; }
-.kon-side.active { border-color: var(--accent); background: rgba(255,209,102,0.1); }
+.kon-side.active { border-color: var(--accent); background: rgba(255,209,102,0.12); box-shadow: 0 0 14px rgba(255,209,102,0.28); }
 .kon-mid { font-weight: 700; opacity: 0.7; padding: 0 6px; }
 .kon-board {
   display: grid;
   gap: 0;
   width: min(92vw, 520px);
   aspect-ratio: 1 / 1;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  border: 6px solid #5b3b22;
-  box-shadow: var(--shadow), inset 0 0 30px rgba(0,0,0,0.4);
+  border: 8px solid #4a2f1a;
+  background:
+    repeating-linear-gradient(94deg, rgba(0,0,0,0.05) 0 3px, rgba(255,255,255,0.03) 3px 7px);
+  box-shadow:
+    var(--shadow),
+    0 10px 28px rgba(0,0,0,0.45),
+    inset 0 0 36px rgba(0,0,0,0.45);
 }
 .kon-cell {
   position: relative;
@@ -3422,36 +3427,49 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background 0.15s;
 }
-.kon-cell.l { background: linear-gradient(135deg, #efd9b4, #e2c79a); }
-.kon-cell.d { background: linear-gradient(135deg, #c89a64, #b9874f); }
-.kon-cell.lastfrom::before, .kon-cell.lastto::before {
-  content: ""; position: absolute; inset: 0; background: rgba(255,209,102,0.28);
+.kon-cell.l { background: linear-gradient(135deg, #f0dab5 0%, #e6cda0 100%); }
+.kon-cell.d { background: linear-gradient(135deg, #caa066 0%, #b07c45 100%); }
+.kon-cell.l::before, .kon-cell.d::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(78deg, rgba(120,80,40,0.06) 0 2px, transparent 2px 6px);
 }
-.kon-cell.lastto::before { background: rgba(255,209,102,0.4); }
-.kon-cell.sel { box-shadow: inset 0 0 0 4px var(--accent); }
+.kon-cell.lastfrom, .kon-cell.lastto { background-image: linear-gradient(rgba(255,209,102,0.26), rgba(255,209,102,0.26)); }
+.kon-cell.lastto { background-image: linear-gradient(rgba(255,209,102,0.4), rgba(255,209,102,0.4)); }
+.kon-cell.sel { box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 18px rgba(255,209,102,0.45); }
 .kon-cell.hint::after {
   content: ""; position: absolute; width: 30%; height: 30%; border-radius: 50%;
-  background: rgba(110, 231, 183, 0.75);
-  box-shadow: 0 0 8px rgba(110,231,183,0.5);
+  background: radial-gradient(circle at 40% 35%, #b8ffd8, #4fd99a);
+  box-shadow: 0 0 12px rgba(110,231,183,0.7);
+  animation: kon-pulse 1.2s ease-in-out infinite;
 }
 .kon-cell.remove::after {
   content: ""; position: absolute; inset: 16%; border-radius: 50%;
-  border: 3px solid rgba(255,209,102,0.9);
-  box-shadow: 0 0 10px rgba(255,209,102,0.55);
+  border: 3px solid rgba(255,209,102,0.95);
+  box-shadow: 0 0 12px rgba(255,209,102,0.6), inset 0 0 10px rgba(255,209,102,0.4);
+  animation: kon-pulse 1.2s ease-in-out infinite;
 }
+@keyframes kon-pulse { 0%,100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.12); opacity: 1; } }
 .kon-piece {
-  width: 76%;
-  height: 76%;
+  width: 78%;
+  height: 78%;
   border-radius: 50%;
   position: relative;
+  animation: kon-drop 0.22s ease-out;
 }
+@keyframes kon-drop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .kon-piece::before {
-  content: ""; position: absolute; inset: 22%; border-radius: 50%;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.14);
+  content: ""; position: absolute; inset: 18%; border-radius: 50%;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.16);
 }
-.kon-piece.p1 { background: radial-gradient(circle at 36% 28%, #6a7180, #2a2e38 55%, #0c0e14); box-shadow: 0 2px 5px rgba(0,0,0,0.45); }
-.kon-piece.p2 { background: radial-gradient(circle at 36% 28%, #ffffff, #e6e6ea 55%, #b9b9c4); box-shadow: 0 2px 5px rgba(0,0,0,0.35); }
+.kon-piece::after {
+  content: ""; position: absolute; left: 24%; top: 16%; width: 28%; height: 22%; border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.55), transparent 70%);
+  pointer-events: none;
+}
+.kon-piece.p1 { background: radial-gradient(circle at 36% 28%, #7c8493, #2a2e38 52%, #05070b); box-shadow: 0 3px 7px rgba(0,0,0,0.55), inset 0 -3px 6px rgba(0,0,0,0.5); }
+.kon-piece.p2 { background: radial-gradient(circle at 36% 28%, #ffffff, #ececed 52%, #b2b2bd); box-shadow: 0 3px 7px rgba(0,0,0,0.4), inset 0 -3px 6px rgba(0,0,0,0.2); }
 
 /* ---------- Tổ Ong (Hive) ---------- */
 .hive-root { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
@@ -3484,32 +3502,45 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
 .hive-cnt { font-size: 0.75rem; font-weight: 700; }
 
 .hive-wrap {
-  width: 100%; max-width: 640px; overflow: auto; border-radius: 14px;
-  background: radial-gradient(circle at 50% 40%, #2a2f3a, #161922);
-  box-shadow: var(--shadow), inset 0 0 40px rgba(0,0,0,0.45); padding: 10px;
+  width: 100%; max-width: 640px; overflow: auto; border-radius: 16px;
+  background:
+    radial-gradient(circle at 50% 35%, #2f3542, #14171f 75%),
+    repeating-linear-gradient(60deg, rgba(255,255,255,0.012) 0 12px, transparent 12px 24px);
+  box-shadow: var(--shadow), inset 0 0 50px rgba(0,0,0,0.5); padding: 12px;
 }
 .hive-stage { position: relative; margin: 0 auto; min-height: 120px; }
 .hive-hex {
   position: absolute; width: 50px; height: 44px; display: flex; align-items: center; justify-content: center;
   font-size: 1.5rem; cursor: pointer;
   clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  transition: filter 0.12s;
+  transition: filter 0.12s, transform 0.1s;
+  animation: hive-pop 0.2s ease-out;
 }
-.hive-hex.pc-p1 { background: linear-gradient(135deg, #ffba7d, #ff8c3b); }
-.hive-hex.pc-p2 { background: linear-gradient(135deg, #d4b6ff, #b07cff); }
-.hive-hex.stacked { box-shadow: 0 0 0 2px #ffe08a; filter: brightness(1.08); }
-.hive-hex.last { filter: drop-shadow(0 0 6px rgba(255,209,102,0.9)) brightness(1.1); }
-.hive-hex.sel { filter: drop-shadow(0 0 7px var(--accent)) brightness(1.12); }
+@keyframes hive-pop { from { transform: scale(0.5); } to { transform: scale(1); } }
+.hive-hex .hive-emoji { filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4)); }
+.hive-hex.pc-p1 { background: linear-gradient(155deg, #ffcd9a 0%, #ff8c3b 55%, #e06d18 100%); }
+.hive-hex.pc-p2 { background: linear-gradient(155deg, #e2c9ff 0%, #b07cff 55%, #8c4ee0 100%); }
+.hive-hex.pc-p1::after, .hive-hex.pc-p2::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: linear-gradient(160deg, rgba(255,255,255,0.35), transparent 45%);
+}
+.hive-hex.stacked { box-shadow: 0 0 0 2px #ffe08a, 0 4px 10px rgba(0,0,0,0.5); filter: brightness(1.08); }
+.hive-hex.last { filter: drop-shadow(0 0 7px rgba(255,209,102,0.95)) brightness(1.12); z-index: 2; }
+.hive-hex.sel { filter: drop-shadow(0 0 9px var(--accent)) brightness(1.15); transform: scale(1.06); z-index: 3; }
 .hive-hex.target {
-  background: rgba(110, 231, 183, 0.32); cursor: pointer;
-  outline: 2px dashed rgba(110,231,183,0.8); outline-offset: -4px; font-size: 0;
+  background: rgba(110, 231, 183, 0.28); cursor: pointer;
+  outline: 2px dashed rgba(110,231,183,0.85); outline-offset: -4px; font-size: 0;
+  animation: hive-glow 1.3s ease-in-out infinite;
 }
-.hive-hex.target:hover { background: rgba(110, 231, 183, 0.5); }
+@keyframes hive-glow { 0%,100% { background: rgba(110,231,183,0.2); } 50% { background: rgba(110,231,183,0.42); } }
+.hive-hex.target:hover { background: rgba(110, 231, 183, 0.55) !important; }
 .hive-emoji { pointer-events: none; }
 .hive-stack {
-  position: absolute; right: 3px; bottom: 1px; font-style: normal; font-size: 0.7rem; font-weight: 700;
-  color: #fff; background: rgba(0,0,0,0.55); border-radius: 50%; width: 15px; height: 15px;
-  display: flex; align-items: center; justify-content: center;
+  position: absolute; right: 2px; bottom: 0; font-style: normal; font-size: 0.7rem; font-weight: 700;
+  color: #fff; background: rgba(0,0,0,0.65); border-radius: 50%; width: 16px; height: 16px;
+  display: flex; align-items: center; justify-content: center; z-index: 2;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
 /* ---------- Tak (Đường Đá) ---------- */
@@ -3542,35 +3573,55 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
 .tak-hint { font-size: 0.82rem; opacity: 0.85; }
 .tak-wrap { width: 100%; display: flex; justify-content: center; }
 .tak-board {
-  display: grid; gap: 4px; padding: 10px; border-radius: 14px;
-  background: linear-gradient(135deg, #6b4f33, #533d27);
-  box-shadow: var(--shadow), inset 0 0 30px rgba(0,0,0,0.4);
+  display: grid; gap: 5px; padding: 12px; border-radius: 16px;
+  background:
+    linear-gradient(135deg, #7a5a38, #4f3a24),
+    repeating-linear-gradient(48deg, rgba(0,0,0,0.05) 0 4px, transparent 4px 9px);
+  box-shadow: var(--shadow), 0 12px 30px rgba(0,0,0,0.5), inset 0 0 30px rgba(0,0,0,0.45);
 }
 .tak-cell {
   width: min(15vw, 68px); height: min(15vw, 68px);
-  border-radius: 8px; background: linear-gradient(135deg, #e9d3ad, #d8be93);
+  border-radius: 9px;
+  background:
+    linear-gradient(135deg, #efdab4 0%, #ddc295 100%),
+    repeating-linear-gradient(82deg, rgba(150,110,60,0.08) 0 2px, transparent 2px 7px);
+  background-blend-mode: multiply;
   position: relative; cursor: pointer; overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(120,85,45,0.25), inset 0 2px 4px rgba(255,255,255,0.3);
+  transition: box-shadow 0.15s;
 }
-.tak-cell.last { box-shadow: inset 0 0 0 3px rgba(255,209,102,0.85); }
-.tak-cell.dragsrc { box-shadow: inset 0 0 0 3px var(--accent); }
+.tak-cell.last { box-shadow: inset 0 0 0 3px rgba(255,209,102,0.9), 0 0 12px rgba(255,209,102,0.4); }
+.tak-cell.dragsrc { box-shadow: inset 0 0 0 3px var(--accent), inset 0 0 16px rgba(255,209,102,0.4); }
 .tak-cell.dragtgt::after {
   content: ""; position: absolute; inset: 30%; border-radius: 50%;
-  background: rgba(110,231,183,0.8); box-shadow: 0 0 8px rgba(110,231,183,0.6);
+  background: radial-gradient(circle at 40% 35%, #b8ffd8, #4fd99a);
+  box-shadow: 0 0 10px rgba(110,231,183,0.7);
+  animation: tak-pulse 1.1s ease-in-out infinite; z-index: 5;
 }
+@keyframes tak-pulse { 0%,100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.15); opacity: 1; } }
 .tak-stack { position: absolute; inset: 0; }
 .tak-pc {
   position: absolute; left: 12%; right: 12%;
   bottom: calc(8% + var(--o) * 7px);
   height: 22%; border-radius: 4px; font-style: normal;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.35);
+  animation: tak-place 0.2s ease-out;
 }
-.tak-pc.p1 { background: linear-gradient(135deg, #7fa8ff, #3f6fe0); }
-.tak-pc.p2 { background: linear-gradient(135deg, #ffba7a, #f0832f); }
-.tak-pc.wall { transform: rotate(38deg); left: 30%; right: 30%; height: 40%; bottom: 30%; border-radius: 3px; }
-.tak-pc.cap { left: 22%; right: 22%; height: 30%; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.6), inset 0 0 0 2px rgba(255,255,255,0.3); }
+@keyframes tak-place { from { transform: translateY(-8px); opacity: 0.3; } to { transform: translateY(0); opacity: 1; } }
+.tak-pc.p1 { background: linear-gradient(135deg, #9cbcff, #3f6fe0 60%, #2a52bf); }
+.tak-pc.p2 { background: linear-gradient(135deg, #ffc890, #f0832f 60%, #d2630f); }
+.tak-pc.wall { transform: rotate(38deg); left: 30%; right: 30%; height: 42%; bottom: 29%; border-radius: 3px; box-shadow: 0 3px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.4); z-index: 3; }
+.tak-pc.cap {
+  left: 20%; right: 20%; height: 32%; border-radius: 50%; z-index: 4;
+  box-shadow: 0 3px 5px rgba(0,0,0,0.65), inset 0 0 0 2px rgba(255,255,255,0.4), inset 0 -3px 5px rgba(0,0,0,0.4);
+}
+.tak-pc.cap::after {
+  content: ""; position: absolute; left: 22%; top: 14%; width: 30%; height: 30%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.6), transparent 70%);
+}
 .tak-more {
   position: absolute; right: 3px; top: 2px; font-style: normal; font-size: 0.7rem; font-weight: 700;
-  color: #fff; background: rgba(0,0,0,0.6); border-radius: 8px; padding: 0 4px;
+  color: #fff; background: rgba(0,0,0,0.65); border-radius: 8px; padding: 0 4px; z-index: 6;
 }
 
 /* ---------- Pong ---------- */
