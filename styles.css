@@ -3512,6 +3512,67 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   display: flex; align-items: center; justify-content: center;
 }
 
+/* ---------- Tak (Đường Đá) ---------- */
+.tak-root { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.tak-hud {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  width: 100%; max-width: 460px;
+}
+.tak-side {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 10px; border-radius: 12px; background: var(--card); border: 2px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.tak-side span { font-size: 0.85rem; opacity: 0.9; }
+.tak-side b { font-size: 1.05rem; }
+.tak-side.p1.active { border-color: #5b8cff; box-shadow: 0 0 12px rgba(91,140,255,0.5); }
+.tak-side.p2.active { border-color: #ff9d4d; box-shadow: 0 0 12px rgba(255,157,77,0.5); }
+.tak-mid { font-weight: 700; opacity: 0.6; }
+.tak-tools {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;
+  min-height: 30px; max-width: 520px;
+}
+.tak-btn {
+  padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border, #3a3f4b);
+  background: var(--card); color: var(--text); cursor: pointer; font-size: 0.85rem;
+}
+.tak-btn.mini { padding: 4px 9px; min-width: 28px; }
+.tak-btn.on { background: var(--accent); color: #08111f; border-color: var(--accent); font-weight: 700; }
+.tak-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.tak-hint { font-size: 0.82rem; opacity: 0.85; }
+.tak-wrap { width: 100%; display: flex; justify-content: center; }
+.tak-board {
+  display: grid; gap: 4px; padding: 10px; border-radius: 14px;
+  background: linear-gradient(135deg, #6b4f33, #533d27);
+  box-shadow: var(--shadow), inset 0 0 30px rgba(0,0,0,0.4);
+}
+.tak-cell {
+  width: min(15vw, 68px); height: min(15vw, 68px);
+  border-radius: 8px; background: linear-gradient(135deg, #e9d3ad, #d8be93);
+  position: relative; cursor: pointer; overflow: hidden;
+}
+.tak-cell.last { box-shadow: inset 0 0 0 3px rgba(255,209,102,0.85); }
+.tak-cell.dragsrc { box-shadow: inset 0 0 0 3px var(--accent); }
+.tak-cell.dragtgt::after {
+  content: ""; position: absolute; inset: 30%; border-radius: 50%;
+  background: rgba(110,231,183,0.8); box-shadow: 0 0 8px rgba(110,231,183,0.6);
+}
+.tak-stack { position: absolute; inset: 0; }
+.tak-pc {
+  position: absolute; left: 12%; right: 12%;
+  bottom: calc(8% + var(--o) * 7px);
+  height: 22%; border-radius: 4px; font-style: normal;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.tak-pc.p1 { background: linear-gradient(135deg, #7fa8ff, #3f6fe0); }
+.tak-pc.p2 { background: linear-gradient(135deg, #ffba7a, #f0832f); }
+.tak-pc.wall { transform: rotate(38deg); left: 30%; right: 30%; height: 40%; bottom: 30%; border-radius: 3px; }
+.tak-pc.cap { left: 22%; right: 22%; height: 30%; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.6), inset 0 0 0 2px rgba(255,255,255,0.3); }
+.tak-more {
+  position: absolute; right: 3px; top: 2px; font-style: normal; font-size: 0.7rem; font-weight: 700;
+  color: #fff; background: rgba(0,0,0,0.6); border-radius: 8px; padding: 0 4px;
+}
+
 /* ---------- Pong ---------- */
 .pong-canvas {
   width: min(700px, 96vw);

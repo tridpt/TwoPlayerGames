@@ -111,6 +111,18 @@ var GAMES_EN_DATA = {
       "WIN when all 6 cells around the enemy Queen are filled (by pieces of either color). If both Queens are surrounded at once, it's a draw.",
     ],
   },
+  tak: {
+    name: "Tak (Build a Road)",
+    description: "An elegant road-building game: place flat stones, raise walls to block, and move whole stacks by dropping them along a line. Connect a 'road' of your pieces between two opposite edges to win.",
+    howTo: [
+      "Goal: build a ROAD of your Flat/Capstone pieces linking two OPPOSITE edges of the board (top–bottom or left–right).",
+      "Opening (first 2 moves): each player places one of the OPPONENT's Flat stones on any empty cell. Player 1 is Blue, Player 2 is Orange.",
+      "Each turn pick one: PLACE a new piece from your supply on an empty cell, OR MOVE a stack you control (your piece is on top).",
+      "Three piece types: ▭ Flat (counts for roads & scoring), ◧ Wall (standing, BLOCKS roads, doesn't count), ⬢ Capstone (counts for roads, and is the ONLY piece that can flatten a Wall).",
+      "Moving a stack: choose how many to PICK UP (max = board size) in the toolbar, click your stack, then click cells one by one along ONE straight line to drop a piece each step; click the last cell again to finish.",
+      "You win instantly by completing a road. If the board fills or a player runs out of pieces, count the Flat stones on top — more flats wins.",
+    ],
+  },
   isolation: {
     name: "Isolation",
     description: "Move your pawn then remove a tile. Trap your opponent until they cannot move.",

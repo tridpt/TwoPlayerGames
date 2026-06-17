@@ -200,7 +200,7 @@
       icon: "♟️",
       hint: "Caro, cờ lật, kết nối, đặt tường và các game bàn cờ kinh điển.",
       hintKey: "grpBoardHint",
-      games: ["tictactoe", "ultimatettt", "gomoku", "connectfour", "reversi", "pentago", "morris", "checkers", "minichess", "konane", "hive", "isolation", "sim", "sprouts", "laserchess", "pathlockduel", "hunterswarm", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
+      games: ["tictactoe", "ultimatettt", "gomoku", "connectfour", "reversi", "pentago", "morris", "checkers", "minichess", "konane", "hive", "tak", "isolation", "sim", "sprouts", "laserchess", "pathlockduel", "hunterswarm", "hex", "quoridor", "mancala", "dotsandboxes", "orderchaos", "nim", "stratego"],
     },
     {
       title: "Chiến thuật trên bản đồ",
