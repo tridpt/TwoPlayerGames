@@ -14,6 +14,21 @@
   const HAND = { Q: 1, B: 2, G: 3, S: 2, A: 3 };
   const TYPE_ORDER = ["Q", "B", "G", "S", "A"];
   const EMOJI = { Q: "🐝", B: "🪲", G: "🦗", S: "🕷️", A: "🐜" };
+  // tên + cách đi ngắn gọn cho mỗi loài (giúp người mới dễ hiểu)
+  const PNAME = {
+    Q: ["Ong Chúa", "Queen"],
+    B: ["Bọ cánh cứng", "Beetle"],
+    G: ["Châu chấu", "Grasshopper"],
+    S: ["Nhện", "Spider"],
+    A: ["Kiến", "Ant"],
+  };
+  const PHINT = {
+    Q: ["trượt 1 ô — phải bảo vệ, thua nếu bị vây kín", "slides 1 cell — protect it, you lose if it's surrounded"],
+    B: ["đi 1 ô, leo ĐÈ lên quân khác", "moves 1 cell, can climb on top of pieces"],
+    G: ["nhảy thẳng qua hàng quân liền kề", "jumps straight over a line of pieces"],
+    S: ["đi đúng 3 ô quanh viền tổ", "moves exactly 3 steps around the hive"],
+    A: ["trượt xa tùy ý quanh viền tổ", "slides any distance around the hive"],
+  };
 
   const key = (q, r) => q + "," + r;
   function neighbors(q, r) { return DIRS.map(([dq, dr]) => [q + dq, r + dr]); }
@@ -272,6 +287,7 @@
       if (!allowedTypes(cells, turn).includes(t)) return;
       selected = { kind: "hand", t };
       render();
+      updateStatus();
     }
     function onCellClick(q, r) {
       if (!canPlay()) return;
@@ -292,10 +308,12 @@
       if (top && top.p === turn && queenPlaced(cells, turn) && pieceMoves(cells, q, r).length) {
         selected = { kind: "board", q, r };
         render();
+        updateStatus();
         return;
       }
       selected = null;
       render();
+      updateStatus();
     }
 
     function applyMove(move, fromRemote) {
@@ -395,7 +413,12 @@
         chip.className = "hive-chip pc-p" + (p + 1);
         chip.disabled = !(canAct && n > 0 && types.includes(t));
         if (selected && selected.kind === "hand" && turn === p && selected.t === t) chip.classList.add("sel");
-        chip.innerHTML = `<span class="hive-emoji">${EMOJI[t]}</span><span class="hive-cnt">×${n}</span>`;
+        const nm = ctx.t(PNAME[t][0], PNAME[t][1]);
+        chip.title = nm + " — " + ctx.t(PHINT[t][0], PHINT[t][1]);
+        chip.innerHTML =
+          `<span class="hive-emoji">${EMOJI[t]}</span>` +
+          `<span class="hive-label"><b>${nm}</b><i>${ctx.t(PHINT[t][0], PHINT[t][1])}</i></span>` +
+          `<span class="hive-cnt">×${n}</span>`;
         chip.addEventListener("click", () => onHandClick(p, t));
         trayEl.appendChild(chip);
       }
@@ -479,6 +502,23 @@
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus(ctx.t("Đối thủ đang đi...", "Opponent is moving...")); return; }
+      // đang chọn quân trong khay -> nhắc tên + cách đi
+      if (selected && selected.kind === "hand") {
+        const t = selected.t;
+        ctx.setStatus(ctx.t(
+          `Đặt ${PNAME[t][0]} ${EMOJI[t]} (${PHINT[t][0]}) — bấm ô SÁNG để đặt.`,
+          `Place the ${PNAME[t][1]} ${EMOJI[t]} (${PHINT[t][1]}) — click a LIT cell to place it.`));
+        return;
+      }
+      if (selected && selected.kind === "board") {
+        const tp = topAt(cells, selected.q, selected.r);
+        if (tp) {
+          ctx.setStatus(ctx.t(
+            `Di chuyển ${PNAME[tp.t][0]} ${EMOJI[tp.t]} (${PHINT[tp.t][0]}) — bấm ô SÁNG để đi.`,
+            `Move the ${PNAME[tp.t][1]} ${EMOJI[tp.t]} (${PHINT[tp.t][1]}) — click a LIT cell to move.`));
+          return;
+        }
+      }
       const placed = placedCount(cells, turn);
       if (!queenPlaced(cells, turn) && placed >= 3) {
         ctx.setStatus(ctx.t(
@@ -486,9 +526,12 @@
           `Player ${turn + 1}: you MUST place your Queen 🐝 this turn.`));
         return;
       }
+      const tip = !queenPlaced(cells, turn)
+        ? ctx.t(" (nên đặt Ong Chúa 🐝 sớm!)", " (place your Queen 🐝 early!)")
+        : "";
       ctx.setStatus(ctx.t(
-        `Người chơi ${turn + 1}: chọn quân trong khay để ĐẶT, hoặc bấm quân của mình để DI CHUYỂN.`,
-        `Player ${turn + 1}: pick a piece from your tray to PLACE, or click your piece to MOVE.`));
+        `Người chơi ${turn + 1}: chọn 1 con trong khay để ĐẶT, hoặc bấm quân của mình để DI CHUYỂN.${tip}`,
+        `Player ${turn + 1}: pick a bug from your tray to PLACE, or click your piece to MOVE.${tip}`));
     }
 
     // ---------- AI ----------
@@ -610,12 +653,13 @@
     onlineReady: true,
     supportsAI: true,
     howTo: [
-      "Không có bàn cố định. Mỗi bên có bộ quân: 1 Ong Chúa 🐝, 2 Bọ cánh cứng 🪲, 3 Châu chấu 🦗, 2 Nhện 🕷️, 3 Kiến 🐜. Người chơi 1 (Cam) đi trước.",
-      "ĐẶT quân mới (chọn trong khay rồi bấm ô sáng): quân mới phải chạm quân CÙNG MÀU và KHÔNG chạm quân địch (riêng 2 nước đầu của ván được nới lỏng).",
-      "Ong Chúa 🐝 phải xuống bàn chậm nhất ở nước thứ 4 của bạn. Chỉ sau khi Ong Chúa đã xuống, bạn mới được DI CHUYỂN quân.",
-      "Cách đi từng loài: 🐝 Hậu trượt 1 ô; 🕷️ Nhện đúng 3 ô quanh tổ; 🐜 Kiến trượt bao xa tùy ý; 🦗 Châu chấu nhảy thẳng qua hàng quân liền kề; 🪲 Bọ cánh cứng đi 1 ô và có thể LEO ĐÈ lên quân khác.",
-      "Luật MỘT TỔ: không nước nào được làm tổ tách rời, và quân phải 'lách' được qua khe (không chui chỗ bị kẹp kín).",
-      "THẮNG khi cả 6 ô quanh Ong Chúa đối thủ đều bị quân (bất kỳ màu) lấp kín. Nếu cả hai Hậu cùng bị vây thì hòa.",
+      "MỤC TIÊU đơn giản: vây kín Ong Chúa 🐝 của đối thủ — khi cả 6 ô quanh nó đều có quân (màu nào cũng được) thì bạn THẮNG. Hãy bảo vệ Ong Chúa của mình!",
+      "Không có bàn cờ vẽ sẵn — các quân là mảnh lục giác ghép sát nhau, 'tổ' lớn dần. Mỗi bên có: 1 Ong Chúa 🐝, 2 Bọ cánh cứng 🪲, 3 Châu chấu 🦗, 2 Nhện 🕷️, 3 Kiến 🐜 (xem tên & cách đi ngay trên mỗi nút trong khay). Cam đi trước.",
+      "ĐẶT quân: bấm 1 con trong khay (khay của bạn nằm phía bạn), rồi bấm ô SÁNG. Quân mới phải chạm quân CÙNG MÀU và KHÔNG chạm quân địch (riêng 2 nước đầu được nới lỏng).",
+      "Ong Chúa 🐝 phải được đặt chậm nhất ở nước thứ 4. Bạn chỉ được DI CHUYỂN quân SAU KHI Ong Chúa đã ở trên bàn — bấm quân của mình rồi bấm ô sáng để đi.",
+      "Cách đi từng loài: 🐝 Ong Chúa trượt 1 ô; 🪲 Bọ cánh cứng đi 1 ô và LEO ĐÈ lên quân khác; 🦗 Châu chấu nhảy thẳng qua hàng quân liền kề; 🕷️ Nhện đi đúng 3 ô quanh viền tổ; 🐜 Kiến trượt xa tùy ý quanh viền tổ.",
+      "Luật MỘT TỔ: tổ luôn phải LIỀN MỘT KHỐI — không nước nào được tách rời tổ, và quân phải 'lách' được qua khe (không chui qua chỗ bị kẹp kín hai bên).",
+      "Mẹo cho người mới: đặt Ong Chúa sớm để được di chuyển, dùng Kiến 🐜 (cơ động nhất) để bao vây, và đừng để quân mình vô tình bịt nốt ô cuối quanh Ong Chúa của chính mình.",
     ],
     create,
   });

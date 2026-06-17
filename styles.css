@@ -3487,19 +3487,23 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
 .hive-mid { display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--muted); padding: 0 4px; }
 
 .hive-tray {
-  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: 100%; max-width: 560px;
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: 100%; max-width: 600px;
 }
 .hive-chip {
-  display: inline-flex; align-items: center; gap: 3px; padding: 6px 9px; border-radius: 10px; cursor: pointer;
-  border: 2px solid rgba(0,0,0,0.15); background: var(--card); color: var(--text); font-size: 1.05rem; line-height: 1;
-  transition: transform 0.08s, box-shadow 0.12s;
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; cursor: pointer;
+  border: 2px solid rgba(0,0,0,0.15); background: var(--card); color: var(--text); line-height: 1.15;
+  transition: transform 0.08s, box-shadow 0.12s; text-align: left;
 }
-.hive-chip:disabled { opacity: 0.4; cursor: default; }
+.hive-chip:disabled { opacity: 0.45; cursor: default; }
 .hive-chip:not(:disabled):hover { transform: translateY(-2px); }
 .hive-chip.sel { box-shadow: 0 0 0 3px var(--accent); }
 .hive-chip.pc-p1 { background: linear-gradient(135deg, #ffb778, #ff8c3b); color: #3a1d05; }
 .hive-chip.pc-p2 { background: linear-gradient(135deg, #d2b3ff, #b07cff); color: #2a1147; }
-.hive-cnt { font-size: 0.75rem; font-weight: 700; }
+.hive-chip .hive-emoji { font-size: 1.35rem; }
+.hive-label { display: flex; flex-direction: column; }
+.hive-label b { font-size: 0.78rem; font-weight: 700; }
+.hive-label i { font-size: 0.64rem; font-style: normal; opacity: 0.78; max-width: 120px; }
+.hive-cnt { font-size: 0.8rem; font-weight: 700; margin-left: 2px; }
 
 .hive-wrap {
   width: 100%; max-width: 640px; overflow: auto; border-radius: 16px;

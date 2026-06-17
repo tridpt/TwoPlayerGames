@@ -1413,11 +1413,18 @@
   }
 
   // Tìm kiếm game theo tên / mô tả
+  function normalizeText(s) {
+    return (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // bỏ dấu (ō->o, ờ->o, ...)
+      .replace(/\u0111/g, "d"); // đ -> d
+  }
   function runSearch(query) {
-    const q = (query || "").trim().toLowerCase();
+    const q = normalizeText(query).trim();
     if (!q) { renderCategory(currentCategory); return; }
     baseList = GameRegistry.games.filter((g) => {
-      const hay = `${g.name} ${g.description || ""} ${gameName(g)} ${gameDesc(g)}`.toLowerCase();
+      const hay = normalizeText(`${g.id} ${g.name} ${g.description || ""} ${gameName(g)} ${gameDesc(g)}`);
       return hay.includes(q);
     });
     shownCount = PAGE_SIZE;
