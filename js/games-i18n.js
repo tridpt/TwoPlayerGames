@@ -124,6 +124,30 @@ var GAMES_EN_DATA = {
       "You win instantly by completing a road. If the board fills or a player runs out of pieces, count the Flat stones on top — more flats wins.",
     ],
   },
+  kamisado: {
+    name: "Kamisado",
+    description: "A chain-reaction color game: towers move like a queen toward the enemy, and the color of the cell you land on FORCES your opponent to move their tower of that color. Reach the far row to win.",
+    howTo: [
+      "An 8×8 board where every cell is one of 8 colors. Each side has 8 towers, each a different color, on its home row. Player 1 is at the bottom (moves UP), Player 2 at the top (moves DOWN).",
+      "Towers move STRAIGHT or DIAGONALLY toward the opponent's side, any distance, NEVER backward or sideways, and cannot jump over others.",
+      "CORE RULE: after each move, the COLOR of the cell you stopped on FORCES the opponent — they must move the tower of THAT color (it's highlighted).",
+      "The very first move of the game lets you pick any tower. After that you're always bound by color.",
+      "WIN instantly by getting any tower to the FAR home row (the opponent's back row).",
+      "If a forced tower has no legal move it's 'stuck': the turn bounces back to the opponent using the color of the cell the stuck tower sits on. If both sides are stuck, it's a draw.",
+    ],
+  },
+  amazons: {
+    name: "Game of the Amazons",
+    description: "A territory game: each side has 4 queens that move like a chess queen, then shoot an arrow that blocks a cell forever. The board keeps shrinking — whoever runs out of moves first loses.",
+    howTo: [
+      "Each side has 4 Queens ♛ (Player 1 White, Player 2 Black). A queen moves like a chess queen: straight or diagonal, any distance, no jumping over pieces or arrows.",
+      "Every turn has 2 MANDATORY parts: (1) move one queen to an empty cell; (2) from the NEW square, shoot an arrow 🏹 straight or diagonally to an empty cell.",
+      "The cell hit by an arrow is BLOCKED FOREVER — no one can pass through or land on it. The board keeps getting tighter.",
+      "Click your queen (lit cells show where it can go), click a destination to move, then click again to shoot the arrow.",
+      "You LOSE if it's your turn and you have no legal move (all your queens are boxed in). So fight to claim and keep open space.",
+      "Strategy: use arrows to trap enemy queens and split the board into regions where you control more cells.",
+    ],
+  },
   isolation: {
     name: "Isolation",
     description: "Move your pawn then remove a tile. Trap your opponent until they cannot move.",

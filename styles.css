@@ -3645,6 +3645,113 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
   color: #fff; background: rgba(0,0,0,0.65); border-radius: 8px; padding: 0 4px; z-index: 6;
 }
 
+/* ---------- Kamisado ---------- */
+.kam-root { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.kam-hud {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; max-width: 520px;
+}
+.kam-side {
+  flex: 1; padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,0.04);
+  border: 2px solid transparent; transition: border-color 0.25s, box-shadow 0.25s; font-size: 0.9rem;
+}
+.kam-side.p2 { text-align: right; }
+.kam-side.active { border-color: var(--accent); box-shadow: 0 0 14px rgba(255,209,102,0.3); }
+.kam-mid { display: flex; align-items: center; gap: 5px; font-weight: 700; font-size: 0.9rem; }
+.kam-swatch { display: inline-block; width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.5); vertical-align: middle; }
+.kam-wrap { width: 100%; display: flex; justify-content: center; }
+.kam-board {
+  display: grid; grid-template-columns: repeat(8, 1fr);
+  width: min(94vw, 540px); aspect-ratio: 1/1;
+  border-radius: 12px; overflow: hidden; border: 6px solid #1c1f29;
+  box-shadow: var(--shadow), 0 10px 26px rgba(0,0,0,0.5);
+}
+.kam-cell { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.kam-cell::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.0); transition: background 0.15s; }
+.kam-cell.lastfrom::before { background: rgba(255,255,255,0.18); }
+.kam-cell.lastto::before { background: rgba(255,255,255,0.28); }
+.kam-cell.hint::after {
+  content: ""; position: absolute; width: 26%; height: 26%; border-radius: 50%;
+  background: rgba(255,255,255,0.85); box-shadow: 0 0 10px rgba(255,255,255,0.7);
+  animation: kam-pulse 1.1s ease-in-out infinite;
+}
+@keyframes kam-pulse { 0%,100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } }
+.kam-tower {
+  width: 72%; height: 72%; border-radius: 14%; position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--cl);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.5), inset 0 0 0 3px rgba(255,255,255,0.18);
+  animation: kam-place 0.2s ease-out;
+}
+@keyframes kam-place { from { transform: scale(0.6); } to { transform: scale(1); } }
+.kam-tower::after {
+  content: ""; width: 42%; height: 42%; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.92);
+}
+.kam-tower.p1 { box-shadow: 0 3px 6px rgba(0,0,0,0.5), inset 0 0 0 3px #ffffff, 0 0 0 2px rgba(255,255,255,0.35); }
+.kam-tower.p2 { box-shadow: 0 3px 6px rgba(0,0,0,0.6), inset 0 0 0 3px #111319, 0 0 0 2px rgba(0,0,0,0.45); }
+.kam-tower.p2::after { border-color: #111319; }
+.kam-tower.pickable { animation: kam-glow 1s ease-in-out infinite; cursor: pointer; }
+@keyframes kam-glow {
+  0%,100% { outline: 3px solid rgba(255,209,102,0.6); outline-offset: 1px; }
+  50% { outline: 3px solid rgba(255,209,102,1); outline-offset: 3px; }
+}
+.kam-tower.sel { outline: 4px solid var(--accent) !important; outline-offset: 2px; transform: scale(1.06); }
+.kam-tower.win { animation: kam-win 0.85s ease-in-out infinite; }
+@keyframes kam-win {
+  0%,100% { box-shadow: 0 0 0 3px rgba(255,209,102,0.9), 0 0 14px rgba(255,209,102,0.6); transform: scale(1); }
+  50% { box-shadow: 0 0 0 5px #ffd166, 0 0 26px rgba(255,209,102,1); transform: scale(1.12); }
+}
+
+/* ---------- Cờ Amazon (Amazons) ---------- */
+.amz-root { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.amz-hud {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; max-width: 540px;
+}
+.amz-side {
+  flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 12px;
+  background: rgba(255,255,255,0.04); border: 2px solid transparent; transition: border-color 0.25s, box-shadow 0.25s;
+}
+.amz-side.p2 { text-align: right; }
+.amz-side b { font-size: 0.8rem; opacity: 0.85; }
+.amz-side.active { border-color: var(--accent); box-shadow: 0 0 14px rgba(255,209,102,0.28); }
+.amz-mid { font-weight: 700; opacity: 0.8; }
+.amz-wrap { width: 100%; display: flex; justify-content: center; }
+.amz-board {
+  display: grid; width: min(94vw, 560px); aspect-ratio: 1/1;
+  border-radius: 10px; overflow: hidden; border: 6px solid #3a2c1c;
+  box-shadow: var(--shadow), 0 10px 26px rgba(0,0,0,0.5);
+}
+.amz-cell { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.amz-cell.l { background: linear-gradient(135deg, #e9d3ad, #dcc196); }
+.amz-cell.d { background: linear-gradient(135deg, #b78a56, #a3793f); }
+.amz-cell.movedto { box-shadow: inset 0 0 0 3px var(--accent); }
+.amz-cell.lastfrom { background-image: linear-gradient(rgba(255,209,102,0.22), rgba(255,209,102,0.22)); }
+.amz-cell.lastto { background-image: linear-gradient(rgba(255,209,102,0.34), rgba(255,209,102,0.34)); }
+.amz-cell.lastarrow { background-image: linear-gradient(rgba(255,93,115,0.3), rgba(255,93,115,0.3)); }
+.amz-cell.hint::after {
+  content: ""; position: absolute; width: 34%; height: 34%; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #b8ffd8, #4fd99a);
+  box-shadow: 0 0 9px rgba(110,231,183,0.65);
+}
+.amz-cell.hint.shoot::after { background: radial-gradient(circle at 40% 35%, #ffd1b8, #ff7a4f); box-shadow: 0 0 9px rgba(255,122,79,0.7); }
+.amz-queen {
+  width: 80%; height: 80%; display: flex; align-items: center; justify-content: center;
+  font-size: min(7vw, 2rem); line-height: 1; border-radius: 50%;
+  animation: amz-place 0.2s ease-out;
+}
+@keyframes amz-place { from { transform: scale(0.6); } to { transform: scale(1); } }
+.amz-queen.p1 { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.7), 0 0 5px rgba(0,0,0,0.5); }
+.amz-queen.p2 { color: #15171e; text-shadow: 0 1px 1px rgba(255,255,255,0.45); }
+.amz-queen.sel { outline: 4px solid var(--accent); outline-offset: -2px; border-radius: 50%; transform: scale(1.05); }
+.amz-queen.win { animation: kam-win 0.85s ease-in-out infinite; border-radius: 50%; }
+.amz-arrow {
+  width: 56%; height: 56%; border-radius: 4px;
+  background: repeating-linear-gradient(45deg, #3a3f4b 0 5px, #2a2e38 5px 10px);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.5);
+}
+
 /* ---------- Pong ---------- */
 .pong-canvas {
   width: min(700px, 96vw);
