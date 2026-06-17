@@ -99,6 +99,18 @@ var GAMES_EN_DATA = {
       "Tip: keep your own moves alive while squeezing the opponent's mobility — Kōnane is a race to see who runs dry first.",
     ],
   },
+  hive: {
+    name: "Hive",
+    description: "A boardless strategy game: pieces are hexagonal tiles placed edge to edge, and the 'hive' grows as you play. Each insect moves differently. Surround the enemy Queen to win.",
+    howTo: [
+      "There is no fixed board. Each side has: 1 Queen Bee 🐝, 2 Beetles 🪲, 3 Grasshoppers 🦗, 2 Spiders 🕷️, 3 Ants 🐜. Player 1 (Orange) goes first.",
+      "PLACE a new piece (pick it from your tray then click a lit cell): a new piece must touch a piece of your OWN color and NOT touch any enemy piece (the first two moves of the game are relaxed).",
+      "The Queen 🐝 must be placed by your 4th move at the latest. Only after your Queen is down may you MOVE pieces.",
+      "How each insect moves: 🐝 Queen slides 1 cell; 🕷️ Spider exactly 3 steps around the hive; 🐜 Ant slides any distance; 🦗 Grasshopper jumps straight over a line of adjacent pieces; 🪲 Beetle steps 1 cell and can CLIMB on top of other pieces.",
+      "ONE-HIVE rule: no move may split the hive into pieces, and a piece must be able to 'slide' through gaps (it can't squeeze through a fully pinched spot).",
+      "WIN when all 6 cells around the enemy Queen are filled (by pieces of either color). If both Queens are surrounded at once, it's a draw.",
+    ],
+  },
   isolation: {
     name: "Isolation",
     description: "Move your pawn then remove a tile. Trap your opponent until they cannot move.",
