@@ -3720,6 +3720,7 @@ body.theme-light .tour-ring { box-shadow: 0 0 0 9999px rgba(20, 26, 50, 0.45), 0
 .amz-wrap { width: 100%; display: flex; justify-content: center; }
 .amz-board {
   display: grid; width: min(94vw, 560px); aspect-ratio: 1/1;
+  grid-auto-rows: 1fr;
   border-radius: 10px; overflow: hidden; border: 6px solid #3a2c1c;
   box-shadow: var(--shadow), 0 10px 26px rgba(0,0,0,0.5);
 }
