@@ -285,6 +285,8 @@
       const moves = genMovesB(b, p);
       if (!moves.length) return p === me ? -10000 - depth : 10000 + depth; // p hết nước -> thua
       if (depth === 0) return evalB(b, me);
+      // sắp xếp nước: ưu tiên ăn nhiều quân -> alpha-beta cắt tỉa tốt hơn nhiều
+      if (depth >= 2 && moves.length > 1) moves.sort((a, b2) => b2.caps.length - a.caps.length);
       if (p === me) {
         let v = -Infinity;
         for (const m of moves) {
@@ -321,6 +323,8 @@
         const m = moves[Math.floor(Math.random() * moves.length)];
         return { from: m.from.slice(), to: m.to.slice(), caps: m.caps };
       }
+      // sắp xếp gốc: ăn nhiều trước -> alpha-beta hiệu quả hơn
+      moves.sort((a, b) => b.caps.length - a.caps.length);
       const depth = level === "easy" ? 2 : level === "hard" ? 5 : 3;
       let best = -Infinity, pick = moves[0];
       for (const m of moves) {

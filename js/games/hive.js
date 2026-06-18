@@ -642,23 +642,36 @@
       if (!acts.length) return null;
       if (level === "easy" && Math.random() < 0.45) return acts[Math.floor(Math.random() * acts.length)];
 
-      let best = -Infinity, pick = acts[0];
-      const deep = level === "hard";
+      // giai đoạn 1: chấm điểm nông cho mọi nước (rẻ), bắt thắng ngay
+      const scored = [];
       for (const act of acts) {
+        const [C2] = applyToCopy(cells, hands, me, act);
+        if (queenSurrounded(C2, 1 - me)) return act; // thắng ngay
+        scored.push({ act, sc: evalFor(C2, me) });
+      }
+      if (level !== "hard") {
+        // normal: chọn theo eval nông + chút ngẫu nhiên
+        let best = -Infinity, pick = scored[0].act;
+        for (const s of scored) { const v = s.sc + Math.random() * 0.5; if (v > best) { best = v; pick = s.act; } }
+        return pick;
+      }
+
+      // hard: chỉ lookahead phản công cho TOP-K nước tốt nhất (giảm tải lớn)
+      scored.sort((a, b) => b.sc - a.sc);
+      const topK = Math.min(10, scored.length);
+      let best = -Infinity, pick = scored[0].act;
+      for (let i = 0; i < topK; i++) {
+        const act = scored[i].act;
         const [C2, H2] = applyToCopy(cells, hands, me, act);
-        let sc = evalFor(C2, me);
-        if (queenSurrounded(C2, 1 - me)) { return act; } // thắng ngay
-        if (deep) {
-          // trừ điểm theo nước phản công tốt nhất của đối thủ
-          const opp = legalActionsPure(C2, H2, 1 - me);
-          let worst = Infinity;
-          for (const oa of opp.slice(0, 40)) {
-            const [C3] = applyToCopy(C2, H2, 1 - me, oa);
-            worst = Math.min(worst, evalFor(C3, me));
-            if (queenSurrounded(C3, me)) { worst = -2000; break; }
-          }
-          if (opp.length) sc = sc * 0.4 + worst * 0.6;
+        const opp = legalActionsPure(C2, H2, 1 - me);
+        let worst = Infinity;
+        for (const oa of opp.slice(0, 30)) {
+          const [C3] = applyToCopy(C2, H2, 1 - me, oa);
+          if (queenSurrounded(C3, me)) { worst = -2000; break; }
+          const v = evalFor(C3, me);
+          if (v < worst) worst = v;
         }
+        let sc = opp.length ? scored[i].sc * 0.4 + worst * 0.6 : scored[i].sc;
         sc += Math.random() * 0.5;
         if (sc > best) { best = sc; pick = act; }
       }
