@@ -39,11 +39,11 @@ function playOne(id, opts, level, seed, maxPlies) {
   return { plies, finished };
 }
 
-function soak(id, opts, label) {
+function soak(id, opts, label, games) {
   console.log(`\n▶ ${id} ${label || ""}`);
   const levels = ["easy", "normal", "hard"];
   let totalPlies = 0, finishedCount = 0;
-  const GAMES = 9;
+  const GAMES = games || 9;
   const t0 = Date.now();
   for (let g = 0; g < GAMES; g++) {
     const level = levels[g % levels.length];
@@ -57,6 +57,7 @@ function soak(id, opts, label) {
 }
 
 console.log("=== SELF-PLAY SOAK TEST ===");
+// 5 game mới (kỹ, nhiều ván)
 soak("konane", { size: "6" }, "6x6");
 soak("konane", { size: "8" }, "8x8");
 soak("hive", {}, "");
@@ -65,6 +66,19 @@ soak("tak", { size: "4" }, "4x4");
 soak("kamisado", {}, "");
 soak("amazons", { size: "8" }, "8x8");
 soak("amazons", { size: "10" }, "10x10");
+
+// các game cờ turn-based KHÁC tự chơi AI-vs-AI sạch (quét rộng để bắt treo/lỗi luật).
+// Lưu ý: chỉ liệt kê các game mà AI có thể tự đánh cả hai bên tới khi kết thúc.
+// (pentago/mancala/checkers/quoridor... AI vốn chỉ thiết kế cầm 1 bên đấu người,
+//  nên KHÔNG đưa vào self-play — đó là giới hạn của khung test, không phải lỗi game.)
+const MORE = [
+  "gomoku", "connectfour", "reversi", "morris", "minichess", "isolation",
+  "sim", "sprouts", "nim", "orderchaos", "dotsandboxes",
+];
+for (const id of MORE) {
+  try { soak(id, {}, "(quét)", 6); }
+  catch (e) { check(false, `${id}: lỗi khi nạp/chạy: ${e.message}`); }
+}
 
 if (failures) { console.log(`\n❌ ${failures} VẤN ĐỀ phát hiện`); process.exit(1); }
 console.log("\n✅ ALL PASS — không phát hiện treo/lỗi luật");
