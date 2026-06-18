@@ -40,6 +40,7 @@
     let over = false;
     let lastMove = null;        // {from?, to}
     let winHexes = null;        // Set các key ô tô sáng khi thắng (Ong Chúa bị vây + quanh)
+    let movesSincePlace = 0;    // số nước DI CHUYỂN liên tiếp (không đặt quân mới) -> chống lặp vô hạn
     let selected = null;        // {kind:"hand", t} | {kind:"board", q, r}
     const hands = [Object.assign({}, HAND), Object.assign({}, HAND)];
 
@@ -325,6 +326,7 @@
         (cells[key(q, r)] = cells[key(q, r)] || []).push({ p: turn, t });
         hands[turn][t]--;
         lastMove = { to: [q, r] };
+        movesSincePlace = 0;
       } else if (move.from && move.to) {
         const [fq, fr] = move.from.map(Number);
         const [tq, tr] = move.to.map(Number);
@@ -334,6 +336,7 @@
         if (!a.length) delete cells[key(fq, fr)];
         (cells[key(tq, tr)] = cells[key(tq, tr)] || []).push(pc);
         lastMove = { from: [fq, fr], to: [tq, tr] };
+        movesSincePlace++;
       } else return;
 
       selected = null;
@@ -367,6 +370,17 @@
         ctx.setStatus(ctx.t(
           `🎉 Người chơi ${winner + 1} thắng — đã vây kín Ong Chúa đối thủ!`,
           `🎉 Player ${winner + 1} wins — the enemy Queen is surrounded!`));
+        ctx.setTurn(-1);
+        return;
+      }
+
+      // chống lặp vô hạn: quá nhiều nước DI CHUYỂN liên tiếp mà không ai đặt quân mới -> hòa
+      if (movesSincePlace >= 60) {
+        over = true;
+        render();
+        ctx.setStatus(ctx.t(
+          "🤝 Hòa — quá nhiều nước đi qua lại không tiến triển!",
+          "🤝 Draw — too many shuffling moves with no progress!"));
         ctx.setTurn(-1);
         return;
       }

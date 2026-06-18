@@ -103,6 +103,7 @@
 
     // quân bị ép theo màu (hoặc quân được chọn ở nước đầu)
     function forcedPiece(p) {
+      if (p < 0 || !pieces[p]) return -1;
       if (forcedColor < 0) return -1;
       return pieces[p].findIndex((pc) => pc.color === forcedColor);
     }
@@ -110,6 +111,7 @@
     function canPlay() { return !over && (!ctx.isOnline || turn === ctx.mySeat); }
 
     function selectablePieces(p) {
+      if (p < 0 || !pieces[p]) return [];
       const fp = forcedPiece(p);
       if (fp >= 0) return [fp];
       // nước đầu: được chọn quân bất kỳ
