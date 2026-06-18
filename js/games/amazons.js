@@ -234,7 +234,6 @@
 
     // ---------- AI ----------
     function cloneG(G) { return G.map((row) => row.slice()); }
-    // đánh giá: độ cơ động (số nước) của mình trừ đối thủ + kiểm soát ô
     function mobility(G, p) {
       let m = 0;
       for (const [r, c] of queenPositions(G, p)) m += rayTargets(G, r, c).length;
@@ -243,40 +242,73 @@
     function evalG(G, me) {
       return mobility(G, me) - mobility(G, 1 - me);
     }
-    function genFullMoves(G, p, cap) {
-      const out = [];
-      for (const [qr, qc] of queenPositions(G, p)) {
-        for (const [mr, mc] of rayTargets(G, qr, qc)) {
-          // mô phỏng di chuyển rồi liệt kê chỗ bắn
-          G[qr][qc] = null; G[mr][mc] = p;
-          const shots = rayTargets(G, mr, mc);
-          for (const [ar, ac] of shots) {
-            out.push({ from: [qr, qc], to: [mr, mc], arrow: [ar, ac] });
-            if (out.length >= cap) { G[mr][mc] = null; G[qr][qc] = p; return out; }
-          }
-          G[mr][mc] = null; G[qr][qc] = p;
-        }
-      }
-      return out;
-    }
+    // AI 2 giai đoạn (nhanh, không clone hàng nghìn lần):
+    //  1) chọn nước DI CHUYỂN hậu tốt nhất theo độ cơ động (mutate tại chỗ).
+    //  2) với vài nước đi tốt nhất, chọn MŨI TÊN làm giảm cơ động đối thủ nhiều nhất.
     function aiMove(level) {
       if (over) return null;
       const me = turn;
-      const cap = level === "hard" ? 1400 : level === "easy" ? 200 : 600;
-      const moves = genFullMoves(grid, me, cap);
-      if (!moves.length) return null;
-      if (level === "easy" && Math.random() < 0.5) return moves[Math.floor(Math.random() * moves.length)];
-      let best = -Infinity, pick = moves[0];
-      for (const m of moves) {
-        const G = cloneG(grid);
-        G[m.from[0]][m.from[1]] = null;
-        G[m.to[0]][m.to[1]] = me;
-        G[m.arrow[0]][m.arrow[1]] = "x";
-        // nếu nước này làm đối thủ hết đường -> thắng ngay
-        if (!hasAnyMove(G, 1 - me)) return m;
-        let sc = evalG(G, me) + Math.random() * 0.5;
-        if (sc > best) { best = sc; pick = m; }
+      const opp = 1 - me;
+      const G = grid; // mutate tại chỗ rồi hoàn lại
+
+      // --- giai đoạn 1: liệt kê & chấm điểm các nước đi hậu ---
+      const queens = queenPositions(G, me);
+      const moveCands = [];
+      for (const [qr, qc] of queens) {
+        for (const [mr, mc] of rayTargets(G, qr, qc)) {
+          G[qr][qc] = null; G[mr][mc] = me;
+          if (!hasAnyMove(G, opp)) { const a = bestArrowQuick2(G, mr, mc, me); G[mr][mc] = null; G[qr][qc] = me; return { from: [qr, qc], to: [mr, mc], arrow: a }; }
+          const score = mobility(G, me) - mobility(G, opp);
+          G[mr][mc] = null; G[qr][qc] = me;
+          moveCands.push({ from: [qr, qc], to: [mr, mc], score });
+        }
       }
+      if (!moveCands.length) return null;
+      moveCands.sort((a, b) => b.score - a.score);
+      if (level === "easy" && Math.random() < 0.5) {
+        const m = moveCands[Math.floor(Math.random() * Math.min(moveCands.length, 8))];
+        return { from: m.from, to: m.to, arrow: bestArrowQuick(G, m.from, m.to, me) };
+      }
+      const topK = level === "hard" ? 14 : level === "normal" ? 7 : 3;
+
+      // --- giai đoạn 2: với top-K nước đi, tìm mũi tên tốt nhất ---
+      let best = -Infinity, pick = null;
+      for (let i = 0; i < Math.min(topK, moveCands.length); i++) {
+        const m = moveCands[i];
+        const [qr, qc] = m.from, [mr, mc] = m.to;
+        G[qr][qc] = null; G[mr][mc] = me;
+        for (const [ar, ac] of rayTargets(G, mr, mc)) {
+          G[ar][ac] = "x";
+          if (!hasAnyMove(G, opp)) { G[ar][ac] = null; G[mr][mc] = null; G[qr][qc] = me; return { from: [qr, qc], to: [mr, mc], arrow: [ar, ac] }; }
+          const sc = (mobility(G, me) - mobility(G, opp)) + Math.random() * 0.3;
+          G[ar][ac] = null;
+          if (sc > best) { best = sc; pick = { from: [qr, qc], to: [mr, mc], arrow: [ar, ac] }; }
+        }
+        G[mr][mc] = null; G[qr][qc] = me;
+      }
+      if (pick) return pick;
+      const m0 = moveCands[0];
+      return { from: m0.from, to: m0.to, arrow: bestArrowQuick(G, m0.from, m0.to, me) };
+    }
+    // chọn nhanh 1 mũi tên tốt nhất khi hậu ĐÃ ở (mr,mc) trên G (không hoàn lại G).
+    function bestArrowQuick2(G, mr, mc, me) {
+      const opp = 1 - me;
+      const shots = rayTargets(G, mr, mc);
+      let best = -Infinity, pick = shots[0] || [mr, mc];
+      for (const [ar, ac] of shots) {
+        G[ar][ac] = "x";
+        const sc = -mobility(G, opp);
+        G[ar][ac] = null;
+        if (sc > best) { best = sc; pick = [ar, ac]; }
+      }
+      return pick;
+    }
+    // chọn nhanh 1 mũi tên tốt cho nước đi from->to: mutate G tạm rồi HOÀN LẠI.
+    function bestArrowQuick(G, from, to, me) {
+      const [qr, qc] = from, [mr, mc] = to;
+      G[qr][qc] = null; G[mr][mc] = me;
+      const pick = bestArrowQuick2(G, mr, mc, me);
+      G[mr][mc] = null; G[qr][qc] = me;
       return pick;
     }
 
