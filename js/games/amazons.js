@@ -112,6 +112,17 @@
         return;
       }
       // phase shoot: bắn tên từ movedTo
+      // bấm lại chính ô hậu vừa dời -> HOÀN TÁC nước đi để chọn lại
+      if (movedTo && r === movedTo[0] && c === movedTo[1]) {
+        grid[movedTo[0]][movedTo[1]] = null;
+        grid[movedFrom[0]][movedFrom[1]] = turn;
+        selected = movedFrom.slice();
+        movedTo = null; movedFrom = null;
+        phase = "move";
+        render();
+        updateStatus();
+        return;
+      }
       const ms = rayTargets(grid, movedTo[0], movedTo[1]);
       if (ms.some(([mr, mc]) => mr === r && mc === c)) {
         finalizeMove([r, c], false);
@@ -169,12 +180,16 @@
     function renderHud() {
       const me = ctx.isOnline ? ctx.mySeat : -1;
       const mob = (p) => queenPositions(grid, p).reduce((s, [r, c]) => s + rayTargets(grid, r, c).length, 0);
+      const step = over ? "🏁"
+        : (phase === "move"
+          ? ctx.t("Bước 1/2: DI CHUYỂN ♛", "Step 1/2: MOVE ♛")
+          : ctx.t("Bước 2/2: BẮN TÊN 🏹", "Step 2/2: SHOOT 🏹"));
       hud.innerHTML = `
         <div class="amz-side p1 ${turn === 0 && !over ? "active" : ""}">
           <span>⚪ ${ctx.t("Trắng", "White")}${me === 0 ? ctx.t(" (bạn)", " (you)") : ""}</span>
           <b>${ctx.t("nước", "moves")}: ${mob(0)}</b>
         </div>
-        <div class="amz-mid">${over ? "🏁" : "🏹 " + counts()}</div>
+        <div class="amz-mid">${step}</div>
         <div class="amz-side p2 ${turn === 1 && !over ? "active" : ""}">
           <span>⚫ ${ctx.t("Đen", "Black")}${me === 1 ? ctx.t(" (bạn)", " (you)") : ""}</span>
           <b>${ctx.t("nước", "moves")}: ${mob(1)}</b>
@@ -222,13 +237,19 @@
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus(ctx.t("Đối thủ đang đi...", "Opponent is moving...")); return; }
       if (phase === "move") {
-        ctx.setStatus(ctx.t(
-          `Người chơi ${turn + 1}: chọn 1 Hậu ♛ rồi di chuyển (8 hướng, xa tùy ý).`,
-          `Player ${turn + 1}: pick a Queen ♛ and move it (8 directions, any distance).`));
+        if (selected) {
+          ctx.setStatus(ctx.t(
+            "Bước 1/2 — bấm một ô XANH để di chuyển Hậu tới đó (hoặc bấm Hậu khác để đổi).",
+            "Step 1/2 — click a GREEN cell to move the Queen there (or click another Queen to switch)."));
+        } else {
+          ctx.setStatus(ctx.t(
+            `Người chơi ${turn + 1} — Bước 1/2: bấm một Hậu ♛ của bạn để chọn (đi như hậu cờ vua: 8 hướng).`,
+            `Player ${turn + 1} — Step 1/2: click one of your Queens ♛ to select (moves like a chess queen).`));
+        }
       } else {
         ctx.setStatus(ctx.t(
-          `Người chơi ${turn + 1}: BẮN một mũi tên 🏹 từ ô vừa tới — ô bị bắn bị chặn vĩnh viễn.`,
-          `Player ${turn + 1}: now SHOOT an arrow 🏹 from the new square — it blocks that cell forever.`));
+          "Bước 2/2 — bấm một ô CAM để BẮN mũi tên 🏹 (chặn ô đó vĩnh viễn). Bấm lại Hậu vừa đi để chọn lại.",
+          "Step 2/2 — click an ORANGE cell to SHOOT an arrow 🏹 (blocks it forever). Click the moved Queen again to redo."));
       }
     }
 
@@ -336,12 +357,12 @@
       },
     ],
     howTo: [
+      "MỖI LƯỢT CÓ 2 BƯỚC bắt buộc: (1) DI CHUYỂN một Hậu ♛, rồi (2) BẮN một mũi tên 🏹 từ ô Hậu vừa tới. Phải làm đủ cả hai mới hết lượt.",
       "Mỗi bên có 4 Hậu ♛ (Người chơi 1 Trắng, Người chơi 2 Đen). Hậu đi như quân Hậu cờ vua: thẳng hoặc chéo, xa tùy ý, không nhảy qua quân/mũi tên.",
-      "Mỗi lượt gồm 2 phần BẮT BUỘC: (1) di chuyển một Hậu tới ô trống; (2) từ ô MỚI, bắn một mũi tên 🏹 theo đường thẳng/chéo tới ô trống.",
-      "Ô bị mũi tên bắn trúng bị CHẶN VĨNH VIỄN — không ai đi qua hay đứng lên được nữa. Bàn cứ thế hẹp dần.",
-      "Bấm Hậu của mình (ô gợi ý sáng = nơi đi được), bấm ô đích để di chuyển, rồi bấm tiếp ô để bắn tên.",
-      "THUA nếu tới lượt mà bạn không còn nước đi nào (mọi Hậu đều bị vây kín). Vì vậy hãy giành và giữ không gian rộng.",
-      "Chiến thuật: dùng mũi tên để vây nhốt Hậu địch và chia bàn thành các vùng mà bạn có nhiều ô hơn.",
+      "Cách chơi: bấm một Hậu của mình → các ô đi được sáng XANH, bấm ô xanh để di chuyển. Sau đó các ô bắn được sáng CAM, bấm ô cam để bắn tên. (Đổi ý? Bấm lại Hậu vừa đi để chọn lại.)",
+      "Ô bị mũi tên bắn trúng bị CHẶN VĨNH VIỄN — không ai đi qua hay đứng lên được nữa. Bàn cứ thế hẹp dần sau mỗi lượt.",
+      "THUA nếu tới lượt mà bạn không còn nước đi nào (mọi Hậu đều bị vây kín). Vì vậy hãy giành và giữ không gian rộng cho mình.",
+      "Chiến thuật: dùng mũi tên để vây nhốt Hậu địch và chia bàn thành các vùng mà bạn có nhiều ô trống hơn — cuối ván ai còn nước đi là người thắng.",
     ],
     create,
   });

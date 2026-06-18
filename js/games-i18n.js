@@ -140,12 +140,12 @@ var GAMES_EN_DATA = {
     name: "Game of the Amazons",
     description: "A territory game: each side has 4 queens that move like a chess queen, then shoot an arrow that blocks a cell forever. The board keeps shrinking — whoever runs out of moves first loses.",
     howTo: [
+      "EACH TURN HAS 2 MANDATORY STEPS: (1) MOVE one Queen ♛, then (2) SHOOT an arrow 🏹 from the Queen's new square. You must do both to end your turn.",
       "Each side has 4 Queens ♛ (Player 1 White, Player 2 Black). A queen moves like a chess queen: straight or diagonal, any distance, no jumping over pieces or arrows.",
-      "Every turn has 2 MANDATORY parts: (1) move one queen to an empty cell; (2) from the NEW square, shoot an arrow 🏹 straight or diagonally to an empty cell.",
-      "The cell hit by an arrow is BLOCKED FOREVER — no one can pass through or land on it. The board keeps getting tighter.",
-      "Click your queen (lit cells show where it can go), click a destination to move, then click again to shoot the arrow.",
+      "How to play: click one of your Queens → reachable cells glow GREEN, click a green cell to move. Then shootable cells glow ORANGE, click an orange cell to fire. (Changed your mind? Click the moved Queen again to redo.)",
+      "The cell hit by an arrow is BLOCKED FOREVER — no one can pass through or land on it. The board keeps getting tighter each turn.",
       "You LOSE if it's your turn and you have no legal move (all your queens are boxed in). So fight to claim and keep open space.",
-      "Strategy: use arrows to trap enemy queens and split the board into regions where you control more cells.",
+      "Strategy: use arrows to trap enemy queens and split the board into regions where you control more empty cells — whoever can still move at the end wins.",
     ],
   },
   isolation: {
