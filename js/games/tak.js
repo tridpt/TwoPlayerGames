@@ -363,6 +363,7 @@
         drag.hand.pop();
         if (!drag.hand.length) { finishDrag(); return; }
         renderDrag();
+        updateStatus();
         return;
       }
 
@@ -389,6 +390,7 @@
           total: pickN,
         };
         renderDrag();
+        updateStatus();
         return;
       }
     }
@@ -539,15 +541,24 @@
     function updateStatus() {
       if (over) return;
       if (ctx.isOnline && turn !== ctx.mySeat) { ctx.setStatus(ctx.t("Đối thủ đang đi...", "Opponent is moving...")); return; }
-      if (plies < 2) {
+      // đang kéo một chồng
+      if (drag) {
         ctx.setStatus(ctx.t(
-          `Khai cuộc: Người chơi ${turn + 1} đặt 1 quân phẳng của ĐỐI THỦ lên ô trống bất kỳ.`,
-          `Opening: Player ${turn + 1} places one of the OPPONENT's flat stones on any empty cell.`));
+          `Đang kéo ${drag.total} quân — bấm ô SÁNG kế tiếp (theo 1 đường thẳng) để rải từng quân; bấm lại ô cuối để KẾT THÚC. Bấm ra ngoài để huỷ.`,
+          `Carrying ${drag.total} — click the next LIT cell along one straight line to drop a stone; click the last cell again to FINISH. Click elsewhere to cancel.`));
         return;
       }
+      // khai cuộc: đặt quân của đối thủ (luật swap)
+      if (plies < 2) {
+        ctx.setStatus(ctx.t(
+          `Khai cuộc (luật đổi quân): Người chơi ${turn + 1} bấm 1 ô trống để đặt 1 quân Phẳng của ĐỐI THỦ. Lạ nhưng đúng luật — chỉ 2 nước đầu thôi!`,
+          `Opening (swap rule): Player ${turn + 1}, click any empty cell to place one of the OPPONENT's flat stones. Odd but correct — just the first 2 moves!`));
+        return;
+      }
+      const kindName = placeKind === "flat" ? ctx.t("Phẳng ▭", "Flat ▭") : placeKind === "wall" ? ctx.t("Tường ◧", "Wall ◧") : ctx.t("Đá trùm ⬢", "Capstone ⬢");
       ctx.setStatus(ctx.t(
-        `Người chơi ${turn + 1}: bấm ô trống để ĐẶT (${placeKind === "flat" ? "Phẳng" : placeKind === "wall" ? "Tường" : "Đá trùm"}), hoặc bấm chồng của mình để KÉO.`,
-        `Player ${turn + 1}: click an empty cell to PLACE, or click your stack to MOVE it.`));
+        `Người chơi ${turn + 1}: ĐẶT quân (đang chọn ${kindName} — đổi ở thanh trên) vào ô trống, HOẶC bấm chồng của mình rồi kéo. Mục tiêu: nối đường từ mép này sang mép kia.`,
+        `Player ${turn + 1}: PLACE a stone (currently ${kindName} — change it on the bar) on an empty cell, OR click your stack to move it. Goal: connect a road edge to edge.`));
     }
 
     // ---------- AI ----------
