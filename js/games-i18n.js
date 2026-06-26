@@ -47,6 +47,18 @@ var GAMES_EN_DATA = {
       "Tip: keep your pawns in a connected block so they defend each other — if one is captured diagonally, the pawn behind recaptures. Don't rush forward alone.",
     ],
   },
+  coganh: {
+    name: "Cờ Gánh (Carrying Game)",
+    description: "A Vietnamese folk game from Da Nang: move pieces on a 5x5 line board, land between two enemies to 'carry' (flip) them, or surround an enemy. Capture every enemy piece to win.",
+    howTo: [
+      "A 5x5 board of intersections. Horizontal/vertical lines always connect; diagonal lines exist only at certain marked points. Each side has 8 pieces on the outer edge — Player 1 (Red) at the bottom, Player 2 (Blue) at the top. Red goes first.",
+      "Each turn: click one of your pieces then click an adjacent EMPTY point (along a drawn line) to move there — one step per move.",
+      "CARRY ('gánh'): if you actively move a piece BETWEEN two enemy pieces in a straight line (enemies on both sides), those two enemies flip to your color. You can carry along several directions at once.",
+      "Note: you only carry when YOU move into the middle. Placing your own piece between two enemies on the opponent's turn does NOT lose it — so you can bait the opponent.",
+      "SURROUND ('vây'): if an enemy piece has all its surrounding points occupied (no empty point left to move to), it is surrounded and also flips to your color.",
+      "You WIN when the opponent has no pieces left (you hold all 16), or when the opponent has no legal move.",
+    ],
+  },
   connectfour: {
     name: "Connect Four",
     description: "Drop discs into columns with a bouncy fall animation. First to line up four in a row wins.",

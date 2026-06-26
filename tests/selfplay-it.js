@@ -73,7 +73,7 @@ soak("amazons", { size: "10" }, "10x10");
 //  nên KHÔNG đưa vào self-play — đó là giới hạn của khung test, không phải lỗi game.)
 const MORE = [
   "gomoku", "connectfour", "reversi", "morris", "minichess", "isolation",
-  "sim", "sprouts", "nim", "orderchaos", "dotsandboxes", "breakthrough",
+  "sim", "sprouts", "nim", "orderchaos", "dotsandboxes", "breakthrough", "coganh",
 ];
 for (const id of MORE) {
   try { soak(id, {}, "(quét)", 6); }

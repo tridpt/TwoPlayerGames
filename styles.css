@@ -13980,3 +13980,51 @@ body[data-preset="mono"] {
 .bt-pawn.p2 { background: radial-gradient(circle at 35% 30%, #4a4f5a, #15171e); border: 2px solid #0b0c10; }
 .bt-pawn.sel { outline: 4px solid var(--accent); outline-offset: 2px; transform: scale(1.05); }
 .bt-pawn.win { animation: kam-win 0.85s ease-in-out infinite; }
+
+/* ---------- Cờ Gánh ---------- */
+.cg-root { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.cg-hud {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; max-width: 520px;
+}
+.cg-side {
+  flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 12px;
+  background: rgba(255,255,255,0.04); border: 2px solid transparent; transition: border-color 0.25s, box-shadow 0.25s;
+}
+.cg-side.p2 { text-align: right; }
+.cg-side b { font-size: 0.95rem; opacity: 0.9; }
+.cg-side.active { border-color: var(--accent); box-shadow: 0 0 14px rgba(255,209,102,0.28); }
+.cg-mid { font-weight: 700; opacity: 0.8; }
+.cg-wrap {
+  position: relative; width: min(92vw, 480px); aspect-ratio: 1/1;
+  background: linear-gradient(135deg, #e9d3ad, #d8bd8f);
+  border-radius: 12px; border: 6px solid #3a2c1c;
+  box-shadow: var(--shadow), 0 10px 26px rgba(0,0,0,0.5);
+}
+.cg-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.cg-line { stroke: #6b4f2e; stroke-width: 0.8; stroke-linecap: round; }
+.cg-point {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 15%; height: 15%; border-radius: 50%; padding: 0; border: none;
+  background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.cg-point::before {
+  content: ""; position: absolute; width: 26%; height: 26%; border-radius: 50%;
+  background: #6b4f2e; opacity: 0.55;
+}
+.cg-point.hint::before {
+  width: 46%; height: 46%; background: radial-gradient(circle at 40% 35%, #b8f5c8, #3fae5a);
+  opacity: 1; box-shadow: 0 0 9px rgba(63,174,90,0.8);
+}
+.cg-point.lastfrom::after, .cg-point.lastto::after {
+  content: ""; position: absolute; inset: 8%; border-radius: 50%;
+  box-shadow: inset 0 0 0 3px rgba(255,209,102,0.7);
+}
+.cg-pawn {
+  position: relative; width: 84%; height: 84%; border-radius: 50%;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.45); z-index: 1;
+}
+.cg-pawn.p1 { background: radial-gradient(circle at 35% 30%, #ff8a8a, #d63b3b); border: 2px solid #a52121; }
+.cg-pawn.p2 { background: radial-gradient(circle at 35% 30%, #8ab6ff, #2f6fd6); border: 2px solid #1f4fa0; }
+.cg-pawn.sel { outline: 3px solid var(--accent); outline-offset: 2px; transform: scale(1.08); }
+.cg-pawn.flip { animation: kam-win 0.8s ease-in-out 2; }
