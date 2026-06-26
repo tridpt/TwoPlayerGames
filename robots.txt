@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tridpt.github.io/TwoPlayerGames/sitemap.xml
+Sitemap: https://two-player-games-rnu3.onrender.com/sitemap.xml
