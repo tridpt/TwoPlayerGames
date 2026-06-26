@@ -30,3 +30,6 @@ jobs:
 
       - name: Run smoke test + unit tests
         run: npm test
+
+      - name: Run self-play soak test (AI hang/crash guard)
+        run: npm run test:selfplay
