@@ -457,12 +457,6 @@
   <script defer src="js/games/kamisado.js"></script>
   <script defer src="js/games/amazons.js"></script>
   <script defer src="js/main.js"></script>
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("sw.js").catch(() => { /* offline không khả dụng */ });
-      });
-    }
-  </script>
+  <script defer src="js/sw-register.js"></script>
 </body>
 </html>

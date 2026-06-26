@@ -62,6 +62,28 @@ function acceptsGzip(req) {
   return /\bgzip\b/.test(req.headers["accept-encoding"] || "");
 }
 
+// ---------- Content-Security-Policy cho static server ----------
+// script-src 'self': không inline script (SW registration đã tách ra js/sw-register.js).
+// style-src 'unsafe-inline': cần cho các thuộc tính style="..." sinh động trong game,
+//   và fonts.googleapis.com cho stylesheet Google Fonts.
+// font-src: fonts.gstatic.com (file font Google Fonts).
+// connect-src 'self' ws: wss': cho WebSocket online (cùng host, ws/wss theo giao thức trang).
+// worker-src 'self': service worker. frame-ancestors 'self': chống nhúng iframe (đồng bộ X-Frame-Options).
+const CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "img-src 'self' data:",
+  "font-src 'self' https://fonts.gstatic.com",
+  "connect-src 'self' ws: wss:",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+].join("; ");
+
 // ---------- HTTP: phục vụ file tĩnh ----------
 const server = http.createServer((req, res) => {
   let urlPath;
@@ -92,6 +114,8 @@ const server = http.createServer((req, res) => {
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "SAMEORIGIN",
       "Referrer-Policy": "no-referrer",
+      "Content-Security-Policy": CSP,
+      "Permissions-Policy": "geolocation=(), camera=(), microphone=(), payment=(), usb=()",
       "Cache-Control": cacheControlFor(ext),
       "Vary": "Accept-Encoding",
     };

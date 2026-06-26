@@ -206,7 +206,7 @@ Server đã có sẵn một số lớp chống lạm dụng cơ bản, điều c
 
 Ngoài ra: token kết nối lại sinh bằng `crypto` (khó đoán), mã phòng dùng RNG bảo mật,
 giới hạn kích thước frame WebSocket (`maxPayload`), và static server gửi kèm các header
-`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`.
+`Content-Security-Policy`, `Permissions-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`.
 
 > Khi deploy public qua HTTPS, **nên** đặt `ALLOWED_ORIGINS` về đúng domain của bạn.
 
