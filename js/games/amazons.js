@@ -171,12 +171,6 @@
       finalizeMove([ar, ac], true);
     }
 
-    function counts() {
-      let blocked = 0;
-      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (grid[r][c] === "x") blocked++;
-      return blocked;
-    }
-
     function renderHud() {
       const me = ctx.isOnline ? ctx.mySeat : -1;
       const mob = (p) => queenPositions(grid, p).reduce((s, [r, c]) => s + rayTargets(grid, r, c).length, 0);
@@ -254,14 +248,10 @@
     }
 
     // ---------- AI ----------
-    function cloneG(G) { return G.map((row) => row.slice()); }
     function mobility(G, p) {
       let m = 0;
       for (const [r, c] of queenPositions(G, p)) m += rayTargets(G, r, c).length;
       return m;
-    }
-    function evalG(G, me) {
-      return mobility(G, me) - mobility(G, 1 - me);
     }
     // AI 2 giai đoạn (nhanh, không clone hàng nghìn lần):
     //  1) chọn nước DI CHUYỂN hậu tốt nhất theo độ cơ động (mutate tại chỗ).

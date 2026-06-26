@@ -143,16 +143,6 @@
       if (t === "B") return beetleMoves(C, q, r, ik, stacked);
       return [];
     }
-    function emptyNeighborTouching(C, q, r, ignoreKey) {
-      // ô trống kề (q,r) mà vẫn chạm tổ (có ít nhất 1 quân kề, bỏ qua ignoreKey)
-      const out = [];
-      for (const [nq, nr] of neighbors(q, r)) {
-        if (heightAt(C, nq, nr) > 0) continue;
-        const touch = neighbors(nq, nr).some(([aq, ar]) => key(aq, ar) !== ignoreKey && heightAt(C, aq, ar) > 0);
-        if (touch) out.push([nq, nr]);
-      }
-      return out;
-    }
     function slideSteps(C, q, r, ik, maxStep) {
       const out = [];
       for (const [nq, nr] of neighbors(q, r)) {

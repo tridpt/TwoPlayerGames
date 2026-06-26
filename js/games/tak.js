@@ -69,7 +69,6 @@
 
     function inB(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
     function topAt(B, r, c) { const a = B[r][c]; return a.length ? a[a.length - 1] : null; }
-    function controls(B, r, c, p) { const t = topAt(B, r, c); return t && t.p === p; }
     function isRoadTop(t) { return t && (t.s === "flat" || t.s === "cap"); }
 
     // ---------- phát hiện "đường" (road) ----------
@@ -404,7 +403,6 @@
 
     // ---------- thanh công cụ ----------
     function renderTools() {
-      const me = ctx.isOnline ? ctx.mySeat : -1;
       const myTurn = !over && (!ctx.isOnline || turn === ctx.mySeat);
       toolbar.innerHTML = "";
       if (drag) {

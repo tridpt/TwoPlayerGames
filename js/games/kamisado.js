@@ -277,23 +277,6 @@
     }
 
     // ---------- AI ----------
-    function cloneState() {
-      return {
-        occ: occ.map((row) => row.map((x) => x ? { p: x.p, idx: x.idx } : null)),
-        pieces: [pieces[0].map((p) => ({ r: p.r, c: p.c, color: p.color })), pieces[1].map((p) => ({ r: p.r, c: p.c, color: p.color }))],
-      };
-    }
-    function movesOnState(st, p, idx) {
-      const pc = st.pieces[p][idx];
-      const dr = fwd(p);
-      const dirs = [[dr, 0], [dr, -1], [dr, 1]];
-      const out = [];
-      for (const [ddr, ddc] of dirs) {
-        let r = pc.r + ddr, c = pc.c + ddc;
-        while (inB(r, c) && !st.occ[r][c]) { out.push([r, c]); r += ddr; c += ddc; }
-      }
-      return out;
-    }
     // đánh giá đơn giản: tiến độ về đích + dọa thắng
     function evalMove(p, idx, to) {
       const [tr] = to;
