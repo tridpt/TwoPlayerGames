@@ -1946,8 +1946,8 @@
   });
 
   // ====================== Chat (chỉ online) ======================
-  const QUICK_MSG_KEYS = ["quickMsg1", "quickMsg2", "quickMsg3", "quickMsg4", "quickMsg5"];
-  const EMOTES = ["😀", "😎", "😭", "😮", "😡", "👏", "🔥", "🎉", "🤝", "🤔"];
+  const QUICK_MSG_KEYS = ["quickMsg1", "quickMsg2", "quickMsg3", "quickMsg4", "quickMsg5", "quickMsg6", "quickMsg7", "quickMsg8"];
+  const EMOTES = ["😀", "😎", "😭", "😮", "😡", "👏", "🔥", "🎉", "🤝", "🤔", "😂", "💪", "🫡", "🧠", "🥳", "❤️"];
 
   function buildQuickButtons() {
     el.chatQuick.innerHTML = "";
