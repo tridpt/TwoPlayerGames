@@ -184,14 +184,16 @@ Không cần sửa code cũ. (Xem hướng dẫn đầy đủ + checklist tất 
 ## 📡 Giao thức online (tóm tắt)
 
 Client ↔ server trao đổi message JSON qua WebSocket: `create`, `join`, `start`,
-`move`, `restart`, `chat`, `leave`, `listRooms` (danh sách phòng công khai),
-`rejoin` (kết nối lại sau khi rớt mạng). Các game được thiết kế tất định (dùng RNG
-có hạt giống chung) nên hai máy luôn đồng bộ trạng thái.
+`move`, `restart`, `chat`, `react`, `leave`, `listRooms` (danh sách phòng công khai),
+`rejoin` (kết nối lại sau khi rớt mạng). Khi tạo phòng có thể kèm `password` (tùy chọn) để
+tạo **phòng riêng tư**; `join` phải gửi đúng mật khẩu mới vào được. Các game được thiết kế
+tất định (dùng RNG có hạt giống chung) nên hai máy luôn đồng bộ trạng thái.
 
 ## ⚠️ Lưu ý
 
-Server không có xác thực — ai có mã phòng đều vào được. Chỉ nên chạy cục bộ hoặc
-trong mạng tin cậy, đừng mở công khai ra Internet lâu dài mà chưa thêm lớp bảo vệ.
+Mặc định phòng chỉ bảo vệ bằng mã 4 chữ số — ai có mã đều vào được. Khi tạo phòng, bạn có thể
+**đặt mật khẩu** để chỉ người biết mật khẩu mới vào (phòng công khai có khóa sẽ hiện icon 🔒).
+Dù vậy, đừng mở công khai ra Internet lâu dài mà chưa cân nhắc thêm lớp bảo vệ.
 
 ### 🔒 Lớp bảo vệ sẵn có & biến môi trường
 

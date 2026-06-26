@@ -201,6 +201,27 @@ function cleanRoomCode(value) {
   return /^\d{4}$/.test(code) ? code : "";
 }
 
+// ---------- Mật khẩu phòng (phòng riêng tư) ----------
+const MAX_PASSWORD_LEN = 32;
+function cleanPassword(value) {
+  return String(value || "")
+    // eslint-disable-next-line no-control-regex -- loại ký tự điều khiển khỏi mật khẩu
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .trim()
+    .slice(0, MAX_PASSWORD_LEN);
+}
+function hashPassword(pw, salt) {
+  return crypto.createHash("sha256").update(salt + ":" + pw).digest("hex");
+}
+// So khớp an toàn theo thời gian; phòng không đặt mật khẩu thì luôn cho qua.
+function verifyRoomPassword(room, pw) {
+  if (!room.passwordHash) return true;
+  const candidate = hashPassword(String(pw || ""), room.passwordSalt);
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(room.passwordHash);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 function payloadBytes(value) {
   try {
     return Buffer.byteLength(JSON.stringify(value), "utf8");
@@ -328,11 +349,17 @@ wss.on("connection", (ws, req) => {
         const seed = Math.floor(Math.random() * 1e9);
         const firstSeat = Math.random() < 0.5 ? 0 : 1;
         const playerName = cleanPlayerName(msg.playerName, "Người chơi 1");
+        const password = cleanPassword(msg.password);
         const token0 = makeToken();
         rooms.set(code, { players: [ws, null], names: [playerName, null], tokens: [token0, null], history: [], dcTimers: [null, null], gameId: msg.gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options, public: !!msg.public });
+        if (password) {
+          const room = rooms.get(code);
+          room.passwordSalt = crypto.randomBytes(8).toString("hex");
+          room.passwordHash = hashPassword(password, room.passwordSalt);
+        }
         ws.roomCode = code;
         ws.seat = 0;
-        send(ws, "created", { code, seat: 0, token: token0, gameId: msg.gameId, seed, firstSeat, round: 1, options, playerNames: [playerName, null] });
+        send(ws, "created", { code, seat: 0, token: token0, gameId: msg.gameId, seed, firstSeat, round: 1, options, playerNames: [playerName, null], hasPassword: !!password });
         break;
       }
 
@@ -343,6 +370,7 @@ wss.on("connection", (ws, req) => {
         leaveRoom(ws);
         const room = rooms.get(code);
         if (!room) return send(ws, "error", { message: "Mã phòng không tồn tại." });
+        if (!verifyRoomPassword(room, msg.password)) return send(ws, "error", { message: "Sai mật khẩu phòng.", reason: "bad_password" });
         if (room.players[1]) return send(ws, "error", { message: "Phòng đã đủ người." });
         room.players[1] = ws;
         room.names[1] = cleanPlayerName(msg.playerName, "Người chơi 2");
@@ -422,7 +450,7 @@ wss.on("connection", (ws, req) => {
         const list = [];
         for (const [code, room] of rooms) {
           if (room.public && room.players[0] && !room.players[1]) {
-            list.push({ code, gameId: room.gameId, hostName: room.names[0] || "Người chơi 1", round: room.round || 1 });
+            list.push({ code, gameId: room.gameId, hostName: room.names[0] || "Người chơi 1", round: room.round || 1, locked: !!room.passwordHash });
           }
           if (list.length >= 40) break;
         }

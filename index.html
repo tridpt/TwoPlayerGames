@@ -226,6 +226,9 @@
             <span data-i18n="publicLabel">🌐 Phòng công khai (cho người khác tìm thấy)</span>
             <input type="checkbox" id="publicToggle" checked />
           </label>
+          <label class="option-label" for="createPwInput" data-i18n="roomPwLabel">🔒 Mật khẩu phòng (tùy chọn)</label>
+          <input class="player-name-input" id="createPwInput" maxlength="32" type="password"
+                 data-i18n-ph="roomPwPh" placeholder="Để trống nếu không cần mật khẩu" autocomplete="off" />
           <button class="btn primary" id="createRoomBtn" data-i18n="createRoom">Tạo phòng</button>
           <div class="room-code hidden" id="roomCodeBox">
             <span class="room-code-label" data-i18n="yourRoomCode">Mã phòng của bạn</span>
@@ -243,6 +246,8 @@
                  data-i18n-ph="egName2" placeholder="Ví dụ: Linh" autocomplete="nickname" />
           <input class="code-input" id="joinCodeInput" maxlength="4" inputmode="numeric"
                  placeholder="0000" />
+          <input class="player-name-input" id="joinPwInput" maxlength="32" type="password"
+                 data-i18n-ph="roomPwJoinPh" placeholder="Mật khẩu phòng (nếu có)" autocomplete="off" />
           <button class="btn primary" id="joinRoomBtn" data-i18n="joinRoom">Vào phòng</button>
           <p class="lobby-error" id="lobbyError"></p>
           <div class="public-rooms">

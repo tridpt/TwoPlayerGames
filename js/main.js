@@ -53,6 +53,8 @@
     joinRoomBtn: $("joinRoomBtn"),
     lobbyError: $("lobbyError"),
     publicToggle: $("publicToggle"),
+    createPwInput: $("createPwInput"),
+    joinPwInput: $("joinPwInput"),
     refreshRoomsBtn: $("refreshRoomsBtn"),
     publicRoomsList: $("publicRoomsList"),
     publicRoomsTitle: $("publicRoomsTitle"),
@@ -1693,7 +1695,7 @@
     currentOptions = readOptions(lobbySelectedGame, "lobby_opt_");
     const playerName = readPlayerName(el.createNameInput, tt("player1"));
     setLobbyState(tt("creatingRoom"), "waiting");
-    Net.send("create", { gameId: lobbySelectedGame.id, options: currentOptions, playerName, public: el.publicToggle ? el.publicToggle.checked : true });
+    Net.send("create", { gameId: lobbySelectedGame.id, options: currentOptions, playerName, public: el.publicToggle ? el.publicToggle.checked : true, password: el.createPwInput ? el.createPwInput.value : "" });
   });
 
   el.joinRoomBtn.addEventListener("click", async () => {
@@ -1706,7 +1708,7 @@
     if (!(await ensureConnected())) return;
     const playerName = readPlayerName(el.joinNameInput, tt("player2"));
     setLobbyState(tt("joiningRoom"), "waiting");
-    Net.send("join", { code, playerName });
+    Net.send("join", { code, playerName, password: el.joinPwInput ? el.joinPwInput.value : "" });
   });
 
   el.copyCodeBtn.addEventListener("click", () => {
@@ -1746,25 +1748,32 @@
       const g = getGameById(r.gameId);
       const row = document.createElement("div");
       row.className = "public-room";
+      const lock = r.locked ? " 🔒" : "";
       row.innerHTML = `<div class="pr-poster">${g ? gameAvatarHtml(g) : ""}</div>` +
-        `<div class="pr-info"><b>${escapeHtml(gameName(g) || r.gameId)}</b>` +
+        `<div class="pr-info"><b>${escapeHtml(gameName(g) || r.gameId)}${lock}</b>` +
         `<small>👤 ${escapeHtml(r.hostName)} · ${tt("prCode")} ${escapeHtml(r.code)} <span class="pr-wait">${tt("prWaiting")}</span></small></div>`;
       const btn = document.createElement("button");
       btn.className = "btn small primary pr-join";
       btn.type = "button";
       btn.textContent = tt("joinRoomBtn");
-      btn.addEventListener("click", () => quickJoinRoom(r.code));
+      btn.addEventListener("click", () => quickJoinRoom(r.code, r.locked));
       row.appendChild(btn);
       el.publicRoomsList.appendChild(row);
     });
   }
 
-  async function quickJoinRoom(code) {
+  async function quickJoinRoom(code, locked) {
     el.lobbyError.textContent = "";
     if (!(await ensureConnected())) return;
     const playerName = readPlayerName(el.joinNameInput, tt("player2"));
+    // Phòng có khóa: dùng mật khẩu đã nhập ở ô, nếu trống thì hỏi nhanh.
+    let password = el.joinPwInput ? el.joinPwInput.value : "";
+    if (locked && !password) {
+      password = window.prompt(tt("roomPwPrompt")) || "";
+      if (!password) { setLobbyState("", ""); return; }
+    }
     setLobbyState(tt("joiningRoom"), "waiting");
-    Net.send("join", { code, playerName });
+    Net.send("join", { code, playerName, password });
   }
 
   function startRoomPolling() {
