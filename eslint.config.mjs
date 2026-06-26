@@ -9,6 +9,7 @@ const browserGlobals = {
   Net: "readonly",
   I18n: "readonly",
   StatsUtil: "readonly",
+  ReplayStore: "readonly",
   GAMES_EN: "readonly",
 };
 

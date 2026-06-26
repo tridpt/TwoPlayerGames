@@ -900,7 +900,7 @@
       }
       const modeTxt = modeLabel(h.mode);
       const lvl = h.level ? ` · ${h.level === "easy" ? tt("lvlEasy") : h.level === "hard" ? tt("lvlHard") : tt("lvlNormal")}` : "";
-      const canReplay = h.replayId && replays[h.replayId];
+      const canReplay = h.replayId && ReplayStore.getReplay(replays, h.replayId);
       const replayBtn = canReplay
         ? `<button type="button" class="btn small hist-replay" data-rid="${escapeHtml(h.replayId)}">${tt("histReplay")}</button>`
         : "";
@@ -934,7 +934,7 @@
     if (vsAI) entry.level = aiLevel;
     // Lưu replay (để xem lại sau) nếu ván có chuỗi nước đi.
     if (replayMeta && replayMoves.length) {
-      const rid = "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const rid = ReplayStore.makeReplayId(Date.now(), Math.random());
       saveReplayData(rid, {
         id: replayMeta.gameId, seed: replaySeed,
         firstSeat: replayMeta.firstSeat, round: replayMeta.round,
@@ -953,20 +953,14 @@
   const MAX_REPLAYS = 20;
   function getReplays() { try { return JSON.parse(localStorage.getItem(REPLAYS_KEY)) || {}; } catch (e) { return {}; } }
   function saveReplayData(rid, data) {
-    const all = getReplays();
-    all[rid] = data;
-    // giữ MAX_REPLAYS bản ghi mới nhất (theo ts) để giới hạn dung lượng localStorage
-    const kept = {};
-    Object.entries(all)
-      .sort((a, b) => (b[1].ts || 0) - (a[1].ts || 0))
-      .slice(0, MAX_REPLAYS)
-      .forEach(([k, v]) => { kept[k] = v; });
+    // logic giữ MAX_REPLAYS bản mới nhất nằm trong ReplayStore (đã có unit test)
+    const kept = ReplayStore.addReplay(getReplays(), rid, data, MAX_REPLAYS);
     try { localStorage.setItem(REPLAYS_KEY, JSON.stringify(kept)); } catch (e) { /* ignore */ }
   }
   // Mở lại một replay đã lưu bằng đúng bộ máy replay sẵn có.
   function openSavedReplay(rid) {
-    const data = getReplays()[rid];
-    if (!data || !Array.isArray(data.moves) || !data.moves.length) return;
+    const data = ReplayStore.getReplay(getReplays(), rid);
+    if (!data) return;
     replayMoves = data.moves.slice();
     replaySeed = data.seed || 1;
     replayMeta = { gameId: data.id, firstSeat: data.firstSeat || 0, round: data.round || 1, options: data.options || {} };
