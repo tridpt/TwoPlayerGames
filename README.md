@@ -1,6 +1,12 @@
 # 🎮 Game 2 Người
 
 [![CI](https://github.com/tridpt/TwoPlayerGames/actions/workflows/ci.yml/badge.svg)](https://github.com/tridpt/TwoPlayerGames/actions/workflows/ci.yml)
+[![Chơi ngay](https://img.shields.io/badge/▶_Ch%C6%A1i_ngay-Live_demo-22c55e)](https://two-player-games-rnu3.onrender.com/)
+
+🎮 **Chơi thử ngay:** https://two-player-games-rnu3.onrender.com/ (chơi chung máy / đấu AI / online qua mã phòng)
+
+> Lưu ý: bản online chạy trên gói miễn phí của Render nên có thể "ngủ" sau ~15 phút không ai truy cập — lần mở đầu chờ 30–60 giây để khởi động.
+
 
 Bộ trò chơi đối kháng cho 2 người chơi, hỗ trợ **chơi chung một máy** (hot-seat) hoặc **chơi online qua mạng** bằng mã phòng. Viết bằng HTML/CSS/JavaScript thuần ở phía client, server Node.js nhỏ gọn lo phần phục vụ web và relay nước đi qua WebSocket.
 
