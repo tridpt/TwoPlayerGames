@@ -44,6 +44,7 @@ const CASES = [
   { gameId: "tycoon", move: { k: "roll", die: 4 }, check: (m) => m.move.k === "roll" && m.move.die === 4 },
   { gameId: "colorwar", move: { k: "color", ci: 2 }, check: (m) => m.move.k === "color" && m.move.ci === 2 },
   { gameId: "sim", move: { e: 0 }, check: (m) => m.move.e === 0 },
+  { gameId: "breakthrough", move: { from: [6, 0], to: [5, 0] }, check: (m) => Array.isArray(m.move.from) && m.move.from[0] === 6 && m.move.to[0] === 5 },
   { gameId: "minichess", move: { from: 18, to: 13 }, check: (m) => m.move.from === 18 && m.move.to === 13 },
   { gameId: "sprouts", move: { a: 0, b: 1 }, check: (m) => m.move.a === 0 && m.move.b === 1 },
   { gameId: "typingrace", move: { k: "prog", i: 3 }, check: (m) => m.move.k === "prog" && m.move.i === 3 },

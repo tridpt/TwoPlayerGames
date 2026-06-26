@@ -35,6 +35,18 @@ var GAMES_EN_DATA = {
       "Watch your opponent's open threats and block them before they reach five.",
     ],
   },
+  breakthrough: {
+    name: "Breakthrough",
+    description: "A lean racing chess: pawns step straight or diagonally forward and capture only diagonally. Reach the opponent's last row — or capture every enemy pawn — to win.",
+    howTo: [
+      "Each side has two rows of pawns. Player 1 (White) is at the bottom and moves UP; Player 2 (Black) is at the top and moves DOWN. White goes first.",
+      "Each turn move ONE pawn exactly one square forward: straight ahead onto an empty cell, or diagonally forward.",
+      "Capturing rule: you may only capture DIAGONALLY (a straight move can never capture). Capturable cells are highlighted in red.",
+      "How to play: click one of your pawns to select it — its legal moves light up — then click a lit cell to move.",
+      "You WIN by getting a pawn to the opponent's LAST row, capturing all enemy pawns, or leaving the opponent with no legal move.",
+      "Tip: keep your pawns in a connected block so they defend each other — if one is captured diagonally, the pawn behind recaptures. Don't rush forward alone.",
+    ],
+  },
   connectfour: {
     name: "Connect Four",
     description: "Drop discs into columns with a bouncy fall animation. First to line up four in a row wins.",

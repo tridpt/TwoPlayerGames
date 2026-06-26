@@ -13939,3 +13939,44 @@ body[data-preset="mono"] {
   .uttt-big { width: 96vw; gap: 5px; padding: 5px; }
   .uttt-sub { padding: 3px; }
 }
+
+/* ---------- Cờ Đột Phá (Breakthrough) ---------- */
+.bt-root { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.bt-hud {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; max-width: 540px;
+}
+.bt-side {
+  flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 12px;
+  background: rgba(255,255,255,0.04); border: 2px solid transparent; transition: border-color 0.25s, box-shadow 0.25s;
+}
+.bt-side.p2 { text-align: right; }
+.bt-side b { font-size: 0.95rem; opacity: 0.9; }
+.bt-side.active { border-color: var(--accent); box-shadow: 0 0 14px rgba(255,209,102,0.28); }
+.bt-mid { font-weight: 700; opacity: 0.8; }
+.bt-wrap { width: 100%; display: flex; justify-content: center; }
+.bt-board {
+  display: grid; width: min(94vw, 540px); aspect-ratio: 1/1; grid-auto-rows: 1fr;
+  border-radius: 10px; overflow: hidden; border: 6px solid #3a2c1c;
+  box-shadow: var(--shadow), 0 10px 26px rgba(0,0,0,0.5);
+}
+.bt-cell { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.bt-cell.l { background: linear-gradient(135deg, #e9d3ad, #dcc196); }
+.bt-cell.d { background: linear-gradient(135deg, #b78a56, #a3793f); }
+.bt-cell.lastfrom { background-image: linear-gradient(rgba(255,209,102,0.22), rgba(255,209,102,0.22)); }
+.bt-cell.lastto { background-image: linear-gradient(rgba(255,209,102,0.36), rgba(255,209,102,0.36)); }
+.bt-cell.hint::after {
+  content: ""; position: absolute; width: 30%; height: 30%; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #b8f5c8, #3fae5a); box-shadow: 0 0 9px rgba(63,174,90,0.7);
+}
+.bt-cell.hint.cap::after {
+  width: 78%; height: 78%; background: none; border-radius: 12%;
+  box-shadow: inset 0 0 0 3px rgba(255,93,115,0.85); }
+.bt-pawn {
+  width: 72%; height: 72%; border-radius: 50%; position: relative;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.5);
+}
+.bt-pawn.p1 { background: radial-gradient(circle at 35% 30%, #ffffff, #cfd4dc); border: 2px solid #aeb4bf; }
+.bt-pawn.p2 { background: radial-gradient(circle at 35% 30%, #4a4f5a, #15171e); border: 2px solid #0b0c10; }
+.bt-pawn.sel { outline: 4px solid var(--accent); outline-offset: 2px; transform: scale(1.05); }
+.bt-pawn.win { animation: kam-win 0.85s ease-in-out infinite; }
