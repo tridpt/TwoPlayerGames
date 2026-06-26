@@ -63,7 +63,7 @@
         <div class="cat-content">
           <div class="search-bar">
             <span class="search-ic">🔎</span>
-            <input type="search" id="gameSearch" class="search-input" data-i18n-ph="searchPh" placeholder="Tìm trò chơi theo tên hoặc mô tả..." autocomplete="off" />
+            <input type="search" id="gameSearch" class="search-input" data-i18n-ph="searchPh" data-i18n-aria="searchAria" placeholder="Tìm trò chơi theo tên hoặc mô tả..." autocomplete="off" />
           </div>
           <div class="cat-head" id="catHead"><!-- tiêu đề + mô tả thể loại --></div>
           <div class="list-controls">
@@ -208,7 +208,7 @@
     <section id="lobbyView" class="lobby-view hidden">
       <button class="btn back-btn" id="lobbyBackBtn" data-i18n="backReturn">← Quay lại</button>
       <h2 class="mode-title" id="lobbyTitle"></h2>
-      <div class="room-state hidden" id="lobbyState"></div>
+      <div class="room-state hidden" id="lobbyState" role="status" aria-live="polite"></div>
       <div class="lobby-cards">
         <div class="lobby-panel">
           <h3 data-i18n="createRoomH">Tạo phòng mới</h3>
@@ -244,12 +244,12 @@
           <label class="option-label" for="joinNameInput" data-i18n="yourName">Tên của bạn</label>
           <input class="player-name-input" id="joinNameInput" maxlength="24"
                  data-i18n-ph="egName2" placeholder="Ví dụ: Linh" autocomplete="nickname" />
-          <input class="code-input" id="joinCodeInput" maxlength="4" inputmode="numeric"
+          <input class="code-input" id="joinCodeInput" maxlength="4" inputmode="numeric" data-i18n-aria="joinCodeAria"
                  placeholder="0000" />
-          <input class="player-name-input" id="joinPwInput" maxlength="32" type="password"
+          <input class="player-name-input" id="joinPwInput" maxlength="32" type="password" data-i18n-aria="roomPwAria"
                  data-i18n-ph="roomPwJoinPh" placeholder="Mật khẩu phòng (nếu có)" autocomplete="off" />
           <button class="btn primary" id="joinRoomBtn" data-i18n="joinRoom">Vào phòng</button>
-          <p class="lobby-error" id="lobbyError"></p>
+          <p class="lobby-error" id="lobbyError" role="alert" aria-live="assertive"></p>
           <div class="public-rooms">
             <div class="public-rooms-head">
               <span id="publicRoomsTitle">🌐 Phòng công khai đang mở</span>
@@ -303,9 +303,9 @@
         <div class="chat-body" id="chatBody">
           <div class="chat-messages" id="chatMessages"></div>
           <form class="chat-input-row" id="chatForm">
-            <input class="chat-input" id="chatInput" maxlength="200"
+            <input class="chat-input" id="chatInput" maxlength="200" data-i18n-aria="chatInputAria"
                    placeholder="Nhập tin nhắn..." autocomplete="off" />
-            <button class="btn small primary" type="submit">Gửi</button>
+            <button class="btn small primary" type="submit" data-i18n="chatSend">Gửi</button>
           </form>
           <div class="chat-quick" id="chatQuick"></div>
         </div>

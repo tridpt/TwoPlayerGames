@@ -1,7 +1,7 @@
 /* ============================================================
    i18n: đổi ngôn ngữ Việt / Anh cho khung giao diện.
    Dùng data-i18n (textContent), data-i18n-ph (placeholder),
-   data-i18n-title (title). Văn bản trong từng game vẫn giữ tiếng Việt.
+   data-i18n-title (title), data-i18n-aria (aria-label). Văn bản trong từng game vẫn giữ tiếng Việt.
    ============================================================ */
 var I18nModule = (function () {
   const STORE_KEY = "tpg_lang";
@@ -183,6 +183,11 @@ var I18nModule = (function () {
       histEmpty: "Chưa có ván nào. Chơi xong một ván sẽ hiện ở đây.",
       histNoMatch: "Không có ván nào khớp bộ lọc.",
       histReplay: "▶ Xem lại",
+      searchAria: "Tìm trò chơi",
+      joinCodeAria: "Mã phòng 4 chữ số",
+      roomPwAria: "Mật khẩu phòng",
+      chatInputAria: "Nhập tin nhắn",
+      chatSend: "Gửi",
       resDraw: "🤝 Hòa",
       resYouWin: "🎉 Bạn thắng",
       resAILose: "💀 Máy thắng",
@@ -474,6 +479,11 @@ var I18nModule = (function () {
       histEmpty: "No matches yet. Finish a match and it'll show up here.",
       histNoMatch: "No matches match the filters.",
       histReplay: "▶ Replay",
+      searchAria: "Search games",
+      joinCodeAria: "4-digit room code",
+      roomPwAria: "Room password",
+      chatInputAria: "Type a message",
+      chatSend: "Send",
       resDraw: "🤝 Draw",
       resYouWin: "🎉 You win",
       resAILose: "💀 Computer wins",
@@ -617,6 +627,7 @@ var I18nModule = (function () {
     scope.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.getAttribute("data-i18n")); });
     scope.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });
     scope.querySelectorAll("[data-i18n-title]").forEach((el) => { el.setAttribute("title", t(el.getAttribute("data-i18n-title"))); });
+    scope.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
     try { document.documentElement.lang = lang; } catch (e) { /* ignore */ }
   }
 

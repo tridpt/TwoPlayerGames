@@ -45,7 +45,7 @@ test("integrity: mọi $(\"id\") trong main.js đều tồn tại trong index.ht
 
 // ---------- 2. data-i18n* -> phải có key trong vi & en ----------
 test("integrity: mọi data-i18n trong index.html đều có key ở vi & en", () => {
-  const attrs = ["data-i18n", "data-i18n-ph", "data-i18n-title"];
+  const attrs = ["data-i18n", "data-i18n-ph", "data-i18n-title", "data-i18n-aria"];
   const keys = new Set();
   for (const a of attrs) {
     const re = new RegExp(a + '="([^"]+)"', "g");
