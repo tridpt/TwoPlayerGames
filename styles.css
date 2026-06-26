@@ -235,7 +235,7 @@ body {
 }
 .hist-item {
   display: grid;
-  grid-template-columns: minmax(0,1.4fr) minmax(0,1fr) auto;
+  grid-template-columns: minmax(0,1.4fr) minmax(0,1fr) auto auto;
   align-items: center;
   gap: 12px;
   padding: 11px 16px;
@@ -250,9 +250,11 @@ body {
 .hist-game { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hist-res { font-weight: 600; font-size: 0.9rem; }
 .hist-meta { color: var(--muted); font-size: 0.78rem; text-align: right; white-space: nowrap; }
+.hist-replay { white-space: nowrap; padding: 5px 12px; font-size: 0.82rem; }
 @media (max-width: 640px) {
   .hist-item { grid-template-columns: 1fr auto; }
   .hist-meta { grid-column: 1 / -1; text-align: left; }
+  .hist-replay { grid-column: 1 / -1; justify-self: start; }
 }
 body.theme-light .hist-item { background: linear-gradient(160deg, #ffffff, #f1f4fd); border-color: rgba(20,30,80,0.08); }
 

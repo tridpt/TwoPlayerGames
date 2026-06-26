@@ -867,6 +867,7 @@
   function renderHistory() {
     if (!el.histList) return;
     const all = getHistory();
+    const replays = getReplays();
     buildHistGameFilter(all);
     const gf = el.histGameFilter ? el.histGameFilter.value : "";
     const mf = el.histModeFilter ? el.histModeFilter.value : "";
@@ -899,10 +900,15 @@
       }
       const modeTxt = modeLabel(h.mode);
       const lvl = h.level ? ` · ${h.level === "easy" ? tt("lvlEasy") : h.level === "hard" ? tt("lvlHard") : tt("lvlNormal")}` : "";
+      const canReplay = h.replayId && replays[h.replayId];
+      const replayBtn = canReplay
+        ? `<button type="button" class="btn small hist-replay" data-rid="${escapeHtml(h.replayId)}">${tt("histReplay")}</button>`
+        : "";
       return `<div class="hist-item ${cls}">
         <span class="hist-game">${escapeHtml(name)}</span>
         <span class="hist-res">${res}</span>
         <span class="hist-meta">${modeTxt}${lvl} · ${timeAgo(h.ts)}</span>
+        ${replayBtn}
       </div>`;
     }).join("");
   }
@@ -926,9 +932,45 @@
     const entry = { id, kind, winner, mode, ts: Date.now() };
     if (online) entry.seat = online.seat;
     if (vsAI) entry.level = aiLevel;
+    // Lưu replay (để xem lại sau) nếu ván có chuỗi nước đi.
+    if (replayMeta && replayMoves.length) {
+      const rid = "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      saveReplayData(rid, {
+        id: replayMeta.gameId, seed: replaySeed,
+        firstSeat: replayMeta.firstSeat, round: replayMeta.round,
+        options: replayMeta.options, moves: replayMoves.slice(),
+        mode, kind, winner, seat: online ? online.seat : undefined, ts: entry.ts,
+      });
+      entry.replayId = rid;
+    }
     const list = getHistory();
     list.unshift(entry);
     try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 50))); } catch (e) { /* ignore */ }
+  }
+
+  // ----- Replay đã lưu (xem lại ván sau này) -----
+  const REPLAYS_KEY = "tpg_replays";
+  const MAX_REPLAYS = 20;
+  function getReplays() { try { return JSON.parse(localStorage.getItem(REPLAYS_KEY)) || {}; } catch (e) { return {}; } }
+  function saveReplayData(rid, data) {
+    const all = getReplays();
+    all[rid] = data;
+    // giữ MAX_REPLAYS bản ghi mới nhất (theo ts) để giới hạn dung lượng localStorage
+    const kept = {};
+    Object.entries(all)
+      .sort((a, b) => (b[1].ts || 0) - (a[1].ts || 0))
+      .slice(0, MAX_REPLAYS)
+      .forEach(([k, v]) => { kept[k] = v; });
+    try { localStorage.setItem(REPLAYS_KEY, JSON.stringify(kept)); } catch (e) { /* ignore */ }
+  }
+  // Mở lại một replay đã lưu bằng đúng bộ máy replay sẵn có.
+  function openSavedReplay(rid) {
+    const data = getReplays()[rid];
+    if (!data || !Array.isArray(data.moves) || !data.moves.length) return;
+    replayMoves = data.moves.slice();
+    replaySeed = data.seed || 1;
+    replayMeta = { gameId: data.id, firstSeat: data.firstSeat || 0, round: data.round || 1, options: data.options || {} };
+    openReplay();
   }
 
   // ====================== Thử thách hằng ngày ======================
@@ -2757,6 +2799,10 @@
   if (el.shareCodeBtn) el.shareCodeBtn.addEventListener("click", shareRoom);
   if (el.histGameFilter) el.histGameFilter.addEventListener("change", renderHistory);
   if (el.histModeFilter) el.histModeFilter.addEventListener("change", renderHistory);
+  if (el.histList) el.histList.addEventListener("click", (e) => {
+    const btn = e.target && e.target.closest ? e.target.closest(".hist-replay") : null;
+    if (btn && btn.dataset && btn.dataset.rid) openSavedReplay(btn.dataset.rid);
+  });
 
   // ---- Quản lý dữ liệu cá nhân (xuất / nhập / xóa) ----
   function collectData() {
