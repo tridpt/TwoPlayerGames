@@ -3,11 +3,25 @@
 Tất cả thay đổi đáng chú ý của dự án được ghi ở đây. Định dạng theo tinh thần
 [Keep a Changelog](https://keepachangelog.com/), phiên bản theo [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-06-26
 
 ### Added — Đã thêm
-- **Lưu lịch sử ván để xem lại sau (replay bền vững)**: mỗi ván chơi xong được lưu trọn chuỗi nước đi (seed + options + moves) vào `localStorage` (`tpg_replays`, giữ 20 ván gần nhất). Trong trang Hồ sơ, mỗi mục lịch sử có nút **▶ Xem lại** để mở lại đúng ván đó bằng bộ máy replay tua tới/lui có sẵn — không chỉ giới hạn trong phiên đang chơi như trước.
-- **Phòng riêng tư có mật khẩu**: khi tạo phòng online có thể đặt mật khẩu tùy chọn; người vào phải nhập đúng mới được join (so khớp an toàn theo thời gian, mật khẩu được băm SHA-256 + salt phía server, không lưu dạng thô). Phòng công khai có khóa hiển thị icon 🔒 trong danh sách và hỏi mật khẩu khi vào nhanh. Có test tích hợp `tests/password-it.js`.
+- **2 game mới (nâng tổng lên 76 trò chơi)**: **♟️ Cờ Đột Phá (Breakthrough)** — cờ đua quân tinh gọn, chỉ ăn theo đường chéo; và **🔴 Cờ Gánh** — cờ dân gian Việt Nam (Đà Nẵng) trên bàn 5×5 với cơ chế "gánh" (đi vào giữa 2 quân địch để lật) và "vây". Cả hai đều có AI 3 mức, chơi online tất định, i18n VI/EN và CSS riêng.
+- **Phòng riêng tư có mật khẩu**: khi tạo phòng online có thể đặt mật khẩu tùy chọn; người vào phải nhập đúng mới được join (so khớp an toàn theo thời gian, mật khẩu băm SHA-256 + salt phía server, không lưu thô). Phòng công khai có khóa hiện icon 🔒 và hỏi mật khẩu khi vào nhanh. Test tích hợp `tests/password-it.js`.
+- **Lưu replay ván để xem lại sau**: mỗi ván chơi xong được lưu trọn chuỗi nước đi (seed + options + moves) vào `localStorage` (`tpg_replays`, giữ 20 ván gần nhất). Trong trang Hồ sơ, mỗi mục lịch sử có nút **▶ Xem lại** để phát lại đúng ván đó — không chỉ giới hạn trong phiên đang chơi như trước. Logic tách thành module `ReplayStore` có unit test.
+- **Chat phòng online phong phú hơn**: thêm 3 câu nhắn nhanh và 6 emoji reaction mới.
+
+### Security — Bảo mật
+- **Content-Security-Policy + Permissions-Policy** cho static server (script-src 'self', whitelist Google Fonts, connect-src cho WebSocket...). Tách script đăng ký service worker ra file riêng để CSP không cần `unsafe-inline`.
+
+### Changed — Đã đổi
+- **Accessibility**: cơ chế `data-i18n-aria` cho aria-label song ngữ, gắn tên truy cập cho các ô nhập còn thiếu, `aria-live`/`role` cho trạng thái và lỗi ở sảnh online.
+- **SEO/chia sẻ**: canonical/OG/sitemap trỏ về URL bản live (Render), ảnh OG dùng đường dẫn tuyệt đối; README thêm badge **▶ Chơi ngay**.
+- **Kiểm thử & CI**: phủ test AI động cho mọi game hỗ trợ AI (7 → 37), đưa self-play soak vào CI để bắt treo/lỗi luật; tổng cộng 217 unit test + 7 bộ test tích hợp online. Đồng bộ tài liệu (số game 68 → 76, yêu cầu Node 20+).
+
+## [1.0.0] - 2026-06-13
+
+### Added — Đã thêm
 - **Mở rộng từ 47 lên 68 trò chơi** với 21 game mới (gồm **💣 Gỡ Bom Song Phương** — co-op bất đối xứng kiểu *Keep Talking*):
   - **Đối kháng theo lượt / online** (qua relay, đồng bộ tất định từ seed chung): **Rắn & Thang** (🪜),
     **Cá Ngựa Nói Dối** (🎲 bịp bợm), **Phá Mã Đối Kháng** (🧩 Mastermind suy luận),
