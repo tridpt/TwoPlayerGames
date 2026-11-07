@@ -26,7 +26,7 @@
     // boards[b][c] = 0 | 1 | null ; bWin[b] = 0 | 1 | "draw" | null
     let boards = Array.from({ length: 9 }, () => Array(9).fill(null));
     let bWin = Array(9).fill(null);
-    let turn = ctx.isOnline ? ctx.firstSeat : 0;
+    let turn = 0;
     let forced = -1;          // bàn con bắt buộc (-1 = tự do)
     let over = false;
     let winner = null;

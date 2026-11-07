@@ -19,6 +19,13 @@
     let picks = [null, null];   // lựa chọn vòng hiện tại
     let revealing = false;
     let lastResult = null;
+    const queuedRemoteMoves = [];
+    const timers = new Set();
+    function schedule(fn, delay) {
+      if (ctx.fastForward) { fn(); return; }
+      const timer = setTimeout(() => { timers.delete(timer); fn(); }, delay);
+      timers.add(timer);
+    }
 
     const root = document.createElement("div");
     root.className = "nd2-root";
@@ -30,7 +37,8 @@
 
     // Hành động: { k:"pick", n } — người chơi (seat) chọn số n
     function applyMove(move, fromRemote) {
-      if (over || revealing || move.k !== "pick") return;
+      if (!move || move.k !== "pick" || over) return;
+      if (revealing) { if (fromRemote) queuedRemoteMoves.push(move); return; }
       const n = Number(move.n);
       if (!(n >= 1 && n <= N)) return;
       // xác định ai chọn:
@@ -50,7 +58,7 @@
       render(); updateStatus();
       // đấu máy: người vừa chọn -> máy chọn ngay sau đó
       if (ctx.vsAI && !fromRemote && picks[1] == null) {
-        setTimeout(() => {
+        schedule(() => {
           const mv = aiMove();
           if (mv) applyMove(mv, true);
         }, 500);
@@ -68,7 +76,7 @@
       ctx.sound(winner >= 0 ? "win" : "miss");
       render();
 
-      setTimeout(() => {
+      schedule(() => {
         revealing = false;
         if (score[0] >= WIN || score[1] >= WIN) {
           over = true;
@@ -85,6 +93,7 @@
         roundNo++;
         picks = [null, null];
         render(); updateStatus();
+        while (!over && !revealing && queuedRemoteMoves.length) applyMove(queuedRemoteMoves.shift(), true);
       }, 1700);
     }
 
@@ -221,7 +230,11 @@
     render();
     updateStatus();
 
-    function destroy() {}
+    function destroy() {
+      over = true;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+    }
     return { applyMove, aiMove, destroy };
   }
 

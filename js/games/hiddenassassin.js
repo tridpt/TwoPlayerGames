@@ -60,7 +60,7 @@
     const log = [ctx.t("Đêm dạ tiệc bắt đầu. Một sát thủ đang lẩn trong đám đông.", "The gala begins. An assassin hides in the crowd.")];
     const notes = [Object.create(null), Object.create(null)];
     const suspects = makeSuspects();
-    const myAssassinId = pickMyAssassin();
+    let myAssassinId = pickMyAssassin();
 
     // bản dịch chuỗi mô tả (hằng module-level) — tra cứu VN→EN để dịch cả chuỗi nhận qua mạng
     const FLAVOR_EN = {
@@ -721,6 +721,27 @@
       ctx.setStatus(text[mode] || ctx.t("Đến lượt bạn.", "Your turn."));
     }
 
+    function exportState() {
+      return { v: 1, turn, mode, selected, awaiting, over, moveNo, myAssassinId,
+        traps, watchers, focus, dossiers, profiles, log, notes, suspects };
+    }
+    function importState(s) {
+      if (!s || s.v !== 1 || !Array.isArray(s.suspects) || !Array.isArray(s.log)) return false;
+      ({ turn, mode, selected, awaiting, over, moveNo, myAssassinId } = s);
+      traps.splice(0, traps.length, ...(s.traps || []));
+      watchers.splice(0, watchers.length, ...(s.watchers || []));
+      focus.splice(0, focus.length, ...(s.focus || []));
+      dossiers.splice(0, dossiers.length, ...(s.dossiers || []));
+      profiles.splice(0, profiles.length, ...(s.profiles || []));
+      log.splice(0, log.length, ...s.log);
+      notes.splice(0, notes.length, ...(s.notes || []));
+      suspects.splice(0, suspects.length, ...s.suspects);
+      ctx.setTurn(over ? -1 : turn);
+      render();
+      updateStatus();
+      return true;
+    }
+
     function draw() {
       updatePositions();
       g.clearRect(0, 0, W, H);
@@ -886,7 +907,7 @@
     ctx.setTurn(0);
     render();
     updateStatus();
-    return { applyMove };
+    return { applyMove, exportState, importState };
   }
 
   window.GameRegistry.register({

@@ -20,22 +20,23 @@ Bộ trò chơi đối kháng cho 2 người chơi, hỗ trợ **chơi chung m�
 
 ## ✨ Tính năng
 
-- **76 trò chơi** trong cùng một ứng dụng
+- **77 trò chơi** trong cùng một ứng dụng
 - **3 chế độ chơi**: chung máy (hot-seat), **đấu với máy (AI)** hoặc online (2 máy khác nhau)
 - **AI 3 mức độ** (Dễ / Vừa / Khó) cho nhiều game cờ và game khác; gợi ý nước đi cho Minesweeper, Hangman, Nối Từ
 - **Hoàn tác (undo)** khi chơi chung máy ở nhiều game cờ
 - **Phòng online bằng mã 4 chữ số** + **danh sách phòng công khai** để vào chơi một chạm
-- **Tìm trận nhanh (matchmaking)**: chọn game rồi bấm tìm — server tự ghép hai người đang chờ cùng game vào một phòng ranked
+- **Tìm trận nhanh (matchmaking)**: chọn game rồi bấm tìm — server tự ghép hai người đang chờ cùng game
 - **Tự kết nối lại** khi rớt mạng (giữ phòng 45 giây + phát lại nước đi) và **xem lại ván (replay)** online
 - **Khung chat** trong phòng online kèm các câu nhắn nhanh
 - **Trang Hồ sơ**: đổi tên + 24 avatar, thống kê, **12+ thành tích**, **bảng xếp hạng** game, **lịch sử ván đấu** (có nút **▶ Xem lại** để phát lại trọn ván đã lưu) + biểu đồ hoạt động 14 ngày
 - **Tài khoản & đồng bộ đám mây**: đăng ký/đăng nhập (mật khẩu băm `scrypt`) để lưu hồ sơ, thống kê, thành tích và đồng bộ giữa nhiều thiết bị (kiểu "mới nhất thắng")
-- **Bảng xếp hạng online theo ELO**: mỗi ván online giữa hai người đã đăng nhập được chấm ELO (theo từng game + tổng); bảng xếp hạng toàn cục lọc theo game. Server chỉ tính khi **hai máy báo cáo kết quả khớp nhau** (chống gian lận cơ bản)
+- **Bảng xếp hạng online theo ELO**: ván Cờ Caro 3x3 hoặc Xếp 4 giữa hai người đã đăng nhập được chấm ELO (theo từng game + tổng). Server kiểm tra từng nước đi và tự xác định kết quả; các game còn lại chơi online thường.
 - **Thử thách hằng ngày** (daily challenge) với chuỗi ngày liên tiếp
 - **Giao diện "cozy" tông gỗ ấm / giấy ngà** (warm wood & paper): mặc định nền gỗ espresso chữ kem sáng, nút 🌙 chuyển sang chế độ giấy sáng; khu vực chơi luôn giữ tông gỗ tối để bàn cờ dễ đọc. Font serif Fraunces + Nunito Sans.
 - **6 tông màu** đổi nhanh qua nút 🎨 và **nhạc nền + chỉnh âm lượng** (tự tắt khi rời tab)
 - **PWA**: cài như ứng dụng, chạy offline (service worker)
-- **Song ngữ Việt / Anh** (nút 🌐) — dịch **toàn bộ**: khung giao diện, tên + mô tả + hướng dẫn của 76 game, và **trạng thái khi đang chơi** (thông báo lượt, nhãn HUD, nút trong game). Có test tự động chống sót chữ Việt.
+- **Android**: dự án APK trong [android](android/README.md), đóng gói 77 trò chơi để chơi offline và kết nối máy chủ Render cho chế độ online
+- **Song ngữ Việt / Anh** (nút 🌐) — dịch **toàn bộ**: khung giao diện, tên + mô tả + hướng dẫn của 77 game, và **trạng thái khi đang chơi** (thông báo lượt, nhãn HUD, nút trong game). Có test tự động chống sót chữ Việt.
 - **Chia sẻ** kết quả / mã phòng qua Web Share API (fallback copy)
 - **Xuất / Nhập / Xóa** dữ liệu cá nhân (JSON) trong trang Hồ sơ
 - **Accessibility**: điều hướng bàn phím (mũi tên trong lưới game), bẫy focus trong modal, ARIA, tôn trọng `prefers-reduced-motion`
@@ -92,6 +93,7 @@ Bộ trò chơi đối kháng cho 2 người chơi, hỗ trợ **chơi chung m�
 | Domino (Đô-mi-nô) | Chung máy, online | Nối các quân domino khớp số chấm ở hai đầu. Hết quân trước sẽ thắng. |
 | Nối Từ | Chung máy, online | Nối từ ghép 2 tiếng theo tiếng cuối của từ trước. Hết giờ hoặc bí thì thua. |
 | Đoán Chữ (Hangman) | Chung máy, online | Một người ra từ bí mật, người kia đoán từng chữ cái. Sai quá 6 lần là thua. |
+| Vẽ & Đoán | Chung máy, online | Một người vẽ từ bí mật bằng chuột hoặc cảm ứng, người kia đoán trong 60 giây; đổi vai qua 5 vòng. |
 | Trộm Kho Báu | Chung máy, online | Giấu kho báu trên lưới, đào tìm kho báu đối thủ theo gợi ý nóng/lạnh. Ai tìm thấy trước thì thắng. |
 
 ## 🚀 Cách chạy
@@ -117,7 +119,7 @@ npm test
 
 Lệnh này kiểm tra cú pháp JS, đối chiếu `index.html` với các file trong `js/games/`,
 load registry đủ game, kiểm tra nhóm game trong menu, chạy smoke test HTTP +
-WebSocket tạo/vào phòng, **quét chữ Việt còn sót khi ở chế độ tiếng Anh** cho cả 76 game,
+WebSocket tạo/vào phòng, **quét chữ Việt còn sót khi ở chế độ tiếng Anh** cho cả 77 game,
 và chạy test tích hợp **kết nối lại (reconnect)** + **phòng công khai** + **chat**.
 
 ### Chơi online cùng mạng LAN
@@ -168,7 +170,7 @@ TwoPlayerGames/
     ├── registry.js     # Registry game + RNG có hạt giống (nạp đầu tiên)
     ├── i18n.js         # Đổi ngôn ngữ Việt/Anh cho khung giao diện
     ├── stats-util.js   # Hàm logic thuần cho thống kê (dùng chung browser + test)
-    ├── games-i18n.js   # Tên + mô tả tiếng Anh của 76 game
+    ├── games-i18n.js   # Tên + mô tả tiếng Anh của 77 game
     ├── sound.js        # Âm thanh + nhạc nền
     ├── net.js          # Client WebSocket cho chế độ online
     ├── main.js         # Khung điều khiển: menu, chế độ, vòng chơi, chat, hồ sơ
@@ -200,13 +202,14 @@ tạo **phòng riêng tư**; `join` phải gửi đúng mật khẩu mới vào 
 tất định (dùng RNG có hạt giống chung) nên hai máy luôn đồng bộ trạng thái.
 
 Khi tạo/vào phòng, client có thể kèm `auth` (token tài khoản). Nếu **cả hai** người chơi đều
-đăng nhập thì phòng là **ván xếp hạng** (`ranked`): kết thúc ván, mỗi bên gửi `reportResult`;
-server chỉ tính **ELO** khi hai báo cáo **khớp nhau** (chống gian lận cơ bản) rồi gửi lại
-`rated` kèm điểm mới. Đồng bộ hồ sơ + bảng xếp hạng dùng HTTP API riêng (`/api/register`,
-`/api/login`, `/api/logout`, `/api/state`, `/api/leaderboard`, `/api/rating`).
+đăng nhập và chọn Cờ Caro 3x3 hoặc Xếp 4 thì phòng là **ván xếp hạng** (`ranked`). Server
+kiểm tra lượt, tính hợp lệ của từng nước và kết quả cuối ván trước khi ghi ELO, rồi gửi
+`rated` kèm điểm mới. Các game khác vẫn chơi online nhưng không tính ELO. Đồng bộ hồ sơ
+và bảng xếp hạng dùng HTTP API riêng (`/api/register`, `/api/login`, `/api/logout`,
+`/api/state`, `/api/leaderboard`, `/api/rating`).
 
 **Tìm trận nhanh (matchmaking):** client gửi `queue` (kèm `gameId` + `auth`) để vào hàng chờ;
-server ghép hai người đang chờ **cùng game** vào một phòng ranked mới rồi gửi `matched` + `start`.
+server ghép hai người đang chờ **cùng game** vào một phòng mới rồi gửi `matched` + `start`.
 Gửi `unqueue` để hủy tìm. Hàng chờ tự dọn khi người chơi rời hoặc rớt mạng.
 
 ## ⚠️ Lưu ý

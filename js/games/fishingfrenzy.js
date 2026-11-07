@@ -67,7 +67,7 @@
 
     let baitNext = false, starNext = false, magnetNext = false;
     let castMsg = "", castMsgT = 0;
-    let raf = null, lastT = 0, timerInt = null, cdInt = null, spawnAcc = 0, itemAcc = 0;
+    let raf = null, lastT = 0, timerInt = null, cdInt = null, finalTimer = null, spawnAcc = 0, itemAcc = 0;
     const bubbles = [];
 
     // ----- UI -----
@@ -612,7 +612,7 @@
       if (ctx.isOnline) ctx.sendMove({ kind: "final", score: myScore, count: myCount });
       ctx.setStatus(ctx.t("Hết giờ! Đang tổng kết...", "Time up! Tallying results..."));
       tryDecide();
-      if (ctx.isOnline) setTimeout(() => { if (!decided) decide(); }, 3000);
+      if (ctx.isOnline) finalTimer = setTimeout(() => { finalTimer = null; if (!decided) decide(); }, 3000);
     }
 
     function tryDecide() {
@@ -665,6 +665,7 @@
       if (raf) { cancelAnimationFrame(raf); raf = null; }
       if (timerInt) { clearInterval(timerInt); timerInt = null; }
       if (cdInt) { clearInterval(cdInt); cdInt = null; }
+      if (finalTimer) { clearTimeout(finalTimer); finalTimer = null; }
       document.removeEventListener("keydown", onKey);
     }
 

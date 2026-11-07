@@ -52,7 +52,7 @@ def pill(d, cx, y, text, font, color):
     x0 = cx - w / 2
     d.rounded_rectangle([x0, y, x0 + w, y + 58], radius=29,
                         fill=color + (40,), outline=color + (140,), width=2)
-    d.text((x0 + pad, y + 14), text, font=font, fill=color)
+    d.text((x0 + pad, y + 14), text, font=font, fill=(33, 26, 18))
 
 
 def main():
@@ -71,7 +71,7 @@ def main():
 
     d = ImageDraw.Draw(img)
     center_text(d, 150, "Game 2 Người", load_font(110, True), (230, 180, 85))
-    center_text(d, 300, "76 trò chơi 2 người · Two-Player Games",
+    center_text(d, 300, "77 trò chơi 2 người · Two-Player Games",
                 load_font(40, True), (243, 234, 219))
     center_text(d, 372, "Chơi chung máy · Đấu AI · Online",
                 load_font(30), (195, 177, 153))

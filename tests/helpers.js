@@ -39,6 +39,7 @@ function mkEl(tag) {
     get innerHTML() { return el._html; },
     set innerHTML(v) { el._html = v; if (v === "") el.children = []; },
     addEventListener(ev, cb) { (el._ev[ev] ||= []).push(cb); },
+    removeEventListener(ev, cb) { el._ev[ev] = (el._ev[ev] || []).filter((fn) => fn !== cb); },
     insertAdjacentHTML() {},
     appendChild(c) { el.children.push(c); return c; },
     removeChild(c) { el.children = el.children.filter((x) => x !== c); },

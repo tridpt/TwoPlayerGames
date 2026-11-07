@@ -15,8 +15,6 @@
     const PALETTE = o.colors ? Number(o.colors) : 6;
     const DUP = o.dup !== "off"; // cho phép màu lặp
 
-    const seat0First = ctx.isOnline ? ctx.firstSeat : 0;
-
     function makeCode() {
       const code = [];
       if (DUP) {
@@ -35,7 +33,7 @@
     // secret[p] = mã của người p (đối thủ sẽ đoán)
     const secret = [makeCode(), makeCode()];
     const guesses = [[], []]; // lịch sử đoán của mỗi người (đoán mã đối thủ)
-    let turn = seat0First;
+    let turn = 0;
     let over = false;
 
     const root = document.createElement("div");

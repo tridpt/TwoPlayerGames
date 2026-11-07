@@ -54,6 +54,20 @@
     let li = 0, W = 0, H = 0;
     let walls, goals, plates, doors, boxes, players;
     let moves = 0, over = false, transitioning = false;
+    const queuedRemoteMoves = [];
+    function drainRemoteMoves() {
+      while (!over && !transitioning && queuedRemoteMoves.length) applyMove(queuedRemoteMoves.shift(), true);
+    }
+    const timers = new Set();
+    function schedule(fn, delay) {
+      if (ctx.fastForward) { fn(); return; }
+      const timer = setTimeout(() => { timers.delete(timer); fn(); }, delay);
+      timers.add(timer);
+    }
+    function clearTimers() {
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+    }
     let nextBoxId = 1;
     let faceDir = [1, 1]; // hướng nhìn (1 phải, -1 trái)
 
@@ -167,10 +181,11 @@
         showOverlay(last
           ? ctx.t("🎉 Hoàn thành tất cả!", "🎉 All levels cleared!")
           : ctx.t(`✅ Qua màn ${li + 1}! (${moves} bước)`, `✅ Level ${li + 1} done! (${moves} moves)`), last ? "win" : "clear");
-        setTimeout(() => {
+        schedule(() => {
           transitioning = false;
           if (last) { finishAll(); return; }
           li++; loadLevel(li); buildStage(); renderAll(); introBanner();
+          drainRemoteMoves();
         }, 1150);
       }
     }
@@ -187,12 +202,18 @@
 
     function restart(fromRemote) {
       if (!fromRemote && online) ctx.sendMove({ k: "restart" });
+      clearTimers();
+      queuedRemoteMoves.length = 0;
       transitioning = false; over = false;
       loadLevel(li); buildStage(); renderAll(); updateStatus();
     }
 
     function applyMove(move, fromRemote) {
       if (!move) return;
+      if (transitioning && move.k === "move") {
+        if (fromRemote) queuedRemoteMoves.push(move);
+        return;
+      }
       if (move.k === "move") { tryMove(Number(move.seat), move.dir, !!fromRemote); return; }
       if (move.k === "restart") { restart(true); return; }
     }
@@ -278,7 +299,7 @@
     function introBanner() {
       const lv = LEVELS[li];
       showOverlay(`<small>${ctx.t("Màn", "Level")} ${li + 1}/${LEVELS.length}</small><b>${ctx.t(lv.name, lv.nameEn)}</b>`, "intro");
-      setTimeout(hideOverlay, 1100);
+      schedule(hideOverlay, 1100);
     }
     function celebrate() {
       if (!overlayEl) return;
@@ -291,7 +312,7 @@
       layer.className = "bx-confetti";
       layer.innerHTML = conf;
       overlayEl.appendChild(layer);
-      setTimeout(() => layer.remove(), 1400);
+      schedule(() => layer.remove(), 1400);
     }
 
     function dpad(seat, enabled) {
@@ -322,7 +343,7 @@
     }
 
     function onKey(e) {
-      if (over || transitioning) return;
+      if (over || transitioning || ctx.inputLocked?.()) return;
       const k = e.key.toLowerCase();
       const m0 = { w: "up", a: "left", s: "down", d: "right" };
       const ma = { arrowup: "up", arrowleft: "left", arrowdown: "down", arrowright: "right" };
@@ -331,7 +352,7 @@
       else if (ma[k]) { e.preventDefault(); tryMove(1, ma[k], false); }
     }
     window.addEventListener("keydown", onKey);
-    const cleanup = () => window.removeEventListener("keydown", onKey);
+    const cleanup = () => { clearTimers(); window.removeEventListener("keydown", onKey); };
     const observer = new MutationObserver(() => { if (!document.body.contains(root)) { cleanup(); observer.disconnect(); } });
     observer.observe(ctx.boardEl.parentNode || document.body, { childList: true, subtree: true });
 
@@ -340,7 +361,7 @@
     ctx.setTurn(-1);
     loadLevel(0); buildStage(); renderAll(); introBanner(); updateStatus();
 
-    function destroy() { cleanup(); observer.disconnect(); }
+    function destroy() { over = true; cleanup(); observer.disconnect(); }
     return { applyMove, destroy };
   }
 

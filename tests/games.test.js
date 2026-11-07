@@ -171,6 +171,26 @@ test("Nối Từ: dựng được với tùy chọn gợi ý (không hẹn giờ
   assert.ok(api && typeof api.applyMove === "function");
 });
 
+test("Nối Từ: tạm dừng khi xem hướng dẫn và dọn đồng hồ khi thoát", async () => {
+  const wait = (ms) => new Promise((resolve) => { const timer = setTimeout(resolve, ms); timer.ref(); });
+  const cfg = loadGame("noitu");
+  const ctx = makeCtx({ time: 1 });
+  const api = cfg.create(ctx);
+  api.pause();
+  await wait(1150);
+  assert.deepStrictEqual(ctx.scores, [0, 0]);
+  api.resume();
+  await wait(1150);
+  assert.deepStrictEqual(ctx.scores, [0, 1]);
+  api.destroy();
+
+  const second = makeCtx({ time: 1 });
+  const abandoned = cfg.create(second);
+  abandoned.destroy();
+  await wait(1150);
+  assert.deepStrictEqual(second.scores, [0, 0]);
+});
+
 test("Pig: AI trả về nước gieo/giữ hợp lệ (đầu ván phải gieo)", () => {
   const cfg = loadGame("pig");
   const ctx = makeCtx({ target: 100 });
@@ -197,4 +217,78 @@ test("Auction War: AI đặt giá hợp lệ trong khả năng chi", () => {
   const mv = api.aiMove("normal");
   assert.ok(mv && mv.kind === "bid" && mv.seat === 1);
   assert.ok(mv.amount >= 0 && mv.amount <= 140, "giá thầu không vượt tiền mặt");
+});
+
+test("Thoát ván hủy các hành động đã hẹn giờ", () => {
+  const set = global.setTimeout;
+  const clear = global.clearTimeout;
+  const pending = new Set();
+  global.setTimeout = (fn) => {
+    const timer = { fn };
+    pending.add(timer);
+    return timer;
+  };
+  global.clearTimeout = (timer) => { pending.delete(timer); };
+  try {
+    const cases = [
+      ["blackjackduel", {}, (api) => { api.applyMove({ k: "stand" }); api.applyMove({ k: "stand" }); }],
+      ["colorwar", {}, (api, ctx) => {
+        ctx.vsAI = true;
+        for (let ci = 0; ci < 6 && ctx.turn === 0; ci++) api.applyMove({ k: "color", ci });
+      }],
+      ["liarsdice", {}, (api) => { api.applyMove({ k: "bid", qty: 1, face: 2 }); api.applyMove({ k: "challenge" }); }],
+      ["numberduel", {}, (api) => { api.applyMove({ k: "pick", n: 1 }); api.applyMove({ k: "pick", n: 2 }); }],
+      ["prisonersdilemma", {}, (api) => { api.applyMove({ k: "pick", c: "C" }); api.applyMove({ k: "pick", c: "D" }); }],
+      ["rpsplus", {}, (api) => { api.applyMove({ k: "pick", c: "R" }); api.applyMove({ k: "pick", c: "S" }); }],
+      ["tycoon", {}, (api, ctx) => { ctx.vsAI = true; api.applyMove({ k: "roll", die: 1 }); api.applyMove({ k: "buy", yes: false }); }],
+      ["connectfour", {}, (api) => { api.applyMove(0); }],
+      ["pentago", {}, (api) => {
+        api.applyMove({ cell: 99, quad: 0, dir: "cw" });
+        api.applyMove({ cell: 0, quad: 99, dir: "cw" });
+        api.applyMove({ cell: 0, quad: 0, dir: "bad" });
+        assert.strictEqual(pending.size, 0, "pentago: nước sai không được lên lịch");
+        api.applyMove({ cell: 0, quad: 0, dir: "cw" });
+      }],
+      ["memory", { pairs: 2 }, (api, ctx) => {
+        const cards = ctx.boardEl.children[0].children[1].children;
+        const face = (i) => cards[i].children[0].children[1].textContent;
+        const other = cards.findIndex((_, i) => face(i) !== face(0));
+        api.applyMove(0);
+        api.applyMove(other);
+      }],
+      ["boxpush", {}, () => {}],
+      ["mazecoop", {}, () => {}],
+    ];
+    for (const [id, options, act] of cases) {
+      pending.clear();
+      const ctx = makeCtx(options);
+      const api = loadGame(id).create(ctx);
+      act(api, ctx);
+      assert.ok(pending.size > 0, `${id}: phải có hành động đang chờ`);
+      const previousStatus = ctx.status;
+      const previousTurn = ctx.turn;
+      const previousScores = [...ctx.scores];
+      api.destroy();
+      assert.strictEqual(pending.size, 0, `${id}: còn hành động sau khi thoát`);
+      assert.strictEqual(ctx.status, previousStatus);
+      assert.strictEqual(ctx.turn, previousTurn);
+      assert.deepStrictEqual(ctx.scores, previousScores);
+    }
+  } finally {
+    global.setTimeout = set;
+    global.clearTimeout = clear;
+  }
+});
+
+test("Online: P1 của ván đi trước dù ghế phòng 1 được chọn mở màn", () => {
+  const games = ["blackjackduel", "colorwar", "codebreakerduel", "liarsdice", "snakesladders", "tycoon", "wordduel", "ultimatettt"];
+  for (const id of games) {
+    const ctx = makeCtx({});
+    ctx.isOnline = true;
+    ctx.mySeat = 0; // main.js đã đổi người mở màn sang P1 của ván
+    ctx.firstSeat = 1; // ghế phòng 1 được server chọn mở màn
+    const api = loadGame(id).create(ctx);
+    assert.strictEqual(ctx.turn, 0, `${id}: phải cho P1 của ván đi trước`);
+    if (api.destroy) api.destroy();
+  }
 });

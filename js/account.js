@@ -87,7 +87,12 @@ window.Account = (function () {
     const headers = { "Content-Type": "application/json" };
     const t = token();
     if (t) headers["Authorization"] = "Bearer " + t;
-    const res = await fetch(path, Object.assign({ headers }, opts));
+    let res;
+    try {
+      res = await fetch(path, Object.assign({ headers }, opts));
+    } catch {
+      return { ok: false, status: 0, data: { error: "network" } };
+    }
     let data = {};
     try { data = await res.json(); } catch { /* ignore */ }
     return { ok: res.ok, status: res.status, data };
@@ -220,6 +225,7 @@ window.Account = (function () {
         invalid_credentials: "accErrCreds",
         rate_limited: "accErrRate",
         state_too_large: "accErrBig",
+        network: "accErrNet",
         error: "accErrGeneric",
       };
       return T(map[code] || "accErrGeneric");

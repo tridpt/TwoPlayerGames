@@ -16,16 +16,21 @@
     const START = o.dice ? Number(o.dice) : 5;
     const WILD = o.wild !== "off"; // mặt 1 là hoang
 
-    const seat0First = ctx.isOnline ? ctx.firstSeat : 0;
-
     // Số xúc xắc còn lại của mỗi người
     let counts = [START, START];
     // Xúc xắc hiện tại mỗi người (mảng giá trị 1..6)
     let dice = [[], []];
-    let turn = seat0First;
+    let turn = 0;
     let bid = null;        // { qty, face, by }
     let over = false;
     let revealing = false;
+    const queuedRemoteMoves = [];
+    const timers = new Set();
+    function schedule(fn, delay) {
+      if (ctx.fastForward) { fn(); return; }
+      const timer = setTimeout(() => { timers.delete(timer); fn(); }, delay);
+      timers.add(timer);
+    }
 
     const root = document.createElement("div");
     root.className = "ld-root";
@@ -76,11 +81,13 @@
       ctx.setTurn(turn);
       render();
       updateStatus();
+      while (!over && !revealing && queuedRemoteMoves.length) applyMove(queuedRemoteMoves.shift(), true);
     }
 
     // Hành động: { k:"bid", qty, face } | { k:"challenge" }
     function applyMove(move, fromRemote) {
-      if (over || revealing) return;
+      if (!move || over) return;
+      if (revealing) { if (fromRemote) queuedRemoteMoves.push(move); return; }
       if (move.k === "bid") {
         const nb = { qty: Number(move.qty), face: Number(move.face), by: turn };
         if (!bidHigher(nb, bid)) return;
@@ -117,7 +124,7 @@
           (bidTrue ? `Bid was TRUE — P${challenger + 1} challenged wrong, loses a die.` : `Bid was FALSE — P${bidder + 1} loses a die.`));
       ctx.setStatus(verdict);
 
-      setTimeout(() => {
+      schedule(() => {
         if (counts[0] === 0 || counts[1] === 0) {
           over = true;
           const winner = counts[0] > 0 ? 0 : 1;
@@ -354,9 +361,13 @@
 
     // khởi động vòng đầu
     buildShell();
-    startRound(seat0First);
+    startRound(0);
 
-    function destroy() {}
+    function destroy() {
+      over = true;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+    }
     return { applyMove, aiMove, destroy };
   }
 

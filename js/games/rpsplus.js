@@ -23,6 +23,13 @@
     let picks = [null, null];
     let revealing = false;
     let lastResult = null;
+    const queuedRemoteMoves = [];
+    const timers = new Set();
+    function schedule(fn, delay) {
+      if (ctx.fastForward) { fn(); return; }
+      const timer = setTimeout(() => { timers.delete(timer); fn(); }, delay);
+      timers.add(timer);
+    }
 
     const root = document.createElement("div");
     root.className = "rps2-root";
@@ -47,7 +54,8 @@
 
     // Hành động: { k:"pick", c } với c ∈ R/S/P/X
     function applyMove(move, fromRemote) {
-      if (over || revealing || move.k !== "pick") return;
+      if (!move || move.k !== "pick" || over) return;
+      if (revealing) { if (fromRemote) queuedRemoteMoves.push(move); return; }
       const c = ["R", "S", "P", "X"].includes(move.c) ? move.c : "R";
       let seat;
       if (ctx.isOnline) seat = fromRemote ? (1 - ctx.mySeat) : ctx.mySeat;
@@ -61,7 +69,7 @@
       if (bothPicked()) { reveal(); return; }
       render(); updateStatus();
       if (ctx.vsAI && !fromRemote && picks[1] == null) {
-        setTimeout(() => { const mv = aiMove(); if (mv) applyMove(mv, true); }, 550);
+        schedule(() => { const mv = aiMove(); if (mv) applyMove(mv, true); }, 550);
       }
     }
 
@@ -81,7 +89,7 @@
       ctx.sound(winner >= 0 ? "win" : "miss");
       render();
 
-      setTimeout(() => {
+      schedule(() => {
         revealing = false;
         if (score[0] >= WIN_ROUNDS || score[1] >= WIN_ROUNDS) {
           over = true;
@@ -95,6 +103,7 @@
         }
         picks = [null, null];
         render(); updateStatus();
+        while (!over && !revealing && queuedRemoteMoves.length) applyMove(queuedRemoteMoves.shift(), true);
       }, 1700);
     }
 
@@ -212,7 +221,11 @@
     render();
     updateStatus();
 
-    function destroy() {}
+    function destroy() {
+      over = true;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+    }
     return { applyMove, aiMove, destroy };
   }
 

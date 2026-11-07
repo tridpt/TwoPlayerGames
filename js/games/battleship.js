@@ -560,6 +560,25 @@
         : ctx.t("⏳ Đối thủ đang ngắm bắn...", "⏳ Opponent is aiming..."));
     }
 
+    function exportState() {
+      return { v: 1, phase, iReady, oppReady, turn, awaiting, myBoard, ships,
+        oppShotsOnMe, myShots, scanned, radarBadges, selShip, orient, ability,
+        torpedoAxis, charges };
+    }
+    function importState(s) {
+      if (!s || s.v !== 1 || !Array.isArray(s.myBoard) || !Array.isArray(s.ships)) return false;
+      ({ phase, iReady, oppReady, turn, awaiting, myBoard, ships,
+        oppShotsOnMe, myShots, scanned, selShip, orient, ability, torpedoAxis } = s);
+      Object.assign(radarBadges, s.radarBadges || {});
+      Object.assign(charges, s.charges || {});
+      place.classList.toggle("bs-hidden", phase !== "placing");
+      abilityBar.classList.toggle("bs-hidden", phase !== "playing" || !usePowerups);
+      ctx.setTurn(phase === "over" ? -1 : turn);
+      render();
+      updateStatus();
+      return true;
+    }
+
     // ----- khởi tạo -----
     if (!ctx.isOnline) {
       place.classList.add("bs-hidden");
@@ -569,7 +588,7 @@
     placeRandom();
     render();
     ctx.setStatus(ctx.t("Xếp hạm đội: chọn tàu, xoay (R / chuột phải) rồi đặt. Hoặc bấm 🔀 Ngẫu nhiên. Xong thì Sẵn sàng.", "Place your fleet: pick a ship, rotate (R / right-click), then place. Or press 🔀 Random. When done, press Ready."));
-    return { applyMove, destroy: () => document.removeEventListener("keydown", onKey) };
+    return { applyMove, exportState, importState, destroy: () => document.removeEventListener("keydown", onKey) };
   }
 
   window.GameRegistry.register({

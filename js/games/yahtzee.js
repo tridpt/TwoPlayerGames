@@ -50,6 +50,11 @@
     let rollsLeft = 3;
     let rolledThisTurn = false;
     let animating = false;
+    const queuedRemoteMoves = [];
+    function drainRemoteMoves() {
+      while (!over && !animating && queuedRemoteMoves.length) applyMove(queuedRemoteMoves.shift(), true);
+    }
+    let rollTimer = null;
     const scores = [{}, {}];
     const yahtzeeBonus = [0, 0]; // thưởng +100 mỗi Yahtzee thêm (sau khi ô ⭐ đã có 50)
 
@@ -172,7 +177,8 @@
     }
 
     function applyMove(move, fromRemote) {
-      if (over) return;
+      if (!move || over) return;
+      if (animating) { if (fromRemote) queuedRemoteMoves.push(move); return; }
 
       if (move.kind === "roll") {
         if (rollsLeft <= 0) return;
@@ -211,23 +217,33 @@
 
     // hoạt ảnh lăn xúc xắc: nhấp nháy mặt ngẫu nhiên rồi dừng ở kết quả
     function animateRoll(finalDice) {
+      if (ctx.fastForward) {
+        dice = finalDice;
+        renderDice();
+        renderTable();
+        afterRoll();
+        return;
+      }
       animating = true;
       rollBtn.disabled = true;
       let ticks = 0;
-      const anim = setInterval(() => {
+      if (rollTimer) clearInterval(rollTimer);
+      rollTimer = setInterval(() => {
         dice.forEach((_, i) => {
           if (held[i]) return;
           paintDie(dieEls[i].face, 1 + Math.floor(Math.random() * 6));
           dieEls[i].wrap.classList.add("rolling");
         });
         if (++ticks >= 8) {
-          clearInterval(anim);
+          clearInterval(rollTimer);
+          rollTimer = null;
           dice = finalDice;
           dieEls.forEach((d) => d.wrap.classList.remove("rolling"));
           animating = false;
           renderDice();
           renderTable();
           afterRoll();
+          drainRemoteMoves();
         }
       }, 55);
     }
@@ -343,7 +359,8 @@
     rollBtn.disabled = !myTurn();
     ctx.setStatus(ctx.t("Lượt Người chơi 1 — bấm Gieo để bắt đầu (mỗi lượt gieo tối đa 3 lần).",
       "Player 1's turn — press Roll to start (up to 3 rolls per turn)."));
-    return { applyMove };
+    function destroy() { over = true; if (rollTimer) clearInterval(rollTimer); rollTimer = null; }
+    return { applyMove, destroy };
   }
 
   window.GameRegistry.register({

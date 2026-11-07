@@ -679,6 +679,23 @@
       }
     }
 
+    function exportState() {
+      return { v: 1, phase, turn, round, awaiting, mode, pendingStart, sub, subHp,
+        drones, charges, dives, shield, lastNoise, finalSub, marks, log };
+    }
+    function importState(s) {
+      if (!s || s.v !== 1 || !Array.isArray(s.log)) return false;
+      ({ phase, turn, round, awaiting, mode, pendingStart, sub, subHp,
+        drones, charges, dives, shield, lastNoise, finalSub } = s);
+      Object.keys(marks).forEach((key) => delete marks[key]);
+      Object.assign(marks, s.marks || {});
+      log.splice(0, log.length, ...s.log);
+      ctx.setTurn(phase === "over" ? -1 : turn);
+      render();
+      updateStatus();
+      return true;
+    }
+
     if (!ctx.isOnline) {
       render();
       updateStatus();
@@ -689,7 +706,7 @@
     ctx.setTurn(0);
     render();
     updateStatus();
-    return { applyMove };
+    return { applyMove, exportState, importState };
   }
 
   window.GameRegistry.register({

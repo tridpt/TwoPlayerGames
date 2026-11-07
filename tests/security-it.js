@@ -20,9 +20,9 @@ function open() {
   });
 }
 // Mở một kết nối và cho biết nó có bị server đóng ngay không (true = bị đóng/từ chối).
-function openAndWatch() {
+function openAndWatch(headers) {
   return new Promise((resolve) => {
-    const ws = new WebSocket(URL);
+    const ws = new WebSocket(URL, headers ? { headers } : undefined);
     let closed = false;
     ws.on("close", () => { closed = true; });
     ws.on("error", () => { closed = true; });
@@ -49,8 +49,10 @@ function log(ok, msg) { console.log((ok ? "\u2714 " : "\u2718 ") + msg); if (!ok
 (async () => {
   const srv = spawn(process.execPath, [path.join(__dirname, "..", "server.js")], {
     env: { ...process.env, PORT: String(PORT), MAX_CONNECTIONS_PER_IP: "3", MAX_ROOMS: "2" },
-    stdio: "ignore",
+    stdio: ["ignore", "ignore", "pipe"],
   });
+  let serverStderr = "";
+  srv.stderr.on("data", (chunk) => { serverStderr += chunk.toString(); });
   await new Promise((r) => setTimeout(r, 700));
   const sockets = [];
   try {
@@ -63,6 +65,11 @@ function log(ok, msg) { console.log((ok ? "\u2714 " : "\u2718 ") + msg); if (!ok
     const fourth = await openAndWatch();
     sockets.push(fourth.ws);
     log(fourth.closed, "ket noi thu 4 vuot han muc IP bi dong");
+
+    // IP khác qua X-Forwarded-For từ reverse proxy vẫn được phép kết nối bình thường.
+    const otherClient = await openAndWatch({ "X-Forwarded-For": "203.0.113.42, 10.0.0.1" });
+    sockets.push(otherClient.ws);
+    log(!otherClient.closed, "client khac qua X-Forwarded-For khong bi chan boi han muc cua IP truoc");
 
     // Đóng bớt để còn chỗ cho các phần test sau (giải phóng bộ đếm IP).
     sockets.forEach((w) => { try { w.close(); } catch { /* ignore */ } });
@@ -83,16 +90,27 @@ function log(ok, msg) { console.log((ok ? "\u2714 " : "\u2718 ") + msg); if (!ok
     log(/phòng|room/i.test(err.message || ""), "tao phong vuot MAX_ROOMS bi tu choi");
 
     // ---- 3) maxPayload: frame vuot MAX_MESSAGE_BYTES bi dong ngay ----
-    const d = await open();
+    const d = c; // kết nối đã được chấp nhận, chưa ở phòng nào
     let dClosed = false;
     d.on("close", () => { dClosed = true; });
     d.send(JSON.stringify({ type: "chat", text: "x".repeat(20000) }));
     await new Promise((r) => setTimeout(r, 400));
     log(dClosed, "frame qua lon bi dong o tang ws (maxPayload)");
 
+    // JSON object có thuộc tính toString riêng không được làm sập tiến trình.
+    const invalidCode = next(a, "error");
+    a.send(JSON.stringify({ type: "join", code: { toString: "broken" } }));
+    await invalidCode;
+    a.send(JSON.stringify({ type: "chat", text: { toString: "broken" } }));
+    const listReply = next(a, "roomList");
+    a.send(JSON.stringify({ type: "listRooms" }));
+    await listReply;
+    log(true, "WebSocket bo qua truong sai kieu va server van phan hoi");
+
     console.log(process.exitCode ? "FAIL" : "ALL PASS");
   } catch (e) {
     console.error("ERR", e.message);
+    if (serverStderr) console.error(serverStderr);
     process.exitCode = 1;
   } finally {
     sockets.forEach((w) => { try { w.close(); } catch { /* ignore */ } });

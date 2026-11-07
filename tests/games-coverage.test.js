@@ -46,7 +46,7 @@ const GAMES = [
   "orderchaos", "pentago", "pong", "poolbattle", "robotfactorywar",
   "seabattleplus", "slingshotbattle", "stratego", "submarinehunt", "tankarena",
   "territorywar", "timeloopduel", "trapmansion", "treasure", "yahtzee",
-  "reactionduel", "dashdodge", "snakesladders", "liarsdice", "codebreakerduel", "blackjackduel", "twentyquestions", "wordduel", "tugofwar", "typingrace", "numberduel", "prisonersdilemma", "rpsplus", "tycoon", "colorwar", "defusebomb",
+  "reactionduel", "dashdodge", "snakesladders", "liarsdice", "codebreakerduel", "blackjackduel", "twentyquestions", "drawguess", "wordduel", "tugofwar", "typingrace", "numberduel", "prisonersdilemma", "rpsplus", "tycoon", "colorwar", "defusebomb",
   "sim", "minichess", "sprouts", "boxpush", "mazecoop",
 ];
 

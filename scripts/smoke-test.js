@@ -39,6 +39,7 @@ function sameSet(a, b) {
 function runSyntaxChecks() {
   const files = [
     fromRoot("server.js"),
+    fromRoot("ranked-games.js"),
     ...listJsFiles(fromRoot("js")),
     ...listJsFiles(fromRoot("scripts")),
   ];
@@ -222,10 +223,22 @@ async function runServerSmokeTest() {
     const traversal = await httpGet(port, "/..%2fpackage.json");
     assert(traversal.statusCode === 403, `path traversal probe returned ${traversal.statusCode}`);
 
+    for (const privatePath of ["/data/accounts.sqlite", "/accounts.js", "/server.js", "/package.json", "/.git/config"]) {
+      const privateFile = await httpGet(port, privatePath);
+      assert(privateFile.statusCode === 404, `${privatePath} was served (${privateFile.statusCode})`);
+    }
+    const browserScript = await httpGet(port, "/js/main.js");
+    assert(browserScript.statusCode === 200, "browser script was not served");
+
     const a = new WebSocket(`ws://127.0.0.1:${port}`);
     const b = new WebSocket(`ws://127.0.0.1:${port}`);
     const c = new WebSocket(`ws://127.0.0.1:${port}`);
     await Promise.all([waitOpen(a), waitOpen(b), waitOpen(c)]);
+
+    a.send("null");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const afterMalformedMessage = await httpGet(port, "/health");
+    assert(afterMalformedMessage.statusCode === 200, "valid JSON null stopped the WebSocket server");
 
     const invalidJoinP = waitForMessage(c, "error");
     c.send(JSON.stringify({ type: "join", code: "abcd" }));

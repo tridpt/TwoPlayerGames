@@ -88,6 +88,14 @@ function log(ok, msg) { console.log((ok ? "\u2714 " : "\u2718 ") + msg); if (!ok
     const still = await req("GET", "/api/state", { token });
     log(still.status === 200, "phien khac van con hieu luc doc lap");
 
+    // Các tên hợp lệ trùng thuộc tính Object.prototype vẫn phải dùng được.
+    for (const username of ["constructor", "toString", "__proto__"]) {
+      const special = await req("POST", "/api/register", { body: { username, password: "secret123" } });
+      const login = await req("POST", "/api/login", { body: { username, password: "secret123" } });
+      log(special.status === 200 && login.status === 200 && !!login.json.token,
+        `ten tai khoan ${username} dang ky va dang nhap duoc`);
+    }
+
     console.log(process.exitCode ? "FAIL" : "ALL PASS");
   } catch (e) {
     console.error("ERR", e.message);

@@ -167,8 +167,11 @@
   let matchmaking = false; // đang trong hàng chờ tìm trận nhanh
   let resuming = false;    // đang thử khôi phục ván online sau khi tải lại trang
   const SESSION_KEY = "tpg_online_session"; // lưu phiên để rejoin khi lỡ refresh
+  const PRIVATE_STATE_GAMES = new Set(["battleship", "drawguess", "hiddenassassin", "seabattleplus", "submarinehunt", "trapmansion"]);
   let vsAI = false;  // true = đang đấu với máy (local)
   let aiLevel = "normal"; // easy | normal | hard
+  let aiTimer = null;
+  let aiEpoch = 0;
   const AI_SEAT = 1; // máy luôn cầm người chơi 2
   // Best-of-N (chỉ chung máy / đấu máy): chơi nhiều ván, tính tổng số ván thắng.
   let bestOf = 1;            // 1 = tắt; 3/5/7 = số ván tối đa của trận
@@ -197,11 +200,15 @@
 
   // ----- Replay (xem lại ván online) -----
   let replayMoves = [];        // chuỗi nước đi của ván online hiện tại
+  let replaySeats = [];        // ghế P1/P2 đã gửi từng nước (cùng chỉ số với replayMoves)
+  let replayOffset = 0;        // số nước đã bị cắt khỏi đầu lịch sử của server
   let replaySeed = 0;          // seed của ván để dựng lại
   let replayMeta = null;       // {gameId, firstSeat, round, options}
   let replayInstance = null;   // instance đang phát lại
   let replayIdx = 0;           // số nước đã phát
   let replayTimer = null;      // bộ đếm tự phát
+  let rebuildingHistory = false;
+  let recoveryHoldTimer = null;
 
   const PLAYER_NAME_KEY = "tpg_player_name";
 
@@ -244,7 +251,7 @@
       icon: "🕵️",
       hint: "Giấu vị trí, đoán tọa độ, tìm mìn, giải từ và đọc dấu hiệu.",
       hintKey: "grpHiddenHint",
-      games: ["battleship", "seabattleplus", "submarinehunt", "hiddenassassin", "trapmansion", "minesweeper", "treasure", "bullscows", "hangman", "noitu", "codebreakerduel", "twentyquestions", "wordduel", "numberduel", "prisonersdilemma", "rpsplus"],
+      games: ["battleship", "seabattleplus", "submarinehunt", "hiddenassassin", "trapmansion", "minesweeper", "treasure", "bullscows", "hangman", "noitu", "codebreakerduel", "twentyquestions", "drawguess", "wordduel", "numberduel", "prisonersdilemma", "rpsplus"],
     },
     {
       title: "Xúc xắc, bài & may rủi",
@@ -267,25 +274,26 @@
       round: online ? online.round : 1,
       rng: window.makeRng(seed || 1),
       options: currentOptions,
+      inputLocked() { return !!el.boardWrap.inert; },
       vsAI: !online && vsAI,
       aiLevel: aiLevel,
       setStatus(text) {
         el.status.textContent = text || "";
-        // Tự động phát âm thanh + màn chúc mừng khi kết thúc ván
-        if (window.Sound && text) {
-          if (text.includes("💀")) Sound.play("lose");
-          else if (text.includes("🎉")) Sound.play("win");
-          else if (text.includes("🤝")) Sound.play("draw");
-        }
+        // Game dùng emoji để báo kết thúc; xác định thắng/thua theo góc nhìn
+        // người chơi cục bộ, vì cả hai máy nhận cùng một dòng trạng thái.
         if (text && (text.includes("🎉") || text.includes("🤝") || text.includes("💀"))) {
-          const kind = text.includes("🎉") ? "win" : text.includes("💀") ? "lose" : "draw";
+          let kind = text.includes("🤝") ? "draw" : text.includes("💀") ? "lose" : "win";
+          if (kind !== "draw" && lastWinner >= 0) {
+            if (online) kind = lastWinner === online.seat ? "win" : "lose";
+            else if (vsAI) kind = lastWinner === 0 ? "win" : "lose";
+          }
+          if (window.Sound) Sound.play(kind);
           if (!resultRecorded && selectedGame && selectedGame.id) {
             resultRecorded = true;
             recordStat(selectedGame.id, kind === "draw" ? "draw" : "win", lastWinner);
             recordHistory(selectedGame.id, kind === "draw" ? "draw" : "win", lastWinner);
             recordOutcomeFlags(kind);
             if (selectedGame.id === dailyGameId()) markDailyDone();
-            reportRankedResult(kind);
           }
           // Best-of-N (chỉ chung máy / đấu máy): cộng điểm trận, quyết định còn đấu tiếp không
           let matchInfo = null;
@@ -321,10 +329,13 @@
       decScore(idx) { scores[idx] = Math.max(0, scores[idx] - 1); renderScores(); },
       getScore(idx) { return scores[idx]; },
       sendMove(move) {
+        if (rebuildingHistory) return;
         // Luôn ghi nước vào replay (kể cả chung máy / đấu máy) để xem lại ván;
         // chỉ relay qua mạng khi đang chơi online.
         replayMoves.push(move);
+        replaySeats.push(online ? online.seat : null);
         if (online && !sessionLocked) Net.send("move", { move });
+        if (online && typeof instance?.exportState === "function") queueMicrotask(saveSession);
       },
       sound(name) { window.Sound && Sound.play(name); },
       t(vi, en) { return (window.I18n && I18n.getLang() === "en" && en != null) ? en : vi; },
@@ -367,9 +378,19 @@
   }
 
   // Máy suy nghĩ rồi đi (chặn thao tác người trong lúc chờ)
+  function cancelAI() {
+    aiEpoch++;
+    if (aiTimer !== null) { clearTimeout(aiTimer); aiTimer = null; }
+    el.boardWrap.classList.remove("ai-thinking");
+  }
+
   function scheduleAI() {
+    cancelAI();
+    const epoch = aiEpoch;
     el.boardWrap.classList.add("ai-thinking");
-    setTimeout(() => {
+    aiTimer = setTimeout(() => {
+      aiTimer = null;
+      if (epoch !== aiEpoch) return;
       el.boardWrap.classList.remove("ai-thinking");
       if (!vsAI || online) return;
       if (instance && typeof instance.aiMove === "function") {
@@ -529,7 +550,9 @@
   }
 
   function clearSessionLock() {
+    if (recoveryHoldTimer) { clearTimeout(recoveryHoldTimer); recoveryHoldTimer = null; }
     sessionLocked = false;
+    el.boardWrap.inert = false;
     el.boardWrap.classList.remove("session-locked");
     const lock = el.boardWrap.querySelector(".session-lock");
     if (lock) lock.remove();
@@ -666,7 +689,7 @@
   const FAV_KEY = "tpg_favorites";
   const RECENT_KEY = "tpg_recent";
   const PLAYS_KEY = "tpg_plays";
-  const NEW_IDS = new Set(["tictactoe", "memory", "pong", "tankarena", "dicebattle", "territorywar", "crystalconquest", "yahtzee"]);
+  const NEW_IDS = new Set(["tictactoe", "memory", "pong", "tankarena", "dicebattle", "territorywar", "crystalconquest", "yahtzee", "drawguess"]);
   const DEFAULT_HOT = ["gomoku", "connectfour", "checkers", "battleship", "reversi", "pentago"];
 
   function loadList(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch (e) { return []; } }
@@ -944,12 +967,12 @@
     if (online) entry.seat = online.seat;
     if (vsAI) entry.level = aiLevel;
     // Lưu replay (để xem lại sau) nếu ván có chuỗi nước đi.
-    if (replayMeta && replayMoves.length) {
+    if (replayMeta && replayMoves.length && replayOffset === 0) {
       const rid = ReplayStore.makeReplayId(Date.now(), Math.random());
       saveReplayData(rid, {
         id: replayMeta.gameId, seed: replaySeed,
         firstSeat: replayMeta.firstSeat, round: replayMeta.round,
-        options: replayMeta.options, moves: replayMoves.slice(),
+        options: replayMeta.options, moves: replayMoves.slice(), seats: replaySeats.slice(),
         mode, kind, winner, seat: online ? online.seat : undefined, ts: entry.ts,
       });
       entry.replayId = rid;
@@ -973,8 +996,11 @@
     const data = ReplayStore.getReplay(getReplays(), rid);
     if (!data) return;
     replayMoves = data.moves.slice();
+    replaySeats = Array.isArray(data.seats) ? data.seats.slice() : [];
+    replayOffset = 0;
     replaySeed = data.seed || 1;
-    replayMeta = { gameId: data.id, firstSeat: data.firstSeat || 0, round: data.round || 1, options: data.options || {} };
+    replayMeta = { gameId: data.id, firstSeat: data.firstSeat || 0, round: data.round || 1,
+      options: data.options || {}, mode: data.mode, seat: data.seat };
     openReplay();
   }
 
@@ -1212,11 +1238,22 @@
   function saveSession() {
     if (!online || !online.code || !sessionToken) return;
     try {
+      const gameState = instance && typeof instance.exportState === "function" ? instance.exportState() : null;
       localStorage.setItem(SESSION_KEY, JSON.stringify({
         code: online.code,
         seat: online.roomSeat,
         token: sessionToken,
         gameId: online.gameId || (selectedGame && selectedGame.id) || "",
+        round: online.round,
+        moveCount: replayOffset + replayMoves.length,
+        gameState,
+        scores,
+        lastWinner,
+        resultRecorded,
+        statusText: el.status.textContent,
+        winShown: !el.winOverlay.classList.contains("hidden"),
+        winKind: el.winEmoji.classList.contains("win-lose") ? "lose"
+          : el.winEmoji.classList.contains("win-draw") ? "draw" : "win",
         ts: Date.now(),
       }));
     } catch (e) { /* ignore */ }
@@ -1224,6 +1261,7 @@
   function clearSavedSession() {
     try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
   }
+  window.addEventListener("pagehide", saveSession);
   // Tải lại trang giữa ván online: thử rejoin lại phòng bằng token đã lưu.
   // Trả về true nếu đang thử khôi phục (để bỏ qua định tuyến URL mặc định).
   function attemptResume() {
@@ -1275,16 +1313,8 @@
       playerNames,
       roomNames: normalizedRoomNames,
       token: sessionToken,
-      ranked: !!m.ranked || (online ? online.ranked : false),
+      ranked: m.ranked === true,
     };
-  }
-
-  // Báo kết quả ván online cho server để tính ELO (chỉ khi phòng "ranked").
-  // outcome theo góc nhìn người chơi cục bộ: "win" | "lose" | "draw".
-  function reportRankedResult(kind) {
-    if (!online || !online.ranked) return;
-    const outcome = kind === "win" ? "win" : kind === "lose" ? "lose" : "draw";
-    Net.send("reportResult", { outcome, round: online.round || 1 });
   }
 
   function updateRestartButtons() {
@@ -1771,6 +1801,12 @@
   });
 
   el.copyCodeBtn.addEventListener("click", () => {
+    if (window.AndroidApp && typeof window.AndroidApp.copyText === "function") {
+      window.AndroidApp.copyText(el.roomCodeVal.textContent);
+      el.copyCodeBtn.textContent = tt("copied");
+      setTimeout(() => (el.copyCodeBtn.textContent = tt("copyCode")), 1500);
+      return;
+    }
     navigator.clipboard?.writeText(el.roomCodeVal.textContent).then(() => {
       el.copyCodeBtn.textContent = tt("copied");
       setTimeout(() => (el.copyCodeBtn.textContent = tt("copyCode")), 1500);
@@ -1920,7 +1956,9 @@
   Net.on("move", (m) => {
     if (sessionLocked) return;
     replayMoves.push(m.move);
+    replaySeats.push(online ? 1 - online.seat : null);
     if (instance && instance.applyMove) instance.applyMove(m.move, true);
+    if (typeof instance?.exportState === "function") queueMicrotask(saveSession);
   });
 
   Net.on("restart", (m) => {
@@ -1952,6 +1990,7 @@
   Net.on("netdown", () => {
     if (online && !reconnecting) {
       reconnecting = true;
+      el.boardWrap.inert = true;
       setGameRoomState(tt("netDown"), "waiting");
       addChatMessage(tt("netDownChat"), "sys");
     }
@@ -1991,6 +2030,10 @@
   });
 
   Net.on("rejoined", (m) => {
+    const wasResuming = resuming;
+    const saved = wasResuming ? readSavedSession() : null;
+    const priorOnline = online;
+    const priorResultRecorded = resultRecorded;
     reconnecting = false;
     resuming = false;
     const game = getGameById(m.gameId);
@@ -1998,19 +2041,115 @@
     online = normalizeOnlineSession(m);
     if (m.options) currentOptions = m.options;
     clearSessionLock();
-    // phát lại lịch sử nước đi để dựng lại ván — chạy SAU khi instance đã tạo
-    // (startGame có thể nạp từ điển trễ cho game dùng từ tiếng Việt).
     const hist = Array.isArray(m.history) ? m.history : [];
+    const historyStart = Number.isInteger(m.historyStart) && m.historyStart >= 0 ? m.historyStart : 0;
+    const histSeats = Array.isArray(m.historySeats) && m.historySeats.length === hist.length
+      ? m.historySeats : [];
+    const gameSeat = (roomSeat) => roomSeat === online.firstSeat ? 0 : 1;
+    const replayHistoryMove = (i) => {
+      if (!instance?.applyMove) return;
+      instance.applyMove(hist[i], histSeats.length ? histSeats[i] !== online.roomSeat : true);
+    };
+    const opponentConnected = m.opponentConnected !== false;
+    const holdRecoveredBoard = () => {
+      // Máy còn lại có thể đang xem hiệu ứng của nước cuối. Chờ đủ thời gian
+      // trước khi cho người vừa khôi phục gửi nước của vòng tiếp theo.
+      el.boardWrap.inert = true;
+      recoveryHoldTimer = setTimeout(() => {
+        recoveryHoldTimer = null;
+        if (!reconnecting && !sessionLocked) el.boardWrap.inert = false;
+      }, 2600);
+    };
+    const finishReconnect = () => {
+      if (opponentConnected) setGameRoomState(tt("reconnected"), "live");
+      else setGameRoomState(tt("oppDisconnected"), "waiting");
+      saveSession();
+    };
+    if (hist.length && histSeats.length !== hist.length) {
+      Net.send("leave");
+      stopOnlineSessionAndReturn(tt("historyIncomplete"));
+      return;
+    }
+    // Kết nối lại trong cùng trang: giữ instance để không làm mất hạm đội,
+    // bẫy hoặc danh tính bí mật vốn chỉ có ở máy này.
+    if (!wasResuming && instance && typeof instance.exportState === "function"
+      && priorOnline?.code === m.code && priorOnline.round === m.round) {
+      const knownCount = replayOffset + replayMoves.length;
+      if (knownCount < historyStart || knownCount > historyStart + hist.length) {
+        Net.send("leave");
+        stopOnlineSessionAndReturn(tt("historyIncomplete"));
+        return;
+      }
+      for (let i = knownCount - historyStart; i < hist.length; i++) {
+        replayMoves.push(hist[i]);
+        replaySeats.push(histSeats.length ? gameSeat(histSeats[i]) : null);
+        replayHistoryMove(i);
+      }
+      finishReconnect();
+      addChatMessage(tt("reconnectedChat"), "sys");
+      return;
+    }
+    // Sau khi tải lại trang, khôi phục ảnh chụp cục bộ trước rồi chỉ áp dụng
+    // các nước đối thủ gửi trong lúc mất kết nối.
+    const restorePrivate = saved?.code === m.code && saved.round === m.round
+      && saved.gameId === m.gameId && Number.isInteger(saved.moveCount)
+      && saved.moveCount >= historyStart && saved.moveCount <= historyStart + hist.length
+      && saved.gameState;
+    if (wasResuming && PRIVATE_STATE_GAMES.has(m.gameId) && !restorePrivate) {
+      Net.send("leave");
+      stopOnlineSessionAndReturn(tt("privateStateMissing"));
+      return;
+    }
+    if (historyStart > 0 && !restorePrivate) {
+      Net.send("leave");
+      stopOnlineSessionAndReturn(tt("historyIncomplete"));
+      return;
+    }
+    const alreadyRecorded = wasResuming && saved?.code === m.code && saved.round === m.round
+      && saved.gameId === m.gameId ? saved.resultRecorded === true
+      : priorOnline?.code === m.code && priorOnline.round === m.round && priorResultRecorded;
     startGame(m.seed, {
-      onReady: () => {
-        hist.forEach((mv) => { if (instance && instance.applyMove) { try { instance.applyMove(mv, true); } catch (e) { /* ignore */ } } });
+      fastForward: true,
+      alreadyRecorded,
+      onReady: (ctx) => {
+        let restored = false;
+        replayMoves = hist.slice();
+        replaySeats = hist.map((_, i) => histSeats.length ? gameSeat(histSeats[i]) : null);
+        replayOffset = historyStart;
+        rebuildingHistory = true;
+        try {
+          if (restorePrivate && typeof instance?.importState === "function") {
+            scores = Array.isArray(saved.scores) ? saved.scores.slice(0, 2) : [0, 0];
+            lastWinner = typeof saved.lastWinner === "number" ? saved.lastWinner : -1;
+            resultRecorded = saved.resultRecorded === true;
+            renderScores();
+            try { restored = instance.importState(saved.gameState); } catch (e) { restored = false; }
+            if (restored) {
+              if (saved.statusText) el.status.textContent = saved.statusText;
+              if (saved.winShown && saved.statusText) {
+                showWinScreen(saved.winKind || "win", saved.statusText, null);
+              }
+              for (let i = saved.moveCount - historyStart; i < hist.length; i++) replayHistoryMove(i);
+            }
+          }
+          if (!restored) {
+            if (wasResuming && PRIVATE_STATE_GAMES.has(m.gameId)) {
+              Net.send("leave");
+              stopOnlineSessionAndReturn(tt("privateStateMissing"));
+              return;
+            }
+            for (let i = 0; i < hist.length; i++) replayHistoryMove(i);
+          }
+        } finally {
+          rebuildingHistory = false;
+          ctx.fastForward = false;
+        }
+        if (typeof instance?.finishHistoryReplay === "function") instance.finishHistoryReplay();
+        holdRecoveredBoard();
+        finishReconnect();
       },
     });
-    replayMoves = hist.slice();
-    describeOnlineGameState("live");
-    setGameRoomState(tt("reconnected"), "live");
     addChatMessage(tt("reconnectedChat"), "sys");
-    saveSession();
   });
 
   Net.on("opponent_disconnected", () => {
@@ -2163,6 +2302,7 @@
 
   // ====================== Vòng chơi ======================
   function startGame(seed, opts = {}) {
+    cancelAI();
     // Game cần từ điển mà chưa nạp xong: nạp trễ rồi chạy lại đúng lượt này.
     if (selectedGame && DICT_GAMES.has(selectedGame.id) && !dictReady()) {
       el.status.textContent = tt("loadingDict");
@@ -2171,6 +2311,10 @@
     }
     clearRoomExitNotice();
     clearSessionLock();
+    if (instance && typeof instance.destroy === "function") {
+      try { instance.destroy(); } catch (e) { /* ignore */ }
+    }
+    instance = null;
     el.boardWrap.innerHTML = "";
     el.status.textContent = "";
     restartReadySeats = [];
@@ -2180,11 +2324,15 @@
     el.scoreP2.classList.remove("active");
     if (el.winOverlay) { el.winOverlay.classList.add("hidden"); stopConfetti(); }
     scores = [0, 0];
-    resultRecorded = false;
+    resultRecorded = opts.alreadyRecorded === true;
     lastWinner = -1;
     replayMoves = [];
+    replaySeats = [];
+    replayOffset = 0;
     replaySeed = seed || 1;
-    replayMeta = { gameId: selectedGame.id, firstSeat: online ? online.firstSeat : 0, round: online ? online.round : 1, options: currentOptions };
+    replayMeta = { gameId: selectedGame.id, firstSeat: online ? online.firstSeat : 0,
+      round: online ? online.round : 1, options: currentOptions,
+      mode: online ? "online" : vsAI ? "ai" : "local", seat: online ? online.seat : -1 };
     renderScores();
     setGameHeading(el.gameTitle, selectedGame);
 
@@ -2199,7 +2347,8 @@
     if (online) {
       el.onlineBadge.classList.remove("hidden");
       const orderText = online.seat === 0 ? tt("goFirst") : tt("goSecond");
-      el.onlineBadge.textContent = tt("onlineBadge").replace("{name}", seatName(online.seat)).replace("{order}", orderText);
+      el.onlineBadge.textContent = tt("onlineBadge").replace("{name}", seatName(online.seat)).replace("{order}", orderText)
+        + " · " + tt(online.ranked ? "rankedBadge" : "casualBadge");
       describeOnlineGameState("live");
       el.chatPanel.classList.remove("hidden", "collapsed");
       el.chatToggle.textContent = "▾";
@@ -2215,14 +2364,20 @@
     updateRestartButtons();
 
     const ctx = makeContext(seed);
+    ctx.fastForward = !!opts.fastForward;
     applyScoreboardNames();
-    instance = selectedGame.create(ctx);
-    if (selectedGame && selectedGame.id) { pushRecent(selectedGame.id); incPlay(selectedGame.id); }
-    // Nút hoàn tác chỉ hiện khi chơi chung máy và game có hỗ trợ undo
-    el.undoBtn.classList.toggle("hidden", !!online || vsAI || !instance || typeof instance.undo !== "function");
-    el.undoBtn.disabled = false;
-    show("gameView");
-    if (typeof opts.onReady === "function") opts.onReady();
+    if (opts.fastForward) rebuildingHistory = true;
+    try {
+      instance = selectedGame.create(ctx);
+      if (selectedGame && selectedGame.id) { pushRecent(selectedGame.id); incPlay(selectedGame.id); }
+      // Nút hoàn tác chỉ hiện khi chơi chung máy và game có hỗ trợ undo
+      el.undoBtn.classList.toggle("hidden", !!online || vsAI || !instance || typeof instance.undo !== "function");
+      el.undoBtn.disabled = false;
+      show("gameView");
+      if (typeof opts.onReady === "function") opts.onReady(ctx);
+    } finally {
+      if (opts.fastForward) { rebuildingHistory = false; ctx.fastForward = false; }
+    }
     if (opts.autoHelp) {
       setTimeout(openHelp, 0);
     }
@@ -2249,6 +2404,7 @@
   }
 
   function teardownInstance() {
+    cancelAI();
     if (typeof closeReplay === "function") closeReplay();
     if (instance && typeof instance.destroy === "function") {
       try { instance.destroy(); } catch (e) { /* ignore */ }
@@ -2546,6 +2702,7 @@
   // ---- Modal hướng dẫn ----
   function openHelp() {
     if (!selectedGame) return;
+    if (!online && instance && typeof instance.pause === "function") instance.pause();
     setGameHeading(el.helpTitle, selectedGame);
     const steps = gameHowTo(selectedGame).length ? gameHowTo(selectedGame) : ["Chưa có hướng dẫn cho trò này."];
     el.helpBody.innerHTML = "<ol class='help-list'>" +
@@ -2554,7 +2711,11 @@
     el.helpOverlay.classList.remove("hidden");
     focusOverlay(el.helpOverlay);
   }
-  function closeHelp() { el.helpOverlay.classList.add("hidden"); restoreFocus(); }
+  function closeHelp() {
+    el.helpOverlay.classList.add("hidden");
+    if (!online && instance && typeof instance.resume === "function") instance.resume();
+    restoreFocus();
+  }
 
   el.helpBtn.addEventListener("click", openHelp);
   el.helpClose.addEventListener("click", closeHelp);
@@ -2604,7 +2765,7 @@
     }
 
     lastWinSummary = (el.winTitle.textContent || "").replace(/!$/, "");
-    if (el.winReplay) el.winReplay.classList.toggle("hidden", !(replayMeta && replayMoves.length));
+    if (el.winReplay) el.winReplay.classList.toggle("hidden", !(replayMeta && replayMoves.length && replayOffset === 0));
     el.winOverlay.classList.remove("hidden");
     if (kind !== "lose") startConfetti();
   }
@@ -2620,12 +2781,14 @@
     return {
       boardEl: el.replayBoard,
       isOnline: true,
-      mySeat: -1,            // -1 => không tương tác được (chế độ xem)
+      mySeat: replayMeta && replayMeta.mode === "online" ? replayMeta.seat : -1,
       roomSeat: -1,
       firstSeat: replayMeta ? replayMeta.firstSeat : 0,
       round: replayMeta ? replayMeta.round : 1,
       rng: window.makeRng(seed || 1),
       options: replayMeta ? replayMeta.options : {},
+      fastForward: true,
+      inputLocked() { return true; },
       setStatus(text) { if (el.replayStatus) el.replayStatus.textContent = text || ""; },
       setTurn() {},
       setNames() {},
@@ -2650,7 +2813,7 @@
     replayInstance = game.create(ctx);
     const count = Math.max(0, Math.min(n, replayMoves.length));
     for (let i = 0; i < count; i++) {
-      try { replayInstance.applyMove(replayMoves[i], true); } catch (e) { /* ignore */ }
+      try { replayInstance.applyMove(replayMoves[i], replaySeats[i] == null || replaySeats[i] !== ctx.mySeat); } catch (e) { /* ignore */ }
     }
     replayIdx = count;
     updateReplayUi();
@@ -2664,7 +2827,8 @@
 
   function replayStepForward() {
     if (replayIdx >= replayMoves.length) { stopReplayPlay(); return; }
-    try { replayInstance.applyMove(replayMoves[replayIdx], true); } catch (e) { /* ignore */ }
+    const seat = replayMeta && replayMeta.mode === "online" ? replayMeta.seat : -1;
+    try { replayInstance.applyMove(replayMoves[replayIdx], replaySeats[replayIdx] == null || replaySeats[replayIdx] !== seat); } catch (e) { /* ignore */ }
     replayIdx++;
     updateReplayUi();
     if (replayIdx >= replayMoves.length) stopReplayPlay();
@@ -2682,9 +2846,10 @@
   }
 
   function openReplay() {
-    if (!replayMeta || !replayMoves.length) return;
+    if (!replayMeta || !replayMoves.length || replayOffset > 0) return;
     const game = getGameById(replayMeta.gameId);
     if (el.replayTitle) el.replayTitle.textContent = tt("replayTitle").replace("{game}", game ? game.name : "");
+    el.replayBoard.inert = true;
     el.replayOverlay.classList.remove("hidden");
     rebuildReplay(0);
     focusOverlay(el.replayOverlay);
@@ -2877,6 +3042,10 @@
   // ---- Chia sẻ (Web Share API + fallback clipboard) ----
   function tt(key) { return window.I18n ? I18n.t(key) : key; }
   async function shareOrCopy(text, url) {
+    if (window.AndroidApp && typeof window.AndroidApp.shareText === "function") {
+      window.AndroidApp.shareText(url ? `${text} ${url}` : text);
+      return;
+    }
     try {
       if (navigator.share) {
         await navigator.share({ title: tt("shareTitle"), text, url: url || location.href });
@@ -2922,6 +3091,10 @@
   }
   function exportData() {
     const payload = { app: "TwoPlayerGames", version: 1, exportedAt: new Date().toISOString(), data: collectData() };
+    if (window.AndroidApp && typeof window.AndroidApp.saveBackup === "function") {
+      window.AndroidApp.saveBackup(JSON.stringify(payload, null, 2));
+      return;
+    }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

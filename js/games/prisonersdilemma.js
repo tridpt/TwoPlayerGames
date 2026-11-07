@@ -26,6 +26,13 @@
     let revealing = false;
     let history = [];          // [{p0,p1,s0,s1}]
     let lastResult = null;
+    const queuedRemoteMoves = [];
+    const timers = new Set();
+    function schedule(fn, delay) {
+      if (ctx.fastForward) { fn(); return; }
+      const timer = setTimeout(() => { timers.delete(timer); fn(); }, delay);
+      timers.add(timer);
+    }
 
     const root = document.createElement("div");
     root.className = "pd2-root";
@@ -38,7 +45,8 @@
 
     // Hành động: { k:"pick", c } với c ∈ 'C'|'D'
     function applyMove(move, fromRemote) {
-      if (over || revealing || move.k !== "pick") return;
+      if (!move || move.k !== "pick" || over) return;
+      if (revealing) { if (fromRemote) queuedRemoteMoves.push(move); return; }
       const c = move.c === "D" ? "D" : "C";
       let seat;
       if (ctx.isOnline) seat = fromRemote ? (1 - ctx.mySeat) : ctx.mySeat;
@@ -51,7 +59,7 @@
       if (bothPicked()) { reveal(); return; }
       render(); updateStatus();
       if (ctx.vsAI && !fromRemote && picks[1] == null) {
-        setTimeout(() => { const mv = aiMove(); if (mv) applyMove(mv, true); }, 550);
+        schedule(() => { const mv = aiMove(); if (mv) applyMove(mv, true); }, 550);
       }
     }
 
@@ -65,7 +73,7 @@
       ctx.sound(p0 === "C" && p1 === "C" ? "win" : (p0 === "D" && p1 === "D" ? "miss" : "notify"));
       render();
 
-      setTimeout(() => {
+      schedule(() => {
         revealing = false;
         if (roundNo >= ROUNDS) {
           over = true;
@@ -82,6 +90,7 @@
         roundNo++;
         picks = [null, null];
         render(); updateStatus();
+        while (!over && !revealing && queuedRemoteMoves.length) applyMove(queuedRemoteMoves.shift(), true);
       }, 1900);
     }
 
@@ -219,7 +228,11 @@
     render();
     updateStatus();
 
-    function destroy() {}
+    function destroy() {
+      over = true;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+    }
     return { applyMove, aiMove, destroy };
   }
 

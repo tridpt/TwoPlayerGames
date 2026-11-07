@@ -19,7 +19,7 @@
 
     // keeper = người giữ bí mật; guesser = người đoán. Vai do người chơi TỰ CHỌN
     // ở đầu mỗi ván (phase "role") nên có thể trao quyền tự do, không cố định.
-    let keeper = ctx.isOnline ? ctx.firstSeat : 0;
+    let keeper = 0;
     let guesser = 1 - keeper;
 
     let phase = "role";    // role | setup | ask | answer | verdict | over

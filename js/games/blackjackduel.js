@@ -13,17 +13,22 @@
     const o = ctx.options || {};
     const TARGET_WINS = o.wins ? Number(o.wins) : 3;
 
-    const seat0First = ctx.isOnline ? ctx.firstSeat : 0;
-
     let deck = [];
     let hands = [[], []];
     let stood = [false, false];
     let busted = [false, false];
-    let turn = seat0First;
+    let turn = 0;
     let roundOver = false;
     let matchOver = false;
     let wins = [0, 0];
-    let starter = seat0First;
+    let starter = 0;
+    const queuedRemoteMoves = [];
+    const timers = new Set();
+    function schedule(fn, delay) {
+      if (ctx.fastForward) { fn(); return; }
+      const timer = setTimeout(() => { timers.delete(timer); fn(); }, delay);
+      timers.add(timer);
+    }
 
     const root = document.createElement("div");
     root.className = "bj-root";
@@ -69,12 +74,13 @@
         stood = [true, true];
         ctx.setTurn(turn);
         render();
-        setTimeout(resolveRound, 600);
+        schedule(resolveRound, 600);
         return;
       }
       ctx.setTurn(turn);
       render();
       updateStatus();
+      while (!roundOver && !matchOver && queuedRemoteMoves.length) applyMove(queuedRemoteMoves.shift(), true);
     }
 
     function canPlay() {
@@ -97,7 +103,8 @@
 
     // nước đi: { k:"hit" } | { k:"stand" }
     function applyMove(move, fromRemote) {
-      if (roundOver || matchOver) return;
+      if (!move || matchOver) return;
+      if (roundOver) { if (fromRemote) queuedRemoteMoves.push(move); return; }
       if (stood[turn] || busted[turn]) return;
       if (move.k === "hit") {
         if (!fromRemote) ctx.sendMove({ k: "hit" });
@@ -143,11 +150,11 @@
           `🎉 Player ${mw + 1} wins the match ${wins[0]}–${wins[1]}! (${sumTxt})`));
         return;
       }
-      const rtxt = roundWinner < 0 ? ctx.t("🤝 Hòa ván.", "🤝 Round tied.")
+      const rtxt = roundWinner < 0 ? ctx.t("Hòa ván.", "Round tied.")
         : ctx.t(`Người chơi ${roundWinner + 1} thắng ván.`, `Player ${roundWinner + 1} wins the round.`);
       ctx.setStatus(`${rtxt} ${sumTxt} — ${ctx.t("ván mới...", "next round...")}`);
       starter = 1 - starter; // đổi người chia
-      setTimeout(() => { if (!matchOver) startRound(); }, 1700);
+      schedule(() => { if (!matchOver) startRound(); }, 1700);
     }
 
     // ----- AI: rút tới ngưỡng theo mức + cân nhắc thế đối thủ -----
@@ -245,7 +252,11 @@
     buildShell();
     startRound();
 
-    function destroy() {}
+    function destroy() {
+      matchOver = true;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+    }
     return { applyMove, aiMove, destroy };
   }
 

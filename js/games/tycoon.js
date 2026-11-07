@@ -41,13 +41,18 @@
     let cash = [START_CASH, START_CASH];
     let posn = [0, 0];
     let ownerOf = new Array(SIZE).fill(-1); // -1 = chưa ai, 0/1 = chủ
-    let turn = ctx.isOnline ? ctx.firstSeat : 0;
+    let turn = 0;
     let over = false;
     let phase = "roll";    // roll | decide
     let pendingBuy = -1;   // ô đang chờ quyết định mua
     let skips = [0, 0];    // số lượt phải nghỉ
     let roundCount = 0;
     let log = [];
+    const timers = new Set();
+    function schedule(fn, delay) {
+      const timer = setTimeout(() => { timers.delete(timer); fn(); }, delay);
+      timers.add(timer);
+    }
 
     const root = document.createElement("div");
     root.className = "tc-root";
@@ -174,7 +179,7 @@
 
     function endTurn() {
       turn = 1 - turn;
-      if (turn === (ctx.isOnline ? ctx.firstSeat : 0)) roundCount++;
+      if (turn === 0) roundCount++;
       if (MAX_ROUNDS > 0 && roundCount >= MAX_ROUNDS) {
         over = true;
         const w = assets(0) === assets(1) ? -1 : (assets(0) > assets(1) ? 0 : 1);
@@ -196,11 +201,11 @@
     // ----- AI: gieo khi tới lượt; mua đất nếu còn đủ "đệm" tiền -----
     function maybeAIRoll() {
       if (over || ctx.isOnline || !ctx.vsAI || turn !== 1) return;
-      setTimeout(() => { if (!over && phase === "roll" && turn === 1) applyMove({ k: "roll", die: 1 + Math.floor(ctx.rng() * 6) }, true); }, 650);
+      schedule(() => { if (!over && phase === "roll" && turn === 1) applyMove({ k: "roll", die: 1 + Math.floor(ctx.rng() * 6) }, true); }, 650);
     }
     function maybeAIDecide() {
       if (over || ctx.isOnline || !ctx.vsAI || turn !== 1) return;
-      setTimeout(() => {
+      schedule(() => {
         if (over || phase !== "decide" || turn !== 1) return;
         const cell = board[pendingBuy];
         // mua nếu sau khi mua vẫn còn > 300 tiền mặt (đệm an toàn), mức khó mua bạo hơn
@@ -323,7 +328,11 @@
     updateStatus();
     maybeAIRoll();
 
-    function destroy() {}
+    function destroy() {
+      over = true;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+    }
     return { applyMove, destroy };
   }
 

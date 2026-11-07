@@ -627,6 +627,30 @@
       ctx.setStatus(text[mode]);
     }
 
+    function exportState() {
+      return { v: 1, rooms, players, discovered: discovered.map((set) => [...set]),
+        searched: searched.map((set) => [...set]), knownDanger, myTraps, revealedTraps,
+        log, turn, mode, awaiting, over, selectedRoom };
+    }
+    function importState(s) {
+      if (!s || s.v !== 1 || !Array.isArray(s.rooms) || !Array.isArray(s.players)) return false;
+      rooms.splice(0, rooms.length, ...s.rooms);
+      players.splice(0, players.length, ...s.players);
+      for (let i = 0; i < 2; i++) {
+        discovered[i] = new Set(s.discovered?.[i] || []);
+        searched[i] = new Set(s.searched?.[i] || []);
+        knownDanger[i] = s.knownDanger?.[i] || {};
+      }
+      myTraps.splice(0, myTraps.length, ...(s.myTraps || []));
+      revealedTraps.splice(0, revealedTraps.length, ...(s.revealedTraps || []));
+      log.splice(0, log.length, ...(s.log || []));
+      ({ turn, mode, awaiting, over, selectedRoom } = s);
+      ctx.setTurn(over ? -1 : turn);
+      render();
+      updateStatus();
+      return true;
+    }
+
     function draw() {
       g.clearRect(0, 0, W, H);
       drawMansion();
@@ -887,7 +911,7 @@
     ctx.setTurn(0);
     render();
     updateStatus();
-    return { applyMove };
+    return { applyMove, exportState, importState };
   }
 
   window.GameRegistry.register({

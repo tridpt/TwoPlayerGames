@@ -749,6 +749,27 @@
       ctx.setStatus(tip[selectedAction] || tip.shot);
     }
 
+    function exportState() {
+      return { v: 1, phase, iReady, oppReady, turn, awaiting, selectedAction, torpedoDir,
+        radarCharges, torpedoCharges, bombCharges, mySkipNext, lastInfo, placeMode,
+        selShip, orient, myBoard, mineBoard, mineTriggered,
+        ships: ships.map((ship) => ship ? { ...ship, hits: [...ship.hits] } : null),
+        oppShotsOnMe, myShots, radarHints, oppRadarOnMe };
+    }
+    function importState(s) {
+      if (!s || s.v !== 1 || !Array.isArray(s.myBoard) || !Array.isArray(s.ships)) return false;
+      ({ phase, iReady, oppReady, turn, awaiting, selectedAction, torpedoDir,
+        radarCharges, torpedoCharges, bombCharges, mySkipNext, lastInfo, placeMode,
+        selShip, orient, myBoard, mineBoard, mineTriggered, oppShotsOnMe, myShots, radarHints } = s);
+      ships = s.ships.map((ship) => ship ? { ...ship, hits: new Set(ship.hits || []) } : null);
+      oppRadarOnMe.splice(0, oppRadarOnMe.length, ...(s.oppRadarOnMe || []));
+      actionBar.classList.toggle("sbx-hidden", phase !== "playing");
+      ctx.setTurn(phase === "over" ? -1 : turn);
+      render();
+      updateStatus();
+      return true;
+    }
+
     // ----- khởi tạo -----
     if (!ctx.isOnline) {
       ctx.setStatus(ctx.t("Sea Battle Nâng Cấp chỉ chơi online vì cần giữ bí mật hạm đội và mìn.", "Sea Battle Plus is online-only since fleets and mines must stay secret."));
@@ -758,7 +779,7 @@
     randomMines();
     render();
     ctx.setStatus(ctx.t("Bố trí hạm đội & bãi mìn: bấm tàu để chọn, R/chuột phải để xoay, hoặc 🔀/💣 để ngẫu nhiên. Xong thì Sẵn sàng.", "Set up fleet & minefield: click a ship to select, R/right-click to rotate, or 🔀/💣 for random. Press Ready when done."));
-    return { applyMove, destroy: () => document.removeEventListener("keydown", onKey) };
+    return { applyMove, exportState, importState, destroy: () => document.removeEventListener("keydown", onKey) };
   }
 
   window.GameRegistry.register({

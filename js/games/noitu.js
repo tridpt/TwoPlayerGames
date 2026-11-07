@@ -67,6 +67,7 @@
     let lastWord = null;
     let timerId = null;
     let timeLeft = TIME;
+    let paused = false;
     const chain = [];                 // [{ phrase, by, prevLast, el }]
 
     const root = document.createElement("div");
@@ -104,16 +105,28 @@
       if (TIME <= 0) { timerEl.textContent = ctx.t("Không giới hạn giờ", "No time limit"); return; }
       timeLeft = effTime();
       renderTimer();
-      timerId = setInterval(() => {
-        timeLeft--;
-        renderTimer();
-        if (timeLeft <= 0) {
-          stopTimer();
-          if (myTurn()) applyMove({ kind: "timeout" }, false);
-        }
-      }, 1000);
+      if (!paused) timerId = setInterval(tickTimer, 1000);
+    }
+    function tickTimer() {
+      timeLeft--;
+      renderTimer();
+      if (timeLeft <= 0) {
+        stopTimer();
+        if (myTurn()) applyMove({ kind: "timeout" }, false);
+      }
+    }
+    function pause() {
+      if (over || paused) return;
+      paused = true;
+      stopTimer();
+    }
+    function resume() {
+      if (over || !paused) return;
+      paused = false;
+      if (TIME > 0) timerId = setInterval(tickTimer, 1000);
     }
     function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
+    function destroy() { over = true; stopTimer(); }
     function renderTimer() {
       timerEl.textContent = TIME > 0 ? `⏱️ ${Math.max(0, timeLeft)}s` : ctx.t("Không giới hạn giờ", "No time limit");
       timerEl.classList.toggle("low", TIME > 0 && timeLeft <= 5);
@@ -251,7 +264,7 @@
     updateUI();
     startTimer();
     ctx.setStatus(ctx.t("Nối từ ghép 2 tiếng theo tiếng cuối. Từ phải có trong từ điển — gõ sai chỉ cần nhập lại.", "Link 2-word phrases by the last word. The word must be in the dictionary — if wrong, just try again."));
-    return { applyMove };
+    return { applyMove, pause, resume, destroy };
   }
 
   window.GameRegistry.register({

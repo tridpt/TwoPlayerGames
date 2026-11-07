@@ -22,6 +22,7 @@ window.Net = (function () {
     socket.onopen = () => { attempts = 0; emit("netup"); if (onOpen) onOpen(); };
     socket.onerror = () => {};
     socket.onclose = () => {
+      if (socket !== ws) return;
       emit("netdown");
       if (reconnectAllowed) scheduleReconnect();
     };
@@ -50,10 +51,11 @@ window.Net = (function () {
       reconnectAllowed = true;
       attempts = 0;
       ws = new WebSocket(url());
+      const socket = ws;
       let settled = false;
       ws.onopen = () => { attempts = 0; settled = true; emit("netup"); resolve(); };
       ws.onerror = () => { if (!settled) reject(new Error("Không kết nối được tới server.")); };
-      ws.onclose = () => { emit("netdown"); if (reconnectAllowed) scheduleReconnect(); };
+      ws.onclose = () => { if (ws !== socket) return; emit("netdown"); if (reconnectAllowed) scheduleReconnect(); };
       ws.onmessage = (ev) => {
         let msg; try { msg = JSON.parse(ev.data); } catch { return; }
         emit(msg.type, msg);
@@ -65,6 +67,7 @@ window.Net = (function () {
     reconnectAllowed = false;
     if (reconnTimer) { clearTimeout(reconnTimer); reconnTimer = null; }
     try { if (ws) ws.close(); } catch (e) { /* ignore */ }
+    ws = null;
   }
 
   function isOpen() { return !!ws && ws.readyState === WebSocket.OPEN; }

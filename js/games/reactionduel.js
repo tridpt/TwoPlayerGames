@@ -83,6 +83,15 @@
       ctx.sound("place");
       ctx.setStatus(ctx.t("Chuẩn bị...", "Get ready..."));
       if (online && !fromRemote) ctx.sendMove({ k: "start" });
+      if (ctx.fastForward) {
+        // Dựng lại các vòng đã chơi mà không chờ đếm ngược; vẫn tiêu thụ RNG
+        // để vòng tiếp theo dùng đúng thời gian chờ của seed chung.
+        if (online) ctx.rng();
+        phase = "go";
+        signalAt = Date.now();
+        setLight("go", ctx.t("BẤM NGAY!", "TAP NOW!"));
+        return;
+      }
       cdTimer = setInterval(() => {
         cd--;
         if (cd > 0) { setLight("count", String(cd)); ctx.sound("place"); }
@@ -107,6 +116,7 @@
 
     function press(seat) {
       if (over) return;
+      if (ctx.inputLocked?.()) return;
       if (online && seat !== mySeat) return;
       if (phase === "idle" || phase === "done" || phase === "countdown") return;
       if (phase === "waiting") {
@@ -166,6 +176,8 @@
     }
 
     function finishRound(winner, reason, foulSeat) {
+      clearTimeout(goTimer); goTimer = null;
+      clearInterval(cdTimer); cdTimer = null;
       phase = "done";
       score[winner]++;
       s1El.textContent = score[0];
@@ -209,9 +221,10 @@
         press(online ? mySeat : seat);
       });
     });
-    startBtn.addEventListener("click", () => startRound(false));
+    startBtn.addEventListener("click", () => { if (!ctx.inputLocked?.()) startRound(false); });
 
     function onKey(e) {
+      if (ctx.inputLocked?.()) return;
       const k = e.key.toLowerCase();
       if (online) {
         if (k === "a" || k === "l" || k === " " || k === "enter") {
@@ -243,15 +256,28 @@
         `Press "Start round". P1 uses key A, P2 uses key L. Wait for GREEN then tap fast!`));
 
     function applyMove(move, fromRemote) {
-      if (!move || !fromRemote) return;
+      if (!move || (!fromRemote && !ctx.fastForward)) return;
+      const seat = fromRemote ? 1 - mySeat : mySeat;
       switch (move.k) {
         case "start": startRound(true); break;
-        case "rt": results[1 - mySeat] = { rt: Number(move.ms) || 0 }; resolveRound(); break;
-        case "foul": results[1 - mySeat] = { foul: true }; resolveRound(); break;
+        case "rt":
+          if (phase === "done" || phase === "idle" || results[seat]) break;
+          results[seat] = { rt: Number(move.ms) || 0 }; resolveRound(); break;
+        case "foul":
+          if (phase === "done" || phase === "idle" || results[seat]) break;
+          results[seat] = { foul: true }; resolveRound(); break;
       }
     }
+    function finishHistoryReplay() {
+      if (!online || over || phase === "idle" || phase === "done" || results[mySeat]) return;
+      // Một vòng phản xạ đang chạy không thể tiếp tục công bằng sau khi trang
+      // được dựng lại. Xử thua vòng đó để hai máy cùng sang vòng kế tiếp.
+      results[mySeat] = { foul: true };
+      ctx.sendMove({ k: "foul" });
+      resolveRound();
+    }
     function destroy() { cleanup(); observer.disconnect(); }
-    return { applyMove, destroy };
+    return { applyMove, finishHistoryReplay, destroy };
   }
 
   window.GameRegistry.register({

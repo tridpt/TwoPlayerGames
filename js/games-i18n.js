@@ -672,6 +672,18 @@ var GAMES_EN_DATA = {
       "Online is best: each player on their own device, the secret word stays hidden until reveal. On one device, pass it back and forth as prompted.",
     ],
   },
+  drawguess: {
+    name: "Draw & Guess",
+    description: "One player draws a secret word, the other guesses within 60 seconds. Swap roles across 5 rounds, locally or online.",
+    howTo: [
+      "P1 draws first and P2 guesses. Each round lasts 60 seconds; the drawing role alternates for 5 rounds.",
+      "The artist presses Start to receive a random word. Online, only the artist sees it. On one device, tap Show secret word, memorize it, then hide it before the guesser looks.",
+      "Draw with a mouse or finger. Change colors and brush size, undo the last stroke, or clear the board. Do not write the answer on the canvas.",
+      "The guesser enters a word and taps Guess. Multiple attempts are allowed; Vietnamese without accents or the matching English word also counts.",
+      "A correct guess gives the guesser 2 points and the artist 1. When time runs out, the artist gets 1 point. The higher score after 5 rounds wins; equal scores draw.",
+      "If an online player reloads or reconnects midgame, the drawing, scores, clock, and artist's secret word are restored.",
+    ],
+  },
   wordduel: {
     name: "Word Duel",
     description: "Form Vietnamese words from syllable tiles to score — vocab race with ×2/×3 tiles and combos.",

@@ -10,6 +10,15 @@
     let turn = 0;
     let over = false;
     const moveStack = []; // ngăn xếp nước đi để hoàn tác
+    const timers = new Set();
+    function schedule(fn, delay) {
+      const timer = setTimeout(() => { timers.delete(timer); fn(); }, delay);
+      timers.add(timer);
+    }
+    function clearTimers() {
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+    }
 
     const boardEl = document.createElement("div");
     boardEl.className = "c4-board";
@@ -91,7 +100,7 @@
       // ép trình duyệt reflow để animation chạy lại nếu cùng ô (an toàn)
       void (cell.offsetWidth);
       cell.classList.add("dropping");
-      setTimeout(() => cell.classList.remove("dropping"), 480);
+      schedule(() => cell.classList.remove("dropping"), 480);
 
       ctx.sound("drop");
 
@@ -101,7 +110,7 @@
       if (line) {
         over = true;
         // ăn mừng sau khi quân rơi xuống
-        setTimeout(() => {
+        schedule(() => {
           line.forEach(([rr, cc]) => cellEls[rr][cc].classList.add("win"));
           ctx.sound("capture");
         }, 360);
@@ -220,11 +229,12 @@
 
     function undo() {
       if (!moveStack.length) return false;
+      clearTimers();
       const m = moveStack.pop();
       board[m.r][m.c] = null;
       for (let rr = 0; rr < ROWS; rr++)
         for (let cc = 0; cc < COLS; cc++)
-          cellEls[rr][cc].classList.remove("win", "last");
+          cellEls[rr][cc].classList.remove("win", "last", "dropping");
       const cell = cellEls[m.r][m.c];
       cell.className = "c4-cell";
       if (cell.style && cell.style.removeProperty) cell.style.removeProperty("--drop");
@@ -241,7 +251,8 @@
     ctx.setTurn(0);
     ctx.setStatus(ctx.t("Thả quân vào cột. Nối 4 quân cùng màu là thắng.",
       "Drop discs into columns. Connect 4 of your color to win."));
-    return { applyMove, undo, aiMove };
+    function destroy() { over = true; clearTimers(); }
+    return { applyMove, undo, aiMove, destroy };
   }
 
   window.GameRegistry.register({

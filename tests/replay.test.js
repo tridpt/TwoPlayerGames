@@ -7,7 +7,8 @@
 // ---------------------------------------------------------------------------
 const { test } = require("node:test");
 const assert = require("node:assert");
-const { installGlobals, loadGame, makeCtx } = require("./helpers");
+const { setTimeout: sleep } = require("node:timers/promises");
+const { installGlobals, loadGame, makeCtx, makeRng } = require("./helpers");
 
 installGlobals();
 
@@ -118,4 +119,150 @@ test("replay: Connect Four dựng lại khớp chuỗi nước (thắng dọc)",
 
   assert.deepStrictEqual(sink, [], "phát lại không gửi lại nước");
   assert.strictEqual(replay.scores[0], 1, "phát lại tái hiện đúng P1 thắng");
+});
+
+function restoreOnline(id, options, steps, mySeat, seed = 7) {
+  const ctx = makeCtx(options, seed);
+  ctx.isOnline = true;
+  ctx.mySeat = mySeat;
+  ctx.fastForward = true;
+  ctx.sendMove = () => {};
+  const api = loadGame(id).create(ctx);
+  for (const { seat, move } of steps) api.applyMove(move, seat !== mySeat);
+  return { ctx, api };
+}
+
+test("replay: lựa chọn bí mật của cả hai ghế qua nhiều vòng", () => {
+  const cases = [
+    {
+      id: "rpsplus", options: { rounds: 3 }, winner: 0,
+      pair: [{ k: "pick", c: "R" }, { k: "pick", c: "S" }],
+    },
+    {
+      id: "prisonersdilemma", options: { rounds: 3 }, winner: 0,
+      pair: [{ k: "pick", c: "D" }, { k: "pick", c: "C" }],
+    },
+    {
+      id: "numberduel", options: { target: 6 }, winner: 0,
+      pair: [{ k: "pick", n: 2 }, { k: "pick", n: 1 }],
+    },
+  ];
+  for (const { id, options, winner, pair } of cases) {
+    const steps = Array.from({ length: 3 }, () => [
+      { seat: 0, move: pair[0] }, { seat: 1, move: pair[1] },
+    ]).flat();
+    for (const mySeat of [0, 1]) {
+      const { ctx, api } = restoreOnline(id, options, steps, mySeat);
+      assert.strictEqual(ctx.scores[winner], 1, `${id}: ghế ${mySeat} dựng đủ ba vòng`);
+      assert.match(ctx.status, /🎉/, `${id}: khôi phục đúng kết quả cuối`);
+      api.destroy();
+    }
+  }
+});
+
+test("replay: Liar's Dice nhận nước vòng sau ngay sau challenge", () => {
+  const steps = Array.from({ length: 3 }, () => [
+    { seat: 0, move: { k: "bid", qty: 7, face: 6 } },
+    { seat: 1, move: { k: "challenge" } },
+  ]).flat();
+  for (const mySeat of [0, 1]) {
+    const { ctx, api } = restoreOnline("liarsdice", { dice: 3 }, steps, mySeat);
+    assert.strictEqual(ctx.scores[1], 1, `ghế ${mySeat} dựng đủ ba vòng tố`);
+    assert.match(ctx.status, /🎉/);
+    api.destroy();
+  }
+});
+
+test("replay: Blackjack nhận hành động của vòng mới sau lật bài", () => {
+  const steps = [];
+  const live = restoreOnline("blackjackduel", { wins: 2 }, [], 0, 7);
+  for (let i = 0; i < 60 && live.ctx.scores[0] + live.ctx.scores[1] === 0; i++) {
+    const seat = live.ctx.turn;
+    assert.ok(seat === 0 || seat === 1, "còn người đang đi");
+    const move = { k: "stand" };
+    steps.push({ seat, move });
+    live.api.applyMove(move, seat !== 0);
+  }
+  assert.ok(steps.length >= 4, "đã chơi nhiều hơn một vòng bài");
+  assert.strictEqual(live.ctx.scores[0] + live.ctx.scores[1], 1, "ván gốc đã kết thúc");
+  const restored = restoreOnline("blackjackduel", { wins: 2 }, steps, 1, 7);
+  assert.deepStrictEqual(restored.ctx.scores, live.ctx.scores, "hai ghế cùng kết quả");
+  assert.strictEqual(restored.ctx.status, live.ctx.status);
+  live.api.destroy(); restored.api.destroy();
+});
+
+test("replay: Reaction Duel dựng các vòng cũ và xử thua vòng phản xạ bị gián đoạn", () => {
+  const steps = [
+    { seat: 0, move: { k: "start" } },
+    { seat: 0, move: { k: "rt", ms: 100 } },
+    { seat: 1, move: { k: "rt", ms: 200 } },
+    { seat: 1, move: { k: "start" } },
+    { seat: 0, move: { k: "rt", ms: 120 } },
+    { seat: 1, move: { k: "rt", ms: 200 } },
+    { seat: 0, move: { k: "start" } },
+  ];
+  const { ctx, api } = restoreOnline("reactionduel", { rounds: 3 }, steps, 1);
+  const emitted = [];
+  ctx.sendMove = (move) => emitted.push(move);
+  ctx.fastForward = false;
+  api.finishHistoryReplay();
+  assert.deepStrictEqual(emitted, [{ k: "foul" }]);
+  assert.strictEqual(ctx.scores[0], 1, "vòng gián đoạn được xử và trận hoàn tất");
+  assert.match(ctx.status, /🎉/);
+  api.destroy();
+});
+
+test("online: nước đến sớm khi đang lật vòng được áp dụng ở vòng kế", async () => {
+  const ctx = makeCtx({ rounds: 2 }, 7);
+  ctx.isOnline = true;
+  ctx.mySeat = 0;
+  const api = loadGame("rpsplus").create(ctx);
+  api.applyMove({ k: "pick", c: "R" }, false);
+  api.applyMove({ k: "pick", c: "S" }, true);
+  api.applyMove({ k: "pick", c: "S" }, true); // đối thủ đã sang vòng 2
+  await sleep(1800);
+  api.applyMove({ k: "pick", c: "R" }, false);
+  await sleep(1800);
+  assert.strictEqual(ctx.scores[0], 1, "không mất nước của đối thủ ở vòng 2");
+  api.destroy();
+});
+
+test("replay: bỏ qua hiệu ứng lật thẻ, xoay bàn và gieo xúc xắc", () => {
+  const rng = makeRng(7);
+  const deck = ["🐶", "🐱", "🦊", "🐼", "🐯", "🦁", "🐸", "🐵"];
+  deck.push(...deck);
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  const second = deck.findIndex((v) => v !== deck[0]);
+  const memory = restoreOnline("memory", { pairs: 8 }, [
+    { seat: 0, move: 0 }, { seat: 0, move: second }, { seat: 1, move: 1 },
+  ], 0);
+  assert.strictEqual(memory.ctx.turn, 1, "Memory đã lật úp cặp sai và cho P2 đi");
+  memory.api.destroy();
+
+  const pentago = restoreOnline("pentago", {}, [
+    { seat: 0, move: { cell: 0, quad: 0, dir: "cw" } },
+    { seat: 1, move: { cell: 35, quad: 3, dir: "ccw" } },
+  ], 0);
+  assert.strictEqual(pentago.ctx.turn, 0, "Pentago đã xử lý hai lượt xoay");
+  pentago.api.destroy();
+
+  const pig = restoreOnline("pig", { target: 100 }, [
+    { seat: 0, move: { kind: "roll", die: 6 } },
+    { seat: 0, move: { kind: "hold" } },
+    { seat: 1, move: { kind: "roll", die: 4 } },
+  ], 0);
+  assert.strictEqual(pig.ctx.turn, 1, "Pig đã chuyển lượt sau khi giữ điểm");
+  assert.strictEqual(pig.ctx.boardEl.children[0].querySelector("#pigTemp").textContent, "4");
+  pig.api.destroy();
+
+  const yahtzee = restoreOnline("yahtzee", {}, [
+    { seat: 0, move: { kind: "roll", dice: [1, 1, 2, 3, 4] } },
+    { seat: 0, move: { kind: "score", cat: "ones" } },
+    { seat: 1, move: { kind: "roll", dice: [2, 2, 3, 4, 5] } },
+  ], 0);
+  assert.strictEqual(yahtzee.ctx.turn, 1, "Yahtzee đã xử lý lần gieo của P2");
+  yahtzee.api.destroy();
 });

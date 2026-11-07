@@ -5,9 +5,9 @@ giao thức online, cách một game được nạp và chạy, cùng quy ước
 người muốn hiểu code hoặc đóng góp. Phần hướng dẫn chơi/chạy nằm ở [`README.md`](../README.md).
 
 > Tóm tắt một câu: **client thuần HTML/CSS/JS** chứa toàn bộ logic game; **server Node**
-> chỉ làm 2 việc — phục vụ file tĩnh và **relay nước đi** giữa 2 trình duyệt qua WebSocket.
-> Các game được thiết kế **tất định** nên hai máy tự đồng bộ trạng thái mà server không
-> cần hiểu luật game.
+> phục vụ file tĩnh và **relay nước đi** giữa 2 trình duyệt qua WebSocket. Riêng ván
+> xếp hạng Cờ Caro 3x3 và Xếp 4, server kiểm tra nước đi và tự tính kết quả trước khi
+> ghi ELO. Các game được thiết kế **tất định** nên hai máy tự đồng bộ trạng thái.
 
 ---
 
@@ -28,8 +28,8 @@ người muốn hiểu code hoặc đóng góp. Phần hướng dẫn chơi/ch�
 
 **Nguyên tắc cốt lõi:**
 
-1. **Server không biết luật game.** Nó chỉ chuyển tiếp (relay) đối tượng `move` từ máy này
-   sang máy kia. Mọi logic (kiểm tra nước hợp lệ, tính thắng/thua, AI) chạy ở client.
+1. **Server relay phần lớn game.** Riêng Cờ Caro 3x3 và Xếp 4 khi xếp hạng, server kiểm tra
+   lượt, nước đi và kết quả bằng `ranked-games.js`; các game khác chạy luật ở client.
 2. **Tất định từ seed chung.** Khi tạo phòng, server phát một `seed` ngẫu nhiên cho cả hai
    máy. Mọi yếu tố ngẫu nhiên trong game (xáo bài, sinh bom, vị trí kho báu...) đều dùng
    `ctx.rng` khởi tạo từ seed này, nên hai máy sinh ra **cùng một trạng thái** mà không cần
@@ -46,6 +46,7 @@ TwoPlayerGames/
 ├── index.html          # Khung DOM: menu, sảnh online, khung chat, modal; nạp mọi script
 ├── styles.css          # Toàn bộ CSS (một file lớn, chia mục theo prefix từng game)
 ├── server.js           # HTTP tĩnh + WebSocketServer (phòng, relay, reconnect, rate-limit)
+├── ranked-games.js     # Luật xác minh ván ELO: Cờ Caro 3x3 và Xếp 4
 ├── sw.js               # Service worker PWA (network-first cho mã nguồn, cache-first cho ảnh)
 ├── manifest.webmanifest
 ├── package.json        # scripts: start / smoke / test:unit / test:online / test
@@ -174,7 +175,7 @@ gửi hành động công khai (bắn tọa độ, cắt dây). Xem `submarinehu
 |---|---|---|
 | `create {gameId, options, public, playerName}` | Tạo phòng | `created {code, seat:0, token, seed, firstSeat,...}` |
 | `join {code, playerName}` | Vào phòng | `joined` cho người vào + `start` cho cả hai |
-| `move {move}` | Gửi nước đi | relay `move {move}` cho đối thủ |
+| `move {move}` | Gửi nước đi | game thường: relay; game xếp hạng: kiểm tra luật rồi relay, ghi ELO khi ván kết thúc |
 | `restart` | Bỏ phiếu chơi lại | `restart_pending`; khi đủ 2 phiếu → `restart {seed mới, round+1, đảo firstSeat}` |
 | `chat {text}` | Nhắn (≤200 ký tự) | relay `chat` cho đối thủ |
 | `react {emoji}` | Gửi emote | relay `react` cho đối thủ |
@@ -215,6 +216,8 @@ Dù game-agnostic, server vẫn có các lớp phòng vệ:
 - **Persistence**: `accounts.js` lưu tài khoản, state và ELO trong SQLite với WAL + transaction.
   `DATA_DIR` phải nằm trên persistent disk khi deploy. File `accounts.json` cũ được migration
   tự động một lần và giữ lại dưới tên `accounts.json.migrated.bak`.
+- **Tệp tĩnh**: server chỉ phục vụ các tệp giao diện đã cho phép; không phục vụ `data/`,
+  mã nguồn server, thư mục Git hoặc các tệp khác trong repository.
 
 > ⚠️ Tài khoản không thay thế mật khẩu phòng: ai có mã phòng vẫn có thể thử tham gia.
 > Khi mở public, nên đặt mật khẩu phòng và cấu hình `ALLOWED_ORIGINS` đúng domain.
@@ -251,7 +254,7 @@ cả theme chỉ cần đổi bộ biến gốc.
 **Hai chế độ (nút 🌙):**
 
 - **Mặc định — gỗ espresso tối, chữ kem sáng.** Đây là chế độ nền tảng: `:root`
-  đặt `--text` sáng nên **mọi bàn cờ của 76 game** (vốn thiết kế cho nền tối) hiển
+  đặt `--text` sáng nên **mọi bàn cờ của 77 game** (vốn thiết kế cho nền tối) hiển
   thị đúng ngay.
 - **Giấy sáng** — bật khi `<body>` có class `.theme-light` (lưu ở `localStorage`
   khóa `tpg_theme`). Block `body.theme-light { ... }` ghi đè bộ biến sang tông giấy

@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Game 2 Người</string>
+    <string name="load_failed">Không thể mở trò chơi. Hãy thử lại.</string>
+    <string name="retry">Thử lại</string>
+    <string name="backup_saved">Đã lưu bản sao dữ liệu</string>
+    <string name="backup_failed">Không lưu được bản sao dữ liệu</string>
+</resources>

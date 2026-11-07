@@ -2,12 +2,14 @@
    Server: phục vụ web tĩnh + WebSocket relay cho chơi online
    ============================================================ */
 const http = require("http");
+const net = require("net");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const zlib = require("zlib");
 const { WebSocketServer } = require("ws");
 const accounts = require("./accounts");
+const { createVerifier } = require("./ranked-games");
 
 const PORT = process.env.PORT || 8777;
 const ROOT = path.resolve(__dirname);
@@ -32,6 +34,48 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
 const ipConnections = new Map(); // ip -> count
 let totalConnections = 0;
 
+function normalizeIp(raw) {
+  if (typeof raw !== "string") return "";
+  let ip = raw.trim();
+  if (!ip) return "";
+  if (ip.toLowerCase().startsWith("::ffff:")) {
+    const v4 = ip.slice(7);
+    if (net.isIP(v4) === 4) return v4;
+  }
+  return net.isIP(ip) ? ip : "";
+}
+
+function isTrustedProxyAddress(addr) {
+  const ip = normalizeIp(addr);
+  if (!ip) return false;
+  if (ip === "127.0.0.1" || ip === "::1" || ip.startsWith("127.")) return true;
+  if (ip.startsWith("10.") || ip.startsWith("192.168.")) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return true;
+  if (/^(f[cd][0-9a-f]{2}|fe[89ab][0-9a-f]):/i.test(ip)) return true;
+  return false;
+}
+
+function getClientIp(req) {
+  const remoteRaw = (req && req.socket && req.socket.remoteAddress) || "";
+  const remoteIp = normalizeIp(remoteRaw) || remoteRaw || "unknown";
+  const headers = (req && req.headers) || {};
+  const trustProxy = Boolean(process.env.RENDER) || process.env.TRUST_PROXY === "1" || isTrustedProxyAddress(remoteRaw);
+  if (trustProxy) {
+    for (const h of ["cf-connecting-ip", "true-client-ip"]) {
+      const candidate = normalizeIp(headers[h]);
+      if (candidate) return candidate;
+    }
+    const xff = headers["x-forwarded-for"];
+    if (typeof xff === "string" && xff) {
+      for (const part of xff.split(",")) {
+        const candidate = normalizeIp(part);
+        if (candidate) return candidate;
+      }
+    }
+  }
+  return remoteIp;
+}
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -41,7 +85,21 @@ const MIME = {
   ".png": "image/png",
   ".ico": "image/x-icon",
   ".svg": "image/svg+xml",
+  ".xml": "application/xml; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
 };
+
+// Serve only browser assets. Account data, source files and Git metadata must
+// never become downloadable just because they live below the repository root.
+const PUBLIC_ROOT_FILES = new Set([
+  "index.html", "offline.html", "styles.css", "sw.js",
+  "manifest.webmanifest", "manifest.json", "icon.svg",
+  "og-image.svg", "og-image.png", "robots.txt", "sitemap.xml",
+]);
+function isPublicAsset(relativePath) {
+  const name = relativePath.replace(/\\/g, "/");
+  return PUBLIC_ROOT_FILES.has(name) || /^js\/(?:games\/)?[a-z0-9-]+\.js$/.test(name);
+}
 
 // Kiểu nội dung text nên nén gzip (giảm mạnh CSS/JS lớn như styles.css, vi-dict.js).
 const COMPRESSIBLE = new Set([".html", ".css", ".js", ".json", ".webmanifest", ".svg"]);
@@ -95,12 +153,20 @@ const API_JSON_HEADERS = {
 };
 
 // Rate-limit đơn giản theo IP cho các endpoint nhạy cảm (đăng ký / đăng nhập).
-const apiRate = new Map(); // ip -> { start, count }
+const apiRate = new Map(); // ip -> { start, count, windowMs }
+function pruneApiRate(now = Date.now()) {
+  for (const [key, entry] of apiRate) {
+    if (!entry || now - entry.start >= (entry.windowMs || 60_000)) {
+      apiRate.delete(key);
+    }
+  }
+}
 function apiRateLimit(ip, limit, windowMs) {
   const now = Date.now();
+  if (apiRate.size > 1000) pruneApiRate(now);
   const cur = apiRate.get(ip);
   if (!cur || now - cur.start >= windowMs) {
-    apiRate.set(ip, { start: now, count: 1 });
+    apiRate.set(ip, { start: now, count: 1, windowMs });
     return true;
   }
   cur.count++;
@@ -151,7 +217,7 @@ function parseQuery(url) {
 
 // Trả về true nếu đã xử lý xong request API.
 async function handleApi(req, res, urlPath) {
-  const ip = (req.socket && req.socket.remoteAddress) || "unknown";
+  const ip = getClientIp(req);
   const route = urlPath.replace(/\/+$/, "");
 
   // Chỉ chấp nhận POST/GET cho các endpoint dưới đây.
@@ -249,40 +315,51 @@ const server = http.createServer((req, res) => {
     res.writeHead(403);
     return res.end("Forbidden");
   }
+  if (!isPublicAsset(relPath)) {
+    res.writeHead(404);
+    return res.end("404 Not Found");
+  }
 
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+  fs.realpath(filePath, (realErr, realPath) => {
+    const realRelative = !realErr && path.relative(ROOT, realPath);
+    if (realErr || realRelative.startsWith("..") || path.isAbsolute(realRelative) || !isPublicAsset(realRelative)) {
+      res.writeHead(404);
       return res.end("404 Not Found");
     }
-    const ext = path.extname(filePath).toLowerCase();
-    const headers = {
-      "Content-Type": MIME[ext] || "application/octet-stream",
-      "X-Content-Type-Options": "nosniff",
-      "X-Frame-Options": "SAMEORIGIN",
-      "Referrer-Policy": "no-referrer",
-      "Content-Security-Policy": CSP,
-      "Permissions-Policy": "geolocation=(), camera=(), microphone=(), payment=(), usb=()",
-      "Cache-Control": cacheControlFor(ext),
-      "Vary": "Accept-Encoding",
-    };
+    fs.readFile(realPath, (err, data) => {
+      if (err) {
+        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        return res.end("404 Not Found");
+      }
+      const ext = path.extname(filePath).toLowerCase();
+      const headers = {
+        "Content-Type": MIME[ext] || "application/octet-stream",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Referrer-Policy": "no-referrer",
+        "Content-Security-Policy": CSP,
+        "Permissions-Policy": "geolocation=(), camera=(), microphone=(), payment=(), usb=()",
+        "Cache-Control": cacheControlFor(ext),
+        "Vary": "Accept-Encoding",
+      };
 
-    // Nén gzip cho file text khi trình duyệt hỗ trợ (giảm mạnh dung lượng CSS/JS lớn).
-    if (COMPRESSIBLE.has(ext) && acceptsGzip(req) && data.length > 1024) {
-      zlib.gzip(data, (gzErr, gzipped) => {
-        if (gzErr) {
+      // Nén gzip cho file text khi trình duyệt hỗ trợ (giảm mạnh CSS/JS lớn).
+      if (COMPRESSIBLE.has(ext) && acceptsGzip(req) && data.length > 1024) {
+        zlib.gzip(data, (gzErr, gzipped) => {
+          if (gzErr) {
+            res.writeHead(200, headers);
+            return res.end(data);
+          }
+          headers["Content-Encoding"] = "gzip";
           res.writeHead(200, headers);
-          return res.end(data);
-        }
-        headers["Content-Encoding"] = "gzip";
-        res.writeHead(200, headers);
-        res.end(gzipped);
-      });
-      return;
-    }
+          res.end(gzipped);
+        });
+        return;
+      }
 
-    res.writeHead(200, headers);
-    res.end(data);
+      res.writeHead(200, headers);
+      res.end(data);
+    });
   });
 });
 
@@ -337,8 +414,22 @@ function send(ws, type, payload = {}) {
   }
 }
 
+function inputText(value) {
+  return typeof value === "string" ? value : "";
+}
+
+function accountFor(ws, token) {
+  if (typeof token !== "string" || !token) return { user: null };
+  try { return { user: accounts.userByToken(token) }; }
+  catch (err) {
+    console.error("[ws] Account storage unavailable:", err.message);
+    send(ws, "error", { message: "Không thể truy cập dữ liệu tài khoản. Vui lòng thử lại." });
+    return null;
+  }
+}
+
 function cleanPlayerName(value, fallback) {
-  const name = String(value || "")
+  const name = inputText(value)
     // eslint-disable-next-line no-control-regex -- cố ý loại bỏ ký tự điều khiển khỏi tên người chơi
     .replace(/[\u0000-\u001f\u007f<>]/g, "")
     .replace(/\s+/g, " ")
@@ -352,14 +443,14 @@ function isValidGameId(value) {
 }
 
 function cleanRoomCode(value) {
-  const code = String(value || "").trim();
+  const code = inputText(value).trim();
   return /^\d{4}$/.test(code) ? code : "";
 }
 
 // ---------- Mật khẩu phòng (phòng riêng tư) ----------
 const MAX_PASSWORD_LEN = 32;
 function cleanPassword(value) {
-  return String(value || "")
+  return inputText(value)
     // eslint-disable-next-line no-control-regex -- loại ký tự điều khiển khỏi mật khẩu
     .replace(/[\u0000-\u001f\u007f]/g, "")
     .trim()
@@ -371,7 +462,7 @@ function hashPassword(pw, salt) {
 // So khớp an toàn theo thời gian; phòng không đặt mật khẩu thì luôn cho qua.
 function verifyRoomPassword(room, pw) {
   if (!room.passwordHash) return true;
-  const candidate = hashPassword(String(pw || ""), room.passwordSalt);
+  const candidate = hashPassword(inputText(pw), room.passwordSalt);
   const a = Buffer.from(candidate);
   const b = Buffer.from(room.passwordHash);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
@@ -444,11 +535,12 @@ function pairMatch(gameId, wsA, wsB) {
   const acctB = wsB.queueAccount || null;
   const nameA = wsA.queueName || "Người chơi 1";
   const nameB = wsB.queueName || "Người chơi 2";
-  const ranked = !!(acctA && acctB && acctA !== acctB);
+  const verifier = acctA && acctB && acctA !== acctB ? createVerifier(gameId) : null;
+  const ranked = !!verifier;
   rooms.set(code, {
     players: [wsA, wsB], names: [nameA, nameB], tokens: [token0, token1],
-    accounts: [acctA, acctB], results: [null, null], history: [], dcTimers: [null, null],
-    gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options: {}, public: false, ranked,
+    accounts: [acctA, acctB], history: [], historySeats: [], historyStart: 0, dcTimers: [null, null],
+    gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options: {}, public: false, ranked, verifier,
   });
   wsA.roomCode = code; wsA.seat = 0;
   wsB.roomCode = code; wsB.seat = 1;
@@ -505,8 +597,8 @@ function handleDisconnect(ws) {
   if (room.players[seat] !== ws) { ws.roomCode = null; ws.seat = null; return; }
   room.players[seat] = null;
   const opp = otherPlayer(room, ws);
-  if (!opp) {
-    // không còn ai -> xóa luôn
+  if (!opp && !(room.tokens && room.tokens[1])) {
+    // Phòng chưa từng có khách: không cần giữ để hai người khôi phục ván.
     if (room.dcTimers) room.dcTimers.forEach((t) => t && clearTimeout(t));
     rooms.delete(code);
     ws.roomCode = null; ws.seat = null;
@@ -526,9 +618,39 @@ function handleDisconnect(ws) {
   ws.roomCode = null; ws.seat = null;
 }
 
+function recordRankedResult(room) {
+  if (!room.ranked || !room.verifier || room.verifier.result === null || room.ratedRound === room.round) return;
+  const ratedRound = room.round;
+  const winner = room.verifier.result;
+  const winnerRoomSeat = winner === "draw" ? null : (winner === 0 ? room.firstSeat : 1 - room.firstSeat);
+  const result = winnerRoomSeat === null ? "draw" : (winnerRoomSeat === 0 ? "a" : "b");
+  room.ratedRound = ratedRound;
+  accounts.recordMatch(room.gameId, room.accounts[0], room.accounts[1], result)
+    .then((rec) => {
+      if (!rec || !rec.ok) {
+        if (room.ratedRound === ratedRound) room.ratedRound = null;
+        return;
+      }
+      send(room.players[0], "rated", { gameId: room.gameId, round: ratedRound, overall: rec.a.overall, game: rec.a.game, delta: rec.a.delta, result: result === "draw" ? "draw" : (result === "a" ? "win" : "lose") });
+      send(room.players[1], "rated", { gameId: room.gameId, round: ratedRound, overall: rec.b.overall, game: rec.b.game, delta: rec.b.delta, result: result === "draw" ? "draw" : (result === "b" ? "win" : "lose") });
+    })
+    .catch((err) => {
+      if (room.ratedRound === ratedRound) room.ratedRound = null;
+      console.error("[accounts] Failed to record ranked match:", err.message);
+      room.players.forEach((player) => send(player, "error", { message: "Không thể lưu điểm xếp hạng. Vui lòng thử lại." }));
+    });
+}
+
 wss.on("connection", (ws, req) => {
+  ws.on("error", (err) => {
+    // ws emits an error before closing oversized or invalid frames. An
+    // unhandled error event would terminate the whole server process.
+    if (err.code !== "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH") {
+      console.warn("[ws] Connection error:", err.message);
+    }
+  });
   // Giới hạn tổng kết nối + theo IP để chống DoS / lách rate-limit bằng nhiều socket.
-  const ip = (req.socket && req.socket.remoteAddress) || "unknown";
+  const ip = getClientIp(req);
   if (totalConnections >= MAX_CONNECTIONS) {
     send(ws, "error", { message: "Máy chủ đang quá tải. Thử lại sau." });
     ws.close(1013, "server busy");
@@ -559,6 +681,7 @@ wss.on("connection", (ws, req) => {
 
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
+    if (!msg || typeof msg !== "object" || Array.isArray(msg) || typeof msg.type !== "string") return;
 
     switch (msg.type) {
       case "create": {
@@ -567,6 +690,8 @@ wss.on("connection", (ws, req) => {
         if (rooms.size >= MAX_ROOMS) return send(ws, "error", { message: "Máy chủ đã đạt giới hạn số phòng. Thử lại sau." });
         const options = cleanOptions(msg.options);
         if (options === null) return send(ws, "error", { message: "Tùy chỉnh ván quá lớn." });
+        const account = accountFor(ws, msg.auth);
+        if (!account) return;
         leaveRoom(ws);
         const code = makeCode();
         const seed = Math.floor(Math.random() * 1e9);
@@ -574,8 +699,8 @@ wss.on("connection", (ws, req) => {
         const playerName = cleanPlayerName(msg.playerName, "Người chơi 1");
         const password = cleanPassword(msg.password);
         const token0 = makeToken();
-        const acct0 = accounts.userByToken(msg.auth);
-        rooms.set(code, { players: [ws, null], names: [playerName, null], tokens: [token0, null], accounts: [acct0 ? acct0.username : null, null], results: [null, null], history: [], dcTimers: [null, null], gameId: msg.gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options, public: !!msg.public });
+        const acct0 = account.user;
+        rooms.set(code, { players: [ws, null], names: [playerName, null], tokens: [token0, null], accounts: [acct0 ? acct0.username : null, null], history: [], historySeats: [], historyStart: 0, dcTimers: [null, null], gameId: msg.gameId, seed, firstSeat, round: 1, restartVotes: new Set(), options, public: !!msg.public });
         if (password) {
           const room = rooms.get(code);
           room.passwordSalt = crypto.randomBytes(8).toString("hex");
@@ -591,25 +716,33 @@ wss.on("connection", (ws, req) => {
         if (!rateLimit(ws, "lobby", 18, 60_000)) return send(ws, "error", { message: "Bạn thao tác tạo/vào phòng quá nhanh. Hãy thử lại sau." });
         const code = cleanRoomCode(msg.code);
         if (!code) return send(ws, "error", { message: "Mã phòng phải gồm 4 chữ số." });
-        leaveRoom(ws);
         const room = rooms.get(code);
         if (!room) return send(ws, "error", { message: "Mã phòng không tồn tại." });
+        if (room.players[0] === ws) return send(ws, "error", { message: "Bạn đã ở trong phòng này." });
         if (!verifyRoomPassword(room, msg.password)) return send(ws, "error", { message: "Sai mật khẩu phòng.", reason: "bad_password" });
         if (room.players[1]) return send(ws, "error", { message: "Phòng đã đủ người." });
+        if (room.tokens && room.tokens[1]) return send(ws, "error", { message: "Chỗ này đang chờ người chơi kết nối lại." });
+        const account = accountFor(ws, msg.auth);
+        if (!account) return;
+        leaveRoom(ws);
         room.players[1] = ws;
         room.names[1] = cleanPlayerName(msg.playerName, "Người chơi 2");
         const token1 = makeToken();
         room.tokens = room.tokens || [null, null];
         room.tokens[1] = token1;
-        const acct1 = accounts.userByToken(msg.auth);
+        const acct1 = account.user;
         room.accounts = room.accounts || [null, null];
         room.accounts[1] = acct1 ? acct1.username : null;
-        room.results = [null, null]; // reset báo cáo kết quả cho ván mới
         room.history = [];
+        room.historySeats = [];
+        room.historyStart = 0;
         ws.roomCode = code;
         ws.seat = 1;
-        const ranked = !!(room.accounts && room.accounts[0] && room.accounts[1] && room.accounts[0] !== room.accounts[1]);
+        const verifier = room.accounts[0] && room.accounts[1] && room.accounts[0] !== room.accounts[1]
+          ? createVerifier(room.gameId, room.options) : null;
+        const ranked = !!verifier;
         room.ranked = ranked;
+        room.verifier = verifier;
         send(ws, "joined", { code, seat: 1, token: token1, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names, ranked });
         // báo cho cả hai bắt đầu (kèm options của chủ phòng)
         send(room.players[0], "start", { code, seat: 0, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names, ranked });
@@ -621,7 +754,9 @@ wss.on("connection", (ws, req) => {
         if (!rateLimit(ws, "lobby", 18, 60_000)) return send(ws, "error", { message: "Bạn thao tác quá nhanh. Hãy thử lại sau." });
         if (!isValidGameId(msg.gameId)) return send(ws, "error", { message: "Game không hợp lệ." });
         if (rooms.size >= MAX_ROOMS) return send(ws, "error", { message: "Máy chủ đã đạt giới hạn số phòng. Thử lại sau." });
-        const acct = accounts.userByToken(msg.auth);
+        const account = accountFor(ws, msg.auth);
+        if (!account) return;
+        const acct = account.user;
         ws.queueAccount = acct ? acct.username : null;
         ws.queueName = cleanPlayerName(msg.playerName, "Người chơi");
         enqueue(ws, msg.gameId);
@@ -639,9 +774,20 @@ wss.on("connection", (ws, req) => {
         if (payloadBytes(msg.move) > MAX_MOVE_BYTES) return send(ws, "error", { message: "Nước đi quá lớn." });
         const room = roomFor(ws);
         if (!room) return;
-        if (room.history) { room.history.push(msg.move); if (room.history.length > MAX_HISTORY) room.history.shift(); }
+        if (room.ranked) {
+          const player = ws.seat === room.firstSeat ? 0 : 1;
+          if (!room.verifier.apply(msg.move, player)) return send(ws, "error", { message: "Nước đi không hợp lệ trong ván xếp hạng." });
+        }
+        if (room.history) {
+          room.history.push(msg.move);
+          room.historySeats.push(ws.seat);
+          if (room.history.length > MAX_HISTORY) {
+            room.history.shift(); room.historySeats.shift(); room.historyStart++;
+          }
+        }
         const opp = otherPlayer(room, ws);
         send(opp, "move", { move: msg.move });
+        recordRankedResult(room);
         break;
       }
 
@@ -663,8 +809,10 @@ wss.on("connection", (ws, req) => {
         room.firstSeat = typeof room.firstSeat === "number" ? 1 - room.firstSeat : (Math.random() < 0.5 ? 0 : 1);
         room.restartVotes.clear();
         room.history = [];
-        room.results = [null, null]; // ván mới -> chờ báo cáo kết quả mới
-        room.players.forEach((p, i) => send(p, "restart", { code: ws.roomCode, gameId: room.gameId, seed, seat: i, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names, ranked: !!(room.accounts && room.accounts[0] && room.accounts[1]) }));
+        room.historySeats = [];
+        room.historyStart = 0;
+        room.verifier = room.ranked ? createVerifier(room.gameId, room.options) : null;
+        room.players.forEach((p, i) => send(p, "restart", { code: ws.roomCode, gameId: room.gameId, seed, seat: i, firstSeat: room.firstSeat, round: room.round, options: room.options, playerNames: room.names, ranked: room.ranked }));
         break;
       }
 
@@ -672,7 +820,7 @@ wss.on("connection", (ws, req) => {
         if (!rateLimit(ws, "chat", 8, 10_000)) return send(ws, "error", { message: "Bạn gửi chat quá nhanh. Hãy chờ một chút." });
         const room = roomFor(ws);
         if (!room) return;
-        send(otherPlayer(room, ws), "chat", { text: String(msg.text || "").slice(0, 200) });
+        send(otherPlayer(room, ws), "chat", { text: inputText(msg.text).slice(0, 200) });
         break;
       }
 
@@ -680,52 +828,9 @@ wss.on("connection", (ws, req) => {
         if (!rateLimit(ws, "react", 12, 8_000)) return;
         const room = roomFor(ws);
         if (!room) return;
-        const emoji = String(msg.emoji || "").slice(0, 8);
+        const emoji = inputText(msg.emoji).slice(0, 8);
         if (!emoji) return;
         send(otherPlayer(room, ws), "react", { emoji });
-        break;
-      }
-
-      case "reportResult": {
-        if (!rateLimit(ws, "report", 10, 30_000)) return;
-        const room = roomFor(ws);
-        if (!room) return;
-        if (!room.ranked || !room.accounts || !room.accounts[0] || !room.accounts[1]) return; // chỉ tính khi cả hai đăng nhập
-        // Kết quả theo góc nhìn ghế của người báo: "win" | "lose" | "draw".
-        const outcome = msg.outcome;
-        if (outcome !== "win" && outcome !== "lose" && outcome !== "draw") return;
-        const round = Number(msg.round) || room.round || 1;
-        room.results = room.results || [null, null];
-        // Gắn kèm round để tránh nhầm báo cáo của ván trước với ván sau.
-        room.results[ws.seat] = { outcome, round };
-        const r0 = room.results[0];
-        const r1 = room.results[1];
-        if (!r0 || !r1 || r0.round !== r1.round) return; // chờ đủ hai báo cáo cùng ván
-        if (room.ratedRound === r0.round) return; // đã tính cho ván này rồi
-
-        // Quy về kết quả theo ghế 0. Hai báo cáo phải NHẤT QUÁN mới tính.
-        // seat0 thắng khi: seat0 báo "win" và seat1 báo "lose".
-        let result = null;
-        if (r0.outcome === "draw" && r1.outcome === "draw") result = "draw";
-        else if (r0.outcome === "win" && r1.outcome === "lose") result = "a";
-        else if (r0.outcome === "lose" && r1.outcome === "win") result = "b";
-        if (!result) { room.results = [null, null]; return; } // báo cáo mâu thuẫn -> bỏ qua
-
-        room.ratedRound = r0.round;
-        accounts.recordMatch(room.gameId, room.accounts[0], room.accounts[1], result)
-          .then((rec) => {
-            if (!rec || !rec.ok) {
-              if (room.ratedRound === r0.round) room.ratedRound = null;
-              return;
-            }
-            send(room.players[0], "rated", { gameId: room.gameId, overall: rec.a.overall, game: rec.a.game, delta: rec.a.delta, result: result === "draw" ? "draw" : (result === "a" ? "win" : "lose") });
-            send(room.players[1], "rated", { gameId: room.gameId, overall: rec.b.overall, game: rec.b.game, delta: rec.b.delta, result: result === "draw" ? "draw" : (result === "b" ? "win" : "lose") });
-          })
-          .catch((err) => {
-            if (room.ratedRound === r0.round) room.ratedRound = null;
-            console.error("[accounts] Failed to record ranked match:", err.message);
-            room.players.forEach((player) => send(player, "error", { message: "Không thể lưu điểm xếp hạng. Vui lòng thử lại." }));
-          });
         break;
       }
 
@@ -740,7 +845,7 @@ wss.on("connection", (ws, req) => {
         if (!rateLimit(ws, "list", 30, 60_000)) return;
         const list = [];
         for (const [code, room] of rooms) {
-          if (room.public && room.players[0] && !room.players[1]) {
+          if (room.public && room.players[0] && !room.players[1] && !(room.tokens && room.tokens[1])) {
             list.push({ code, gameId: room.gameId, hostName: room.names[0] || "Người chơi 1", round: room.round || 1, locked: !!room.passwordHash });
           }
           if (list.length >= 40) break;
@@ -768,7 +873,9 @@ wss.on("connection", (ws, req) => {
         send(ws, "rejoined", {
           code, seat, gameId: room.gameId, seed: room.seed, firstSeat: room.firstSeat,
           round: room.round, options: room.options, playerNames: room.names,
-          history: room.history || [],
+          history: room.history || [], historySeats: room.historySeats || [],
+          historyStart: room.historyStart || 0, ranked: !!room.ranked,
+          opponentConnected: !!otherPlayer(room, ws),
         });
         send(otherPlayer(room, ws), "opponent_reconnected", { seat });
         break;
@@ -788,6 +895,7 @@ wss.on("connection", (ws, req) => {
 });
 
 const heartbeatInterval = setInterval(() => {
+  pruneApiRate();
   wss.clients.forEach((ws) => {
     if (!ws.isAlive) {
       ws.terminate();

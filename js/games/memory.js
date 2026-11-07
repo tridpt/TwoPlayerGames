@@ -48,6 +48,8 @@
     const bestCombo = [0, 0];
     let startTime = Date.now();
     let timerId = null;
+    let mismatchTimer = null;
+    const queuedRemoteMoves = [];
 
     const root = document.createElement("div");
     root.className = "mem-root";
@@ -119,7 +121,7 @@
     }
 
     function applyMove(i, fromRemote) {
-      if (lock) return;
+      if (lock) { if (fromRemote) queuedRemoteMoves.push(i); return; }
       const card = cards[i];
       if (card.matched || i === firstIdx) return;
 
@@ -157,7 +159,8 @@
         combo[turn] = 0;
         ctx.sound("error");
         updateHud();
-        setTimeout(() => {
+        const finishMismatch = () => {
+          mismatchTimer = null;
           showFace(a, false);
           showFace(b, false);
           lock = false;
@@ -166,7 +169,10 @@
           updateHud();
           ctx.setStatus(ctx.t(`❌ Không khớp. Đến lượt Người chơi ${turn + 1}.`,
             `❌ No match. Player ${turn + 1}'s turn.`));
-        }, 800);
+          while (!lock && queuedRemoteMoves.length) applyMove(queuedRemoteMoves.shift(), true);
+        };
+        if (ctx.fastForward) finishMismatch();
+        else mismatchTimer = setTimeout(finishMismatch, 800);
       }
     }
 
@@ -186,8 +192,7 @@
     timerId = setInterval(() => { if (matchedCount < EMOJIS.length) updateHud(); }, 1000);
     const observer = new MutationObserver(() => {
       if (!document.body.contains(boardEl)) {
-        if (timerId) { clearInterval(timerId); timerId = null; }
-        observer.disconnect();
+        destroy();
       }
     });
     observer.observe(ctx.boardEl.parentNode || document.body, { childList: true, subtree: true });
@@ -196,7 +201,13 @@
     updateHud();
     ctx.setStatus(ctx.t("Lật 2 thẻ giống nhau để ghi điểm. Tìm đúng được đi tiếp — ghép liên tiếp để lên combo!",
       "Flip two matching cards to score. A match lets you go again — chain matches for combos!"));
-    return { applyMove };
+    function destroy() {
+      lock = true;
+      if (timerId) { clearInterval(timerId); timerId = null; }
+      if (mismatchTimer) { clearTimeout(mismatchTimer); mismatchTimer = null; }
+      observer.disconnect();
+    }
+    return { applyMove, destroy };
   }
 
   window.GameRegistry.register({

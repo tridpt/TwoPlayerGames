@@ -63,7 +63,15 @@ function log(ok, msg) { console.log((ok ? "\u2714 " : "\u2718 ") + msg); if (!ok
     const list2 = await next(d, "roomList");
     log(!list2.rooms.some((r) => r.code === code), "phong da day nguoi khong con trong danh sach");
 
-    [a, b, c, d].forEach((w) => w.close());
+    const disconnected = next(a, "opponent_disconnected");
+    c.close();
+    await disconnected;
+    const reservedList = next(d, "roomList");
+    d.send(JSON.stringify({ type: "listRooms" }));
+    const list3 = await reservedList;
+    log(!list3.rooms.some((r) => r.code === code), "phong cho khach ket noi lai khong bi hien la con cho");
+
+    [a, b, d].forEach((w) => w.close());
     console.log(process.exitCode ? "FAIL" : "ALL PASS");
   } catch (e) {
     console.error("ERR", e.message);

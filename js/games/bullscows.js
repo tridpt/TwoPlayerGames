@@ -544,7 +544,7 @@
       ctx.setStatus(ctx.t("Người chơi 1: đặt dãy số bí mật.", "Player 1: set your secret number."));
     }
 
-    return { applyMove };
+    return { applyMove, destroy: stopClock };
   }
 
   window.GameRegistry.register({

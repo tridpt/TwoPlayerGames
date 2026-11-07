@@ -26,7 +26,7 @@
     const SNAKE_ON = o.snakes !== "off";
 
     let pos = [0, 0];        // 0 = chưa vào bàn (ngoài ô 1)
-    let turn = ctx.isOnline ? ctx.firstSeat : 0;
+    let turn = 0;
     let over = false;
     let rolling = false;
 

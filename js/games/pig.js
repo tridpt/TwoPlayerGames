@@ -16,6 +16,10 @@
     let over = false;
     let rolling = false;
     let rollTimer = null;
+    const queuedRemoteMoves = [];
+    function drainRemoteMoves() {
+      while (!over && !rolling && queuedRemoteMoves.length) applyMove(queuedRemoteMoves.shift(), true);
+    }
 
     const root = document.createElement("div");
     root.className = "pig-root";
@@ -78,7 +82,8 @@
     });
 
     function applyMove(move, fromRemote) {
-      if (over) return;
+      if (!move || over) return;
+      if (rolling) { if (fromRemote) queuedRemoteMoves.push(move); return; }
 
       if (move.kind === "roll") {
         if (!fromRemote) ctx.sendMove(move);
@@ -86,6 +91,12 @@
         rolling = true;
         updateButtons();
         ctx.sound("shot");
+        if (ctx.fastForward) {
+          paintDie(move.die);
+          rolling = false;
+          resolveRoll(move.die);
+          return;
+        }
         dieEl.classList.add("rolling");
         let ticks = 0;
         clearInterval(rollTimer);
@@ -99,6 +110,7 @@
             setTimeout(() => dieEl.classList.remove("landed"), 320);
             rolling = false;
             resolveRoll(move.die);
+            drainRemoteMoves();
           }
         }, 55);
         return;
@@ -189,7 +201,8 @@
     ctx.setStatus(ctx.t(`Gieo xúc xắc để cộng điểm. Đạt ${TARGET} điểm trước sẽ thắng. Ra 1 là CHUYỂN điểm tạm cho đối thủ!`,
       `Roll dice to score. First to ${TARGET} points wins. Rolling a 1 GIVES your turn points to the opponent!`));
     updateButtons();
-    return { applyMove, aiMove };
+    function destroy() { over = true; clearInterval(rollTimer); rollTimer = null; }
+    return { applyMove, aiMove, destroy };
   }
 
   window.GameRegistry.register({

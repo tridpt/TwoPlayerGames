@@ -29,8 +29,10 @@ const SESSION_TTL_MS = SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
 const DUMMY_LOGIN_SALT = "2f0f85f95b680d1d834ca3c66b92f615";
 
 // ---------- Nạp / lưu (SQLite transaction + hàng đợi mutation) ----------
-let db = { users: {} };
+let db = { users: Object.create(null) };
+let tokenIndex = new Map(); // tokenHash -> username_key
 let sqlite = null;
+let upsertTx = null;
 let loaded = false;
 let mutationChain = Promise.resolve();
 
@@ -57,6 +59,7 @@ function openDatabase() {
         updated_at INTEGER NOT NULL
       )
     `);
+    upsertTx = null;
     return sqlite;
   } catch (err) {
     console.error("[accounts] Failed to open SQLite database:", err.message);
@@ -91,16 +94,47 @@ function migrateLegacy(database) {
   }
 }
 
+function rebuildTokenIndex() {
+  tokenIndex = new Map();
+  const now = Date.now();
+  for (const key of Object.keys(db.users)) {
+    const u = db.users[key];
+    if (u && Array.isArray(u.tokens)) {
+      for (const entry of u.tokens) {
+        if (entry && typeof entry.h === "string" && typeof entry.createdAt === "number" && now - entry.createdAt <= SESSION_TTL_MS) {
+          tokenIndex.set(entry.h, key);
+        }
+      }
+    }
+  }
+}
+
+function syncUserInMemory(key, nextUser) {
+  const prev = db.users[key];
+  if (prev && Array.isArray(prev.tokens)) {
+    for (const entry of prev.tokens) {
+      if (entry && typeof entry.h === "string") tokenIndex.delete(entry.h);
+    }
+  }
+  db.users[key] = nextUser;
+  if (nextUser && Array.isArray(nextUser.tokens)) {
+    for (const entry of nextUser.tokens) {
+      if (entry && typeof entry.h === "string") tokenIndex.set(entry.h, key);
+    }
+  }
+}
+
 function load() {
   if (loaded) return;
   try {
     const database = openDatabase();
     migrateLegacy(database);
-    const users = {};
+    const users = Object.create(null);
     for (const row of database.prepare("SELECT username_key, data FROM accounts").all()) {
       users[row.username_key] = JSON.parse(row.data);
     }
     db = { users };
+    rebuildTokenIndex();
     loaded = true;
   } catch (err) {
     console.error("[accounts] Failed to load account data:", err.message);
@@ -108,30 +142,30 @@ function load() {
   }
 }
 
-function cloneDb(source) {
-  return JSON.parse(JSON.stringify(source));
+function cloneUser(user) {
+  return user ? JSON.parse(JSON.stringify(user)) : null;
 }
 
-async function writeSnapshot(nextDb) {
+function persistUsers(entries) {
+  if (!entries || !entries.length) return;
   try {
     const database = openDatabase();
-    const upsert = database.prepare(`
-      INSERT INTO accounts (username_key, data, updated_at)
-      VALUES (?, ?, ?)
-      ON CONFLICT(username_key) DO UPDATE SET
-        data = excluded.data,
-        updated_at = excluded.updated_at
-    `);
-    const remove = database.prepare("DELETE FROM accounts WHERE username_key = ?");
-    const persist = database.transaction((users) => {
-      const keys = new Set(Object.keys(users));
-      for (const row of database.prepare("SELECT username_key FROM accounts").all()) {
-        if (!keys.has(row.username_key)) remove.run(row.username_key);
-      }
-      const now = Date.now();
-      for (const [key, user] of Object.entries(users)) upsert.run(key, JSON.stringify(user), now);
-    });
-    persist(nextDb.users);
+    if (!upsertTx) {
+      const upsert = database.prepare(`
+        INSERT INTO accounts (username_key, data, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(username_key) DO UPDATE SET
+          data = excluded.data,
+          updated_at = excluded.updated_at
+      `);
+      upsertTx = database.transaction((rows) => {
+        const now = Date.now();
+        for (const [key, user] of rows) {
+          upsert.run(key, JSON.stringify(user), now);
+        }
+      });
+    }
+    upsertTx(entries);
   } catch (err) {
     console.error("[accounts] Failed to persist account data:", err.message);
     throw err instanceof StorageError ? err : new StorageError(err);
@@ -139,23 +173,23 @@ async function writeSnapshot(nextDb) {
 }
 
 // Tuần tự hóa toàn bộ mutation. Chỉ cập nhật bộ nhớ sau khi transaction đã commit.
-function mutateAndPersist(mutator) {
+function enqueueMutation(fn) {
   const operation = mutationChain.then(async () => {
     load();
-    const draft = cloneDb(db);
-    const result = mutator(draft);
-    if (result && result.error) return result;
-    await writeSnapshot(draft);
-    db = draft;
-    return result;
+    return fn();
   });
   mutationChain = operation.then(() => undefined, () => undefined);
   return operation;
 }
 
 // ---------- Băm mật khẩu / token ----------
-function hashPassword(password, salt) {
-  return crypto.scryptSync(password, salt, SCRYPT_KEYLEN).toString("hex");
+function hashPasswordAsync(password, salt) {
+  return new Promise((resolve, reject) => {
+    crypto.scrypt(password, salt, SCRYPT_KEYLEN, (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(derivedKey.toString("hex"));
+    });
+  });
 }
 function makeToken() {
   return crypto.randomBytes(32).toString("base64url");
@@ -192,20 +226,24 @@ function cleanState(state) {
 async function register(username, password) {
   if (!validUsername(username)) return { error: "invalid_username" };
   if (!validPassword(password)) return { error: "invalid_password" };
-  return mutateAndPersist((draft) => {
+  return enqueueMutation(async () => {
     const key = username.toLowerCase();
-    if (draft.users[key]) return { error: "username_taken" };
+    if (db.users[key]) return { error: "username_taken" };
     const salt = crypto.randomBytes(16).toString("hex");
+    const hash = await hashPasswordAsync(password, salt);
     const token = makeToken();
-    draft.users[key] = {
+    const now = Date.now();
+    const newUser = {
       username,
       salt,
-      hash: hashPassword(password, salt),
-      createdAt: Date.now(),
-      tokens: [{ h: hashToken(token), createdAt: Date.now() }],
+      hash,
+      createdAt: now,
+      tokens: [{ h: hashToken(token), createdAt: now }],
       state: {},
       stateUpdatedAt: 0,
     };
+    persistUsers([[key, newUser]]);
+    syncUserInMemory(key, newUser);
     return { token, username };
   });
 }
@@ -214,10 +252,12 @@ async function login(username, password) {
   if (!validUsername(username) || typeof password !== "string" || password.length > MAX_PASSWORD) {
     return { error: "invalid_credentials" };
   }
-  return mutateAndPersist((draft) => {
-    const user = draft.users[username.toLowerCase()];
-    const candidate = hashPassword(password, user ? user.salt : DUMMY_LOGIN_SALT);
-    if (!user || !timingEqual(candidate, user.hash)) return { error: "invalid_credentials" };
+  return enqueueMutation(async () => {
+    const key = username.toLowerCase();
+    const existing = db.users[key];
+    const candidate = await hashPasswordAsync(password, existing ? existing.salt : DUMMY_LOGIN_SALT);
+    if (!existing || !timingEqual(candidate, existing.hash)) return { error: "invalid_credentials" };
+    const user = cloneUser(existing);
     const token = makeToken();
     const now = Date.now();
     user.tokens = (user.tokens || []).filter((entry) => (
@@ -225,6 +265,8 @@ async function login(username, password) {
     ));
     user.tokens.push({ h: hashToken(token), createdAt: now });
     if (user.tokens.length > MAX_TOKENS_PER_USER) user.tokens = user.tokens.slice(-MAX_TOKENS_PER_USER);
+    persistUsers([[key, user]]);
+    syncUserInMemory(key, user);
     return { token, username: user.username, state: user.state || {}, stateUpdatedAt: user.stateUpdatedAt || 0 };
   });
 }
@@ -234,6 +276,25 @@ function findUserByToken(database, token) {
   if (!token || typeof token !== "string") return null;
   const h = hashToken(token);
   const now = Date.now();
+  if (database === db) {
+    const key = tokenIndex.get(h);
+    if (key !== undefined) {
+      const u = database.users[key];
+      if (u && Array.isArray(u.tokens)) {
+        for (const entry of u.tokens) {
+          if (entry && entry.h === h) {
+            if (typeof entry.createdAt === "number" && now - entry.createdAt <= SESSION_TTL_MS) {
+              return u;
+            }
+            tokenIndex.delete(h);
+            return null;
+          }
+        }
+      }
+      tokenIndex.delete(h);
+    }
+    return null;
+  }
   for (const key of Object.keys(database.users)) {
     const u = database.users[key];
     if (u.tokens && u.tokens.some((entry) => (
@@ -249,11 +310,15 @@ function userByToken(token) {
 }
 
 async function logout(token) {
-  return mutateAndPersist((draft) => {
-    const u = findUserByToken(draft, token);
-    if (!u) return { ok: true };
+  return enqueueMutation(() => {
+    const existing = findUserByToken(db, token);
+    if (!existing) return { ok: true };
+    const key = existing.username.toLowerCase();
+    const user = cloneUser(existing);
     const h = hashToken(token);
-    u.tokens = (u.tokens || []).filter((t) => t.h !== h);
+    user.tokens = (user.tokens || []).filter((t) => t && t.h !== h);
+    persistUsers([[key, user]]);
+    syncUserInMemory(key, user);
     return { ok: true };
   });
 }
@@ -268,12 +333,16 @@ async function putState(token, state) {
   const clean = cleanState(state);
   if (!clean) return { error: "invalid_state" };
   if (stateBytes(clean) > MAX_STATE_BYTES) return { error: "state_too_large" };
-  return mutateAndPersist((draft) => {
-    const u = findUserByToken(draft, token);
-    if (!u) return { error: "unauthorized" };
-    u.state = clean;
-    u.stateUpdatedAt = Date.now();
-    return { ok: true, stateUpdatedAt: u.stateUpdatedAt };
+  return enqueueMutation(() => {
+    const existing = findUserByToken(db, token);
+    if (!existing) return { error: "unauthorized" };
+    const key = existing.username.toLowerCase();
+    const user = cloneUser(existing);
+    user.state = clean;
+    user.stateUpdatedAt = Date.now();
+    persistUsers([[key, user]]);
+    syncUserInMemory(key, user);
+    return { ok: true, stateUpdatedAt: user.stateUpdatedAt };
   });
 }
 
@@ -313,11 +382,15 @@ async function recordMatch(gameId, userAName, userBName, result) {
   if (!isValidGameId(gameId)) return { error: "invalid_game" };
   if (result !== "a" && result !== "b" && result !== "draw") return { error: "invalid_result" };
 
-  return mutateAndPersist((draft) => {
-    const a = draft.users[String(userAName || "").toLowerCase()];
-    const b = draft.users[String(userBName || "").toLowerCase()];
-    if (!a || !b || a === b) return { error: "invalid_players" };
+  return enqueueMutation(() => {
+    const keyA = String(userAName || "").toLowerCase();
+    const keyB = String(userBName || "").toLowerCase();
+    const origA = db.users[keyA];
+    const origB = db.users[keyB];
+    if (!origA || !origB || origA === origB) return { error: "invalid_players" };
 
+    const a = cloneUser(origA);
+    const b = cloneUser(origB);
     const ra = ensureRatings(a);
     const rb = ensureRatings(b);
     const scoreA = result === "a" ? 1 : result === "draw" ? 0.5 : 0;
@@ -341,6 +414,10 @@ async function recordMatch(gameId, userAName, userBName, result) {
     if (result === "draw") { ra.draws++; rb.draws++; }
     else if (result === "a") { ra.wins++; rb.losses++; }
     else { ra.losses++; rb.wins++; }
+
+    persistUsers([[keyA, a], [keyB, b]]);
+    syncUserInMemory(keyA, a);
+    syncUserInMemory(keyB, b);
 
     return {
       ok: true,
@@ -391,7 +468,7 @@ function health() {
 }
 
 // Cho test: đặt lại trạng thái trong bộ nhớ (không đụng file).
-function _reset() { db = { users: {} }; loaded = true; }
+function _reset() { db = { users: Object.create(null) }; tokenIndex = new Map(); loaded = true; }
 
 module.exports = {
   register, login, logout, getState, putState, userByToken,

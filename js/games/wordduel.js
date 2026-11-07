@@ -36,7 +36,7 @@
     function sylScore(s) { const c = freq.get(s) || 0; return c >= 12 ? 1 : c >= 4 ? 2 : 3; }
 
     let score = [0, 0];
-    let turn = ctx.isOnline ? ctx.firstSeat : 0;
+    let turn = 0;
     let over = false;
     let passes = 0;
     let streak = [0, 0];

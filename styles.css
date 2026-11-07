@@ -2277,6 +2277,13 @@ body.theme-light .profile-view > .back-btn:hover {
 .mode-view .back-btn,
 .lobby-view .back-btn { position: absolute; left: 0; top: 0; }
 
+@media (max-width: 620px) {
+  .mode-view .back-btn,
+  .lobby-view .back-btn { position: static; }
+  .mode-view .mode-title,
+  .lobby-view .mode-title { margin-top: 18px; }
+}
+
 .mode-cards, .lobby-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -14144,6 +14151,39 @@ body[data-preset="mono"] {
 .cg-pawn.p2 { background: radial-gradient(circle at 35% 30%, #8ab6ff, #2f6fd6); border: 2px solid #1f4fa0; }
 .cg-pawn.sel { outline: 3px solid var(--accent); outline-offset: 2px; transform: scale(1.08); }
 .cg-pawn.flip { animation: kam-win 0.8s ease-in-out 2; }
+
+/* Vẽ & Đoán */
+.dg-root { width: min(100%, 760px); margin: 0 auto; display: grid; gap: 10px; }
+.dg-root [hidden] { display: none !important; }
+.dg-head, .dg-scores, .dg-guess-row, .dg-tools, .dg-secret-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.dg-head { font-size: 1.1rem; }
+.dg-timer { font-weight: 800; color: var(--accent); min-width: 68px; text-align: right; }
+.dg-timer.dg-urgent { color: #f06363; }
+.dg-scores { font-weight: 700; padding: 8px 12px; background: rgba(255,255,255,.07); border-radius: 12px; }
+.dg-hint, .dg-result { margin: 0; text-align: center; line-height: 1.4; }
+.dg-result { min-height: 1.4em; color: var(--accent); font-weight: 700; }
+.dg-secret-box { padding: 9px 12px; border: 1px solid var(--accent); border-radius: 12px; background: rgba(255,209,102,.08); }
+.dg-secret { font-weight: 800; }
+.dg-start { justify-self: center; }
+.dg-tools { flex-wrap: wrap; justify-content: center; }
+.dg-colors { display: flex; gap: 8px; align-items: center; }
+.dg-color { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
+.dg-color.selected { outline: 3px solid var(--accent); outline-offset: 2px; }
+.dg-canvas { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; border: 3px solid #677395;
+  border-radius: 12px; background: #fff; touch-action: none; cursor: crosshair; }
+.dg-guess-form { display: grid; gap: 5px; }
+.dg-guess-form label { font-weight: 700; }
+.dg-guess-row { justify-content: stretch; }
+.dg-guess { flex: 1; min-width: 0; padding: 11px 12px; font: inherit; border-radius: 10px; border: 1px solid #8c97b0; }
+.dg-guesses { display: flex; flex-wrap: wrap; gap: 8px; min-height: 22px; }
+.dg-guesses p { margin: 0; padding: 4px 8px; border-radius: 8px; background: rgba(255,255,255,.08); }
+@media (max-width: 540px) {
+  .dg-tools .btn { padding: 7px 10px; }
+  .dg-color { width: 28px; height: 28px; }
+  .dg-secret-box { flex-wrap: wrap; }
+}
 
 
 

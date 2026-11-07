@@ -11,6 +11,9 @@
     let over = false;
     let pendingCell = null; // [r,c] vừa đặt, đang chờ chọn xoay
     let animating = false;  // đang chạy hiệu ứng xoay
+    let destroyed = false;
+    let cancelRotation = null;
+    const queuedRemoteMoves = [];
 
     const root = document.createElement("div");
     root.className = "ptg-root";
@@ -62,7 +65,7 @@
     }
     root.appendChild(rotBar);
 
-    function canPlay() { return !over && !animating && (!ctx.isOnline || turn === ctx.mySeat); }
+    function canPlay() { return !destroyed && !over && !animating && (!ctx.isOnline || turn === ctx.mySeat); }
 
     function onPlace(r, c) {
       if (!canPlay() || pendingCell || board[r][c] !== null) return;
@@ -83,6 +86,7 @@
 
     // hiệu ứng xoay ô vuông con 90° rồi gọi done()
     function animateRotate(q, dir, done) {
+      if (ctx.fastForward) { done(); return; }
       const el = quadEls[q];
       animating = true;
       setRotEnabled(false);
@@ -90,25 +94,40 @@
       el.style.transition = "transform 0.42s cubic-bezier(0.34, 1.2, 0.5, 1)";
       el.style.transform = `rotate(${dir === "cw" ? 90 : -90}deg)`;
       let finished = false;
+      let fallbackTimer;
       const finish = () => {
         if (finished) return;
         finished = true;
         el.removeEventListener("transitionend", finish);
+        clearTimeout(fallbackTimer);
+        cancelRotation = null;
         el.style.transition = "none";
         el.style.transform = "none";
         el.classList.remove("ptg-spin");
         animating = false;
-        done();
+        if (!destroyed) done();
       };
       el.addEventListener("transitionend", finish);
-      setTimeout(finish, 480); // dự phòng nếu không có transitionend
+      fallbackTimer = setTimeout(finish, 480); // dự phòng nếu không có transitionend
+      cancelRotation = () => {
+        finished = true;
+        clearTimeout(fallbackTimer);
+        el.removeEventListener("transitionend", finish);
+      };
     }
 
     function applyMove(move, fromRemote) {
-      if (over || animating) return;
+      if (destroyed || over) return;
+      if (animating) { if (fromRemote) queuedRemoteMoves.push(move); return; }
+      if (!move || !Number.isInteger(move.cell) || move.cell < 0 || move.cell >= N * N ||
+          !Number.isInteger(move.quad) || move.quad < 0 || move.quad >= 4 ||
+          (move.dir !== "cw" && move.dir !== "ccw")) return;
       // đảm bảo bi đã được đặt (người chơi local đã đặt qua onPlace; AI/từ xa thì đặt tại đây)
       const pr = Math.floor(move.cell / N), pc = move.cell % N;
-      if (board[pr][pc] === null) {
+      if (pendingCell) {
+        if (pendingCell[0] !== pr || pendingCell[1] !== pc || board[pr][pc] !== turn) return;
+      } else {
+        if (board[pr][pc] !== null) return;
         board[pr][pc] = turn;
         pendingCell = [pr, pc];
         render();
@@ -150,6 +169,7 @@
         ctx.setTurn(turn);
         setRotEnabled(false);
         ctx.setStatus(ctx.t(`Lượt Người chơi ${turn + 1} — đặt một bi vào ô trống.`, `Player ${turn + 1}'s turn — place a marble on an empty cell.`));
+        while (!over && !animating && queuedRemoteMoves.length) applyMove(queuedRemoteMoves.shift(), true);
       });
     }
 
@@ -292,7 +312,12 @@
     render();
     ctx.setStatus(ctx.t("Đặt một bi vào ô trống, sau đó xoay một ô vuông con. Ai có 5 bi thẳng hàng trước sẽ thắng.",
       "Place a marble, then rotate a quadrant. First to five in a row wins."));
-    return { applyMove, aiMove };
+    function destroy() {
+      destroyed = true;
+      if (cancelRotation) cancelRotation();
+      cancelRotation = null;
+    }
+    return { applyMove, aiMove, destroy };
   }
 
   window.GameRegistry.register({

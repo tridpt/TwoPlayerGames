@@ -16,8 +16,13 @@
     // grid[r][c] = chỉ số màu; owner[r][c] = -1 trung lập / 0 / 1
     let grid = [];
     let owner = [];
-    let turn = ctx.isOnline ? ctx.firstSeat : 0;
+    let turn = 0;
     let over = false;
+    const timers = new Set();
+    function schedule(fn, delay) {
+      const timer = setTimeout(() => { timers.delete(timer); fn(); }, delay);
+      timers.add(timer);
+    }
 
     // góc xuất phát: P1 = (N-1,0) dưới-trái, P2 = (0,N-1) trên-phải
     const HOME = [{ r: N - 1, c: 0 }, { r: 0, c: N - 1 }];
@@ -160,7 +165,7 @@
 
     function maybeAI() {
       if (over || ctx.isOnline || !ctx.vsAI || turn !== 1) return;
-      setTimeout(() => { if (!over && turn === 1) { const mv = aiMove(); if (mv) applyMove(mv, true); } }, 600);
+      schedule(() => { if (!over && turn === 1) { const mv = aiMove(); if (mv) applyMove(mv, true); } }, 600);
     }
 
     // ----- Giao diện -----
@@ -230,7 +235,11 @@
     updateStatus();
     maybeAI();
 
-    function destroy() {}
+    function destroy() {
+      over = true;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+    }
     return { applyMove, aiMove, destroy };
   }
 
